@@ -37,8 +37,24 @@ pub fn parse_summary(summary : String) -> Summary raise {
     if trimmed.is_empty() {
       continue
     }
+    if trimmed.has_prefix("<!--") {
+      continue
+    }
     if title is None && trimmed.has_prefix("# ") {
       title = Some(trimmed[2:].trim().to_string())
+      continue
+    }
+    if trimmed.has_prefix("# ") {
+      flush_stack(
+        stack, prefix_chapters, numbered_chapters, suffix_chapters, seen_numbered,
+        in_suffix,
+      )
+      if in_suffix {
+        fail("Suffix chapters cannot be followed by a list")
+      }
+      seen_numbered = true
+      numbered_chapters.push(PartTitle(trimmed[2:].trim().to_string()))
+      current_numbers = []
       continue
     }
     if trimmed == "---" {
@@ -55,12 +71,6 @@ pub fn parse_summary(summary : String) -> Summary raise {
       continue
     }
     if trimmed.has_prefix("## ") {
-      flush_stack(
-        stack, prefix_chapters, numbered_chapters, suffix_chapters, seen_numbered,
-        in_suffix,
-      )
-      numbered_chapters.push(PartTitle(trimmed[3:].trim().to_string()))
-      current_numbers = []
       continue
     }
     let bullet = trimmed.has_prefix("- ") || trimmed.has_prefix("* ")
@@ -106,6 +116,9 @@ pub fn parse_summary(summary : String) -> Summary raise {
   flush_stack(
     stack, prefix_chapters, numbered_chapters, suffix_chapters, seen_numbered, in_suffix,
   )
+  check_duplicate_files(prefix_chapters, {})
+  check_duplicate_files(numbered_chapters, {})
+  check_duplicate_files(suffix_chapters, {})
   { title, prefix_chapters, numbered_chapters, suffix_chapters }
 }
 
@@ -140,11 +153,40 @@ fn parse_link_line(line : String) -> Link raise {
     Some(index) => index
     None => fail("missing )")
   }
+  let location_text = line[open_path + 1:close_path].to_string()
   {
     name: line[open_name + 1:close_name].to_string(),
-    location: Some(line[open_path + 1:close_path].to_string()),
+    location: if location_text.is_empty() {
+      None
+    } else {
+      Some(location_text)
+    },
     number: None,
     nested_items: [],
+  }
+}
+
+///|
+fn check_duplicate_files(
+  items : Array[SummaryItem],
+  seen : Map[String, Unit],
+) -> Unit raise {
+  for item in items {
+    match item {
+      Link(link) => {
+        match link.location {
+          Some(location) =>
+            if seen.contains(location) {
+              fail("Duplicate file in SUMMARY.md: \"\{location}\"")
+            } else {
+              seen[location] = ()
+            }
+          None => ()
+        }
+        check_duplicate_files(link.nested_items, seen)
+      }
+      _ => ()
+    }
   }
 }
 
@@ -198,8 +240,36 @@ fn flush_stack(
 ///|
 test "parse summary with parts and nesting" {
   let summary = parse_summary(
-    "# Summary\n[Intro](intro.md)\n## Part One\n- [Chapter 1](chapter-1.md)\n  - [Section](section.md)\n",
+    "# Summary\n[Intro](intro.md)\n# Part One\n- [Chapter 1](chapter-1.md)\n  - [Section](section.md)\n",
   )
   assert_eq(summary.prefix_chapters.length(), 1)
   assert_eq(summary.numbered_chapters.length(), 2)
+}
+
+///|
+test "parse summary ignores subheaders inside numbered chapters" {
+  let summary = parse_summary(
+    "# Summary\n- [First](first.md)\n## Subheading\n- [Second](second.md)\n",
+  )
+  assert_eq(summary.numbered_chapters.length(), 2)
+}
+
+///|
+test "parse summary allows draft chapters with empty destinations" {
+  let summary = parse_summary("# Summary\n- [Draft]()\n")
+  match summary.numbered_chapters[0] {
+    Link(link) => assert_eq(link.location, None)
+    _ => fail("expected a link")
+  }
+}
+
+///|
+test "parse summary rejects duplicate files" {
+  let err = try? parse_summary(
+    "# Summary\n- [A](./a.md)\n  - [Again](./a.md)\n",
+  )
+  match err {
+    Err(_) => ()
+    Ok(_) => fail("expected duplicate-file failure")
+  }
 }
