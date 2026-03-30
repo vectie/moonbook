@@ -160,7 +160,10 @@ fn render_chapter_body(chapter : @core.Chapter) -> String {
   } else {
     "<p class=\"breadcrumbs\">\{escape_html(trail)}</p>"
   }
-  "<article class=\"chapter\">\{breadcrumbs}<h1>\{escape_html(chapter.display())}</h1><pre>\{escape_html(chapter.content)}</pre></article>"
+  let content = render_markdown(
+    strip_duplicate_leading_title(chapter.content, chapter),
+  )
+  "<article class=\"chapter\">\{breadcrumbs}<h1>\{escape_html(chapter.display())}</h1>\{content}</article>"
 }
 
 ///|
@@ -259,6 +262,147 @@ fn escape_html(text : String) -> String {
 }
 
 ///|
+fn render_markdown(markdown : String) -> String {
+  let builder = StringBuilder::new()
+  let paragraph : Array[String] = []
+  let list_items : Array[String] = []
+  let mut code_lines : Array[String] = []
+  let mut code_language = ""
+  let mut in_code_block = false
+
+  for raw_line in markdown.split("\n") {
+    let line = raw_line.to_string()
+    let trimmed = line.trim().to_string()
+    if trimmed.has_prefix("```") {
+      flush_paragraph(builder, paragraph)
+      flush_list(builder, list_items)
+      if in_code_block {
+        let code = escape_html(code_lines.join("\n"))
+        let class_attr = if code_language.is_empty() {
+          ""
+        } else {
+          " class=\"language-\{escape_html(code_language)}\""
+        }
+        builder.write_string("<pre><code\{class_attr}>\{code}</code></pre>")
+        code_lines = []
+        code_language = ""
+        in_code_block = false
+      } else {
+        in_code_block = true
+        code_language = trimmed[3:].trim().to_string()
+      }
+      continue
+    }
+    if in_code_block {
+      code_lines.push(line)
+      continue
+    }
+    if trimmed.is_empty() {
+      flush_paragraph(builder, paragraph)
+      flush_list(builder, list_items)
+      continue
+    }
+    if trimmed.has_prefix("- ") || trimmed.has_prefix("* ") {
+      flush_paragraph(builder, paragraph)
+      list_items.push(trimmed[2:].trim().to_string())
+      continue
+    }
+    match heading_level(trimmed) {
+      Some(level) => {
+        flush_paragraph(builder, paragraph)
+        flush_list(builder, list_items)
+        let text = trimmed[level + 1:].trim().to_string()
+        builder.write_string("<h\{level}>\{escape_html(text)}</h\{level}>")
+      }
+      None => paragraph.push(trimmed)
+    }
+  }
+
+  flush_paragraph(builder, paragraph)
+  flush_list(builder, list_items)
+  if in_code_block {
+    let code = escape_html(code_lines.join("\n"))
+    let class_attr = if code_language.is_empty() {
+      ""
+    } else {
+      " class=\"language-\{escape_html(code_language)}\""
+    }
+    builder.write_string("<pre><code\{class_attr}>\{code}</code></pre>")
+  }
+  builder.to_string()
+}
+
+///|
+fn strip_duplicate_leading_title(
+  markdown : String,
+  chapter : @core.Chapter,
+) -> String {
+  let lines = markdown.split("\n").map(fn(line) { line.to_string() }).to_array()
+  if lines.is_empty() {
+    return markdown
+  }
+  let mut first_content = 0
+  while first_content < lines.length() && lines[first_content].trim().is_empty() {
+    first_content += 1
+  }
+  if first_content >= lines.length() {
+    return markdown
+  }
+  let trimmed = lines[first_content].trim().to_string()
+  match heading_level(trimmed) {
+    Some(level) => {
+      let title = trimmed[level + 1:].trim().to_string()
+      if title == chapter.name || title == chapter.display() {
+        lines[first_content + 1:].join("\n")
+      } else {
+        markdown
+      }
+    }
+    None => markdown
+  }
+}
+
+///|
+fn heading_level(line : String) -> Int? {
+  let mut level = 0
+  for c in line {
+    if c == '#' {
+      level += 1
+    } else {
+      break
+    }
+  }
+  if level > 0 && level <= 6 && line.length() > level && line[level] == ' ' {
+    Some(level)
+  } else {
+    None
+  }
+}
+
+///|
+fn flush_paragraph(builder : StringBuilder, paragraph : Array[String]) -> Unit {
+  if paragraph.is_empty() {
+    return
+  }
+  let text = paragraph.join(" ")
+  builder.write_string("<p>\{escape_html(text)}</p>")
+  paragraph.clear()
+}
+
+///|
+fn flush_list(builder : StringBuilder, list_items : Array[String]) -> Unit {
+  if list_items.is_empty() {
+    return
+  }
+  builder.write_string("<ul>")
+  for item in list_items {
+    builder.write_string("<li>\{escape_html(item)}</li>")
+  }
+  builder.write_string("</ul>")
+  list_items.clear()
+}
+
+///|
 test "relative href handles nested chapter paths" {
   assert_eq(relative_href("index.html", "guide/index.html"), "guide/index.html")
   assert_eq(
@@ -303,4 +447,29 @@ test "navigation preserves parts separators and nesting" {
   assert_true(nav.contains("guide/nested.html"))
   assert_true(nav.contains("<hr>"))
   assert_true(nav.contains("aria-current=\"page\""))
+}
+
+///|
+test "render markdown handles paragraphs headings lists and code blocks" {
+  let html = render_markdown(
+    "# Intro\n\nHello world\nacross lines\n\n- one\n- two\n\n```rust\nfn main {}\n```\n",
+  )
+  assert_true(html.contains("<h1>Intro</h1>"))
+  assert_true(html.contains("<p>Hello world across lines</p>"))
+  assert_true(html.contains("<ul><li>one</li><li>two</li></ul>"))
+  assert_true(html.contains("<code class=\"language-rust\">fn main {}</code>"))
+}
+
+///|
+test "chapter body strips duplicate leading title" {
+  let chapter = @core.chapter(
+    "Chapter 1",
+    "# Chapter 1\n\nHello\n",
+    number=Some(@core.SectionNumber::new([1])),
+    path=Some("chapter_1.md"),
+    source_path=Some("chapter_1.md"),
+  )
+  let body = render_chapter_body(chapter)
+  assert_eq(body.split("<h1>").to_array().length(), 2)
+  assert_true(body.contains("<p>Hello</p>"))
 }
