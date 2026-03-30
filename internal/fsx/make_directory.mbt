@@ -12,12 +12,7 @@ pub async fn make_directory(
       continue
     }
     @fs.mkdir(dir, permission=0o755) catch {
-      error =>
-        if exists_ok {
-          ()
-        } else {
-          raise error
-        }
+      error => if exists_ok { () } else { raise error }
     }
   }
 }

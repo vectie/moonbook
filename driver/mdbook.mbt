@@ -121,6 +121,7 @@ pub async fn init_book(
 
 ///|
 pub async fn MDBook::build(self : MDBook) -> Unit {
+  let preprocessed_book = preprocess_book(self.book)
   let build_dir = @path.Path(self.root).join(
     @path.Path(self.config.build.build_dir),
   )
@@ -129,11 +130,12 @@ pub async fn MDBook::build(self : MDBook) -> Unit {
       self.root,
       build_dir.to_string(),
       self.config,
-      self.book,
+      preprocessed_book,
     ),
   )
   let manifest_path = build_dir.join(@path.Path("book.json")).to_string()
-  write_text_file(manifest_path, self.to_json().stringify(indent=2))
+  let manifest = { ..self, book: preprocessed_book }
+  write_text_file(manifest_path, manifest.to_json().stringify(indent=2))
 }
 
 ///|
@@ -253,6 +255,48 @@ async fn create_missing(src_dir : String, summary : @summary.Summary) -> Unit {
   create_missing_items(summary.prefix_chapters, src_dir)
   create_missing_items(summary.numbered_chapters, src_dir)
   create_missing_items(summary.suffix_chapters, src_dir)
+}
+
+///|
+fn preprocess_book(book : @core.Book) -> @core.Book {
+  book.for_each_mut(preprocess_book_item)
+}
+
+///|
+fn preprocess_book_item(item : @core.BookItem) -> @core.BookItem {
+  match item {
+    Chapter(chapter) => @core.item_chapter(preprocess_chapter(chapter))
+    _ => item
+  }
+}
+
+///|
+fn preprocess_chapter(chapter : @core.Chapter) -> @core.Chapter {
+  let path = match chapter.path {
+    Some(path) => Some(normalize_readme_path(path))
+    None => None
+  }
+  @core.chapter(
+    chapter.name,
+    chapter.content,
+    number=chapter.number,
+    sub_items=chapter.sub_items,
+    path~,
+    source_path=chapter.source_path,
+    parent_names=chapter.parent_names,
+  )
+}
+
+///|
+fn normalize_readme_path(path : String) -> String {
+  let base = @path.Path(path)
+  let ext = @pathx.ext(path).to_string()
+  let stem = base.basename().to_string().replace(old=ext, new="").to_string()
+  if stem.to_lower() == "readme" {
+    @pathx.join(@pathx.dirname(path), "index" + ext)
+  } else {
+    path
+  }
 }
 
 ///|
@@ -401,4 +445,36 @@ fn collect_clean_stats(path : String) -> CleanStats raise {
     bytes_removed += nested.bytes_removed
   }
   { files_removed, directories_removed, bytes_removed }
+}
+
+///|
+test "normalize readme paths to index" {
+  assert_eq(normalize_readme_path("./README.md"), "index.md")
+  assert_eq(normalize_readme_path("guide/ReadMe.md"), "guide/index.md")
+  assert_eq(normalize_readme_path("./chapter_1.md"), "./chapter_1.md")
+}
+
+///|
+test "preprocess book rewrites chapter paths but preserves source paths" {
+  let nested = @core.chapter(
+    "Nested",
+    "# Nested\n",
+    path=Some("guide/README.md"),
+    source_path=Some("guide/README.md"),
+    parent_names=["Chapter 1"],
+  )
+  let chapter = @core.chapter(
+    "Chapter 1",
+    "# Chapter 1\n",
+    path=Some("./README.md"),
+    source_path=Some("./README.md"),
+    sub_items=[@core.item_chapter(nested)],
+  )
+  let book = @core.new_with_items([@core.item_chapter(chapter)])
+  let chapters = preprocess_book(book).chapters()
+  assert_eq(chapters.length(), 2)
+  assert_eq(chapters[0].path, Some("index.md"))
+  assert_eq(chapters[0].source_path, Some("./README.md"))
+  assert_eq(chapters[1].path, Some("guide/index.md"))
+  assert_eq(chapters[1].source_path, Some("guide/README.md"))
 }

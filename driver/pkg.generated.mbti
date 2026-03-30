@@ -7,7 +7,7 @@ import {
 }
 
 // Values
-pub fn clean_book(String, dest_dir? : String?) -> CleanStats raise
+pub async fn clean_book(String, dest_dir? : String?) -> CleanStats
 
 pub async fn init_book(String, create_gitignore? : Bool, copy_theme? : Bool, config? : @core.Config) -> MDBook
 
