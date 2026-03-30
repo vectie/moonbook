@@ -209,8 +209,10 @@ fn render_chapter_body(chapter : @core.Chapter) -> String {
     "<p class=\"breadcrumbs\">\{escape_html(trail)}</p>"
   }
   let stripped = strip_duplicate_leading_title(chapter.content, chapter)
-  let (markdown, footnotes) = split_footnotes(stripped)
-  let content = render_markdown(markdown) + render_footnotes(footnotes)
+  let (without_refs, references) = split_link_references(stripped)
+  let (markdown, footnotes) = split_footnotes(without_refs)
+  let content = render_markdown_with_refs(markdown, references) +
+    render_footnotes(footnotes, references)
   "<article class=\"chapter\">\{breadcrumbs}<h1>\{escape_html(chapter.display())}</h1>\{content}</article>"
 }
 
@@ -311,6 +313,14 @@ fn escape_html(text : String) -> String {
 
 ///|
 fn render_markdown(markdown : String) -> String {
+  render_markdown_with_refs(markdown, {})
+}
+
+///|
+fn render_markdown_with_refs(
+  markdown : String,
+  references : Map[String, String],
+) -> String {
   let builder = StringBuilder::new()
   let paragraph : Array[String] = []
   let list_stack : Array[(Int, Bool, Int, Array[String])] = []
@@ -328,10 +338,12 @@ fn render_markdown(markdown : String) -> String {
     let line = raw_line.to_string()
     let trimmed = line.trim().to_string()
     if trimmed.has_prefix("```") {
-      flush_paragraph(builder, paragraph)
-      flush_lists(builder, list_stack)
-      flush_blockquote(builder, quote_lines)
-      table_header = flush_table(builder, table_header, table_rows)
+      flush_paragraph_with_refs(builder, paragraph, references)
+      flush_lists_with_refs(builder, list_stack, references)
+      flush_blockquote_with_refs(builder, quote_lines, references)
+      table_header = flush_table_with_refs(
+        builder, table_header, table_rows, references,
+      )
       if in_code_block {
         let code = escape_html(code_lines.join("\n"))
         let class_attr = code_class_attr(code_language, code_modifiers)
@@ -355,7 +367,9 @@ fn render_markdown(markdown : String) -> String {
       continue
     }
     if table_header is Some(_) && !is_table_row(trimmed) {
-      table_header = flush_table(builder, table_header, table_rows)
+      table_header = flush_table_with_refs(
+        builder, table_header, table_rows, references,
+      )
     }
     match pending_table_header {
       Some(header) =>
@@ -372,40 +386,50 @@ fn render_markdown(markdown : String) -> String {
       None => ()
     }
     if trimmed.is_empty() {
-      flush_paragraph(builder, paragraph)
-      flush_lists(builder, list_stack)
-      flush_blockquote(builder, quote_lines)
-      table_header = flush_table(builder, table_header, table_rows)
+      flush_paragraph_with_refs(builder, paragraph, references)
+      flush_lists_with_refs(builder, list_stack, references)
+      flush_blockquote_with_refs(builder, quote_lines, references)
+      table_header = flush_table_with_refs(
+        builder, table_header, table_rows, references,
+      )
       continue
     }
     if trimmed == "---" {
-      flush_paragraph(builder, paragraph)
-      flush_lists(builder, list_stack)
-      flush_blockquote(builder, quote_lines)
-      table_header = flush_table(builder, table_header, table_rows)
+      flush_paragraph_with_refs(builder, paragraph, references)
+      flush_lists_with_refs(builder, list_stack, references)
+      flush_blockquote_with_refs(builder, quote_lines, references)
+      table_header = flush_table_with_refs(
+        builder, table_header, table_rows, references,
+      )
       builder.write_string("<hr>")
       continue
     }
     if is_html_block(trimmed) {
-      flush_paragraph(builder, paragraph)
-      flush_lists(builder, list_stack)
-      flush_blockquote(builder, quote_lines)
-      table_header = flush_table(builder, table_header, table_rows)
+      flush_paragraph_with_refs(builder, paragraph, references)
+      flush_lists_with_refs(builder, list_stack, references)
+      flush_blockquote_with_refs(builder, quote_lines, references)
+      table_header = flush_table_with_refs(
+        builder, table_header, table_rows, references,
+      )
       builder.write_string(rewrite_html_attributes(trimmed))
       continue
     }
     if trimmed.has_prefix("> ") {
-      flush_paragraph(builder, paragraph)
-      flush_lists(builder, list_stack)
-      table_header = flush_table(builder, table_header, table_rows)
+      flush_paragraph_with_refs(builder, paragraph, references)
+      flush_lists_with_refs(builder, list_stack, references)
+      table_header = flush_table_with_refs(
+        builder, table_header, table_rows, references,
+      )
       quote_lines.push(trimmed[2:].trim().to_string())
       continue
     }
     let indent = list_indent(line)
     if trimmed.has_prefix("- ") || trimmed.has_prefix("* ") {
-      flush_paragraph(builder, paragraph)
-      flush_blockquote(builder, quote_lines)
-      table_header = flush_table(builder, table_header, table_rows)
+      flush_paragraph_with_refs(builder, paragraph, references)
+      flush_blockquote_with_refs(builder, quote_lines, references)
+      table_header = flush_table_with_refs(
+        builder, table_header, table_rows, references,
+      )
       push_list_item(
         list_stack,
         indent,
@@ -417,9 +441,11 @@ fn render_markdown(markdown : String) -> String {
     }
     match ordered_list_item(trimmed) {
       Some((start, item)) => {
-        flush_paragraph(builder, paragraph)
-        flush_blockquote(builder, quote_lines)
-        table_header = flush_table(builder, table_header, table_rows)
+        flush_paragraph_with_refs(builder, paragraph, references)
+        flush_blockquote_with_refs(builder, quote_lines, references)
+        table_header = flush_table_with_refs(
+          builder, table_header, table_rows, references,
+        )
         push_list_item(list_stack, indent, true, start, item)
         continue
       }
@@ -430,22 +456,29 @@ fn render_markdown(markdown : String) -> String {
       continue
     }
     if is_table_row(trimmed) {
-      flush_paragraph(builder, paragraph)
-      flush_lists(builder, list_stack)
-      flush_blockquote(builder, quote_lines)
-      table_header = flush_table(builder, table_header, table_rows)
+      flush_paragraph_with_refs(builder, paragraph, references)
+      flush_lists_with_refs(builder, list_stack, references)
+      flush_blockquote_with_refs(builder, quote_lines, references)
+      table_header = flush_table_with_refs(
+        builder, table_header, table_rows, references,
+      )
       pending_table_header = Some(trimmed)
       continue
     }
     match heading_level(trimmed) {
       Some(level) => {
-        flush_paragraph(builder, paragraph)
-        flush_lists(builder, list_stack)
-        flush_blockquote(builder, quote_lines)
-        table_header = flush_table(builder, table_header, table_rows)
+        flush_paragraph_with_refs(builder, paragraph, references)
+        flush_lists_with_refs(builder, list_stack, references)
+        flush_blockquote_with_refs(builder, quote_lines, references)
+        table_header = flush_table_with_refs(
+          builder, table_header, table_rows, references,
+        )
         let text = trimmed[level + 1:].trim().to_string()
-        let id = unique_heading_id(text, heading_ids)
-        let title = render_inline(text)
+        let id = unique_heading_id(
+          inline_text_content(text, references),
+          heading_ids,
+        )
+        let title = render_inline_with_refs(text, references)
         builder.write_string(
           "<h\{level} id=\"\{id}\"><a class=\"header-link\" href=\"#\{id}\">\{title}</a></h\{level}>",
         )
@@ -454,15 +487,15 @@ fn render_markdown(markdown : String) -> String {
     }
   }
 
-  flush_paragraph(builder, paragraph)
-  flush_lists(builder, list_stack)
-  flush_blockquote(builder, quote_lines)
+  flush_paragraph_with_refs(builder, paragraph, references)
+  flush_lists_with_refs(builder, list_stack, references)
+  flush_blockquote_with_refs(builder, quote_lines, references)
   match pending_table_header {
     Some(header) => paragraph.push(header)
     None => ()
   }
-  flush_paragraph(builder, paragraph)
-  ignore(flush_table(builder, table_header, table_rows))
+  flush_paragraph_with_refs(builder, paragraph, references)
+  ignore(flush_table_with_refs(builder, table_header, table_rows, references))
   if in_code_block {
     let code = escape_html(code_lines.join("\n"))
     let class_attr = code_class_attr(code_language, code_modifiers)
@@ -554,12 +587,16 @@ fn heading_level(line : String) -> Int? {
 }
 
 ///|
-fn flush_paragraph(builder : StringBuilder, paragraph : Array[String]) -> Unit {
+fn flush_paragraph_with_refs(
+  builder : StringBuilder,
+  paragraph : Array[String],
+  references : Map[String, String],
+) -> Unit {
   if paragraph.is_empty() {
     return
   }
   let text = paragraph.join(" ")
-  builder.write_string("<p>\{render_inline(text)}</p>")
+  builder.write_string("<p>\{render_inline_with_refs(text, references)}</p>")
   paragraph.clear()
 }
 
@@ -586,16 +623,17 @@ fn push_list_item(
 }
 
 ///|
-fn flush_lists(
+fn flush_lists_with_refs(
   builder : StringBuilder,
   list_stack : Array[(Int, Bool, Int, Array[String])],
+  references : Map[String, String],
 ) -> Unit {
   if list_stack.is_empty() {
     return
   }
   let mut index = 0
   while index < list_stack.length() {
-    index = render_list_group(builder, list_stack, index)
+    index = render_list_group(builder, list_stack, index, references)
   }
   list_stack.clear()
 }
@@ -605,6 +643,7 @@ fn render_list_group(
   builder : StringBuilder,
   list_stack : Array[(Int, Bool, Int, Array[String])],
   start : Int,
+  references : Map[String, String],
 ) -> Int {
   let entry = list_stack[start]
   let indent = entry.0
@@ -622,11 +661,15 @@ fn render_list_group(
   builder.write_string(open_tag)
   let mut next_index = start + 1
   for i = 0; i < items.length(); i = i + 1 {
-    builder.write_string("<li>\{render_list_item(items[i])}")
+    builder.write_string(
+      "<li>\{render_list_item_with_refs(items[i], references)}",
+    )
     if i == items.length() - 1 &&
       next_index < list_stack.length() &&
       list_stack[next_index].0 > indent {
-      next_index = render_list_group(builder, list_stack, next_index)
+      next_index = render_list_group(
+        builder, list_stack, next_index, references,
+      )
     }
     builder.write_string("</li>")
   }
@@ -635,7 +678,10 @@ fn render_list_group(
 }
 
 ///|
-fn render_list_item(item : String) -> String {
+fn render_list_item_with_refs(
+  item : String,
+  references : Map[String, String],
+) -> String {
   match parse_task_list_item(item) {
     Some((checked, text)) => {
       let marker = if checked {
@@ -643,9 +689,9 @@ fn render_list_item(item : String) -> String {
       } else {
         "<input type=\"checkbox\" disabled> "
       }
-      marker + render_inline(text)
+      marker + render_inline_with_refs(text, references)
     }
-    None => render_inline(item)
+    None => render_inline_with_refs(item, references)
   }
 }
 
@@ -661,37 +707,45 @@ fn parse_task_list_item(item : String) -> (Bool, String)? {
 }
 
 ///|
-fn flush_blockquote(
+fn flush_blockquote_with_refs(
   builder : StringBuilder,
   quote_lines : Array[String],
+  references : Map[String, String],
 ) -> Unit {
   if quote_lines.is_empty() {
     return
   }
   let text = quote_lines.join(" ")
-  builder.write_string("<blockquote><p>\{render_inline(text)}</p></blockquote>")
+  builder.write_string(
+    "<blockquote><p>\{render_inline_with_refs(text, references)}</p></blockquote>",
+  )
   quote_lines.clear()
 }
 
 ///|
-fn flush_table(
+fn flush_table_with_refs(
   builder : StringBuilder,
   table_header : (Array[String], Array[String])?,
   table_rows : Array[Array[String]],
+  references : Map[String, String],
 ) -> (Array[String], Array[String])? {
   match table_header {
     Some((header, alignments)) => {
       builder.write_string("<div class=\"table-wrapper\"><table><thead><tr>")
       for i = 0; i < header.length(); i = i + 1 {
         let style = table_cell_style(alignments, i)
-        builder.write_string("<th\{style}>\{render_inline(header[i])}</th>")
+        builder.write_string(
+          "<th\{style}>\{render_inline_with_refs(header[i], references)}</th>",
+        )
       }
       builder.write_string("</tr></thead><tbody>")
       for row in table_rows {
         builder.write_string("<tr>")
         for i = 0; i < row.length(); i = i + 1 {
           let style = table_cell_style(alignments, i)
-          builder.write_string("<td\{style}>\{render_inline(row[i])}</td>")
+          builder.write_string(
+            "<td\{style}>\{render_inline_with_refs(row[i], references)}</td>",
+          )
         }
         builder.write_string("</tr>")
       }
@@ -823,7 +877,10 @@ fn slugify_heading(text : String) -> String {
   let builder = StringBuilder::new()
   let mut previous_dash = false
   for c in text.to_lower() {
-    let normalized = if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') {
+    let normalized = if (c >= 'a' && c <= 'z') ||
+      (c >= '0' && c <= '9') ||
+      c == '_' ||
+      c.to_int() > 127 {
       Some(c)
     } else if c == ' ' || c == '-' || c == '_' {
       Some('-')
@@ -845,7 +902,7 @@ fn slugify_heading(text : String) -> String {
   }
   let slug = builder.to_string()
   if slug.is_empty() {
-    "section"
+    ""
   } else if slug[slug.length() - 1] == '-' {
     slug[:slug.length() - 1].to_string()
   } else {
@@ -855,10 +912,21 @@ fn slugify_heading(text : String) -> String {
 
 ///|
 fn render_inline(text : String) -> String {
+  render_inline_with_refs(text, {})
+}
+
+///|
+fn render_inline_with_refs(
+  text : String,
+  references : Map[String, String],
+) -> String {
   let builder = StringBuilder::new()
   let mut i = 0
   while i < text.length() {
-    if i + 1 < text.length() && text[i] == '[' && text[i + 1] == '^' {
+    if text[i] == '\\' && i + 1 < text.length() {
+      builder.write_string(escape_html(text[i + 1:i + 2].to_string()))
+      i += 2
+    } else if i + 1 < text.length() && text[i] == '[' && text[i + 1] == '^' {
       match text[i + 2:].find("]") {
         Some(end) => {
           let name = text[i + 2:i + 2 + end].to_string()
@@ -889,7 +957,9 @@ fn render_inline(text : String) -> String {
       match text[i + 2:].find("**") {
         Some(end) => {
           let content = text[i + 2:i + 2 + end].to_string()
-          builder.write_string("<strong>\{render_inline(content)}</strong>")
+          builder.write_string(
+            "<strong>\{render_inline_with_refs(content, references)}</strong>",
+          )
           i = i + end + 4
         }
         None => {
@@ -897,15 +967,45 @@ fn render_inline(text : String) -> String {
           i += 2
         }
       }
+    } else if i + 1 < text.length() && text[i] == '_' && text[i + 1] == '_' {
+      match text[i + 2:].find("__") {
+        Some(end) => {
+          let content = text[i + 2:i + 2 + end].to_string()
+          builder.write_string(
+            "<strong>\{render_inline_with_refs(content, references)}</strong>",
+          )
+          i = i + end + 4
+        }
+        None => {
+          builder.write_string("__")
+          i += 2
+        }
+      }
     } else if text[i] == '*' {
       match text[i + 1:].find("*") {
         Some(end) => {
           let content = text[i + 1:i + 1 + end].to_string()
-          builder.write_string("<em>\{render_inline(content)}</em>")
+          builder.write_string(
+            "<em>\{render_inline_with_refs(content, references)}</em>",
+          )
           i = i + end + 2
         }
         None => {
           builder.write_string("*")
+          i += 1
+        }
+      }
+    } else if text[i] == '_' {
+      match find_single_emphasis_end(text, i + 1, '_') {
+        Some(end) => {
+          let content = text[i + 1:end].to_string()
+          builder.write_string(
+            "<em>\{render_inline_with_refs(content, references)}</em>",
+          )
+          i = end + 1
+        }
+        None => {
+          builder.write_string("_")
           i += 1
         }
       }
@@ -919,7 +1019,7 @@ fn render_inline(text : String) -> String {
               let href = text[close_index + 2:close_index + 2 + end].to_string()
               let fixed_href = fix_link(href)
               builder.write_string(
-                "<a href=\"\{escape_html(fixed_href)}\">\{render_inline(label)}</a>",
+                "<a href=\"\{escape_html(fixed_href)}\">\{render_inline_with_refs(label, references)}</a>",
               )
               i = close_index + end + 3
             }
@@ -929,10 +1029,30 @@ fn render_inline(text : String) -> String {
             }
           }
         }
-        None => {
-          builder.write_string("[")
-          i += 1
-        }
+        None =>
+          match text[i + 1:].find("]") {
+            Some(end) => {
+              let label = text[i + 1:i + 1 + end].to_string()
+              let key = label.to_lower()
+              match references.get(key) {
+                Some(href) => {
+                  let fixed_href = fix_link(href)
+                  builder.write_string(
+                    "<a href=\"\{escape_html(fixed_href)}\">\{render_inline_with_refs(label, references)}</a>",
+                  )
+                  i = i + end + 2
+                }
+                None => {
+                  builder.write_string("[")
+                  i += 1
+                }
+              }
+            }
+            None => {
+              builder.write_string("[")
+              i += 1
+            }
+          }
       }
     } else if i + 1 < text.length() && text[i] == '!' && text[i + 1] == '[' {
       match text[i + 2:].find("](") {
@@ -962,8 +1082,16 @@ fn render_inline(text : String) -> String {
     } else if text[i] == '<' {
       match text[i:].find(">") {
         Some(end) => {
-          let html = text[i:i + end + 1].to_string()
-          builder.write_string(rewrite_html_attributes(html))
+          let tag = text[i + 1:i + end].to_string()
+          if is_autolink(tag) {
+            let fixed_href = fix_link(tag)
+            builder.write_string(
+              "<a href=\"\{escape_html(fixed_href)}\">\{escape_html(tag)}</a>",
+            )
+          } else {
+            let html = text[i:i + end + 1].to_string()
+            builder.write_string(rewrite_html_attributes(html))
+          }
           i = i + end + 1
         }
         None => {
@@ -977,6 +1105,192 @@ fn render_inline(text : String) -> String {
     }
   }
   builder.to_string()
+}
+
+///|
+fn inline_text_content(
+  text : String,
+  references : Map[String, String],
+) -> String {
+  let builder = StringBuilder::new()
+  let mut i = 0
+  while i < text.length() {
+    if text[i] == '\\' && i + 1 < text.length() {
+      builder.write_string(text[i + 1:i + 2].to_string())
+      i += 2
+    } else if i + 1 < text.length() && text[i] == '[' && text[i + 1] == '^' {
+      match text[i + 2:].find("]") {
+        Some(end) => {
+          builder.write_string(text[i + 2:i + 2 + end].to_string())
+          i = i + end + 3
+        }
+        None => {
+          builder.write_char('[')
+          i += 1
+        }
+      }
+    } else if text[i] == '`' {
+      match text[i + 1:].find("`") {
+        Some(end) => {
+          builder.write_string(text[i + 1:i + 1 + end].to_string())
+          i = i + end + 2
+        }
+        None => {
+          builder.write_char('`')
+          i += 1
+        }
+      }
+    } else if i + 1 < text.length() &&
+      (
+        (text[i] == '*' && text[i + 1] == '*') ||
+        (text[i] == '_' && text[i + 1] == '_')
+      ) {
+      let delimiter = text[i:i + 2].to_string()
+      match text[i + 2:].find(delimiter) {
+        Some(end) => {
+          builder.write_string(
+            inline_text_content(text[i + 2:i + 2 + end].to_string(), references),
+          )
+          i = i + end + 4
+        }
+        None => {
+          builder.write_string(delimiter)
+          i += 2
+        }
+      }
+    } else if text[i] == '*' || text[i] == '_' {
+      let delimiter = text[i:i + 1].to_string()
+      let closing = if text[i] == '_' {
+        find_single_emphasis_end(text, i + 1, '_')
+      } else {
+        match text[i + 1:].find(delimiter) {
+          Some(end) => Some(i + 1 + end)
+          None => None
+        }
+      }
+      match closing {
+        Some(end) => {
+          builder.write_string(
+            inline_text_content(text[i + 1:end].to_string(), references),
+          )
+          i = end + 1
+        }
+        None => {
+          builder.write_string(text[i:i + 1].to_string())
+          i += 1
+        }
+      }
+    } else if i + 1 < text.length() && text[i] == '!' && text[i + 1] == '[' {
+      match text[i + 2:].find("](") {
+        Some(mid) => {
+          let close_index = i + 2 + mid
+          builder.write_string(text[i + 2:close_index].to_string())
+          match text[close_index + 2:].find(")") {
+            Some(end) => i = close_index + end + 3
+            None => i += 1
+          }
+        }
+        None => {
+          builder.write_char('!')
+          i += 1
+        }
+      }
+    } else if text[i] == '[' {
+      match text[i + 1:].find("](") {
+        Some(mid) => {
+          let close_index = i + 1 + mid
+          builder.write_string(
+            inline_text_content(text[i + 1:close_index].to_string(), references),
+          )
+          match text[close_index + 2:].find(")") {
+            Some(end) => i = close_index + end + 3
+            None => i += 1
+          }
+        }
+        None =>
+          match text[i + 1:].find("]") {
+            Some(end) => {
+              let label = text[i + 1:i + 1 + end].to_string()
+              let key = label.to_lower()
+              match references.get(key) {
+                Some(_) => {
+                  builder.write_string(inline_text_content(label, references))
+                  i = i + end + 2
+                }
+                None => {
+                  builder.write_char('[')
+                  i += 1
+                }
+              }
+            }
+            None => {
+              builder.write_char('[')
+              i += 1
+            }
+          }
+      }
+    } else if text[i] == '<' {
+      match text[i:].find(">") {
+        Some(end) => {
+          let tag = text[i + 1:i + end].to_string()
+          if is_autolink(tag) {
+            builder.write_string(tag)
+          }
+          i = i + end + 1
+        }
+        None => {
+          builder.write_char('<')
+          i += 1
+        }
+      }
+    } else {
+      builder.write_string(text[i:i + 1].to_string())
+      i += 1
+    }
+  }
+  builder.to_string()
+}
+
+///|
+fn is_autolink(text : String) -> Bool {
+  !text.contains(" ") &&
+  (
+    text.has_prefix("http://") ||
+    text.has_prefix("https://") ||
+    text.has_prefix("mailto:")
+  )
+}
+
+///|
+fn find_single_emphasis_end(
+  text : String,
+  start : Int,
+  delimiter : Char,
+) -> Int? {
+  let delimiter_code = delimiter.to_int()
+  for i = start; i < text.length(); i = i + 1 {
+    if text[i].to_int() == delimiter_code {
+      if delimiter == '_' &&
+        i > 0 &&
+        i + 1 < text.length() &&
+        is_word_codepoint(text[i - 1]) &&
+        is_word_codepoint(text[i + 1]) {
+        continue
+      }
+      return Some(i)
+    }
+  }
+  None
+}
+
+///|
+fn is_word_codepoint(code : UInt16) -> Bool {
+  let value = code.to_int()
+  (value >= 'a'.to_int() && value <= 'z'.to_int()) ||
+  (value >= 'A'.to_int() && value <= 'Z'.to_int()) ||
+  (value >= '0'.to_int() && value <= '9'.to_int()) ||
+  value == '_'.to_int() ||
+  value > 127
 }
 
 ///|
@@ -1099,6 +1413,36 @@ fn collect_html_attribute_values(html : String, attr : String) -> Array[String] 
 }
 
 ///|
+fn split_link_references(markdown : String) -> (String, Map[String, String]) {
+  let body : Array[String] = []
+  let references : Map[String, String] = {}
+  for raw_line in markdown.split("\n") {
+    let line = raw_line.to_string()
+    let trimmed = line.trim().to_string()
+    if trimmed.has_prefix("[") {
+      match trimmed.find("]:") {
+        Some(index) =>
+          if index > 1 && trimmed[1] != '^' {
+            let name = trimmed[1:index].trim().to_lower().to_string()
+            let value = trimmed[index + 2:].trim().to_string()
+            if !name.is_empty() && !value.is_empty() {
+              references[name] = value
+            } else {
+              body.push(line)
+            }
+          } else {
+            body.push(line)
+          }
+        None => body.push(line)
+      }
+    } else {
+      body.push(line)
+    }
+  }
+  (body.join("\n"), references)
+}
+
+///|
 fn split_footnotes(markdown : String) -> (String, Array[(String, String)]) {
   let body : Array[String] = []
   let footnotes : Array[(String, String)] = []
@@ -1122,7 +1466,10 @@ fn split_footnotes(markdown : String) -> (String, Array[(String, String)]) {
 }
 
 ///|
-fn render_footnotes(footnotes : Array[(String, String)]) -> String {
+fn render_footnotes(
+  footnotes : Array[(String, String)],
+  references : Map[String, String],
+) -> String {
   if footnotes.is_empty() {
     return ""
   }
@@ -1134,7 +1481,7 @@ fn render_footnotes(footnotes : Array[(String, String)]) -> String {
     let name = footnote.0
     let content = footnote.1
     let id = slugify_heading(name)
-    let rendered = render_markdown(content)
+    let rendered = render_markdown_with_refs(content, references)
     let backref = "<a href=\"#fr-\{id}\" class=\"footnote-backref\">↩</a>"
     builder.write_string("<li id=\"footnote-\{id}\">\{rendered}\{backref}</li>")
   }
@@ -1231,6 +1578,24 @@ test "render inline handles emphasis code and links" {
 }
 
 ///|
+test "render inline handles references autolinks escapes and underscores" {
+  let refs : Map[String, String] = { "link": "https://example.com/link" }
+  let html = render_inline_with_refs(
+    "<!--comment--> With _emphasis_ **_bold_emphasis_** \\<escaped> <span>html</span> [link] <https://example.com/>",
+    refs,
+  )
+  assert_true(html.contains("<!--comment-->"))
+  assert_true(html.contains("<em>emphasis</em>"))
+  assert_true(html.contains("<strong><em>bold_emphasis</em></strong>"))
+  assert_true(html.contains("&lt;escaped&gt;"))
+  assert_true(html.contains("<span>html</span>"))
+  assert_true(html.contains("<a href=\"https://example.com/link\">link</a>"))
+  assert_true(
+    html.contains("<a href=\"https://example.com/\">https://example.com/</a>"),
+  )
+}
+
+///|
 test "render markdown handles ordered lists blockquotes and rules" {
   let html = render_markdown(
     "> quoted line\n> more quote\n\n1. first\n2. second\n\n---\n",
@@ -1240,6 +1605,23 @@ test "render markdown handles ordered lists blockquotes and rules" {
   )
   assert_true(html.contains("<ol><li>first</li><li>second</li></ol>"))
   assert_true(html.contains("<hr>"))
+}
+
+///|
+test "render markdown builds heading ids from rendered inline text" {
+  let (body, refs) = split_link_references(
+    "## <!--comment--> With *emphasis* **bold** **_bold_emphasis_** `code` \\<escaped> <span>html</span> [link] <https://example.com/>\n\n[link]: https://example.com/link\n",
+  )
+  let html = render_markdown_with_refs(body, refs)
+  assert_true(
+    html.contains(
+      "id=\"with-emphasis-bold-bold_emphasis-code-escaped-html-link-httpsexamplecom\"",
+    ),
+  )
+  assert_true(html.contains("href=\"https://example.com/link\">link</a>"))
+  assert_true(
+    html.contains("<a href=\"https://example.com/\">https://example.com/</a>"),
+  )
 }
 
 ///|
@@ -1267,6 +1649,12 @@ test "render markdown applies table alignment styles" {
   assert_true(html.contains("<th style=\"text-align: center\">Center</th>"))
   assert_true(html.contains("<th style=\"text-align: right\">Right</th>"))
   assert_true(html.contains("<td style=\"text-align: right\">c</td>"))
+}
+
+///|
+test "heading slugs preserve unicode letters" {
+  let html = render_markdown("## Hï\n")
+  assert_true(html.contains("id=\"hï\""))
 }
 
 ///|
