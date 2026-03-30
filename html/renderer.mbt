@@ -313,7 +313,7 @@ fn escape_html(text : String) -> String {
 fn render_markdown(markdown : String) -> String {
   let builder = StringBuilder::new()
   let paragraph : Array[String] = []
-  let list_stack : Array[(Int, Bool, Array[String])] = []
+  let list_stack : Array[(Int, Bool, Int, Array[String])] = []
   let quote_lines : Array[String] = []
   let heading_ids : Map[String, Int] = {}
   let mut pending_table_header : String? = None
@@ -406,15 +406,21 @@ fn render_markdown(markdown : String) -> String {
       flush_paragraph(builder, paragraph)
       flush_blockquote(builder, quote_lines)
       table_header = flush_table(builder, table_header, table_rows)
-      push_list_item(list_stack, indent, false, trimmed[2:].trim().to_string())
+      push_list_item(
+        list_stack,
+        indent,
+        false,
+        1,
+        trimmed[2:].trim().to_string(),
+      )
       continue
     }
     match ordered_list_item(trimmed) {
-      Some(item) => {
+      Some((start, item)) => {
         flush_paragraph(builder, paragraph)
         flush_blockquote(builder, quote_lines)
         table_header = flush_table(builder, table_header, table_rows)
-        push_list_item(list_stack, indent, true, item)
+        push_list_item(list_stack, indent, true, start, item)
         continue
       }
       None => ()
@@ -559,27 +565,30 @@ fn flush_paragraph(builder : StringBuilder, paragraph : Array[String]) -> Unit {
 
 ///|
 fn push_list_item(
-  list_stack : Array[(Int, Bool, Array[String])],
+  list_stack : Array[(Int, Bool, Int, Array[String])],
   indent : Int,
   ordered : Bool,
+  start : Int,
   item : String,
 ) -> Unit {
   match list_stack.last() {
-    Some((last_indent, last_ordered, items)) =>
+    Some((last_indent, last_ordered, last_start, items)) =>
       if last_indent == indent && last_ordered == ordered {
         items.push(item)
-        list_stack[list_stack.length() - 1] = (last_indent, last_ordered, items)
+        list_stack[list_stack.length() - 1] = (
+          last_indent, last_ordered, last_start, items,
+        )
       } else {
-        list_stack.push((indent, ordered, [item]))
+        list_stack.push((indent, ordered, start, [item]))
       }
-    None => list_stack.push((indent, ordered, [item]))
+    None => list_stack.push((indent, ordered, start, [item]))
   }
 }
 
 ///|
 fn flush_lists(
   builder : StringBuilder,
-  list_stack : Array[(Int, Bool, Array[String])],
+  list_stack : Array[(Int, Bool, Int, Array[String])],
 ) -> Unit {
   if list_stack.is_empty() {
     return
@@ -594,15 +603,23 @@ fn flush_lists(
 ///|
 fn render_list_group(
   builder : StringBuilder,
-  list_stack : Array[(Int, Bool, Array[String])],
+  list_stack : Array[(Int, Bool, Int, Array[String])],
   start : Int,
 ) -> Int {
   let entry = list_stack[start]
   let indent = entry.0
   let ordered = entry.1
-  let items = entry.2
-  let tag = if ordered { "ol" } else { "ul" }
-  builder.write_string("<\{tag}>")
+  let list_start = entry.2
+  let items = entry.3
+  let open_tag = if ordered && list_start != 1 {
+    "<ol start=\"\{list_start}\">"
+  } else if ordered {
+    "<ol>"
+  } else {
+    "<ul>"
+  }
+  let close_tag = if ordered { "</ol>" } else { "</ul>" }
+  builder.write_string(open_tag)
   let mut next_index = start + 1
   for i = 0; i < items.length(); i = i + 1 {
     builder.write_string("<li>\{render_list_item(items[i])}")
@@ -613,7 +630,7 @@ fn render_list_group(
     }
     builder.write_string("</li>")
   }
-  builder.write_string("</\{tag}>")
+  builder.write_string(close_tag)
   next_index
 }
 
@@ -751,8 +768,9 @@ fn parse_alignment_piece(piece : String) -> String {
 }
 
 ///|
-fn ordered_list_item(line : String) -> String? {
+fn ordered_list_item(line : String) -> (Int, String)? {
   let mut dot_index : Int? = None
+  let mut number = 0
   for i = 0; i < line.length(); i = i + 1 {
     let c = line[i]
     if c == '.' {
@@ -762,11 +780,12 @@ fn ordered_list_item(line : String) -> String? {
     if c < '0' || c > '9' {
       return None
     }
+    number = number * 10 + (c.to_int() - '0'.to_int())
   }
   match dot_index {
     Some(index) =>
       if index + 1 < line.length() && line[index + 1] == ' ' {
-        Some(line[index + 2:].trim().to_string())
+        Some((number, line[index + 2:].trim().to_string()))
       } else {
         None
       }
@@ -1326,6 +1345,19 @@ test "parse task list item detects checked and unchecked markers" {
   assert_eq(parse_task_list_item("[ ] todo"), Some((false, "todo")))
   assert_eq(parse_task_list_item("[x] done"), Some((true, "done")))
   assert_eq(parse_task_list_item("plain"), None)
+}
+
+///|
+test "ordered list item parses explicit start number" {
+  assert_eq(ordered_list_item("3. third"), Some((3, "third")))
+}
+
+///|
+test "render markdown preserves ordered list start number" {
+  let html = render_markdown("3. third\n4. fourth\n")
+  assert_true(
+    html.contains("<ol start=\"3\"><li>third</li><li>fourth</li></ol>"),
+  )
 }
 
 ///|
