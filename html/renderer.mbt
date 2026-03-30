@@ -605,7 +605,7 @@ fn render_list_group(
   builder.write_string("<\{tag}>")
   let mut next_index = start + 1
   for i = 0; i < items.length(); i = i + 1 {
-    builder.write_string("<li>\{render_inline(items[i])}")
+    builder.write_string("<li>\{render_list_item(items[i])}")
     if i == items.length() - 1 &&
       next_index < list_stack.length() &&
       list_stack[next_index].0 > indent {
@@ -615,6 +615,32 @@ fn render_list_group(
   }
   builder.write_string("</\{tag}>")
   next_index
+}
+
+///|
+fn render_list_item(item : String) -> String {
+  match parse_task_list_item(item) {
+    Some((checked, text)) => {
+      let marker = if checked {
+        "<input type=\"checkbox\" checked disabled> "
+      } else {
+        "<input type=\"checkbox\" disabled> "
+      }
+      marker + render_inline(text)
+    }
+    None => render_inline(item)
+  }
+}
+
+///|
+fn parse_task_list_item(item : String) -> (Bool, String)? {
+  if item.has_prefix("[ ] ") {
+    Some((false, item[4:].to_string()))
+  } else if item.has_prefix("[x] ") || item.has_prefix("[X] ") {
+    Some((true, item[4:].to_string()))
+  } else {
+    None
+  }
 }
 
 ///|
@@ -1293,6 +1319,20 @@ test "render markdown emits separate code classes for modifiers" {
       "<code class=\"language-rust ignore editable\">fn main {}</code>",
     ),
   )
+}
+
+///|
+test "parse task list item detects checked and unchecked markers" {
+  assert_eq(parse_task_list_item("[ ] todo"), Some((false, "todo")))
+  assert_eq(parse_task_list_item("[x] done"), Some((true, "done")))
+  assert_eq(parse_task_list_item("plain"), None)
+}
+
+///|
+test "render markdown renders task list checkboxes" {
+  let html = render_markdown("- [ ] todo\n- [x] done\n")
+  assert_true(html.contains("<input type=\"checkbox\" disabled> todo"))
+  assert_true(html.contains("<input type=\"checkbox\" checked disabled> done"))
 }
 
 ///|
