@@ -66,40 +66,58 @@ pub async fn init_book(
   config? : @core.Config = @core.default(),
 ) -> MDBook {
   ignore(copy_theme)
-  ensure_dir(book_root)
+  ensure_dir(book_root) catch {
+    error => fail("init ensure_dir(root) failed: \{error}")
+  }
   let src_dir = @path.Path(book_root)
     .join(@path.Path(config.book.src))
     .to_string()
   let build_dir = @path.Path(book_root)
     .join(@path.Path(config.build.build_dir))
     .to_string()
-  ensure_dir(src_dir)
-  ensure_dir(build_dir)
+  ensure_dir(src_dir) catch {
+    error => fail("init ensure_dir(src) failed: \{error}")
+  }
+  ensure_dir(build_dir) catch {
+    error => fail("init ensure_dir(build) failed: \{error}")
+  }
   let summary_path = @path.Path(src_dir)
     .join(@path.Path("SUMMARY.md"))
     .to_string()
   if !@fs.is_file(summary_path) {
-    write_text_file(
-      summary_path, "# Summary\n\n- [Chapter 1](./chapter_1.md)\n",
-    )
+    (write_text_file(
+      summary_path,
+      "# Summary\n\n- [Chapter 1](./chapter_1.md)\n",
+    )) catch {
+      error => fail("init write SUMMARY failed: \{error}")
+    }
   }
   let chapter_path = @path.Path(src_dir)
     .join(@path.Path("chapter_1.md"))
     .to_string()
   if !@fs.is_file(chapter_path) {
-    write_text_file(chapter_path, "# Chapter 1\n")
+    (write_text_file(chapter_path, "# Chapter 1\n")) catch {
+      error => fail("init write chapter failed: \{error}")
+    }
   }
   let book_toml = @path.Path(book_root)
     .join(@path.Path("book.toml"))
     .to_string()
-  write_text_file(book_toml, config_to_toml(config))
+  (write_text_file(book_toml, config_to_toml(config))) catch {
+    error => fail("init write book.toml failed: \{error}")
+  }
   if create_gitignore {
-    write_text_file(
+    (write_text_file(
       @path.Path(book_root).join(@path.Path(".gitignore")).to_string(),
       config.build.build_dir + "\n",
-    )
+    )) catch {
+      error => fail("init write .gitignore failed: \{error}")
+    }
   }
-  load(book_root)
+  let loaded = (load(book_root)) catch {
+    error => fail("init reload failed: \{error}")
+  }
+  loaded
 }
 
 ///|
@@ -266,20 +284,16 @@ async fn create_missing_items(
 }
 
 ///|
-fn ensure_dir(path : String) -> Unit raise {
-  if @fs.path_exists(path) {
+async fn ensure_dir(path : String) -> Unit raise {
+  if @fsx.exists(path) {
     return
   }
-  let parent = @path.Path(path).dirname().to_string()
-  if parent != path && parent != "." && !@fs.path_exists(parent) {
-    ensure_dir(parent)
-  }
-  @fs.create_dir(path)
+  @fsx.make_directory(path, recursive=true, exists_ok=true)
 }
 
 ///|
-fn ensure_parent_dir(path : String) -> Unit raise {
-  let parent = @path.Path(path).dirname().to_string()
+async fn ensure_parent_dir(path : String) -> Unit raise {
+  let parent = @pathx.dirname(path).to_string()
   if parent != "." && parent != path {
     ensure_dir(parent)
   }
@@ -287,12 +301,7 @@ fn ensure_parent_dir(path : String) -> Unit raise {
 
 ///|
 async fn write_text_file(path : String, content : String) -> Unit {
-  @afs.write_file(
-    path,
-    @encoding/utf8.encode(content),
-    create=0o666,
-    truncate=true,
-  )
+  @fsx.write_to_file(path, content, create=0o666)
 }
 
 ///|

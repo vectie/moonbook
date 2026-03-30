@@ -1,8 +1,9 @@
 import {
-  "moonbitlang/async/fs" @afs,
   "username/moonbook/core",
   "username/moonbook/summary",
   "username/moonbook/html",
+  "username/moonbook/internal/fsx",
+  "username/moonbook/internal/pathx",
   "moonbitlang/core/bytes",
   "moonbitlang/core/encoding/utf8" @encoding/utf8,
   "moonbitlang/core/json",

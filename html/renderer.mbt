@@ -55,20 +55,16 @@ pub async fn render_html(context : RenderContext) -> Unit {
 }
 
 ///|
-fn ensure_dir(path : String) -> Unit raise {
-  if @fs.path_exists(path) {
+async fn ensure_dir(path : String) -> Unit raise {
+  if @fsx.exists(path) {
     return
   }
-  let parent = @path.Path(path).dirname().to_string()
-  if parent != path && parent != "." && !@fs.path_exists(parent) {
-    ensure_dir(parent)
-  }
-  @fs.create_dir(path)
+  @fsx.make_directory(path, recursive=true, exists_ok=true)
 }
 
 ///|
-fn ensure_parent_dir(path : String) -> Unit raise {
-  let parent = @path.Path(path).dirname().to_string()
+async fn ensure_parent_dir(path : String) -> Unit raise {
+  let parent = @pathx.dirname(path).to_string()
   if parent != "." && parent != path {
     ensure_dir(parent)
   }
@@ -76,12 +72,7 @@ fn ensure_parent_dir(path : String) -> Unit raise {
 
 ///|
 async fn write_text_file(path : String, content : String) -> Unit {
-  @afs.write_file(
-    path,
-    @encoding/utf8.encode(content),
-    create=0o666,
-    truncate=true,
-  )
+  @fsx.write_to_file(path, content, create=0o666)
 }
 
 ///|
