@@ -20,6 +20,10 @@ pub fn new_render_context(
 pub async fn render_html(context : RenderContext) -> Unit {
   ensure_dir(context.build_dir)
   let chapters = context.book.chapters()
+  let src_root = @path.Path(context.root)
+    .join(@path.Path(context.config.book.src))
+    .to_string()
+  copy_static_assets(src_root, context.build_dir, chapters)
   let index_body = if chapters.is_empty() {
     render_shell(
       context_title(context.config),
@@ -75,6 +79,49 @@ async fn ensure_parent_dir(path : String) -> Unit {
 ///|
 async fn write_text_file(path : String, content : String) -> Unit {
   @fsx.write_to_file(path, content, create=0o666)
+}
+
+///|
+async fn copy_static_assets(
+  src_root : String,
+  build_dir : String,
+  chapters : Array[@core.Chapter],
+) -> Unit {
+  let copied : Map[String, Unit] = {}
+  for chapter in chapters {
+    let chapter_dir = match chapter.source_path {
+      Some(path) => path_dirname(path)
+      None => "."
+    }
+    for asset in collect_markdown_assets(chapter.content) {
+      if is_local_asset(asset) {
+        let normalized = @pathx.normalize(
+          if @pathx.is_absolute(asset) {
+            asset
+          } else if chapter_dir == "." {
+            asset
+          } else {
+            @pathx.join(chapter_dir, asset)
+          },
+        )
+        if !copied.contains(normalized) {
+          let source_path = @path.Path(src_root)
+            .join(@path.Path(normalized))
+            .to_string()
+          let dest_path = @path.Path(build_dir)
+            .join(@path.Path(normalized))
+            .to_string()
+          ensure_parent_dir(dest_path)
+          @fsx.write_to_file(
+            dest_path,
+            @fsx.read_file(source_path),
+            create=0o666,
+          )
+          copied[normalized] = ()
+        }
+      }
+    }
+  }
 }
 
 ///|
@@ -610,6 +657,31 @@ fn render_inline(text : String) -> String {
           i += 1
         }
       }
+    } else if i + 1 < text.length() && text[i] == '!' && text[i + 1] == '[' {
+      match text[i + 2:].find("](") {
+        Some(mid) => {
+          let close_index = i + 2 + mid
+          match text[close_index + 2:].find(")") {
+            Some(end) => {
+              let alt = text[i + 2:close_index].to_string()
+              let src = text[close_index + 2:close_index + 2 + end].to_string()
+              let fixed_src = fix_link(src)
+              builder.write_string(
+                "<img src=\"\{escape_html(fixed_src)}\" alt=\"\{escape_html(alt)}\">",
+              )
+              i = close_index + end + 3
+            }
+            None => {
+              builder.write_string("!")
+              i += 1
+            }
+          }
+        }
+        None => {
+          builder.write_string("!")
+          i += 1
+        }
+      }
     } else {
       builder.write_string(escape_html(text[i:i + 1].to_string()))
       i += 1
@@ -640,6 +712,42 @@ fn fix_link_path(path : String) -> String {
   } else {
     path
   }
+}
+
+///|
+fn is_local_asset(path : String) -> Bool {
+  !path.has_prefix("#") &&
+  !path.contains("://") &&
+  !path.has_prefix("mailto:") &&
+  !path.has_suffix(".md")
+}
+
+///|
+fn collect_markdown_assets(markdown : String) -> Array[String] {
+  let assets : Array[String] = []
+  let mut i = 0
+  while i + 1 < markdown.length() {
+    if markdown[i] == '!' && markdown[i + 1] == '[' {
+      match markdown[i + 2:].find("](") {
+        Some(mid) => {
+          let close_index = i + 2 + mid
+          match markdown[close_index + 2:].find(")") {
+            Some(end) => {
+              assets.push(
+                markdown[close_index + 2:close_index + 2 + end].to_string(),
+              )
+              i = close_index + end + 3
+            }
+            None => i += 1
+          }
+        }
+        None => i += 1
+      }
+    } else {
+      i += 1
+    }
+  }
+  assets
 }
 
 ///|
@@ -740,6 +848,20 @@ test "render markdown handles ordered lists blockquotes and rules" {
   )
   assert_true(html.contains("<ol><li>first</li><li>second</li></ol>"))
   assert_true(html.contains("<hr>"))
+}
+
+///|
+test "render inline handles image markdown" {
+  let html = render_inline("Look ![Diagram](images/diagram.png) here")
+  assert_true(html.contains("<img src=\"images/diagram.png\" alt=\"Diagram\">"))
+}
+
+///|
+test "collect markdown assets finds image sources" {
+  let assets = collect_markdown_assets(
+    "![One](images/one.png) and ![Two](./nested/two.jpg)",
+  )
+  assert_eq(assets, ["images/one.png", "./nested/two.jpg"])
 }
 
 ///|
