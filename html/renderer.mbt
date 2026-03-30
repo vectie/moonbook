@@ -317,7 +317,7 @@ fn render_markdown(markdown : String) -> String {
   let quote_lines : Array[String] = []
   let heading_ids : Map[String, Int] = {}
   let mut pending_table_header : String? = None
-  let mut table_header : Array[String]? = None
+  let mut table_header : (Array[String], Array[String])? = None
   let table_rows : Array[Array[String]] = []
   let mut code_lines : Array[String] = []
   let mut code_language = ""
@@ -358,7 +358,9 @@ fn render_markdown(markdown : String) -> String {
     match pending_table_header {
       Some(header) =>
         if is_table_separator(trimmed) {
-          table_header = Some(parse_table_row(header))
+          table_header = Some(
+            (parse_table_row(header), parse_table_alignments(trimmed)),
+          )
           pending_table_header = None
           continue
         } else {
@@ -598,20 +600,22 @@ fn flush_blockquote(
 ///|
 fn flush_table(
   builder : StringBuilder,
-  table_header : Array[String]?,
+  table_header : (Array[String], Array[String])?,
   table_rows : Array[Array[String]],
-) -> Array[String]? {
+) -> (Array[String], Array[String])? {
   match table_header {
-    Some(header) => {
+    Some((header, alignments)) => {
       builder.write_string("<div class=\"table-wrapper\"><table><thead><tr>")
-      for cell in header {
-        builder.write_string("<th>\{render_inline(cell)}</th>")
+      for i = 0; i < header.length(); i = i + 1 {
+        let style = table_cell_style(alignments, i)
+        builder.write_string("<th\{style}>\{render_inline(header[i])}</th>")
       }
       builder.write_string("</tr></thead><tbody>")
       for row in table_rows {
         builder.write_string("<tr>")
-        for cell in row {
-          builder.write_string("<td>\{render_inline(cell)}</td>")
+        for i = 0; i < row.length(); i = i + 1 {
+          let style = table_cell_style(alignments, i)
+          builder.write_string("<td\{style}>\{render_inline(row[i])}</td>")
         }
         builder.write_string("</tr>")
       }
@@ -620,6 +624,15 @@ fn flush_table(
       None
     }
     None => None
+  }
+}
+
+///|
+fn table_cell_style(alignments : Array[String], index : Int) -> String {
+  if index >= alignments.length() || alignments[index].is_empty() {
+    ""
+  } else {
+    " style=\"text-align: \{alignments[index]}\""
   }
 }
 
@@ -655,6 +668,27 @@ fn parse_table_row(line : String) -> Array[String] {
   .map(fn(piece) { piece.trim().to_string() })
   .filter(fn(piece) { !piece.is_empty() })
   .to_array()
+}
+
+///|
+fn parse_table_alignments(line : String) -> Array[String] {
+  parse_table_row(line).map(parse_alignment_piece)
+}
+
+///|
+fn parse_alignment_piece(piece : String) -> String {
+  let trimmed = piece.trim().to_string()
+  let left = trimmed.has_prefix(":")
+  let right = trimmed.has_suffix(":")
+  if left && right {
+    "center"
+  } else if right {
+    "right"
+  } else if left {
+    "left"
+  } else {
+    ""
+  }
 }
 
 ///|
@@ -1085,6 +1119,17 @@ test "render markdown handles pipe tables" {
       "<tbody><tr><td>One</td><td>1</td></tr><tr><td>Two</td><td>2</td></tr></tbody>",
     ),
   )
+}
+
+///|
+test "render markdown applies table alignment styles" {
+  let html = render_markdown(
+    "| Left | Center | Right |\n| :--- | :---: | ---: |\n| a | b | c |\n",
+  )
+  assert_true(html.contains("<th style=\"text-align: left\">Left</th>"))
+  assert_true(html.contains("<th style=\"text-align: center\">Center</th>"))
+  assert_true(html.contains("<th style=\"text-align: right\">Right</th>"))
+  assert_true(html.contains("<td style=\"text-align: right\">c</td>"))
 }
 
 ///|
