@@ -95,13 +95,14 @@ async fn copy_static_assets(
     }
     for asset in collect_markdown_assets(chapter.content) {
       if is_local_asset(asset) {
+        let asset_path = strip_link_anchor(asset)
         let normalized = @pathx.normalize(
-          if @pathx.is_absolute(asset) {
-            asset
+          if @pathx.is_absolute(asset_path) {
+            asset_path
           } else if chapter_dir == "." {
-            asset
+            asset_path
           } else {
-            @pathx.join(chapter_dir, asset)
+            @pathx.join(chapter_dir, asset_path)
           },
         )
         if !copied.contains(normalized) {
@@ -379,6 +380,14 @@ fn render_markdown(markdown : String) -> String {
       flush_blockquote(builder, quote_lines)
       table_header = flush_table(builder, table_header, table_rows)
       builder.write_string("<hr>")
+      continue
+    }
+    if is_html_block(trimmed) {
+      flush_paragraph(builder, paragraph)
+      flush_lists(builder, list_stack)
+      flush_blockquote(builder, quote_lines)
+      table_header = flush_table(builder, table_header, table_rows)
+      builder.write_string(rewrite_html_attributes(trimmed))
       continue
     }
     if trimmed.has_prefix("> ") {
@@ -823,6 +832,18 @@ fn render_inline(text : String) -> String {
           i += 1
         }
       }
+    } else if text[i] == '<' {
+      match text[i:].find(">") {
+        Some(end) => {
+          let html = text[i:i + end + 1].to_string()
+          builder.write_string(rewrite_html_attributes(html))
+          i = i + end + 1
+        }
+        None => {
+          builder.write_string("&lt;")
+          i += 1
+        }
+      }
     } else {
       builder.write_string(escape_html(text[i:i + 1].to_string()))
       i += 1
@@ -857,10 +878,19 @@ fn fix_link_path(path : String) -> String {
 
 ///|
 fn is_local_asset(path : String) -> Bool {
-  !path.has_prefix("#") &&
-  !path.contains("://") &&
-  !path.has_prefix("mailto:") &&
-  !path.has_suffix(".md")
+  let plain = strip_link_anchor(path)
+  !plain.has_prefix("#") &&
+  !plain.contains("://") &&
+  !plain.has_prefix("mailto:") &&
+  !plain.has_suffix(".md")
+}
+
+///|
+fn strip_link_anchor(path : String) -> String {
+  match path.find("#") {
+    Some(index) => path[:index].to_string()
+    None => path
+  }
 }
 
 ///|
@@ -888,7 +918,57 @@ fn collect_markdown_assets(markdown : String) -> Array[String] {
       i += 1
     }
   }
+  for attr in ["src", "href"] {
+    for value in collect_html_attribute_values(markdown, attr) {
+      assets.push(value)
+    }
+  }
   assets
+}
+
+///|
+fn is_html_block(line : String) -> Bool {
+  line.has_prefix("<") && line.has_suffix(">")
+}
+
+///|
+fn rewrite_html_attributes(html : String) -> String {
+  let mut rewritten = html
+  for attr in ["href", "src"] {
+    for value in collect_html_attribute_values(rewritten, attr) {
+      let fixed = fix_link(value)
+      rewritten = rewritten
+        .replace(
+          old="\{attr}=\"\{value}\"",
+          new="\{attr}=\"\{escape_html(fixed)}\"",
+        )
+        .to_string()
+    }
+  }
+  rewritten
+}
+
+///|
+fn collect_html_attribute_values(html : String, attr : String) -> Array[String] {
+  let values : Array[String] = []
+  let pattern = attr + "=\""
+  let mut start = 0
+  while start < html.length() {
+    match html[start:].find(pattern) {
+      Some(offset) => {
+        let value_start = start + offset + pattern.length()
+        match html[value_start:].find("\"") {
+          Some(end) => {
+            values.push(html[value_start:value_start + end].to_string())
+            start = value_start + end + 1
+          }
+          None => break
+        }
+      }
+      None => break
+    }
+  }
+  values
 }
 
 ///|
@@ -1018,6 +1098,23 @@ test "render markdown handles nested lists" {
     ),
   )
   assert_true(html.contains("<ol><li>top<ol><li>nested</li></ol></li></ol>"))
+}
+
+///|
+test "render inline preserves raw html and rewrites links" {
+  let html = render_inline(
+    "See <a href=\"chapter.md#part\">chapter</a> and <img src=\"images/pic.png\" alt=\"Pic\">",
+  )
+  assert_true(html.contains("<a href=\"chapter.html#part\">chapter</a>"))
+  assert_true(html.contains("<img src=\"images/pic.png\" alt=\"Pic\">"))
+}
+
+///|
+test "collect markdown assets includes raw html src values" {
+  let assets = collect_markdown_assets(
+    "<img src=\"images/pic.png\"> <a href=\"chapter.md\">chapter</a>",
+  )
+  assert_eq(assets, ["images/pic.png", "chapter.md"])
 }
 
 ///|
