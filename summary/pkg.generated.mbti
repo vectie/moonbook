@@ -1,0 +1,47 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "username/moonbook/summary"
+
+import {
+  "moonbitlang/core/json",
+  "username/moonbook/core",
+}
+
+// Values
+pub fn parse_summary(String) -> Summary raise
+
+// Errors
+
+// Types and methods
+pub struct Link {
+  name : String
+  location : String?
+  number : @core.SectionNumber?
+  nested_items : Array[SummaryItem]
+}
+pub impl Show for Link
+pub impl ToJson for Link
+pub impl @json.FromJson for Link
+
+pub struct Summary {
+  title : String?
+  prefix_chapters : Array[SummaryItem]
+  numbered_chapters : Array[SummaryItem]
+  suffix_chapters : Array[SummaryItem]
+}
+pub impl Show for Summary
+pub impl ToJson for Summary
+pub impl @json.FromJson for Summary
+
+pub enum SummaryItem {
+  Link(Link)
+  Separator
+  PartTitle(String)
+}
+pub impl Show for SummaryItem
+pub impl ToJson for SummaryItem
+pub impl @json.FromJson for SummaryItem
+
+// Type aliases
+
+// Traits
+

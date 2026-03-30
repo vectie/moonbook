@@ -1,0 +1,120 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "username/moonbook/core"
+
+import {
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn chapter(String, String, number? : SectionNumber?, sub_items? : Array[BookItem], path? : String?, source_path? : String?, parent_names? : Array[String]) -> Chapter
+
+pub fn default() -> Config
+
+pub fn from_json(Json) -> Config raise
+
+pub fn from_toml(String) -> Config raise
+
+pub fn item_chapter(Chapter) -> BookItem
+
+pub fn item_part_title(String) -> BookItem
+
+pub fn item_separator() -> BookItem
+
+pub let mdbook_version : String
+
+pub fn new() -> Book
+
+pub fn new_with_items(Array[BookItem]) -> Book
+
+// Errors
+
+// Types and methods
+pub struct Book {
+  items : Array[BookItem]
+}
+pub fn Book::chapters(Self) -> Array[Chapter]
+pub fn Book::for_each_chapter_mut(Self, (Chapter) -> Chapter) -> Self
+pub fn Book::for_each_mut(Self, (BookItem) -> BookItem) -> Self
+pub fn Book::iter(Self) -> Array[BookItem]
+pub fn Book::push_item(Self, BookItem) -> Unit
+pub impl Show for Book
+pub impl ToJson for Book
+pub impl @json.FromJson for Book
+
+pub struct BookConfig {
+  title : String?
+  authors : Array[String]
+  src : String
+  language : String?
+  multilingual : Bool
+  description : String?
+}
+pub impl Show for BookConfig
+pub impl ToJson for BookConfig
+
+pub enum BookItem {
+  Chapter(Chapter)
+  Separator
+  PartTitle(String)
+}
+pub impl Show for BookItem
+pub impl ToJson for BookItem
+pub impl @json.FromJson for BookItem
+
+pub struct BuildConfig {
+  build_dir : String
+  create_missing : Bool
+  use_default_preprocessors : Bool
+}
+pub impl Show for BuildConfig
+pub impl ToJson for BuildConfig
+
+pub struct Chapter {
+  name : String
+  content : String
+  number : SectionNumber?
+  sub_items : Array[BookItem]
+  path : String?
+  source_path : String?
+  parent_names : Array[String]
+}
+pub fn Chapter::display(Self) -> String
+pub fn Chapter::is_draft_chapter(Self) -> Bool
+pub fn Chapter::new(String, String, String, Array[String]) -> Self
+pub fn Chapter::new_draft(String, Array[String]) -> Self
+pub impl Show for Chapter
+pub impl ToJson for Chapter
+pub impl @json.FromJson for Chapter
+
+pub struct Config {
+  book : BookConfig
+  build : BuildConfig
+  rust : RustConfig
+  output : Json
+  preprocessor : Json
+}
+pub fn Config::contains_key(Self, String) -> Bool
+pub fn Config::read(Self, String) -> Json?
+pub fn Config::set(Self, String, Json) -> Self
+pub impl Show for Config
+pub impl ToJson for Config
+
+pub struct RustConfig {
+  edition : String?
+}
+pub impl Show for RustConfig
+pub impl ToJson for RustConfig
+
+pub struct SectionNumber {
+  items : Array[Int]
+}
+pub fn SectionNumber::new(Array[Int]) -> Self
+pub fn SectionNumber::to_string(Self) -> String
+pub impl Show for SectionNumber
+pub impl ToJson for SectionNumber
+pub impl @json.FromJson for SectionNumber
+
+// Type aliases
+
+// Traits
+

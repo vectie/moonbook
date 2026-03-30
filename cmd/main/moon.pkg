@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/env",
+  "username/moonbook/driver",
+  "username/moonbook/core",
+  "moonbitlang/x/path",
+}
+
+options(
+  "is-main": true,
+)

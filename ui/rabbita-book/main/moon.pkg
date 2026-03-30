@@ -1,0 +1,9 @@
+import {
+  "moonbit-community/rabbita",
+  "moonbit-community/rabbita/html",
+  "username/moonbook/core",
+}
+
+options(
+  "is-main": true,
+)

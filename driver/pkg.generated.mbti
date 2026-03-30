@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "username/moonbook/driver"
+
+import {
+  "username/moonbook/core",
+  "username/moonbook/summary",
+}
+
+// Values
+pub fn clean_book(String, dest_dir? : String?) -> CleanStats raise
+
+pub async fn init_book(String, create_gitignore? : Bool, copy_theme? : Bool, config? : @core.Config) -> MDBook
+
+pub async fn load(String) -> MDBook
+
+pub async fn load_with_config(String, @core.Config) -> MDBook
+
+// Errors
+
+// Types and methods
+pub struct CleanStats {
+  files_removed : Int
+  directories_removed : Int
+  bytes_removed : Int
+}
+pub impl Show for CleanStats
+pub impl ToJson for CleanStats
+
+pub struct MDBook {
+  root : String
+  config : @core.Config
+  book : @core.Book
+  summary : @summary.Summary
+}
+pub async fn MDBook::build(Self) -> Unit
+pub fn MDBook::count_rust_code_blocks(Self) -> Int
+pub fn MDBook::iter(Self) -> Array[@core.BookItem]
+pub impl Show for MDBook
+pub impl ToJson for MDBook
+
+// Type aliases
+
+// Traits
+

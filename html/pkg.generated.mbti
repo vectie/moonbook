@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "username/moonbook/html"
+
+import {
+  "username/moonbook/core",
+}
+
+// Values
+pub fn new_render_context(String, String, @core.Config, @core.Book) -> RenderContext
+
+pub async fn render_html(RenderContext) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct RenderContext {
+  root : String
+  build_dir : String
+  config : @core.Config
+  book : @core.Book
+}
+pub impl Show for RenderContext
+pub impl ToJson for RenderContext
+
+// Type aliases
+
+// Traits
+

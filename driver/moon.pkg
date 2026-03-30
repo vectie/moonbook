@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/async/fs" @afs,
+  "username/moonbook/core",
+  "username/moonbook/summary",
+  "username/moonbook/html",
+  "moonbitlang/core/bytes",
+  "moonbitlang/core/encoding/utf8" @encoding/utf8,
+  "moonbitlang/core/json",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/path",
+}
