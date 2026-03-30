@@ -1,0 +1,34 @@
+{
+  "name": "anthropics-skills",
+  "version": "0.1.0",
+  "description": "[TODO: Brief plugin description]",
+  "author": {
+    "name": "[TODO: Author Name]",
+    "email": "[TODO: author@example.com]",
+    "url": "https://github.com/anthropics"
+  },
+  "homepage": "https://github.com/anthropics/skills",
+  "repository": "https://github.com/anthropics/skills",
+  "license": "[TODO: License]",
+  "keywords": [
+    "skills",
+    "anthropics"
+  ],
+  "interface": {
+    "displayName": "Anthropics Skills",
+    "shortDescription": "[TODO: Short description for subtitle]",
+    "longDescription": "[TODO: Long description for details page]",
+    "developerName": "Anthropics",
+    "category": "Productivity",
+    "capabilities": [
+      "[TODO: Capability]"
+    ],
+    "websiteURL": "https://github.com/anthropics/skills",
+    "privacyPolicyURL": "[TODO: Privacy Policy URL]",
+    "termsOfServiceURL": "[TODO: Terms of Service URL]",
+    "defaultPrompt": [
+      "[TODO: Starter prompt]"
+    ],
+    "brandColor": "#D97706"
+  }
+}
