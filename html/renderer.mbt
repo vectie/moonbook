@@ -266,6 +266,8 @@ fn render_markdown(markdown : String) -> String {
   let builder = StringBuilder::new()
   let paragraph : Array[String] = []
   let list_items : Array[String] = []
+  let ordered_items : Array[String] = []
+  let quote_lines : Array[String] = []
   let mut code_lines : Array[String] = []
   let mut code_language = ""
   let mut in_code_block = false
@@ -276,6 +278,8 @@ fn render_markdown(markdown : String) -> String {
     if trimmed.has_prefix("```") {
       flush_paragraph(builder, paragraph)
       flush_list(builder, list_items)
+      flush_ordered_list(builder, ordered_items)
+      flush_blockquote(builder, quote_lines)
       if in_code_block {
         let code = escape_html(code_lines.join("\n"))
         let class_attr = if code_language.is_empty() {
@@ -300,17 +304,48 @@ fn render_markdown(markdown : String) -> String {
     if trimmed.is_empty() {
       flush_paragraph(builder, paragraph)
       flush_list(builder, list_items)
+      flush_ordered_list(builder, ordered_items)
+      flush_blockquote(builder, quote_lines)
+      continue
+    }
+    if trimmed == "---" {
+      flush_paragraph(builder, paragraph)
+      flush_list(builder, list_items)
+      flush_ordered_list(builder, ordered_items)
+      flush_blockquote(builder, quote_lines)
+      builder.write_string("<hr>")
+      continue
+    }
+    if trimmed.has_prefix("> ") {
+      flush_paragraph(builder, paragraph)
+      flush_list(builder, list_items)
+      flush_ordered_list(builder, ordered_items)
+      quote_lines.push(trimmed[2:].trim().to_string())
       continue
     }
     if trimmed.has_prefix("- ") || trimmed.has_prefix("* ") {
       flush_paragraph(builder, paragraph)
+      flush_ordered_list(builder, ordered_items)
+      flush_blockquote(builder, quote_lines)
       list_items.push(trimmed[2:].trim().to_string())
       continue
+    }
+    match ordered_list_item(trimmed) {
+      Some(item) => {
+        flush_paragraph(builder, paragraph)
+        flush_list(builder, list_items)
+        flush_blockquote(builder, quote_lines)
+        ordered_items.push(item)
+        continue
+      }
+      None => ()
     }
     match heading_level(trimmed) {
       Some(level) => {
         flush_paragraph(builder, paragraph)
         flush_list(builder, list_items)
+        flush_ordered_list(builder, ordered_items)
+        flush_blockquote(builder, quote_lines)
         let text = trimmed[level + 1:].trim().to_string()
         builder.write_string("<h\{level}>\{render_inline(text)}</h\{level}>")
       }
@@ -320,6 +355,8 @@ fn render_markdown(markdown : String) -> String {
 
   flush_paragraph(builder, paragraph)
   flush_list(builder, list_items)
+  flush_ordered_list(builder, ordered_items)
+  flush_blockquote(builder, quote_lines)
   if in_code_block {
     let code = escape_html(code_lines.join("\n"))
     let class_attr = if code_language.is_empty() {
@@ -400,6 +437,59 @@ fn flush_list(builder : StringBuilder, list_items : Array[String]) -> Unit {
   }
   builder.write_string("</ul>")
   list_items.clear()
+}
+
+///|
+fn flush_ordered_list(
+  builder : StringBuilder,
+  ordered_items : Array[String],
+) -> Unit {
+  if ordered_items.is_empty() {
+    return
+  }
+  builder.write_string("<ol>")
+  for item in ordered_items {
+    builder.write_string("<li>\{render_inline(item)}</li>")
+  }
+  builder.write_string("</ol>")
+  ordered_items.clear()
+}
+
+///|
+fn flush_blockquote(
+  builder : StringBuilder,
+  quote_lines : Array[String],
+) -> Unit {
+  if quote_lines.is_empty() {
+    return
+  }
+  let text = quote_lines.join(" ")
+  builder.write_string("<blockquote><p>\{render_inline(text)}</p></blockquote>")
+  quote_lines.clear()
+}
+
+///|
+fn ordered_list_item(line : String) -> String? {
+  let mut dot_index : Int? = None
+  for i = 0; i < line.length(); i = i + 1 {
+    let c = line[i]
+    if c == '.' {
+      dot_index = Some(i)
+      break
+    }
+    if c < '0' || c > '9' {
+      return None
+    }
+  }
+  match dot_index {
+    Some(index) =>
+      if index + 1 < line.length() && line[index + 1] == ' ' {
+        Some(line[index + 2:].trim().to_string())
+      } else {
+        None
+      }
+    None => None
+  }
 }
 
 ///|
@@ -582,4 +672,16 @@ test "render inline handles emphasis code and links" {
   assert_true(html.contains("<code>code</code>"))
   assert_true(html.contains("<a href=\"guide.html#intro\">chapter</a>"))
   assert_true(html.contains("<a href=\"https://example.com\">site</a>"))
+}
+
+///|
+test "render markdown handles ordered lists blockquotes and rules" {
+  let html = render_markdown(
+    "> quoted line\n> more quote\n\n1. first\n2. second\n\n---\n",
+  )
+  assert_true(
+    html.contains("<blockquote><p>quoted line more quote</p></blockquote>"),
+  )
+  assert_true(html.contains("<ol><li>first</li><li>second</li></ol>"))
+  assert_true(html.contains("<hr>"))
 }
