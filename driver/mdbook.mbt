@@ -16,7 +16,7 @@ pub struct CleanStats {
 ///|
 pub async fn load(book_root : String) -> MDBook {
   let config_path = @path.Path(book_root).join(@path.Path("book.toml"))
-  let config = if @fs.is_file(config_path.to_string()) {
+  let config = if @fs.path_exists(config_path.to_string()) {
     @core.from_toml(@fs.read_file_to_string(config_path.to_string()))
   } else {
     @core.default()
@@ -84,37 +84,36 @@ pub async fn init_book(
   let summary_path = @path.Path(src_dir)
     .join(@path.Path("SUMMARY.md"))
     .to_string()
-  if !@fs.is_file(summary_path) {
-    (write_text_file(
-      summary_path,
-      "# Summary\n\n- [Chapter 1](./chapter_1.md)\n",
-    )) catch {
+  if !@fsx.exists(summary_path) {
+    write_text_file(
+      summary_path, "# Summary\n\n- [Chapter 1](./chapter_1.md)\n",
+    ) catch {
       error => fail("init write SUMMARY failed: \{error}")
     }
   }
   let chapter_path = @path.Path(src_dir)
     .join(@path.Path("chapter_1.md"))
     .to_string()
-  if !@fs.is_file(chapter_path) {
-    (write_text_file(chapter_path, "# Chapter 1\n")) catch {
+  if !@fsx.exists(chapter_path) {
+    write_text_file(chapter_path, "# Chapter 1\n") catch {
       error => fail("init write chapter failed: \{error}")
     }
   }
   let book_toml = @path.Path(book_root)
     .join(@path.Path("book.toml"))
     .to_string()
-  (write_text_file(book_toml, config_to_toml(config))) catch {
+  write_text_file(book_toml, config_to_toml(config)) catch {
     error => fail("init write book.toml failed: \{error}")
   }
   if create_gitignore {
-    (write_text_file(
+    write_text_file(
       @path.Path(book_root).join(@path.Path(".gitignore")).to_string(),
       config.build.build_dir + "\n",
-    )) catch {
+    ) catch {
       error => fail("init write .gitignore failed: \{error}")
     }
   }
-  let loaded = (load(book_root)) catch {
+  let loaded = load(book_root) catch {
     error => fail("init reload failed: \{error}")
   }
   loaded
@@ -152,14 +151,14 @@ pub fn MDBook::count_rust_code_blocks(self : MDBook) -> Int {
 }
 
 ///|
-pub fn clean_book(
+pub async fn clean_book(
   book_root : String,
   dest_dir? : String? = None,
-) -> CleanStats raise {
+) -> CleanStats {
   let config_path = @path.Path(book_root)
     .join(@path.Path("book.toml"))
     .to_string()
-  let config = if @fs.is_file(config_path) {
+  let config = if @fs.path_exists(config_path) {
     @core.from_toml(@fs.read_file_to_string(config_path))
   } else {
     @core.default()
@@ -170,8 +169,8 @@ pub fn clean_book(
       @path.Path(book_root).join(@path.Path(config.build.build_dir)).to_string()
   }
   let stats = collect_clean_stats(target)
-  if @fs.path_exists(target) {
-    @fs.remove_dir(target)
+  if @afs.exists(target) {
+    @afs.rmdir(target, recursive=true)
   }
   stats
 }
@@ -269,7 +268,7 @@ async fn create_missing_items(
             let filename = @path.Path(src_dir)
               .join(@path.Path(location))
               .to_string()
-            if !@fs.is_file(filename) {
+            if !@fsx.exists(filename) {
               ensure_parent_dir(filename)
               write_text_file(filename, "# " + escape_html(link.name) + "\n")
             }
@@ -284,7 +283,7 @@ async fn create_missing_items(
 }
 
 ///|
-async fn ensure_dir(path : String) -> Unit raise {
+async fn ensure_dir(path : String) -> Unit {
   if @fsx.exists(path) {
     return
   }
@@ -292,7 +291,7 @@ async fn ensure_dir(path : String) -> Unit raise {
 }
 
 ///|
-async fn ensure_parent_dir(path : String) -> Unit raise {
+async fn ensure_parent_dir(path : String) -> Unit {
   let parent = @pathx.dirname(path).to_string()
   if parent != "." && parent != path {
     ensure_dir(parent)

@@ -50,7 +50,7 @@ async fn run_init(root : String) -> Unit {
 }
 
 ///|
-fn run_clean(root : String) -> Unit {
+async fn run_clean(root : String) -> Unit {
   let stats = @driver.clean_book(root) catch {
     error => {
       println("moonbook clean failed: \{error}")

@@ -55,7 +55,7 @@ pub async fn render_html(context : RenderContext) -> Unit {
 }
 
 ///|
-async fn ensure_dir(path : String) -> Unit raise {
+async fn ensure_dir(path : String) -> Unit {
   if @fsx.exists(path) {
     return
   }
@@ -63,7 +63,7 @@ async fn ensure_dir(path : String) -> Unit raise {
 }
 
 ///|
-async fn ensure_parent_dir(path : String) -> Unit raise {
+async fn ensure_parent_dir(path : String) -> Unit {
   let parent = @pathx.dirname(path).to_string()
   if parent != "." && parent != path {
     ensure_dir(parent)

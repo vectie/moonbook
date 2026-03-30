@@ -1,4 +1,5 @@
 import {
+  "moonbitlang/async/fs" @afs,
   "username/moonbook/core",
   "username/moonbook/summary",
   "username/moonbook/html",
