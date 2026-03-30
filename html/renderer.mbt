@@ -316,6 +316,9 @@ fn render_markdown(markdown : String) -> String {
   let ordered_items : Array[String] = []
   let quote_lines : Array[String] = []
   let heading_ids : Map[String, Int] = {}
+  let mut pending_table_header : String? = None
+  let mut table_header : Array[String]? = None
+  let table_rows : Array[Array[String]] = []
   let mut code_lines : Array[String] = []
   let mut code_language = ""
   let mut in_code_block = false
@@ -328,6 +331,7 @@ fn render_markdown(markdown : String) -> String {
       flush_list(builder, list_items)
       flush_ordered_list(builder, ordered_items)
       flush_blockquote(builder, quote_lines)
+      table_header = flush_table(builder, table_header, table_rows)
       if in_code_block {
         let code = escape_html(code_lines.join("\n"))
         let class_attr = if code_language.is_empty() {
@@ -349,11 +353,27 @@ fn render_markdown(markdown : String) -> String {
       code_lines.push(line)
       continue
     }
+    if table_header is Some(_) && !is_table_row(trimmed) {
+      table_header = flush_table(builder, table_header, table_rows)
+    }
+    match pending_table_header {
+      Some(header) =>
+        if is_table_separator(trimmed) {
+          table_header = Some(parse_table_row(header))
+          pending_table_header = None
+          continue
+        } else {
+          paragraph.push(header)
+          pending_table_header = None
+        }
+      None => ()
+    }
     if trimmed.is_empty() {
       flush_paragraph(builder, paragraph)
       flush_list(builder, list_items)
       flush_ordered_list(builder, ordered_items)
       flush_blockquote(builder, quote_lines)
+      table_header = flush_table(builder, table_header, table_rows)
       continue
     }
     if trimmed == "---" {
@@ -361,6 +381,7 @@ fn render_markdown(markdown : String) -> String {
       flush_list(builder, list_items)
       flush_ordered_list(builder, ordered_items)
       flush_blockquote(builder, quote_lines)
+      table_header = flush_table(builder, table_header, table_rows)
       builder.write_string("<hr>")
       continue
     }
@@ -368,6 +389,7 @@ fn render_markdown(markdown : String) -> String {
       flush_paragraph(builder, paragraph)
       flush_list(builder, list_items)
       flush_ordered_list(builder, ordered_items)
+      table_header = flush_table(builder, table_header, table_rows)
       quote_lines.push(trimmed[2:].trim().to_string())
       continue
     }
@@ -375,6 +397,7 @@ fn render_markdown(markdown : String) -> String {
       flush_paragraph(builder, paragraph)
       flush_ordered_list(builder, ordered_items)
       flush_blockquote(builder, quote_lines)
+      table_header = flush_table(builder, table_header, table_rows)
       list_items.push(trimmed[2:].trim().to_string())
       continue
     }
@@ -383,10 +406,24 @@ fn render_markdown(markdown : String) -> String {
         flush_paragraph(builder, paragraph)
         flush_list(builder, list_items)
         flush_blockquote(builder, quote_lines)
+        table_header = flush_table(builder, table_header, table_rows)
         ordered_items.push(item)
         continue
       }
       None => ()
+    }
+    if table_header is Some(_) && is_table_row(trimmed) {
+      table_rows.push(parse_table_row(trimmed))
+      continue
+    }
+    if is_table_row(trimmed) {
+      flush_paragraph(builder, paragraph)
+      flush_list(builder, list_items)
+      flush_ordered_list(builder, ordered_items)
+      flush_blockquote(builder, quote_lines)
+      table_header = flush_table(builder, table_header, table_rows)
+      pending_table_header = Some(trimmed)
+      continue
     }
     match heading_level(trimmed) {
       Some(level) => {
@@ -394,6 +431,7 @@ fn render_markdown(markdown : String) -> String {
         flush_list(builder, list_items)
         flush_ordered_list(builder, ordered_items)
         flush_blockquote(builder, quote_lines)
+        table_header = flush_table(builder, table_header, table_rows)
         let text = trimmed[level + 1:].trim().to_string()
         let id = unique_heading_id(text, heading_ids)
         let title = render_inline(text)
@@ -409,6 +447,12 @@ fn render_markdown(markdown : String) -> String {
   flush_list(builder, list_items)
   flush_ordered_list(builder, ordered_items)
   flush_blockquote(builder, quote_lines)
+  match pending_table_header {
+    Some(header) => paragraph.push(header)
+    None => ()
+  }
+  flush_paragraph(builder, paragraph)
+  ignore(flush_table(builder, table_header, table_rows))
   if in_code_block {
     let code = escape_html(code_lines.join("\n"))
     let class_attr = if code_language.is_empty() {
@@ -518,6 +562,68 @@ fn flush_blockquote(
   let text = quote_lines.join(" ")
   builder.write_string("<blockquote><p>\{render_inline(text)}</p></blockquote>")
   quote_lines.clear()
+}
+
+///|
+fn flush_table(
+  builder : StringBuilder,
+  table_header : Array[String]?,
+  table_rows : Array[Array[String]],
+) -> Array[String]? {
+  match table_header {
+    Some(header) => {
+      builder.write_string("<div class=\"table-wrapper\"><table><thead><tr>")
+      for cell in header {
+        builder.write_string("<th>\{render_inline(cell)}</th>")
+      }
+      builder.write_string("</tr></thead><tbody>")
+      for row in table_rows {
+        builder.write_string("<tr>")
+        for cell in row {
+          builder.write_string("<td>\{render_inline(cell)}</td>")
+        }
+        builder.write_string("</tr>")
+      }
+      builder.write_string("</tbody></table></div>")
+      table_rows.clear()
+      None
+    }
+    None => None
+  }
+}
+
+///|
+fn is_table_row(line : String) -> Bool {
+  line.contains("|") && !line.has_prefix("|-")
+}
+
+///|
+fn is_table_separator(line : String) -> Bool {
+  let pieces = parse_table_row(line)
+  if pieces.is_empty() {
+    return false
+  }
+  for piece in pieces {
+    let trimmed = piece.trim().to_string()
+    if trimmed.is_empty() {
+      return false
+    }
+    for c in trimmed {
+      if c != '-' && c != ':' {
+        return false
+      }
+    }
+  }
+  true
+}
+
+///|
+fn parse_table_row(line : String) -> Array[String] {
+  line
+  .split("|")
+  .map(fn(piece) { piece.trim().to_string() })
+  .filter(fn(piece) { !piece.is_empty() })
+  .to_array()
 }
 
 ///|
@@ -848,6 +954,22 @@ test "render markdown handles ordered lists blockquotes and rules" {
   )
   assert_true(html.contains("<ol><li>first</li><li>second</li></ol>"))
   assert_true(html.contains("<hr>"))
+}
+
+///|
+test "render markdown handles pipe tables" {
+  let html = render_markdown(
+    "| Name | Value |\n| --- | --- |\n| One | 1 |\n| Two | 2 |\n",
+  )
+  assert_true(html.contains("<div class=\"table-wrapper\"><table>"))
+  assert_true(
+    html.contains("<thead><tr><th>Name</th><th>Value</th></tr></thead>"),
+  )
+  assert_true(
+    html.contains(
+      "<tbody><tr><td>One</td><td>1</td></tr><tr><td>Two</td><td>2</td></tr></tbody>",
+    ),
+  )
 }
 
 ///|
