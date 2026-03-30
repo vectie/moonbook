@@ -312,7 +312,7 @@ fn render_markdown(markdown : String) -> String {
         flush_paragraph(builder, paragraph)
         flush_list(builder, list_items)
         let text = trimmed[level + 1:].trim().to_string()
-        builder.write_string("<h\{level}>\{escape_html(text)}</h\{level}>")
+        builder.write_string("<h\{level}>\{render_inline(text)}</h\{level}>")
       }
       None => paragraph.push(trimmed)
     }
@@ -385,7 +385,7 @@ fn flush_paragraph(builder : StringBuilder, paragraph : Array[String]) -> Unit {
     return
   }
   let text = paragraph.join(" ")
-  builder.write_string("<p>\{escape_html(text)}</p>")
+  builder.write_string("<p>\{render_inline(text)}</p>")
   paragraph.clear()
 }
 
@@ -396,10 +396,108 @@ fn flush_list(builder : StringBuilder, list_items : Array[String]) -> Unit {
   }
   builder.write_string("<ul>")
   for item in list_items {
-    builder.write_string("<li>\{escape_html(item)}</li>")
+    builder.write_string("<li>\{render_inline(item)}</li>")
   }
   builder.write_string("</ul>")
   list_items.clear()
+}
+
+///|
+fn render_inline(text : String) -> String {
+  let builder = StringBuilder::new()
+  let mut i = 0
+  while i < text.length() {
+    if text[i] == '`' {
+      match text[i + 1:].find("`") {
+        Some(end) => {
+          let code = text[i + 1:i + 1 + end].to_string()
+          builder.write_string("<code>\{escape_html(code)}</code>")
+          i = i + end + 2
+        }
+        None => {
+          builder.write_string("`")
+          i += 1
+        }
+      }
+    } else if i + 1 < text.length() && text[i] == '*' && text[i + 1] == '*' {
+      match text[i + 2:].find("**") {
+        Some(end) => {
+          let content = text[i + 2:i + 2 + end].to_string()
+          builder.write_string("<strong>\{render_inline(content)}</strong>")
+          i = i + end + 4
+        }
+        None => {
+          builder.write_string("**")
+          i += 2
+        }
+      }
+    } else if text[i] == '*' {
+      match text[i + 1:].find("*") {
+        Some(end) => {
+          let content = text[i + 1:i + 1 + end].to_string()
+          builder.write_string("<em>\{render_inline(content)}</em>")
+          i = i + end + 2
+        }
+        None => {
+          builder.write_string("*")
+          i += 1
+        }
+      }
+    } else if text[i] == '[' {
+      match text[i + 1:].find("](") {
+        Some(mid) => {
+          let close_index = i + 1 + mid
+          match text[close_index + 2:].find(")") {
+            Some(end) => {
+              let label = text[i + 1:close_index].to_string()
+              let href = text[close_index + 2:close_index + 2 + end].to_string()
+              let fixed_href = fix_link(href)
+              builder.write_string(
+                "<a href=\"\{escape_html(fixed_href)}\">\{render_inline(label)}</a>",
+              )
+              i = close_index + end + 3
+            }
+            None => {
+              builder.write_string("[")
+              i += 1
+            }
+          }
+        }
+        None => {
+          builder.write_string("[")
+          i += 1
+        }
+      }
+    } else {
+      builder.write_string(escape_html(text[i:i + 1].to_string()))
+      i += 1
+    }
+  }
+  builder.to_string()
+}
+
+///|
+fn fix_link(link : String) -> String {
+  if link.has_prefix("#") || link.contains("://") || link.has_prefix("mailto:") {
+    return link
+  }
+  match link.find("#") {
+    Some(index) => {
+      let base = link[:index].to_string()
+      let anchor = link[index:].to_string()
+      fix_link_path(base) + anchor
+    }
+    None => fix_link_path(link)
+  }
+}
+
+///|
+fn fix_link_path(path : String) -> String {
+  if path.has_suffix(".md") {
+    path[:path.length() - 3].to_string() + ".html"
+  } else {
+    path
+  }
 }
 
 ///|
@@ -472,4 +570,16 @@ test "chapter body strips duplicate leading title" {
   let body = render_chapter_body(chapter)
   assert_eq(body.split("<h1>").to_array().length(), 2)
   assert_true(body.contains("<p>Hello</p>"))
+}
+
+///|
+test "render inline handles emphasis code and links" {
+  let html = render_inline(
+    "A *small* **strong** `code` [chapter](guide.md#intro) and [site](https://example.com)",
+  )
+  assert_true(html.contains("<em>small</em>"))
+  assert_true(html.contains("<strong>strong</strong>"))
+  assert_true(html.contains("<code>code</code>"))
+  assert_true(html.contains("<a href=\"guide.html#intro\">chapter</a>"))
+  assert_true(html.contains("<a href=\"https://example.com\">site</a>"))
 }
