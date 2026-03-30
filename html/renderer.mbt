@@ -208,9 +208,9 @@ fn render_chapter_body(chapter : @core.Chapter) -> String {
   } else {
     "<p class=\"breadcrumbs\">\{escape_html(trail)}</p>"
   }
-  let content = render_markdown(
-    strip_duplicate_leading_title(chapter.content, chapter),
-  )
+  let stripped = strip_duplicate_leading_title(chapter.content, chapter)
+  let (markdown, footnotes) = split_footnotes(stripped)
+  let content = render_markdown(markdown) + render_footnotes(footnotes)
   "<article class=\"chapter\">\{breadcrumbs}<h1>\{escape_html(chapter.display())}</h1>\{content}</article>"
 }
 
@@ -780,7 +780,22 @@ fn render_inline(text : String) -> String {
   let builder = StringBuilder::new()
   let mut i = 0
   while i < text.length() {
-    if text[i] == '`' {
+    if i + 1 < text.length() && text[i] == '[' && text[i + 1] == '^' {
+      match text[i + 2:].find("]") {
+        Some(end) => {
+          let name = text[i + 2:i + 2 + end].to_string()
+          let id = slugify_heading(name)
+          builder.write_string(
+            "<sup class=\"footnote-reference\"><a href=\"#footnote-\{id}\" id=\"fr-\{id}\">\{escape_html(name)}</a></sup>",
+          )
+          i = i + end + 3
+        }
+        None => {
+          builder.write_string("[")
+          i += 1
+        }
+      }
+    } else if text[i] == '`' {
       match text[i + 1:].find("`") {
         Some(end) => {
           let code = text[i + 1:i + 1 + end].to_string()
@@ -1006,6 +1021,50 @@ fn collect_html_attribute_values(html : String, attr : String) -> Array[String] 
 }
 
 ///|
+fn split_footnotes(markdown : String) -> (String, Array[(String, String)]) {
+  let body : Array[String] = []
+  let footnotes : Array[(String, String)] = []
+  for raw_line in markdown.split("\n") {
+    let line = raw_line.to_string()
+    let trimmed = line.trim().to_string()
+    if trimmed.has_prefix("[^") {
+      match trimmed.find("]:") {
+        Some(index) => {
+          let name = trimmed[2:index].to_string()
+          let content = trimmed[index + 2:].trim().to_string()
+          footnotes.push((name, content))
+        }
+        None => body.push(line)
+      }
+    } else {
+      body.push(line)
+    }
+  }
+  (body.join("\n"), footnotes)
+}
+
+///|
+fn render_footnotes(footnotes : Array[(String, String)]) -> String {
+  if footnotes.is_empty() {
+    return ""
+  }
+  let builder = StringBuilder::new()
+  builder.write_string(
+    "<section class=\"footnotes\"><hr><ol class=\"footnote-definition\">",
+  )
+  for footnote in footnotes {
+    let name = footnote.0
+    let content = footnote.1
+    let id = slugify_heading(name)
+    let rendered = render_markdown(content)
+    let backref = "<a href=\"#fr-\{id}\" class=\"footnote-backref\">↩</a>"
+    builder.write_string("<li id=\"footnote-\{id}\">\{rendered}\{backref}</li>")
+  }
+  builder.write_string("</ol></section>")
+  builder.to_string()
+}
+
+///|
 test "relative href handles nested chapter paths" {
   assert_eq(relative_href("index.html", "guide/index.html"), "guide/index.html")
   assert_eq(
@@ -1160,6 +1219,30 @@ test "collect markdown assets includes raw html src values" {
     "<img src=\"images/pic.png\"> <a href=\"chapter.md\">chapter</a>",
   )
   assert_eq(assets, ["images/pic.png", "chapter.md"])
+}
+
+///|
+test "split footnotes separates definitions from body" {
+  let (body, footnotes) = split_footnotes("Hello[^1]\n\n[^1]: Footnote text\n")
+  assert_true(body.contains("Hello[^1]"))
+  assert_eq(footnotes.length(), 1)
+  assert_eq(footnotes[0].0, "1")
+  assert_eq(footnotes[0].1, "Footnote text")
+}
+
+///|
+test "render chapter body renders footnote references and definitions" {
+  let chapter = @core.chapter(
+    "Chapter 1",
+    "Hello[^1]\n\n[^1]: Footnote text\n",
+    path=Some("chapter_1.md"),
+    source_path=Some("chapter_1.md"),
+  )
+  let body = render_chapter_body(chapter)
+  assert_true(body.contains("class=\"footnote-reference\""))
+  assert_true(body.contains("id=\"footnote-1\""))
+  assert_true(body.contains("Footnote text"))
+  assert_true(body.contains("class=\"footnote-backref\""))
 }
 
 ///|
