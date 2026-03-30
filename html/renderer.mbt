@@ -321,6 +321,7 @@ fn render_markdown(markdown : String) -> String {
   let table_rows : Array[Array[String]] = []
   let mut code_lines : Array[String] = []
   let mut code_language = ""
+  let mut code_modifiers : Array[String] = []
   let mut in_code_block = false
 
   for raw_line in markdown.split("\n") {
@@ -333,18 +334,19 @@ fn render_markdown(markdown : String) -> String {
       table_header = flush_table(builder, table_header, table_rows)
       if in_code_block {
         let code = escape_html(code_lines.join("\n"))
-        let class_attr = if code_language.is_empty() {
-          ""
-        } else {
-          " class=\"language-\{escape_html(code_language)}\""
-        }
+        let class_attr = code_class_attr(code_language, code_modifiers)
         builder.write_string("<pre><code\{class_attr}>\{code}</code></pre>")
         code_lines = []
         code_language = ""
+        code_modifiers = []
         in_code_block = false
       } else {
         in_code_block = true
-        code_language = trimmed[3:].trim().to_string()
+        let (language, modifiers) = parse_code_info(
+          trimmed[3:].trim().to_string(),
+        )
+        code_language = language
+        code_modifiers = modifiers
       }
       continue
     }
@@ -457,14 +459,45 @@ fn render_markdown(markdown : String) -> String {
   ignore(flush_table(builder, table_header, table_rows))
   if in_code_block {
     let code = escape_html(code_lines.join("\n"))
-    let class_attr = if code_language.is_empty() {
-      ""
-    } else {
-      " class=\"language-\{escape_html(code_language)}\""
-    }
+    let class_attr = code_class_attr(code_language, code_modifiers)
     builder.write_string("<pre><code\{class_attr}>\{code}</code></pre>")
   }
   builder.to_string()
+}
+
+///|
+fn parse_code_info(info : String) -> (String, Array[String]) {
+  let parts = info
+    .split(",")
+    .map(fn(part) { part.trim().to_string() })
+    .filter(fn(part) { !part.is_empty() })
+    .to_array()
+  if parts.is_empty() {
+    return ("", [])
+  }
+  let language = parts[0]
+  let modifiers : Array[String] = []
+  for i = 1; i < parts.length(); i = i + 1 {
+    modifiers.push(parts[i])
+  }
+  (language, modifiers)
+}
+
+///|
+fn code_class_attr(language : String, modifiers : Array[String]) -> String {
+  let classes : Array[String] = []
+  if !language.is_empty() {
+    classes.push("language-" + language)
+  }
+  for modifier in modifiers {
+    classes.push(modifier)
+  }
+  if classes.is_empty() {
+    ""
+  } else {
+    let class_names = classes.join(" ")
+    " class=\"\{escape_html(class_names)}\""
+  }
 }
 
 ///|
@@ -1243,6 +1276,23 @@ test "render chapter body renders footnote references and definitions" {
   assert_true(body.contains("id=\"footnote-1\""))
   assert_true(body.contains("Footnote text"))
   assert_true(body.contains("class=\"footnote-backref\""))
+}
+
+///|
+test "parse code info splits language and modifiers" {
+  let (language, modifiers) = parse_code_info("rust,ignore,editable")
+  assert_eq(language, "rust")
+  assert_eq(modifiers, ["ignore", "editable"])
+}
+
+///|
+test "render markdown emits separate code classes for modifiers" {
+  let html = render_markdown("```rust,ignore,editable\nfn main {}\n```\n")
+  assert_true(
+    html.contains(
+      "<code class=\"language-rust ignore editable\">fn main {}</code>",
+    ),
+  )
 }
 
 ///|
