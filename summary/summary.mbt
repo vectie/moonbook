@@ -54,20 +54,25 @@ pub fn parse_summary(summary : String) -> Summary raise {
       }
       seen_numbered = true
       numbered_chapters.push(PartTitle(trimmed[2:].trim().to_string()))
-      current_numbers = []
       continue
     }
     if trimmed == "---" {
-      flush_stack(
-        stack, prefix_chapters, numbered_chapters, suffix_chapters, seen_numbered,
-        in_suffix,
-      )
-      if seen_numbered {
-        in_suffix = true
+      let depth = indent_depth(line)
+      if in_suffix {
+        flush_stack(
+          stack, prefix_chapters, numbered_chapters, suffix_chapters, seen_numbered,
+          in_suffix,
+        )
+        suffix_chapters.push(Separator)
+      } else if seen_numbered {
+        append_separator_at_depth(stack, numbered_chapters, depth)
       } else {
+        flush_stack(
+          stack, prefix_chapters, numbered_chapters, suffix_chapters, seen_numbered,
+          in_suffix,
+        )
         prefix_chapters.push(Separator)
       }
-      current_numbers = []
       continue
     }
     if trimmed.has_prefix("## ") {
@@ -90,8 +95,8 @@ pub fn parse_summary(summary : String) -> Summary raise {
         finalize_top(stack, numbered_chapters)
       }
       if stack.length() == depth {
-        if current_numbers.length() > depth {
-          current_numbers = current_numbers[:depth].to_array()
+        if current_numbers.length() > depth + 1 {
+          current_numbers = current_numbers[:depth + 1].to_array()
         }
         let next = next_number(current_numbers, depth)
         current_numbers = next.copy()
@@ -238,6 +243,24 @@ fn flush_stack(
 }
 
 ///|
+fn append_separator_at_depth(
+  stack : Array[(Int, Link)],
+  destination : Array[SummaryItem],
+  depth : Int,
+) -> Unit {
+  while stack.length() > depth {
+    finalize_top(stack, destination)
+  }
+  if stack.is_empty() {
+    destination.push(Separator)
+  } else {
+    let (_, parent) = stack[stack.length() - 1]
+    parent.nested_items.push(Separator)
+    stack[stack.length() - 1] = (stack[stack.length() - 1].0, parent)
+  }
+}
+
+///|
 test "parse summary with parts and nesting" {
   let summary = parse_summary(
     "# Summary\n[Intro](intro.md)\n# Part One\n- [Chapter 1](chapter-1.md)\n  - [Section](section.md)\n",
@@ -252,6 +275,25 @@ test "parse summary ignores subheaders inside numbered chapters" {
     "# Summary\n- [First](first.md)\n## Subheading\n- [Second](second.md)\n",
   )
   assert_eq(summary.numbered_chapters.length(), 2)
+}
+
+///|
+test "parse summary keeps numbering across parts and separators" {
+  let summary = parse_summary(
+    "# Summary\n- [First](first.md)\n---\n# Part Two\n- [Second](second.md)\n",
+  )
+  assert_eq(summary.numbered_chapters.length(), 4)
+  match summary.numbered_chapters[0] {
+    Link(link) =>
+      assert_eq(link.number.map(fn(number) { number.to_string() }), Some("1."))
+    _ => fail("expected link")
+  }
+  assert_true(summary.numbered_chapters[1] is Separator)
+  match summary.numbered_chapters[3] {
+    Link(link) =>
+      assert_eq(link.number.map(fn(number) { number.to_string() }), Some("2."))
+    _ => fail("expected link")
+  }
 }
 
 ///|

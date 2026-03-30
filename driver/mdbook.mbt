@@ -216,15 +216,15 @@ fn load_chapter(
 ) -> @core.Chapter raise {
   let chapter = match link.location {
     Some(location) => {
-      let path = @path.Path(src_dir).join(@path.Path(location)).to_string()
-      let content = strip_utf8_bom(@fs.read_file_to_string(path))
+      let (disk_path, chapter_path) = resolve_chapter_paths(location, src_dir)
+      let content = strip_utf8_bom(@fs.read_file_to_string(disk_path))
       @core.chapter(
         link.name,
         content,
         number=link.number,
         sub_items=[],
-        path=Some(location),
-        source_path=Some(location),
+        path=Some(chapter_path),
+        source_path=Some(chapter_path),
         parent_names~,
       )
     }
@@ -248,6 +248,27 @@ fn load_chapter(
     source_path=chapter.source_path,
     parent_names=chapter.parent_names,
   )
+}
+
+///|
+fn resolve_chapter_paths(
+  location : String,
+  src_dir : String,
+) -> (String, String) {
+  if @pathx.is_absolute(location) {
+    let normalized_src = @pathx.normalize(src_dir)
+    let normalized_location = @pathx.normalize(location)
+    let relative = match
+      normalized_location.strip_prefix(normalized_src + "/") {
+      Some(path) => path.to_string()
+      None => normalized_location
+    }
+    (normalized_location, relative)
+  } else {
+    let relative = @pathx.normalize(location)
+    let disk_path = @path.Path(src_dir).join(@path.Path(relative)).to_string()
+    (disk_path, relative)
+  }
 }
 
 ///|
@@ -477,4 +498,50 @@ test "preprocess book rewrites chapter paths but preserves source paths" {
   assert_eq(chapters[0].source_path, Some("./README.md"))
   assert_eq(chapters[1].path, Some("guide/index.md"))
   assert_eq(chapters[1].source_path, Some("guide/README.md"))
+}
+
+///|
+test "load chapter from absolute path stores source path relative to src dir" {
+  let cwd = @env.current_dir().unwrap()
+  let src_dir = @path.Path(cwd).join(@path.Path("summary")).to_string()
+  let absolute = @path.Path(src_dir).join(@path.Path("summary.mbt")).to_string()
+  let parsed = @summary.parse_summary("# Summary\n- [Summary](\{absolute})\n")
+  let chapter = load_chapter(
+    match parsed.numbered_chapters[0] {
+      Link(link) => link
+      _ => fail("expected numbered chapter link")
+    },
+    src_dir,
+    [],
+  )
+  assert_eq(chapter.path, Some("summary.mbt"))
+  assert_eq(chapter.source_path, Some("summary.mbt"))
+  assert_true(chapter.content.contains("pub struct Summary"))
+}
+
+///|
+test "load chapter preserves separators and nested parent names" {
+  let cwd = @env.current_dir().unwrap()
+  let src_dir = cwd
+  let parsed = @summary.parse_summary(
+    "# Summary\n- [Driver](driver/mdbook.mbt)\n  - [Summary](summary/summary.mbt)\n  ---\n  - [Core](core/book.mbt)\n",
+  )
+  let chapter = load_chapter(
+    match parsed.numbered_chapters[0] {
+      Link(link) => link
+      _ => fail("expected numbered chapter link")
+    },
+    src_dir,
+    [],
+  )
+  assert_eq(chapter.sub_items.length(), 3)
+  match chapter.sub_items[0] {
+    Chapter(nested) => assert_eq(nested.parent_names, ["Driver"])
+    _ => fail("expected nested chapter")
+  }
+  assert_true(chapter.sub_items[1] is Separator)
+  match chapter.sub_items[2] {
+    Chapter(nested) => assert_eq(nested.parent_names, ["Driver"])
+    _ => fail("expected nested chapter")
+  }
 }
