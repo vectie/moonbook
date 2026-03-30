@@ -345,9 +345,9 @@ fn render_markdown_with_refs(
         builder, table_header, table_rows, references,
       )
       if in_code_block {
-        let code = escape_html(code_lines.join("\n"))
-        let class_attr = code_class_attr(code_language, code_modifiers)
-        builder.write_string("<pre><code\{class_attr}>\{code}</code></pre>")
+        builder.write_string(
+          render_code_block(code_language, code_modifiers, code_lines),
+        )
         code_lines = []
         code_language = ""
         code_modifiers = []
@@ -497,9 +497,9 @@ fn render_markdown_with_refs(
   flush_paragraph_with_refs(builder, paragraph, references)
   ignore(flush_table_with_refs(builder, table_header, table_rows, references))
   if in_code_block {
-    let code = escape_html(code_lines.join("\n"))
-    let class_attr = code_class_attr(code_language, code_modifiers)
-    builder.write_string("<pre><code\{class_attr}>\{code}</code></pre>")
+    builder.write_string(
+      render_code_block(code_language, code_modifiers, code_lines),
+    )
   }
   builder.to_string()
 }
@@ -537,6 +537,130 @@ fn code_class_attr(language : String, modifiers : Array[String]) -> String {
     let class_names = classes.join(" ")
     " class=\"\{escape_html(class_names)}\""
   }
+}
+
+///|
+fn render_code_block(
+  language : String,
+  modifiers : Array[String],
+  code_lines : Array[String],
+) -> String {
+  let class_attr = code_class_attr(language, modifiers)
+  let pre_class = if should_use_playground(language, modifiers) {
+    " class=\"playground\""
+  } else {
+    ""
+  }
+  let code = render_code_lines(language, modifiers, code_lines)
+  "<pre\{pre_class}><code\{class_attr}>\{code}</code></pre>"
+}
+
+///|
+fn should_use_playground(language : String, modifiers : Array[String]) -> Bool {
+  if language != "rust" {
+    return false
+  }
+  for modifier in modifiers {
+    if modifier == "noplayground" {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn render_code_lines(
+  language : String,
+  modifiers : Array[String],
+  code_lines : Array[String],
+) -> String {
+  let builder = StringBuilder::new()
+  let hidden_prefix = code_hidelines_prefix(language, modifiers)
+  for i = 0; i < code_lines.length(); i = i + 1 {
+    let line = code_lines[i]
+    let with_newline = if i + 1 < code_lines.length() {
+      line + "\n"
+    } else {
+      line
+    }
+    let rendered = if language == "rust" {
+      render_rust_code_line(with_newline)
+    } else {
+      render_prefixed_hidden_line(with_newline, hidden_prefix)
+    }
+    builder.write_string(rendered)
+  }
+  builder.to_string()
+}
+
+///|
+fn code_hidelines_prefix(
+  language : String,
+  modifiers : Array[String],
+) -> String {
+  for modifier in modifiers {
+    if modifier.has_prefix("hidelines=") {
+      return modifier["hidelines=".length():].to_string()
+    }
+  }
+  if language == "rust" {
+    "#"
+  } else {
+    "~"
+  }
+}
+
+///|
+fn render_prefixed_hidden_line(line : String, prefix : String) -> String {
+  match remove_hidden_prefix(line, prefix) {
+    Some(content) => "<span class=\"boring\">\{escape_html(content)}</span>"
+    None => escape_html(line)
+  }
+}
+
+///|
+fn remove_hidden_prefix(line : String, prefix : String) -> String? {
+  if prefix.is_empty() {
+    return None
+  }
+  let trimmed = line.trim_start().to_string()
+  let indent_len = line.length() - trimmed.length()
+  if trimmed.has_prefix(prefix) {
+    Some(line[:indent_len].to_string() + trimmed[prefix.length():].to_string())
+  } else {
+    None
+  }
+}
+
+///|
+fn render_rust_code_line(line : String) -> String {
+  let trimmed = line.trim_start().to_string()
+  let indent_len = line.length() - trimmed.length()
+  let indent = line[:indent_len].to_string()
+  if trimmed.has_prefix("##") {
+    return escape_html(indent + trimmed[1:].to_string())
+  }
+  if trimmed.has_prefix("#[") {
+    return escape_html(line)
+  }
+  if trimmed == "#" ||
+    trimmed.has_prefix("# ") ||
+    trimmed.has_prefix("#!") ||
+    (trimmed.has_prefix("#") && !trimmed.has_prefix("##")) {
+    let content = if trimmed == "#" {
+      indent
+    } else if trimmed.has_prefix("#!") {
+      indent + trimmed
+    } else if trimmed.has_prefix("# ") {
+      indent + trimmed[2:].to_string()
+    } else if trimmed.has_prefix("#[") {
+      line
+    } else {
+      indent + trimmed[1:].to_string()
+    }
+    return "<span class=\"boring\">\{escape_html(content)}</span>"
+  }
+  escape_html(line)
 }
 
 ///|
@@ -1726,6 +1850,49 @@ test "render markdown emits separate code classes for modifiers" {
       "<code class=\"language-rust ignore editable\">fn main {}</code>",
     ),
   )
+}
+
+///|
+test "render markdown wraps rust playground blocks" {
+  let html = render_markdown(
+    "```rust,editable\nfn f() {\n    println!(\"hello\");\n}\n```\n",
+  )
+  assert_true(html.contains("<pre class=\"playground\">"))
+  assert_true(html.contains("class=\"language-rust editable\""))
+}
+
+///|
+test "render markdown hides generic prefixed lines in code blocks" {
+  let html = render_markdown(
+    "```python,hidelines=!!!\n!!!hidden()\nnothidden():\n!!!    hidden()\n    !!!hidden()\n    nothidden()\n```\n",
+  )
+  assert_true(html.contains("<span class=\"boring\">hidden()\n</span>"))
+  assert_true(html.contains("<span class=\"boring\">    hidden()\n</span>"))
+  assert_true(html.contains("    nothidden()"))
+}
+
+///|
+test "render markdown hides default non-rust boring lines" {
+  let html = render_markdown("```python\n~hidden()\nvisible()\n```\n")
+  assert_true(html.contains("<span class=\"boring\">hidden()\n</span>"))
+  assert_true(html.contains("visible()"))
+}
+
+///|
+test "render markdown applies rust hideline rules" {
+  let html = render_markdown(
+    "```rust\n#![allow(something)]\n#\n#hidden();\n# hidden();\n## not_hidden();\n#[not_hidden]\nnot_hidden();\n```\n",
+  )
+  assert_true(html.contains("<pre class=\"playground\">"))
+  assert_true(
+    html.contains("<span class=\"boring\">#![allow(something)]\n</span>"),
+  )
+  assert_true(html.contains("<span class=\"boring\">\n</span>"))
+  assert_true(html.contains("<span class=\"boring\">hidden();\n</span>"))
+  assert_true(html.contains("<span class=\"boring\">hidden();\n</span>"))
+  assert_true(html.contains("# not_hidden();"))
+  assert_true(html.contains("#[not_hidden]"))
+  assert_true(html.contains("not_hidden();"))
 }
 
 ///|
