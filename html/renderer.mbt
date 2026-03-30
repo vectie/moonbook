@@ -268,6 +268,7 @@ fn render_markdown(markdown : String) -> String {
   let list_items : Array[String] = []
   let ordered_items : Array[String] = []
   let quote_lines : Array[String] = []
+  let heading_ids : Map[String, Int] = {}
   let mut code_lines : Array[String] = []
   let mut code_language = ""
   let mut in_code_block = false
@@ -347,7 +348,11 @@ fn render_markdown(markdown : String) -> String {
         flush_ordered_list(builder, ordered_items)
         flush_blockquote(builder, quote_lines)
         let text = trimmed[level + 1:].trim().to_string()
-        builder.write_string("<h\{level}>\{render_inline(text)}</h\{level}>")
+        let id = unique_heading_id(text, heading_ids)
+        let title = render_inline(text)
+        builder.write_string(
+          "<h\{level} id=\"\{id}\"><a class=\"header-link\" href=\"#\{id}\">\{title}</a></h\{level}>",
+        )
       }
       None => paragraph.push(trimmed)
     }
@@ -489,6 +494,53 @@ fn ordered_list_item(line : String) -> String? {
         None
       }
     None => None
+  }
+}
+
+///|
+fn unique_heading_id(text : String, ids : Map[String, Int]) -> String {
+  let base = slugify_heading(text)
+  let count = ids.get(base).unwrap_or(0)
+  ids[base] = count + 1
+  if count == 0 {
+    base
+  } else {
+    base + "-" + count.to_string()
+  }
+}
+
+///|
+fn slugify_heading(text : String) -> String {
+  let builder = StringBuilder::new()
+  let mut previous_dash = false
+  for c in text.to_lower() {
+    let normalized = if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') {
+      Some(c)
+    } else if c == ' ' || c == '-' || c == '_' {
+      Some('-')
+    } else {
+      None
+    }
+    match normalized {
+      Some('-') =>
+        if !previous_dash && builder.to_string() != "" {
+          builder.write_char('-')
+          previous_dash = true
+        }
+      Some(ch) => {
+        builder.write_char(ch)
+        previous_dash = false
+      }
+      None => ()
+    }
+  }
+  let slug = builder.to_string()
+  if slug.is_empty() {
+    "section"
+  } else if slug[slug.length() - 1] == '-' {
+    slug[:slug.length() - 1].to_string()
+  } else {
+    slug
   }
 }
 
@@ -642,7 +694,11 @@ test "render markdown handles paragraphs headings lists and code blocks" {
   let html = render_markdown(
     "# Intro\n\nHello world\nacross lines\n\n- one\n- two\n\n```rust\nfn main {}\n```\n",
   )
-  assert_true(html.contains("<h1>Intro</h1>"))
+  assert_true(
+    html.contains(
+      "<h1 id=\"intro\"><a class=\"header-link\" href=\"#intro\">Intro</a></h1>",
+    ),
+  )
   assert_true(html.contains("<p>Hello world across lines</p>"))
   assert_true(html.contains("<ul><li>one</li><li>two</li></ul>"))
   assert_true(html.contains("<code class=\"language-rust\">fn main {}</code>"))
@@ -684,4 +740,24 @@ test "render markdown handles ordered lists blockquotes and rules" {
   )
   assert_true(html.contains("<ol><li>first</li><li>second</li></ol>"))
   assert_true(html.contains("<hr>"))
+}
+
+///|
+test "render markdown adds heading ids and disambiguates duplicates" {
+  let html = render_markdown("# Intro\n## Intro\n# Intro!\n")
+  assert_true(
+    html.contains(
+      "<h1 id=\"intro\"><a class=\"header-link\" href=\"#intro\">Intro</a></h1>",
+    ),
+  )
+  assert_true(
+    html.contains(
+      "<h2 id=\"intro-1\"><a class=\"header-link\" href=\"#intro-1\">Intro</a></h2>",
+    ),
+  )
+  assert_true(
+    html.contains(
+      "<h1 id=\"intro-2\"><a class=\"header-link\" href=\"#intro-2\">Intro!</a></h1>",
+    ),
+  )
 }
