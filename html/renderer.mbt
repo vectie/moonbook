@@ -312,8 +312,7 @@ fn escape_html(text : String) -> String {
 fn render_markdown(markdown : String) -> String {
   let builder = StringBuilder::new()
   let paragraph : Array[String] = []
-  let list_items : Array[String] = []
-  let ordered_items : Array[String] = []
+  let list_stack : Array[(Int, Bool, Array[String])] = []
   let quote_lines : Array[String] = []
   let heading_ids : Map[String, Int] = {}
   let mut pending_table_header : String? = None
@@ -328,8 +327,7 @@ fn render_markdown(markdown : String) -> String {
     let trimmed = line.trim().to_string()
     if trimmed.has_prefix("```") {
       flush_paragraph(builder, paragraph)
-      flush_list(builder, list_items)
-      flush_ordered_list(builder, ordered_items)
+      flush_lists(builder, list_stack)
       flush_blockquote(builder, quote_lines)
       table_header = flush_table(builder, table_header, table_rows)
       if in_code_block {
@@ -370,16 +368,14 @@ fn render_markdown(markdown : String) -> String {
     }
     if trimmed.is_empty() {
       flush_paragraph(builder, paragraph)
-      flush_list(builder, list_items)
-      flush_ordered_list(builder, ordered_items)
+      flush_lists(builder, list_stack)
       flush_blockquote(builder, quote_lines)
       table_header = flush_table(builder, table_header, table_rows)
       continue
     }
     if trimmed == "---" {
       flush_paragraph(builder, paragraph)
-      flush_list(builder, list_items)
-      flush_ordered_list(builder, ordered_items)
+      flush_lists(builder, list_stack)
       flush_blockquote(builder, quote_lines)
       table_header = flush_table(builder, table_header, table_rows)
       builder.write_string("<hr>")
@@ -387,27 +383,25 @@ fn render_markdown(markdown : String) -> String {
     }
     if trimmed.has_prefix("> ") {
       flush_paragraph(builder, paragraph)
-      flush_list(builder, list_items)
-      flush_ordered_list(builder, ordered_items)
+      flush_lists(builder, list_stack)
       table_header = flush_table(builder, table_header, table_rows)
       quote_lines.push(trimmed[2:].trim().to_string())
       continue
     }
+    let indent = list_indent(line)
     if trimmed.has_prefix("- ") || trimmed.has_prefix("* ") {
       flush_paragraph(builder, paragraph)
-      flush_ordered_list(builder, ordered_items)
       flush_blockquote(builder, quote_lines)
       table_header = flush_table(builder, table_header, table_rows)
-      list_items.push(trimmed[2:].trim().to_string())
+      push_list_item(list_stack, indent, false, trimmed[2:].trim().to_string())
       continue
     }
     match ordered_list_item(trimmed) {
       Some(item) => {
         flush_paragraph(builder, paragraph)
-        flush_list(builder, list_items)
         flush_blockquote(builder, quote_lines)
         table_header = flush_table(builder, table_header, table_rows)
-        ordered_items.push(item)
+        push_list_item(list_stack, indent, true, item)
         continue
       }
       None => ()
@@ -418,8 +412,7 @@ fn render_markdown(markdown : String) -> String {
     }
     if is_table_row(trimmed) {
       flush_paragraph(builder, paragraph)
-      flush_list(builder, list_items)
-      flush_ordered_list(builder, ordered_items)
+      flush_lists(builder, list_stack)
       flush_blockquote(builder, quote_lines)
       table_header = flush_table(builder, table_header, table_rows)
       pending_table_header = Some(trimmed)
@@ -428,8 +421,7 @@ fn render_markdown(markdown : String) -> String {
     match heading_level(trimmed) {
       Some(level) => {
         flush_paragraph(builder, paragraph)
-        flush_list(builder, list_items)
-        flush_ordered_list(builder, ordered_items)
+        flush_lists(builder, list_stack)
         flush_blockquote(builder, quote_lines)
         table_header = flush_table(builder, table_header, table_rows)
         let text = trimmed[level + 1:].trim().to_string()
@@ -444,8 +436,7 @@ fn render_markdown(markdown : String) -> String {
   }
 
   flush_paragraph(builder, paragraph)
-  flush_list(builder, list_items)
-  flush_ordered_list(builder, ordered_items)
+  flush_lists(builder, list_stack)
   flush_blockquote(builder, quote_lines)
   match pending_table_header {
     Some(header) => paragraph.push(header)
@@ -523,32 +514,63 @@ fn flush_paragraph(builder : StringBuilder, paragraph : Array[String]) -> Unit {
 }
 
 ///|
-fn flush_list(builder : StringBuilder, list_items : Array[String]) -> Unit {
-  if list_items.is_empty() {
-    return
+fn push_list_item(
+  list_stack : Array[(Int, Bool, Array[String])],
+  indent : Int,
+  ordered : Bool,
+  item : String,
+) -> Unit {
+  match list_stack.last() {
+    Some((last_indent, last_ordered, items)) =>
+      if last_indent == indent && last_ordered == ordered {
+        items.push(item)
+        list_stack[list_stack.length() - 1] = (last_indent, last_ordered, items)
+      } else {
+        list_stack.push((indent, ordered, [item]))
+      }
+    None => list_stack.push((indent, ordered, [item]))
   }
-  builder.write_string("<ul>")
-  for item in list_items {
-    builder.write_string("<li>\{render_inline(item)}</li>")
-  }
-  builder.write_string("</ul>")
-  list_items.clear()
 }
 
 ///|
-fn flush_ordered_list(
+fn flush_lists(
   builder : StringBuilder,
-  ordered_items : Array[String],
+  list_stack : Array[(Int, Bool, Array[String])],
 ) -> Unit {
-  if ordered_items.is_empty() {
+  if list_stack.is_empty() {
     return
   }
-  builder.write_string("<ol>")
-  for item in ordered_items {
-    builder.write_string("<li>\{render_inline(item)}</li>")
+  let mut index = 0
+  while index < list_stack.length() {
+    index = render_list_group(builder, list_stack, index)
   }
-  builder.write_string("</ol>")
-  ordered_items.clear()
+  list_stack.clear()
+}
+
+///|
+fn render_list_group(
+  builder : StringBuilder,
+  list_stack : Array[(Int, Bool, Array[String])],
+  start : Int,
+) -> Int {
+  let entry = list_stack[start]
+  let indent = entry.0
+  let ordered = entry.1
+  let items = entry.2
+  let tag = if ordered { "ol" } else { "ul" }
+  builder.write_string("<\{tag}>")
+  let mut next_index = start + 1
+  for i = 0; i < items.length(); i = i + 1 {
+    builder.write_string("<li>\{render_inline(items[i])}")
+    if i == items.length() - 1 &&
+      next_index < list_stack.length() &&
+      list_stack[next_index].0 > indent {
+      next_index = render_list_group(builder, list_stack, next_index)
+    }
+    builder.write_string("</li>")
+  }
+  builder.write_string("</\{tag}>")
+  next_index
 }
 
 ///|
@@ -648,6 +670,19 @@ fn ordered_list_item(line : String) -> String? {
       }
     None => None
   }
+}
+
+///|
+fn list_indent(line : String) -> Int {
+  let mut spaces = 0
+  for c in line {
+    if c == ' ' {
+      spaces += 1
+    } else {
+      break
+    }
+  }
+  spaces / 2
 }
 
 ///|
@@ -970,6 +1005,19 @@ test "render markdown handles pipe tables" {
       "<tbody><tr><td>One</td><td>1</td></tr><tr><td>Two</td><td>2</td></tr></tbody>",
     ),
   )
+}
+
+///|
+test "render markdown handles nested lists" {
+  let html = render_markdown(
+    "- parent\n  - child\n  - child 2\n1. top\n  1. nested\n",
+  )
+  assert_true(
+    html.contains(
+      "<ul><li>parent<ul><li>child</li><li>child 2</li></ul></li></ul>",
+    ),
+  )
+  assert_true(html.contains("<ol><li>top<ol><li>nested</li></ol></li></ol>"))
 }
 
 ///|
