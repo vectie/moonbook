@@ -1,5 +1,6 @@
 import {
   "moonbitlang/async",
+  "moonbitlang/async/process",
   "moonbitlang/core/env",
   "username/moonbook/internal/fsx",
   "username/moonbook/internal/httpserve",

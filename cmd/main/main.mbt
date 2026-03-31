@@ -91,7 +91,7 @@ async fn run_serve(args : Array[String]) -> Unit {
     Some(options) => options
     None => {
       println(
-        "moonbook serve usage: moonbook serve [root] [-n hostname] [-p port] [-d dest-dir]",
+        "moonbook serve usage: moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o]",
       )
       return
     }
@@ -129,8 +129,16 @@ async fn run_serve(args : Array[String]) -> Unit {
     }
   }
   println("serving \{build_dir}")
-  println("listening on http://\{options.hostname}:\{server.port()}")
+  let serving_url = "http://\{options.hostname}:\{server.port()}"
+  println("listening on \{serving_url}")
   @async.with_task_group(group => {
+    if options.open_browser {
+      group.spawn_bg(
+        () => open_browser(serving_url),
+        no_wait=true,
+        allow_failure=true,
+      )
+    }
     group.spawn_bg(
       () => {
         server.serve_directory(
@@ -228,7 +236,7 @@ async fn run_watch(args : Array[String]) -> Unit {
 ///|
 fn print_usage() -> Unit {
   println("moonbook build [root]")
-  println("moonbook serve [root] [-n hostname] [-p port] [-d dest-dir]")
+  println("moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o]")
   println("moonbook watch [root]")
   println("moonbook init [root]")
   println("moonbook clean [root]")
@@ -278,6 +286,15 @@ fn resolve_serve_dest_dir(dest_dir : String) -> String {
       None => dest_dir
     }
   }
+}
+
+///|
+async fn open_browser(url : String) -> Unit {
+  let mac = @process.run("open", [url]) catch { _ => -1 }
+  if mac == 0 {
+    return
+  }
+  ignore(@process.run("xdg-open", [url]) catch { _ => -1 })
 }
 
 ///|

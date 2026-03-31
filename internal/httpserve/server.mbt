@@ -4,6 +4,7 @@ pub struct ServeOptions {
   hostname : String
   port : Int
   dest_dir : String?
+  open_browser : Bool
 } derive(Show, ToJson)
 
 ///|
@@ -11,7 +12,13 @@ pub let live_reload_token_file : String = ".moonbook-livereload"
 
 ///|
 pub fn default_options(root : String) -> ServeOptions {
-  { root, hostname: "localhost", port: 3000, dest_dir: None }
+  {
+    root,
+    hostname: "localhost",
+    port: 3000,
+    dest_dir: None,
+    open_browser: false,
+  }
 }
 
 ///|
@@ -20,10 +27,15 @@ pub fn parse_serve_args(args : Array[String]) -> ServeOptions? {
   let mut hostname = "localhost"
   let mut port = 3000
   let mut dest_dir : String? = None
+  let mut open_browser = false
   let mut index = 0
   let mut seen_root = false
   while index < args.length() {
     match args[index] {
+      "-o" | "--open" => {
+        open_browser = true
+        index += 1
+      }
       "-n" | "--hostname" =>
         if index + 1 < args.length() {
           hostname = args[index + 1]
@@ -55,7 +67,7 @@ pub fn parse_serve_args(args : Array[String]) -> ServeOptions? {
         }
     }
   }
-  Some({ root, hostname, port, dest_dir })
+  Some({ root, hostname, port, dest_dir, open_browser })
 }
 
 ///|
@@ -272,12 +284,15 @@ test "serve args parser handles defaults and flags" {
   assert_eq(defaults.hostname, "localhost")
   assert_eq(defaults.port, 3000)
   assert_eq(defaults.dest_dir, None)
+  assert_false(defaults.open_browser)
   let explicit = parse_serve_args(["./book", "-n", "127.0.0.1", "-p", "8001"]).unwrap()
   assert_eq(explicit.root, "./book")
   assert_eq(explicit.hostname, "127.0.0.1")
   assert_eq(explicit.port, 8001)
   let with_dest = parse_serve_args(["./book", "-d", "dist"]).unwrap()
   assert_eq(with_dest.dest_dir, Some("dist"))
+  let with_open = parse_serve_args(["./book", "--open"]).unwrap()
+  assert_true(with_open.open_browser)
   assert_true(parse_serve_args(["-p"]) is None)
   assert_true(parse_serve_args(["./book", "--port", "bad"]) is None)
 }
