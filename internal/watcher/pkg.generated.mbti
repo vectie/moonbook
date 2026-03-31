@@ -37,6 +37,8 @@ pub impl ToJson for WatchFilter
 pub struct WatchOptions {
   root : String
   interval_ms : Int
+  dest_dir : String?
+  open_browser : Bool
 }
 pub impl Show for WatchOptions
 pub impl ToJson for WatchOptions

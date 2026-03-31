@@ -187,13 +187,20 @@ async fn run_watch(args : Array[String]) -> Unit {
   let options = match @watcher.parse_watch_args(args) {
     Some(options) => options
     None => {
-      println("moonbook watch usage: moonbook watch [root]")
+      println("moonbook watch usage: moonbook watch [root] [-d dest-dir] [-o]")
       return
     }
   }
-  let book = @driver.load(options.root) catch {
+  let base_book = @driver.load(options.root) catch {
     error => {
       println("moonbook watch failed to load: \{error}")
+      return
+    }
+  }
+  let watch_config = build_watch_config(base_book.config, options.dest_dir)
+  let book = @driver.load_with_config(options.root, watch_config) catch {
+    error => {
+      println("moonbook watch failed to configure: \{error}")
       return
     }
   }
@@ -211,6 +218,18 @@ async fn run_watch(args : Array[String]) -> Unit {
       return
     }
   }
+  if options.open_browser {
+    let index_path = @path.Path(
+        @driver.resolved_build_dir(options.root, book.config),
+      )
+      .join(@path.Path("index.html"))
+      .to_string()
+    if @fsx.exists(index_path) {
+      open_browser(index_path)
+    } else {
+      println("moonbook watch could not open: no index.html was generated")
+    }
+  }
   println("watching \{options.root}")
   @watcher.rebuild_on_change(
     watch_paths,
@@ -218,7 +237,7 @@ async fn run_watch(args : Array[String]) -> Unit {
     async fn(changed : Array[String]) {
       let changed_text = changed.join(", ")
       println("files changed: \{changed_text}")
-      let book = @driver.load(options.root) catch {
+      let book = @driver.load_with_config(options.root, watch_config) catch {
         error => {
           println("moonbook watch reload failed: \{error}")
           return
@@ -242,7 +261,7 @@ async fn run_watch(args : Array[String]) -> Unit {
 fn print_usage() -> Unit {
   println("moonbook build [root]")
   println("moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o]")
-  println("moonbook watch [root]")
+  println("moonbook watch [root] [-d dest-dir] [-o]")
   println("moonbook init [root]")
   println("moonbook clean [root]")
   println("moonbook load [root]")
@@ -272,13 +291,24 @@ fn build_serve_config(
     Json::string(live_reload_endpoint),
   )
   match dest_dir {
-    Some(dest_dir) => config.with_build_dir(resolve_serve_dest_dir(dest_dir))
+    Some(dest_dir) => config.with_build_dir(resolve_cli_dest_dir(dest_dir))
     None => config
   }
 }
 
 ///|
-fn resolve_serve_dest_dir(dest_dir : String) -> String {
+fn build_watch_config(
+  config : @core.Config,
+  dest_dir : String?,
+) -> @core.Config {
+  match dest_dir {
+    Some(dest_dir) => config.with_build_dir(resolve_cli_dest_dir(dest_dir))
+    None => config
+  }
+}
+
+///|
+fn resolve_cli_dest_dir(dest_dir : String) -> String {
   if @path.Path(dest_dir).is_absolute() {
     @path.Path(dest_dir).normalize().to_string()
   } else {

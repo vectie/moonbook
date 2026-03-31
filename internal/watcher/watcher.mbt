@@ -2,6 +2,8 @@
 pub struct WatchOptions {
   root : String
   interval_ms : Int
+  dest_dir : String?
+  open_browser : Bool
 } derive(Show, ToJson)
 
 ///|
@@ -19,11 +21,35 @@ pub struct FileState {
 
 ///|
 pub fn parse_watch_args(args : Array[String]) -> WatchOptions? {
-  match args {
-    [root] => Some({ root, interval_ms: 1000 })
-    [] => Some({ root: ".", interval_ms: 1000 })
-    _ => None
+  let mut root = "."
+  let mut dest_dir : String? = None
+  let mut open_browser = false
+  let mut index = 0
+  let mut seen_root = false
+  while index < args.length() {
+    match args[index] {
+      "-o" | "--open" => {
+        open_browser = true
+        index += 1
+      }
+      "-d" | "--dest-dir" =>
+        if index + 1 < args.length() {
+          dest_dir = Some(args[index + 1])
+          index += 2
+        } else {
+          return None
+        }
+      value =>
+        if !seen_root && !value.has_prefix("-") {
+          root = value
+          seen_root = true
+          index += 1
+        } else {
+          return None
+        }
+    }
   }
+  Some({ root, interval_ms: 1000, dest_dir, open_browser })
 }
 
 ///|
@@ -267,6 +293,10 @@ fn file_kind_name(kind : @fs.FileKind) -> String {
 test "parse watch args supports optional root" {
   assert_eq(parse_watch_args([]).unwrap().root, ".")
   assert_eq(parse_watch_args(["/tmp/book"]).unwrap().root, "/tmp/book")
+  let with_dest = parse_watch_args(["/tmp/book", "-d", "dist"]).unwrap()
+  assert_eq(with_dest.dest_dir, Some("dist"))
+  let with_open = parse_watch_args(["--open"]).unwrap()
+  assert_true(with_open.open_browser)
   assert_true(parse_watch_args(["a", "b"]) is None)
 }
 
