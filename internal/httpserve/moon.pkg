@@ -5,6 +5,7 @@ import {
   "moonbitlang/async/socket",
   "moonbitlang/core/strconv",
   "username/moonbook/internal/pathx",
+  "username/moonbook/internal/watcher",
 }
 
 import {

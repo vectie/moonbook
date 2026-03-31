@@ -91,10 +91,13 @@ async fn run_serve(args : Array[String]) -> Unit {
     Some(options) => options
     None => {
       println(
-        "moonbook serve usage: moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o]",
+        "moonbook serve usage: moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]",
       )
       return
     }
+  }
+  if options.watcher_kind == "native" {
+    println("moonbook serve: --watcher native currently uses the poll backend")
   }
   let base_book = @driver.load(options.root) catch {
     error => {
@@ -187,9 +190,14 @@ async fn run_watch(args : Array[String]) -> Unit {
   let options = match @watcher.parse_watch_args(args) {
     Some(options) => options
     None => {
-      println("moonbook watch usage: moonbook watch [root] [-d dest-dir] [-o]")
+      println(
+        "moonbook watch usage: moonbook watch [root] [-d dest-dir] [-o] [--watcher poll|native]",
+      )
       return
     }
+  }
+  if options.watcher_kind == "native" {
+    println("moonbook watch: --watcher native currently uses the poll backend")
   }
   let base_book = @driver.load(options.root) catch {
     error => {
@@ -260,8 +268,10 @@ async fn run_watch(args : Array[String]) -> Unit {
 ///|
 fn print_usage() -> Unit {
   println("moonbook build [root]")
-  println("moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o]")
-  println("moonbook watch [root] [-d dest-dir] [-o]")
+  println(
+    "moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]",
+  )
+  println("moonbook watch [root] [-d dest-dir] [-o] [--watcher poll|native]")
   println("moonbook init [root]")
   println("moonbook clean [root]")
   println("moonbook load [root]")

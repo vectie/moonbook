@@ -4,6 +4,7 @@ pub struct WatchOptions {
   interval_ms : Int
   dest_dir : String?
   open_browser : Bool
+  watcher_kind : String
 } derive(Show, ToJson)
 
 ///|
@@ -11,6 +12,21 @@ pub struct WatchFilter {
   root : String
   patterns : Array[String]
 } derive(Show, ToJson)
+
+///|
+pub enum WatcherKind {
+  Poll
+  Native
+} derive(Show, ToJson)
+
+///|
+pub fn parse_watcher_kind(text : String) -> WatcherKind? {
+  match text {
+    "poll" => Some(Poll)
+    "native" => Some(Native)
+    _ => None
+  }
+}
 
 ///|
 pub struct FileState {
@@ -24,6 +40,7 @@ pub fn parse_watch_args(args : Array[String]) -> WatchOptions? {
   let mut root = "."
   let mut dest_dir : String? = None
   let mut open_browser = false
+  let mut watcher_kind = "poll"
   let mut index = 0
   let mut seen_root = false
   while index < args.length() {
@@ -39,6 +56,18 @@ pub fn parse_watch_args(args : Array[String]) -> WatchOptions? {
         } else {
           return None
         }
+      "--watcher" =>
+        if index + 1 < args.length() {
+          match parse_watcher_kind(args[index + 1]) {
+            Some(_) => {
+              watcher_kind = args[index + 1]
+              index += 2
+            }
+            None => return None
+          }
+        } else {
+          return None
+        }
       value =>
         if !seen_root && !value.has_prefix("-") {
           root = value
@@ -49,7 +78,7 @@ pub fn parse_watch_args(args : Array[String]) -> WatchOptions? {
         }
     }
   }
-  Some({ root, interval_ms: 1000, dest_dir, open_browser })
+  Some({ root, interval_ms: 1000, dest_dir, open_browser, watcher_kind })
 }
 
 ///|
@@ -297,6 +326,9 @@ test "parse watch args supports optional root" {
   assert_eq(with_dest.dest_dir, Some("dist"))
   let with_open = parse_watch_args(["--open"]).unwrap()
   assert_true(with_open.open_browser)
+  let with_native = parse_watch_args(["--watcher", "native"]).unwrap()
+  assert_eq(with_native.watcher_kind, "native")
+  assert_true(parse_watch_args(["--watcher", "other"]) is None)
   assert_true(parse_watch_args(["a", "b"]) is None)
 }
 

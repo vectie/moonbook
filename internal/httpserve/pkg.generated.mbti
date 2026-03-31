@@ -21,6 +21,7 @@ pub struct ServeOptions {
   port : Int
   dest_dir : String?
   open_browser : Bool
+  watcher_kind : String
 }
 pub impl Show for ServeOptions
 pub impl ToJson for ServeOptions

@@ -8,6 +8,8 @@ pub async fn load_watch_filter(String) -> WatchFilter?
 
 pub fn parse_watch_args(Array[String]) -> WatchOptions?
 
+pub fn parse_watcher_kind(String) -> WatcherKind?
+
 pub async fn rebuild_on_change(Array[String], interval_ms? : Int, filter? : WatchFilter?, async (Array[String]) -> Unit) -> Unit
 
 pub async fn scan_paths(Array[String]) -> Map[String, FileState]
@@ -39,9 +41,17 @@ pub struct WatchOptions {
   interval_ms : Int
   dest_dir : String?
   open_browser : Bool
+  watcher_kind : String
 }
 pub impl Show for WatchOptions
 pub impl ToJson for WatchOptions
+
+pub enum WatcherKind {
+  Poll
+  Native
+}
+pub impl Show for WatcherKind
+pub impl ToJson for WatcherKind
 
 // Type aliases
 
