@@ -285,37 +285,34 @@ fn render_shell(
   let copy_label = escape_html(renderer_text(config, "copy", "Copy"))
   let copied_label = escape_html(renderer_text(config, "copied", "Copied"))
   let failed_label = escape_html(renderer_text(config, "copy-failed", "Failed"))
-  let bg = escape_html(renderer_text(config, "theme-bg", "#f6f1e8"))
-  let paper = escape_html(renderer_text(config, "theme-paper", "#fffaf2"))
-  let ink = escape_html(renderer_text(config, "theme-ink", "#2f241c"))
-  let accent = escape_html(renderer_text(config, "theme-accent", "#8a2d0a"))
-  let line = escape_html(renderer_text(config, "theme-line", "#dfd2bf"))
-  let bg_start = escape_html(renderer_text(config, "theme-bg-start", "#f3ecdf"))
-  let bg_end = escape_html(renderer_text(config, "theme-bg-end", "#fbf7f0"))
-  let sidebar_bg = escape_html(renderer_text(config, "theme-sidebar-bg", "#efe4d2"))
-  let muted = escape_html(renderer_text(config, "theme-muted", "#6a5747"))
-  let code_bg = escape_html(renderer_text(config, "theme-code-bg", "#fff3e2"))
+  let bg = escape_html(renderer_text(config, "theme-bg", "#ffffff"))
+  let paper = escape_html(renderer_text(config, "theme-paper", "#ffffff"))
+  let ink = escape_html(renderer_text(config, "theme-ink", "#1f2328"))
+  let accent = escape_html(renderer_text(config, "theme-accent", "#0969da"))
+  let line = escape_html(renderer_text(config, "theme-line", "#d0d7de"))
+  let bg_start = escape_html(renderer_text(config, "theme-bg-start", "#ffffff"))
+  let bg_end = escape_html(renderer_text(config, "theme-bg-end", "#ffffff"))
+  let sidebar_bg = escape_html(renderer_text(config, "theme-sidebar-bg", "#f6f8fa"))
+  let muted = escape_html(renderer_text(config, "theme-muted", "#656d76"))
+  let code_bg = escape_html(renderer_text(config, "theme-code-bg", "#f6f8fa"))
   let copy_bg = escape_html(
-    renderer_text(config, "theme-copy-button-bg", "rgba(255,250,242,.94)"),
+    renderer_text(config, "theme-copy-button-bg", "#f6f8fa"),
   )
-  let copy_hover_bg = escape_html(renderer_text(config, "theme-copy-hover-bg", "#fff7ec"))
+  let copy_hover_bg = escape_html(renderer_text(config, "theme-copy-hover-bg", "#eef2f6"))
   let copy_active_bg = escape_html(
-    renderer_text(config, "theme-copy-active-bg", "#f3eadc"),
+    renderer_text(config, "theme-copy-active-bg", "#e7edf3"),
   )
   let copy_active_ink = escape_html(
-    renderer_text(config, "theme-copy-active-ink", "#5c462f"),
-  )
-  let chrome_shadow = escape_html(
-    renderer_text(config, "theme-shadow-soft", "rgba(73,49,24,.06)"),
+    renderer_text(config, "theme-copy-active-ink", "#1f2328"),
   )
   let copy_shadow = escape_html(
-    renderer_text(config, "theme-shadow-copy", "rgba(73,49,24,.08)"),
+    renderer_text(config, "theme-shadow-copy", "rgba(31,35,40,.04)"),
   )
   let image_shadow = escape_html(
-    renderer_text(config, "theme-shadow-image", "rgba(73,49,24,.12)"),
+    renderer_text(config, "theme-shadow-image", "rgba(31,35,40,.08)"),
   )
-  let pager_muted = escape_html(renderer_text(config, "theme-pager-muted", "#8d7c6f"))
-  "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>\{escape_html(title)}</title>\{head_extra}<style>:root{--bg:\{bg};--paper:\{paper};--ink:\{ink};--accent:\{accent};--line:\{line}}*{box-sizing:border-box}body{font-family:Georgia,Cambria,\"Times New Roman\",serif;color:var(--ink);margin:0;display:grid;grid-template-columns:18rem minmax(0,1fr);min-height:100vh;background:linear-gradient(180deg,\{bg_start} 0%,\{bg_end} 100%)}.sidebar{padding:2rem 1.25rem;background:\{sidebar_bg};border-right:1px solid var(--line);overflow:auto}.toc,.toc ol{margin:0;padding-left:1.1rem}.toc{padding-left:0;list-style:none}.toc ol{list-style:none}.chapter-item,.part-title,.separator{margin:.35rem 0}.part-title{margin-top:1rem;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:\{muted}}.separator hr{border:none;border-top:1px solid var(--line)}.sidebar a{text-decoration:none;color:var(--ink)}.sidebar a.current{color:var(--accent);font-weight:700}.content{padding:clamp(1rem,3vw,3rem);min-width:0}.chapter{width:min(100%,96rem);margin:0 auto;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:clamp(1.25rem,2.4vw,2.5rem);box-shadow:0 12px 40px \{chrome_shadow};overflow:hidden}.chapter h1{margin-top:0}.chapter p,.chapter li,.chapter blockquote{line-height:1.7}.code-block{position:relative;margin:1rem 0}.chapter pre{white-space:pre-wrap;background:\{code_bg};padding:1rem 1.125rem;border-radius:12px;overflow:auto;max-width:100%;margin:0}.code-copy{position:absolute;top:.75rem;right:.75rem;border:1px solid var(--line);background:\{copy_bg};color:var(--accent);border-radius:999px;padding:.35rem .7rem;font:600 .82rem/1.2 Georgia,Cambria,\"Times New Roman\",serif;cursor:pointer;box-shadow:0 4px 16px \{copy_shadow}}.code-copy:hover{background:\{copy_hover_bg}}.code-copy[data-copied=\"true\"]{background:\{copy_active_bg};color:\{copy_active_ink}}.chapter code{overflow-wrap:anywhere}.chapter img{display:block;max-width:min(100%,84rem);width:auto;height:auto;margin:1rem auto;border-radius:14px;box-shadow:0 10px 28px \{image_shadow}}.chapter table{width:100%}.pagelinks{display:flex;justify-content:space-between;gap:1rem;margin:0 auto 1.5rem;width:min(100%,96rem)}.pagelinks a{text-decoration:none;color:var(--accent);font-weight:600}.pagelinks span{color:\{pager_muted}}@media (max-width:900px){body{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--line)}.content{padding:1rem}.chapter{width:100%}.pagelinks{width:100%}.code-copy{position:static;display:inline-block;margin:0 0 .5rem auto}}</style></head><body>\{navigation}<main class=\"content\">\{pagelinks}\{body}</main><script>(function(){var L={copy:\"\{copy_label}\",copied:\"\{copied_label}\",failed:\"\{failed_label}\"};function s(b,t){b.textContent=t;b.setAttribute(\"data-label\",t)}function f(t){var a=document.createElement(\"textarea\");a.value=t;a.setAttribute(\"readonly\",\"\");a.style.position=\"fixed\";a.style.top=\"-9999px\";a.style.left=\"-9999px\";document.body.appendChild(a);a.focus();a.select();try{return document.execCommand(\"copy\")}catch(_){return false}finally{document.body.removeChild(a)}}async function c(t){if(navigator.clipboard&&window.isSecureContext){try{await navigator.clipboard.writeText(t);return true}catch(_){}}return f(t)}document.addEventListener(\"click\",async function(e){var b=e.target&&e.target.closest?e.target.closest(\".code-copy\"):null;if(!b)return;var w=b.parentElement;if(!w)return;var ctn=w.querySelector(\"code\");if(!ctn)return;var ok=await c(ctn.textContent||\"\");if(ok){s(b,L.copied);b.setAttribute(\"data-copied\",\"true\");setTimeout(function(){s(b,L.copy);b.removeAttribute(\"data-copied\")},1600)}else{s(b,L.failed);setTimeout(function(){s(b,L.copy)},1600)}})})();</script>\{live_reload_script}</body></html>"
+  let pager_muted = escape_html(renderer_text(config, "theme-pager-muted", "#656d76"))
+  "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>\{escape_html(title)}</title>\{head_extra}<style>:root{--bg:\{bg};--paper:\{paper};--ink:\{ink};--accent:\{accent};--line:\{line}}*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"Noto Sans\",Helvetica,Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\";font-size:16px;line-height:1.5;color:var(--ink);margin:0;display:grid;grid-template-columns:16rem minmax(0,1fr);min-height:100vh;background:linear-gradient(180deg,\{bg_start} 0%,\{bg_end} 100%)}.sidebar{padding:1.5rem 1rem;background:\{sidebar_bg};border-right:1px solid var(--line);overflow:auto}.toc,.toc ol{margin:0;padding-left:1.25rem}.toc{padding-left:0;list-style:none}.toc ol{list-style:none}.chapter-item,.part-title,.separator{margin:.35rem 0}.part-title{margin-top:1rem;font-size:.75rem;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:\{muted}}.separator hr{border:none;border-top:1px solid var(--line)}.sidebar a{text-decoration:none;color:var(--ink)}.sidebar a:hover{text-decoration:underline}.sidebar a.current{color:var(--accent);font-weight:600}.content{padding:0;min-width:0}.chapter{box-sizing:border-box;min-width:200px;max-width:980px;margin:0 auto;background:var(--paper);padding:45px;overflow:hidden}.chapter h1,.chapter h2{padding-bottom:.3em;border-bottom:1px solid #d8dee4}.chapter h1{margin:0 0 16px;font-size:2em}.chapter h2{margin:24px 0 16px;font-size:1.5em}.chapter h3{margin:24px 0 16px;font-size:1.25em}.chapter h4,.chapter h5,.chapter h6{margin:24px 0 16px}.chapter p,.chapter li,.chapter blockquote{line-height:1.75}.chapter ul,.chapter ol{padding-left:2em}.chapter blockquote{margin:0 0 16px;padding:0 1em;color:\{muted};border-left:.25em solid var(--line)}.chapter hr{height:.25em;padding:0;margin:24px 0;background-color:#d8dee4;border:0}.code-block{position:relative;margin:16px 0}.chapter pre{white-space:pre-wrap;background:\{code_bg};padding:16px;border-radius:6px;overflow:auto;max-width:100%;margin:0;border:1px solid var(--line);font:12px/1.45 ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace}.chapter code{overflow-wrap:anywhere;font-family:ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace}.chapter :not(pre)>code{padding:.2em .4em;margin:0;font-size:85%;background:rgba(175,184,193,.2);border-radius:6px}.code-copy{position:absolute;top:.65rem;right:.65rem;border:1px solid var(--line);background:\{copy_bg};color:var(--ink);border-radius:6px;padding:.3rem .65rem;font:600 12px/1.2 -apple-system,BlinkMacSystemFont,\"Segoe UI\",\"Noto Sans\",Helvetica,Arial,sans-serif;cursor:pointer;box-shadow:0 1px 0 \{copy_shadow}}.code-copy:hover{background:\{copy_hover_bg}}.code-copy[data-copied=\"true\"]{background:\{copy_active_bg};color:\{copy_active_ink}}.chapter img{display:block;max-width:100%;width:auto;height:auto;margin:1rem auto;border-radius:6px;box-shadow:0 1px 3px \{image_shadow}}.chapter table{display:block;width:max-content;max-width:100%;overflow:auto;border-spacing:0;border-collapse:collapse}.chapter th,.chapter td{padding:6px 13px;border:1px solid var(--line)}.chapter tr:nth-child(2n){background:#f6f8fa}.chapter a{color:var(--accent);text-decoration:none}.chapter a:hover{text-decoration:underline}.pagelinks{display:flex;justify-content:space-between;gap:1rem;box-sizing:border-box;max-width:980px;margin:0 auto;padding:24px 45px 0}.pagelinks a{text-decoration:none;color:var(--accent);font-weight:600}.pagelinks a:hover{text-decoration:underline}.pagelinks span{color:\{pager_muted}}@media (max-width:900px){body{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--line)}}@media (max-width:767px){.chapter{padding:15px}.pagelinks{padding:15px 15px 0}.code-copy{position:static;display:inline-block;margin:0 0 .5rem auto}}</style></head><body>\{navigation}<main class=\"content\">\{pagelinks}\{body}</main><script>(function(){var L={copy:\"\{copy_label}\",copied:\"\{copied_label}\",failed:\"\{failed_label}\"};function s(b,t){b.textContent=t;b.setAttribute(\"data-label\",t)}function f(t){var a=document.createElement(\"textarea\");a.value=t;a.setAttribute(\"readonly\",\"\");a.style.position=\"fixed\";a.style.top=\"-9999px\";a.style.left=\"-9999px\";document.body.appendChild(a);a.focus();a.select();try{return document.execCommand(\"copy\")}catch(_){return false}finally{document.body.removeChild(a)}}async function c(t){if(navigator.clipboard&&window.isSecureContext){try{await navigator.clipboard.writeText(t);return true}catch(_){}}return f(t)}document.addEventListener(\"click\",async function(e){var b=e.target&&e.target.closest?e.target.closest(\".code-copy\"):null;if(!b)return;var w=b.parentElement;if(!w)return;var ctn=w.querySelector(\"code\");if(!ctn)return;var ok=await c(ctn.textContent||\"\");if(ok){s(b,L.copied);b.setAttribute(\"data-copied\",\"true\");setTimeout(function(){s(b,L.copy);b.removeAttribute(\"data-copied\")},1600)}else{s(b,L.failed);setTimeout(function(){s(b,L.copy)},1600)}})})();</script>\{live_reload_script}</body></html>"
 }
 
 ///|
@@ -2389,8 +2386,8 @@ test "render shell supports extended chrome theme overrides" {
     .set("output.html.ui.theme-code-bg", Json::string("#444444"))
     .set("output.html.ui.theme-pager-muted", Json::string("#555555"))
   let html = render_shell(config, "Title", "", "", "", "", "")
-  assert_true(html.contains("background:#333333;border-right"))
-  assert_true(html.contains("background:#444444;padding:1rem 1.125rem"))
+  assert_true(html.contains(".sidebar{padding:1.5rem 1rem;background:#333333"))
+  assert_true(html.contains(".chapter pre{white-space:pre-wrap;background:#444444"))
   assert_true(html.contains("color:#555555"))
 }
 
