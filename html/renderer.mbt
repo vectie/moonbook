@@ -28,26 +28,43 @@ pub async fn render_html(context : RenderContext) -> Unit {
     Some(markdown) => [markdown]
     None => []
   }
-  copy_static_assets(src_root, context.build_dir, chapters, extra_markdown)
+  let html_assets = configured_html_assets(context.config)
+  copy_static_assets(
+    context.root,
+    src_root,
+    context.build_dir,
+    chapters,
+    extra_markdown,
+    html_assets,
+  )
+  write_cname(context.build_dir, context.config)
   let index_body = if chapters.is_empty() {
+    let empty_text = renderer_text(
+      context.config,
+      "no-chapters",
+      "No chapters found.",
+    )
     render_shell(
+      context.config,
       context_title(context.config),
       render_navigation(context.book.items, "index.html"),
-      "<p>No chapters found.</p>",
-      render_pagelinks(None, None, "index.html"),
+      "<p>\{escape_html(empty_text)}</p>",
+      render_pagelinks(context.config, None, None, "index.html"),
       render_live_reload_script(context.config),
-      "",
+      render_head_assets(context.config, "index.html"),
     )
   } else {
     let first = chapters[0]
     let first_href = relative_href("index.html", chapter_output_path(first))
+    let open_label = renderer_text(context.config, "open-first", "Open")
     render_shell(
+      context.config,
       context_title(context.config),
       render_navigation(context.book.items, "index.html"),
-      "<p><a href=\"\{first_href}\">Open \{escape_html(first.name)}</a></p>",
-      render_pagelinks(None, Some(first), "index.html"),
+      "<p><a href=\"\{first_href}\">\{escape_html(open_label)} \{escape_html(first.name)}</a></p>",
+      render_pagelinks(context.config, None, Some(first), "index.html"),
       render_live_reload_script(context.config),
-      "",
+      render_head_assets(context.config, "index.html"),
     )
   }
   write_text_file(
@@ -59,12 +76,13 @@ pub async fn render_html(context : RenderContext) -> Unit {
     let path = @path.Path(context.build_dir).join(@path.Path(output_path))
     let (previous, next) = previous_next_chapters(chapters, output_path)
     let page = render_shell(
+      context.config,
       chapter.display(),
       render_navigation(context.book.items, output_path),
       render_chapter_body(chapter),
-      render_pagelinks(previous, next, output_path),
+      render_pagelinks(context.config, previous, next, output_path),
       render_live_reload_script(context.config),
-      "",
+      render_head_assets(context.config, output_path),
     )
     ensure_parent_dir(path.to_string())
     write_text_file(path.to_string(), page)
@@ -94,11 +112,25 @@ async fn write_text_file(path : String, content : String) -> Unit {
 }
 
 ///|
+async fn write_cname(build_dir : String, config : @core.Config) -> Unit {
+  match config.read("output.html.cname") {
+    Some(String(cname)) if !cname.is_empty() =>
+      write_text_file(
+        @path.Path(build_dir).join(@path.Path("CNAME")).to_string(),
+        cname + "\n",
+      )
+    _ => ()
+  }
+}
+
+///|
 async fn copy_static_assets(
+  book_root : String,
   src_root : String,
   build_dir : String,
   chapters : Array[@core.Chapter],
   extra_markdown : Array[String],
+  html_assets : Array[String],
 ) -> Unit {
   let copied : Map[String, Unit] = {}
   for chapter in chapters {
@@ -159,11 +191,25 @@ async fn copy_static_assets(
       }
     }
   }
+  for asset in html_assets {
+    let normalized = @pathx.normalize(asset)
+    if !copied.contains(normalized) {
+      let source_path = @path.Path(book_root)
+        .join(@path.Path(normalized))
+        .to_string()
+      let dest_path = @path.Path(build_dir)
+        .join(@path.Path(normalized))
+        .to_string()
+      ensure_parent_dir(dest_path)
+      @fsx.write_to_file(dest_path, @fsx.read_file(source_path), create=0o666)
+      copied[normalized] = ()
+    }
+  }
 }
 
 ///|
 fn context_title(config : @core.Config) -> String {
-  config.book.title.unwrap_or("MoonBook")
+  config.book.title.unwrap_or(renderer_text(config, "default-title", "Book"))
 }
 
 ///|
@@ -228,6 +274,7 @@ fn render_navigation_items(
 
 ///|
 fn render_shell(
+  config : @core.Config,
   title : String,
   navigation : String,
   body : String,
@@ -235,7 +282,48 @@ fn render_shell(
   live_reload_script : String,
   head_extra : String,
 ) -> String {
-  "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>\{escape_html(title)}</title>\{head_extra}<style>:root{--bg:#f6f1e8;--paper:#fffaf2;--ink:#2f241c;--accent:#8a2d0a;--line:#dfd2bf}*{box-sizing:border-box}body{font-family:Georgia,Cambria,\"Times New Roman\",serif;color:var(--ink);margin:0;display:grid;grid-template-columns:18rem 1fr;min-height:100vh;background:linear-gradient(180deg,#f3ecdf 0%,#fbf7f0 100%)}.sidebar{padding:2rem 1.25rem;background:#efe4d2;border-right:1px solid var(--line)}.toc,.toc ol{margin:0;padding-left:1.1rem}.toc{padding-left:0;list-style:none}.toc ol{list-style:none}.chapter-item,.part-title,.separator{margin:.35rem 0}.part-title{margin-top:1rem;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6a5747}.separator hr{border:none;border-top:1px solid var(--line)}.sidebar a{text-decoration:none;color:var(--ink)}.sidebar a.current{color:var(--accent);font-weight:700}.content{padding:2.5rem;max-width:56rem}.chapter{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:2rem;box-shadow:0 12px 40px rgba(73,49,24,.06)}.chapter h1{margin-top:0}.chapter pre{white-space:pre-wrap;background:#fff3e2;padding:1rem;border-radius:12px;overflow:auto}.pagelinks{display:flex;justify-content:space-between;gap:1rem;margin:0 0 1.5rem}.pagelinks a{text-decoration:none;color:var(--accent);font-weight:600}.pagelinks span{color:#8d7c6f}@media (max-width:900px){body{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--line)}.content{padding:1rem}}</style></head><body>\{navigation}<main class=\"content\">\{pagelinks}\{body}</main>\{live_reload_script}</body></html>"
+  let copy_label = escape_html(renderer_text(config, "copy", "Copy"))
+  let copied_label = escape_html(renderer_text(config, "copied", "Copied"))
+  let failed_label = escape_html(renderer_text(config, "copy-failed", "Failed"))
+  let bg = escape_html(renderer_text(config, "theme-bg", "#f6f1e8"))
+  let paper = escape_html(renderer_text(config, "theme-paper", "#fffaf2"))
+  let ink = escape_html(renderer_text(config, "theme-ink", "#2f241c"))
+  let accent = escape_html(renderer_text(config, "theme-accent", "#8a2d0a"))
+  let line = escape_html(renderer_text(config, "theme-line", "#dfd2bf"))
+  let bg_start = escape_html(renderer_text(config, "theme-bg-start", "#f3ecdf"))
+  let bg_end = escape_html(renderer_text(config, "theme-bg-end", "#fbf7f0"))
+  let sidebar_bg = escape_html(renderer_text(config, "theme-sidebar-bg", "#efe4d2"))
+  let muted = escape_html(renderer_text(config, "theme-muted", "#6a5747"))
+  let code_bg = escape_html(renderer_text(config, "theme-code-bg", "#fff3e2"))
+  let copy_bg = escape_html(
+    renderer_text(config, "theme-copy-button-bg", "rgba(255,250,242,.94)"),
+  )
+  let copy_hover_bg = escape_html(renderer_text(config, "theme-copy-hover-bg", "#fff7ec"))
+  let copy_active_bg = escape_html(
+    renderer_text(config, "theme-copy-active-bg", "#f3eadc"),
+  )
+  let copy_active_ink = escape_html(
+    renderer_text(config, "theme-copy-active-ink", "#5c462f"),
+  )
+  let chrome_shadow = escape_html(
+    renderer_text(config, "theme-shadow-soft", "rgba(73,49,24,.06)"),
+  )
+  let copy_shadow = escape_html(
+    renderer_text(config, "theme-shadow-copy", "rgba(73,49,24,.08)"),
+  )
+  let image_shadow = escape_html(
+    renderer_text(config, "theme-shadow-image", "rgba(73,49,24,.12)"),
+  )
+  let pager_muted = escape_html(renderer_text(config, "theme-pager-muted", "#8d7c6f"))
+  "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>\{escape_html(title)}</title>\{head_extra}<style>:root{--bg:\{bg};--paper:\{paper};--ink:\{ink};--accent:\{accent};--line:\{line}}*{box-sizing:border-box}body{font-family:Georgia,Cambria,\"Times New Roman\",serif;color:var(--ink);margin:0;display:grid;grid-template-columns:18rem minmax(0,1fr);min-height:100vh;background:linear-gradient(180deg,\{bg_start} 0%,\{bg_end} 100%)}.sidebar{padding:2rem 1.25rem;background:\{sidebar_bg};border-right:1px solid var(--line);overflow:auto}.toc,.toc ol{margin:0;padding-left:1.1rem}.toc{padding-left:0;list-style:none}.toc ol{list-style:none}.chapter-item,.part-title,.separator{margin:.35rem 0}.part-title{margin-top:1rem;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:\{muted}}.separator hr{border:none;border-top:1px solid var(--line)}.sidebar a{text-decoration:none;color:var(--ink)}.sidebar a.current{color:var(--accent);font-weight:700}.content{padding:clamp(1rem,3vw,3rem);min-width:0}.chapter{width:min(100%,96rem);margin:0 auto;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:clamp(1.25rem,2.4vw,2.5rem);box-shadow:0 12px 40px \{chrome_shadow};overflow:hidden}.chapter h1{margin-top:0}.chapter p,.chapter li,.chapter blockquote{line-height:1.7}.code-block{position:relative;margin:1rem 0}.chapter pre{white-space:pre-wrap;background:\{code_bg};padding:1rem 1.125rem;border-radius:12px;overflow:auto;max-width:100%;margin:0}.code-copy{position:absolute;top:.75rem;right:.75rem;border:1px solid var(--line);background:\{copy_bg};color:var(--accent);border-radius:999px;padding:.35rem .7rem;font:600 .82rem/1.2 Georgia,Cambria,\"Times New Roman\",serif;cursor:pointer;box-shadow:0 4px 16px \{copy_shadow}}.code-copy:hover{background:\{copy_hover_bg}}.code-copy[data-copied=\"true\"]{background:\{copy_active_bg};color:\{copy_active_ink}}.chapter code{overflow-wrap:anywhere}.chapter img{display:block;max-width:min(100%,84rem);width:auto;height:auto;margin:1rem auto;border-radius:14px;box-shadow:0 10px 28px \{image_shadow}}.chapter table{width:100%}.pagelinks{display:flex;justify-content:space-between;gap:1rem;margin:0 auto 1.5rem;width:min(100%,96rem)}.pagelinks a{text-decoration:none;color:var(--accent);font-weight:600}.pagelinks span{color:\{pager_muted}}@media (max-width:900px){body{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--line)}.content{padding:1rem}.chapter{width:100%}.pagelinks{width:100%}.code-copy{position:static;display:inline-block;margin:0 0 .5rem auto}}</style></head><body>\{navigation}<main class=\"content\">\{pagelinks}\{body}</main><script>(function(){var L={copy:\"\{copy_label}\",copied:\"\{copied_label}\",failed:\"\{failed_label}\"};function s(b,t){b.textContent=t;b.setAttribute(\"data-label\",t)}function f(t){var a=document.createElement(\"textarea\");a.value=t;a.setAttribute(\"readonly\",\"\");a.style.position=\"fixed\";a.style.top=\"-9999px\";a.style.left=\"-9999px\";document.body.appendChild(a);a.focus();a.select();try{return document.execCommand(\"copy\")}catch(_){return false}finally{document.body.removeChild(a)}}async function c(t){if(navigator.clipboard&&window.isSecureContext){try{await navigator.clipboard.writeText(t);return true}catch(_){}}return f(t)}document.addEventListener(\"click\",async function(e){var b=e.target&&e.target.closest?e.target.closest(\".code-copy\"):null;if(!b)return;var w=b.parentElement;if(!w)return;var ctn=w.querySelector(\"code\");if(!ctn)return;var ok=await c(ctn.textContent||\"\");if(ok){s(b,L.copied);b.setAttribute(\"data-copied\",\"true\");setTimeout(function(){s(b,L.copy);b.removeAttribute(\"data-copied\")},1600)}else{s(b,L.failed);setTimeout(function(){s(b,L.copy)},1600)}})})();</script>\{live_reload_script}</body></html>"
+}
+
+///|
+fn renderer_text(config : @core.Config, key : String, fallback : String) -> String {
+  match config.read("output.html.ui." + key) {
+    Some(String(value)) if !value.is_empty() => value
+    _ => fallback
+  }
 }
 
 ///|
@@ -250,6 +338,58 @@ fn render_live_reload_script(config : @core.Config) -> String {
       "<script>(function(){var e=\"\{escape_html(endpoint)}\";var c=null;async function p(){try{var r=await fetch(e,{cache:\"no-store\"});if(r.ok){var t=await r.text();if(c===null){c=t}else if(c!==t){location.reload();return}}}catch(_){ }setTimeout(p,1000)}setTimeout(p,1000)})();</script>"
     }
     _ => ""
+  }
+}
+
+///|
+fn render_head_assets(config : @core.Config, current_page : String) -> String {
+  let builder = StringBuilder::new()
+  for asset in html_additional_css(config) {
+    let href = relative_href(current_page, @pathx.normalize(asset))
+    builder.write_string(
+      "<link rel=\"stylesheet\" href=\"\{escape_html(href)}\">",
+    )
+  }
+  for asset in html_additional_js(config) {
+    let src = relative_href(current_page, @pathx.normalize(asset))
+    builder.write_string("<script src=\"\{escape_html(src)}\"></script>")
+  }
+  builder.to_string()
+}
+
+///|
+fn configured_html_assets(config : @core.Config) -> Array[String] {
+  let assets : Array[String] = []
+  for asset in html_additional_css(config) {
+    assets.push(asset)
+  }
+  for asset in html_additional_js(config) {
+    assets.push(asset)
+  }
+  assets
+}
+
+///|
+fn html_additional_css(config : @core.Config) -> Array[String] {
+  json_string_array(config.read("output.html.additional-css"))
+}
+
+///|
+fn html_additional_js(config : @core.Config) -> Array[String] {
+  json_string_array(config.read("output.html.additional-js"))
+}
+
+///|
+fn json_string_array(value : Json?) -> Array[String] {
+  match value {
+    Some(Array(values)) =>
+      values.filter_map(fn(value) {
+        match value {
+          String(value) => Some(value)
+          _ => None
+        }
+      })
+    _ => []
   }
 }
 
@@ -280,17 +420,22 @@ async fn render_not_found_page(
   }
   let markdown = match markdown {
     Some(markdown) => markdown
-    None => default_not_found_markdown()
+    None => default_not_found_markdown(context.config)
   }
   let page = render_shell(
-    context_title(context.config) + " - 404",
+    context.config,
+    context_title(context.config) +
+    renderer_text(context.config, "not-found-suffix", " - 404"),
     render_navigation(context.book.items, output_path),
     render_not_found_body(markdown),
-    render_pagelinks(None, None, output_path),
+    render_pagelinks(context.config, None, None, output_path),
     render_live_reload_script(context.config),
-    render_not_found_head(context.config),
+    render_not_found_head(context.config) +
+      render_not_found_assets(context.config),
   )
-  let dest_path = @path.Path(context.build_dir).join(@path.Path(output_path)).to_string()
+  let dest_path = @path.Path(context.build_dir)
+    .join(@path.Path(output_path))
+    .to_string()
   ensure_parent_dir(dest_path)
   write_text_file(dest_path, page)
 }
@@ -311,6 +456,22 @@ fn render_not_found_head(config : @core.Config) -> String {
 }
 
 ///|
+fn render_not_found_assets(config : @core.Config) -> String {
+  let builder = StringBuilder::new()
+  for asset in html_additional_css(config) {
+    builder.write_string(
+      "<link rel=\"stylesheet\" href=\"\{escape_html(@pathx.normalize(asset))}\">",
+    )
+  }
+  for asset in html_additional_js(config) {
+    builder.write_string(
+      "<script src=\"\{escape_html(@pathx.normalize(asset))}\"></script>",
+    )
+  }
+  builder.to_string()
+}
+
+///|
 fn normalized_site_url(config : @core.Config) -> String {
   let base_url = match config.read("output.html.site-url") {
     Some(String(site_url)) if !site_url.is_empty() => site_url
@@ -324,8 +485,18 @@ fn normalized_site_url(config : @core.Config) -> String {
 }
 
 ///|
-fn default_not_found_markdown() -> String {
-  "# Document not found (404)\n\nThis URL is invalid, sorry. Please use the navigation bar or search to continue.\n"
+fn default_not_found_markdown(config : @core.Config) -> String {
+  let title = renderer_text(
+    config,
+    "not-found-title",
+    "Document not found (404)",
+  )
+  let body = renderer_text(
+    config,
+    "not-found-body",
+    "This URL is invalid, sorry. Please use the navigation bar or search to continue.",
+  )
+  "# \{title}\n\n\{body}\n"
 }
 
 ///|
@@ -339,12 +510,7 @@ fn not_found_output_path(config : @core.Config) -> String? {
 ///|
 fn not_found_input_path(config : @core.Config) -> String? {
   match config.read("output.html.input-404") {
-    Some(String(path)) =>
-      if path.is_empty() {
-        None
-      } else {
-        Some(path)
-      }
+    Some(String(path)) => if path.is_empty() { None } else { Some(path) }
     _ => Some("404.md")
   }
 }
@@ -369,7 +535,7 @@ async fn load_not_found_markdown(
       if @fsx.exists(source_path) {
         Some(strip_utf8_bom_text(@fsx.read_file(source_path)))
       } else if path == "404.md" {
-        Some(default_not_found_markdown())
+        Some(default_not_found_markdown(config))
       } else {
         fail("missing configured 404 source: \{source_path}")
       }
@@ -389,18 +555,21 @@ fn strip_utf8_bom_text(text : String) -> String {
 
 ///|
 fn render_pagelinks(
+  config : @core.Config,
   previous : @core.Chapter?,
   next : @core.Chapter?,
   current_page : String,
 ) -> String {
+  let previous_label = renderer_text(config, "previous", "Previous")
+  let next_label = renderer_text(config, "next", "Next")
   let prev = match previous {
     Some(chapter) =>
-      "<a class=\"previous\" href=\"\{relative_href(current_page, chapter_output_path(chapter))}\">Previous: \{escape_html(chapter.name)}</a>"
+      "<a class=\"previous\" href=\"\{relative_href(current_page, chapter_output_path(chapter))}\">\{escape_html(previous_label)}: \{escape_html(chapter.name)}</a>"
     None => "<span></span>"
   }
   let nxt = match next {
     Some(chapter) =>
-      "<a class=\"next\" href=\"\{relative_href(current_page, chapter_output_path(chapter))}\">Next: \{escape_html(chapter.name)}</a>"
+      "<a class=\"next\" href=\"\{relative_href(current_page, chapter_output_path(chapter))}\">\{escape_html(next_label)}: \{escape_html(chapter.name)}</a>"
     None => "<span></span>"
   }
   "<nav class=\"pagelinks\">\{prev}\{nxt}</nav>"
@@ -723,7 +892,7 @@ fn render_code_block(
     ""
   }
   let code = render_code_lines(language, modifiers, code_lines)
-  "<pre\{pre_class}><code\{class_attr}>\{code}</code></pre>"
+  "<div class=\"code-block\"><button class=\"code-copy\" type=\"button\">Copy</button><pre\{pre_class}><code\{class_attr}>\{code}</code></pre></div>"
 }
 
 ///|
@@ -2042,6 +2211,7 @@ test "parse code info splits language and modifiers" {
 ///|
 test "render markdown emits separate code classes for modifiers" {
   let html = render_markdown("```rust,ignore,editable\nfn main {}\n```\n")
+  assert_true(html.contains("<button class=\"code-copy\" type=\"button\">Copy</button>"))
   assert_true(
     html.contains(
       "<code class=\"language-rust ignore editable\">fn main {}</code>",
@@ -2054,6 +2224,7 @@ test "render markdown wraps rust playground blocks" {
   let html = render_markdown(
     "```rust,editable\nfn f() {\n    println!(\"hello\");\n}\n```\n",
   )
+  assert_true(html.contains("<div class=\"code-block\">"))
   assert_true(html.contains("<pre class=\"playground\">"))
   assert_true(html.contains("class=\"language-rust editable\""))
 }
@@ -2151,9 +2322,107 @@ test "404 path helpers support default custom and disabled cases" {
 
 ///|
 test "404 head uses configured site url as base href" {
-  let config = @core.default().set("output.html.site-url", Json::string("/docs"))
+  let config = @core.default().set(
+    "output.html.site-url",
+    Json::string("/docs"),
+  )
   let head = render_not_found_head(config)
   assert_true(head.contains("<base href=\"/docs/\">"))
+}
+
+///|
+test "default 404 markdown supports ui overrides" {
+  let config = @core.default()
+    .set("output.html.ui.not-found-title", Json::string("未找到页面"))
+    .set("output.html.ui.not-found-body", Json::string("请返回目录继续浏览。"))
+  let markdown = default_not_found_markdown(config)
+  assert_true(markdown.contains("# 未找到页面"))
+  assert_true(markdown.contains("请返回目录继续浏览。"))
+}
+
+///|
+test "configured html assets render relative head tags" {
+  let config = @core.default()
+    .set("output.html.additional-css", ["theme/custom.css"].to_json())
+    .set("output.html.additional-js", ["scripts/book.js"].to_json())
+  let head = render_head_assets(config, "guide/chapter.html")
+  assert_true(head.contains("href=\"../theme/custom.css\""))
+  assert_true(head.contains("src=\"../scripts/book.js\""))
+}
+
+///|
+test "configured html assets are exposed for copying" {
+  let config = @core.default()
+    .set("output.html.additional-css", ["theme/custom.css"].to_json())
+    .set("output.html.additional-js", ["scripts/book.js"].to_json())
+  assert_eq(configured_html_assets(config), [
+    "theme/custom.css", "scripts/book.js",
+  ])
+}
+
+///|
+test "renderer text falls back and supports ui overrides" {
+  let config = @core.default()
+    .set("output.html.ui.copy", Json::string("复制"))
+    .set("output.html.ui.previous", Json::string("上一页"))
+  assert_eq(renderer_text(config, "copy", "Copy"), "复制")
+  assert_eq(renderer_text(config, "previous", "Previous"), "上一页")
+  assert_eq(renderer_text(config, "next", "Next"), "Next")
+}
+
+///|
+test "render shell supports theme color overrides" {
+  let config = @core.default()
+    .set("output.html.ui.theme-bg", Json::string("#111111"))
+    .set("output.html.ui.theme-paper", Json::string("#222222"))
+    .set("output.html.ui.theme-accent", Json::string("#ff4400"))
+  let html = render_shell(config, "Title", "", "", "", "", "")
+  assert_true(html.contains("--bg:#111111"))
+  assert_true(html.contains("--paper:#222222"))
+  assert_true(html.contains("--accent:#ff4400"))
+}
+
+///|
+test "render shell supports extended chrome theme overrides" {
+  let config = @core.default()
+    .set("output.html.ui.theme-sidebar-bg", Json::string("#333333"))
+    .set("output.html.ui.theme-code-bg", Json::string("#444444"))
+    .set("output.html.ui.theme-pager-muted", Json::string("#555555"))
+  let html = render_shell(config, "Title", "", "", "", "", "")
+  assert_true(html.contains("background:#333333;border-right"))
+  assert_true(html.contains("background:#444444;padding:1rem 1.125rem"))
+  assert_true(html.contains("color:#555555"))
+}
+
+///|
+test "pagelinks use configurable labels" {
+  let config = @core.default()
+    .set("output.html.ui.previous", Json::string("上一页"))
+    .set("output.html.ui.next", Json::string("下一页"))
+  let previous = @core.chapter("One", "", path=Some("one.md"))
+  let next = @core.chapter("Two", "", path=Some("two.md"))
+  let html = render_pagelinks(config, Some(previous), Some(next), "index.html")
+  assert_true(html.contains(">上一页: One</a>"))
+  assert_true(html.contains(">下一页: Two</a>"))
+}
+
+///|
+test "context title supports configurable default title" {
+  let config = @core.default().set(
+    "output.html.ui.default-title",
+    Json::string("Docs"),
+  )
+  assert_eq(context_title(config), "Docs")
+}
+
+///|
+test "404 head assets use normalized root-relative paths" {
+  let config = @core.default()
+    .set("output.html.additional-css", ["./theme/custom.css"].to_json())
+    .set("output.html.additional-js", ["scripts/book.js"].to_json())
+  let head = render_not_found_assets(config)
+  assert_true(head.contains("href=\"theme/custom.css\""))
+  assert_true(head.contains("src=\"scripts/book.js\""))
 }
 
 ///|
