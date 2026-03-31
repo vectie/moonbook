@@ -8,8 +8,8 @@ Implemented commands:
 
 - `moonbook init [root]`
 - `moonbook build [root]`
-- `moonbook serve [root] [-n hostname] [-p port]`
-- `moonbook watch [root]`
+- `moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]`
+- `moonbook watch [root] [-d dest-dir] [-o] [--watcher poll|native]`
 - `moonbook load [root]`
 - `moonbook test [root]`
 - `moonbook clean [root]`
@@ -22,10 +22,19 @@ Implemented behaviors:
 - writes built HTML output under `build.build_dir`
 - `serve` performs a build first, then hosts the built output over HTTP
 - `serve` supports configurable hostname and port
+- `serve` supports `--dest-dir`
+- `serve` supports `--open`
+- `serve` accepts `--watcher poll|native`
 - `serve` serves `index.html` at `/`
 - `serve` serves `404.html` as a fallback when present
+- `serve --watcher native` currently falls back to the poll backend with an explicit notice
 - `watch` performs an initial build, then polls for source/config changes
+- `watch` supports `--dest-dir`
+- `watch` supports `--open`
+- `watch` accepts `--watcher poll|native`
+- `watch --watcher native` currently falls back to the poll backend with an explicit notice
 - `watch` rebuilds when files under `book.src/` or `book.toml` change
+- `serve` and `watch` ignore paths matched by the book root `.gitignore`
 - writes `book.json` manifest into the build directory
 - `test` counts Rust fenced blocks in the loaded book
 - `clean` removes the generated build directory and reports removal stats
@@ -46,6 +55,11 @@ Implemented config fields:
 - `rust.edition`
 - dynamic `output.*` JSON access via `Config::read`
 - dynamic `preprocessor.*` JSON access via `Config::read`
+- `output.html.additional-css`
+- `output.html.additional-js`
+- `output.html.cname`
+- `output.html.input-404`
+- `output.html.site-url`
 
 Implemented book model behaviors:
 
@@ -163,6 +177,19 @@ Implemented asset handling:
 - raw HTML `src` and `href` attribute values collected from chapter content
 - local non-markdown assets copied from `src/` into the build directory
 - relative asset references preserved in generated HTML
+- configured `output.html.additional-css` files copied from the book root into the build directory
+- configured `output.html.additional-js` files copied from the book root into the build directory
+
+## HTML Config Extras
+
+Implemented output.html extras:
+
+- `input-404` custom input file selection, defaulting to `404.md`
+- `input-404 = ""` to disable not-found output generation
+- `site-url` base href injection for generated 404 output
+- `cname` writing to a root `CNAME` file in the build output
+- `additional-css` link tag injection into generated pages
+- `additional-js` script tag injection into generated pages
 
 ## Code Blocks
 
@@ -200,10 +227,7 @@ Not implemented yet:
 - search index and search UI
 - print renderer/output
 - live reload websocket for `serve`
-- `serve --open`
-- `serve --dest-dir`
-- `watch --watcher` parity with upstream `poll`/`native` modes
-- `serve`/`watch` `.gitignore` ignore behavior
+- true native filesystem watcher backend
 - `test` parity with upstream mdBook behavior
 - external preprocessors and renderers
 - full `book.toml` compatibility

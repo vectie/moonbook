@@ -13,16 +13,17 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 - mdBook-style playground and hidden-line treatment for code blocks
 - local static HTTP serving of the built book
 - local polling watcher that rebuilds on source/config changes
+- common `serve`/`watch` CLI options like `--open`, `--dest-dir`, and `--watcher`
+- `.gitignore`-aware polling rebuild filtering
+- generated 404 pages with `site-url` handling
+- configured extra CSS/JS assets and `CNAME` output
 
 ## What Is Still Missing
 
 ### CLI/Workflow Gaps
 
 - `serve` live reload websocket
-- `serve --open`
-- `serve --dest-dir`
-- `watch --watcher` parity with upstream poll/native selection
-- `serve`/`watch` `.gitignore` behavior
+- true native filesystem watcher backend for `--watcher native`
 - `test` parity with upstream behavior
 - `init` parity beyond the current minimal skeleton
 - plugin/preprocessor command execution
@@ -30,7 +31,7 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 
 ### Config Gaps
 
-- full `output.html.*` compatibility
+- broader `output.html.*` compatibility
 - full `preprocessor.*` compatibility
 - theme/search/playground config parity
 - redirect and print-specific config support

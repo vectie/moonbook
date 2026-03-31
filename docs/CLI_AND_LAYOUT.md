@@ -29,31 +29,46 @@ Build pipeline:
 5. render HTML output
 6. write `book/book.json`
 
-### `moon run cmd/main -- serve <root> [-n hostname] [-p port]`
+### `moon run cmd/main -- serve <root> [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]`
 
 Runs a local static HTTP server for the built book:
 
 1. load config
-2. build the book into `build.build_dir`
-3. bind an HTTP server
-4. serve `index.html` at `/`
-5. serve files directly from the build directory
-6. serve `404.html` for missing paths when present
+2. optionally override the build directory
+3. build the book into `build.build_dir`
+4. optionally open the served URL in the system browser
+5. bind an HTTP server
+6. serve `index.html` at `/`
+7. serve files directly from the build directory
+8. serve `404.html` for missing paths when present
+9. poll for source/config changes and rebuild the served output
 
 Current defaults:
 
 - hostname: `localhost`
 - port: `3000`
+- watcher: `poll`
 
-### `moon run cmd/main -- watch <root>`
+Current note:
+
+- `--watcher native` is accepted, but currently uses the polling backend
+
+### `moon run cmd/main -- watch <root> [-d dest-dir] [-o] [--watcher poll|native]`
 
 Runs a polling rebuild loop for the book:
 
 1. load config
-2. build the book once
-3. scan `book.src/` and `book.toml`
-4. poll for changes every second
-5. rebuild on detected changes
+2. optionally override the build directory
+3. build the book once
+4. optionally open the generated `index.html` in the system browser
+5. scan `book.src/` and `book.toml`
+6. apply ignore rules from the book root `.gitignore`
+7. poll for changes every second
+8. rebuild on detected changes
+
+Current note:
+
+- `--watcher native` is accepted, but currently uses the polling backend
 
 ### `moon run cmd/main -- load <root>`
 
@@ -89,6 +104,9 @@ Current build outputs:
 - `index.html`
 - one `.html` file per non-draft chapter
 - copied local assets referenced by chapter content
+- copied configured `output.html.additional-css` and `output.html.additional-js` assets
+- `404.html` or another configured 404 output file
+- `CNAME` when `output.html.cname` is set
 - `book.json`
 
 `book.json` contains:
@@ -135,6 +153,7 @@ Owns:
 - markdown-to-HTML rendering
 - code block post-processing
 - asset collection and copying
+- configured `output.html` asset injection and `CNAME` emission
 
 ### `internal/`
 
