@@ -10,7 +10,11 @@ pub async fn make_directory(StringView, recursive? : Bool, exists_ok? : Bool) ->
 
 pub fn mtime(StringView) -> Int64?
 
+pub async fn read_bytes(StringView) -> Bytes
+
 pub async fn read_file(StringView) -> String
+
+pub async fn write_bytes(StringView, Bytes, create? : Int) -> Unit
 
 pub async fn write_to_file(StringView, StringView, create? : Int) -> Unit
 
