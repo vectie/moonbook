@@ -4,6 +4,7 @@ async fn main {
   match args[1:] {
     ["build", root] => run_build(root)
     ["build"] => run_build(".")
+    ["serve", .. serve_args] => run_serve(serve_args.to_array())
     ["init", root] => run_init(root)
     ["init"] => run_init(".")
     ["clean", root] => run_clean(root)
@@ -86,8 +87,46 @@ async fn run_test(root : String) -> Unit {
 }
 
 ///|
+async fn run_serve(args : Array[String]) -> Unit {
+  let options = match @httpserve.parse_serve_args(args) {
+    Some(options) => options
+    None => {
+      println(
+        "moonbook serve usage: moonbook serve [root] [-n hostname] [-p port]",
+      )
+      return
+    }
+  }
+  let book = @driver.load(options.root) catch {
+    error => {
+      println("moonbook serve failed to load: \{error}")
+      return
+    }
+  }
+  book.build() catch {
+    error => {
+      println("moonbook serve failed to build: \{error}")
+      return
+    }
+  }
+  let build_dir = @path.Path(options.root)
+    .join(@path.Path(book.config.build.build_dir))
+    .to_string()
+  let server = @httpserve.Server::new(options.hostname, options.port) catch {
+    error => {
+      println("moonbook serve failed: \{error}")
+      return
+    }
+  }
+  println("serving \{build_dir}")
+  println("listening on http://\{options.hostname}:\{server.port()}")
+  server.serve_directory(build_dir)
+}
+
+///|
 fn print_usage() -> Unit {
   println("moonbook build [root]")
+  println("moonbook serve [root] [-n hostname] [-p port]")
   println("moonbook init [root]")
   println("moonbook clean [root]")
   println("moonbook load [root]")

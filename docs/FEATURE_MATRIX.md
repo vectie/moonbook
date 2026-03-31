@@ -8,6 +8,7 @@ Implemented commands:
 
 - `moonbook init [root]`
 - `moonbook build [root]`
+- `moonbook serve [root] [-n hostname] [-p port]`
 - `moonbook load [root]`
 - `moonbook test [root]`
 - `moonbook clean [root]`
@@ -18,6 +19,10 @@ Implemented behaviors:
 - initializes `src/`, `book/`, `book.toml`, `.gitignore`, `src/SUMMARY.md`, and `src/chapter_1.md`
 - loads `book.toml` if present, otherwise uses defaults
 - writes built HTML output under `build.build_dir`
+- `serve` performs a build first, then hosts the built output over HTTP
+- `serve` supports configurable hostname and port
+- `serve` serves `index.html` at `/`
+- `serve` serves `404.html` as a fallback when present
 - writes `book.json` manifest into the build directory
 - `test` counts Rust fenced blocks in the loaded book
 - `clean` removes the generated build directory and reports removal stats
@@ -191,7 +196,12 @@ Not implemented yet:
 - full mdBook theme system
 - search index and search UI
 - print renderer/output
-- `serve`, `watch`, `test` parity with upstream mdBook behavior
+- `watch`
+- live reload websocket for `serve`
+- `serve --open`
+- `serve --dest-dir`
+- `serve`/`watch` `.gitignore` ignore behavior
+- `test` parity with upstream mdBook behavior
 - external preprocessors and renderers
 - full `book.toml` compatibility
 - complete CommonMark/pulldown-cmark parity

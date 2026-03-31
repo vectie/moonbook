@@ -29,6 +29,22 @@ Build pipeline:
 5. render HTML output
 6. write `book/book.json`
 
+### `moon run cmd/main -- serve <root> [-n hostname] [-p port]`
+
+Runs a local static HTTP server for the built book:
+
+1. load config
+2. build the book into `build.build_dir`
+3. bind an HTTP server
+4. serve `index.html` at `/`
+5. serve files directly from the build directory
+6. serve `404.html` for missing paths when present
+
+Current defaults:
+
+- hostname: `localhost`
+- port: `3000`
+
 ### `moon run cmd/main -- load <root>`
 
 Loads the book and prints the full JSON representation of:
@@ -98,6 +114,7 @@ Owns:
 - build orchestration
 - cleaning
 - manifest writing
+- `serve` build preparation through the shared load/build flow
 
 ### `html/`
 
@@ -111,7 +128,7 @@ Owns:
 
 ### `internal/`
 
-Contains internal filesystem/path helpers copied and adapted from MoonClaw where needed.
+Contains internal filesystem/path helpers and a minimal HTTP static server adapted from MoonClaw where needed.
 
 ### `ui/`
 

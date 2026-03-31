@@ -1419,7 +1419,7 @@ fn is_word_codepoint(code : UInt16) -> Bool {
 
 ///|
 fn fix_link(link : String) -> String {
-  if link.has_prefix("#") || link.contains("://") || link.has_prefix("mailto:") {
+  if should_preserve_link(link) {
     return link
   }
   match link.find("#") {
@@ -1430,6 +1430,16 @@ fn fix_link(link : String) -> String {
     }
     None => fix_link_path(link)
   }
+}
+
+///|
+fn should_preserve_link(link : String) -> Bool {
+  link.has_prefix("#") ||
+  link.contains("://") ||
+  link.has_prefix("mailto:") ||
+  link.has_prefix("tel:") ||
+  link.has_prefix("javascript:") ||
+  link.has_prefix("data:")
 }
 
 ///|
@@ -1447,6 +1457,9 @@ fn is_local_asset(path : String) -> Bool {
   !plain.has_prefix("#") &&
   !plain.contains("://") &&
   !plain.has_prefix("mailto:") &&
+  !plain.has_prefix("tel:") &&
+  !plain.has_prefix("javascript:") &&
+  !plain.has_prefix("data:") &&
   !plain.has_suffix(".md")
 }
 
@@ -1809,6 +1822,19 @@ test "collect markdown assets includes raw html src values" {
     "<img src=\"images/pic.png\"> <a href=\"chapter.md\">chapter</a>",
   )
   assert_eq(assets, ["images/pic.png", "chapter.md"])
+}
+
+///|
+test "non-file URL schemes are preserved and not treated as local assets" {
+  assert_eq(
+    fix_link("data:image/svg+xml;base64,abc"),
+    "data:image/svg+xml;base64,abc",
+  )
+  assert_eq(fix_link("javascript:void(0)"), "javascript:void(0)")
+  assert_eq(fix_link("tel:+86123456"), "tel:+86123456")
+  assert_false(is_local_asset("data:image/svg+xml;base64,abc"))
+  assert_false(is_local_asset("javascript:void(0)"))
+  assert_false(is_local_asset("tel:+86123456"))
 }
 
 ///|

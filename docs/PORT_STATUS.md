@@ -6,18 +6,22 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 
 - native MoonBit model for books/config
 - `SUMMARY.md` parsing for the currently documented cases
-- end-to-end local CLI flow for `init`, `build`, `load`, `test`, and `clean`
+- end-to-end local CLI flow for `init`, `build`, `serve`, `load`, `test`, and `clean`
 - static HTML generation for normal chapter trees
 - broad markdown coverage for common book content
 - mdBook-style heading/link behavior for many inline cases
 - mdBook-style playground and hidden-line treatment for code blocks
+- local static HTTP serving of the built book
 
 ## What Is Still Missing
 
 ### CLI/Workflow Gaps
 
-- `serve`
 - `watch`
+- `serve` live reload websocket
+- `serve --open`
+- `serve --dest-dir`
+- `serve`/`watch` file watching and `.gitignore` behavior
 - `test` parity with upstream behavior
 - `init` parity beyond the current minimal skeleton
 - plugin/preprocessor command execution
@@ -42,7 +46,7 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 ### Frontend Gaps
 
 - Rabbita is still a shell rather than a complete operator/book-reading frontend
-- no integrated live preview or browser-oriented serving path
+- no integrated live preview with rebuild-triggered browser refresh
 
 ## Suggested Next Work
 
@@ -51,7 +55,7 @@ High-value next steps:
 1. expand `book.toml` compatibility, especially `output.html.*`
 2. continue renderer parity with more mdBook rendering tests
 3. add theme/static asset support beyond the current inline stylesheet
-4. add `serve`/`watch`
+4. add `watch` and live reload parity on top of the new static `serve` command
 5. connect Rabbita to real built-book state and navigation
 
 ## Documentation Rule

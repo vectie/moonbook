@@ -1,0 +1,36 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "username/moonbook/internal/httpserve"
+
+import {
+  "moonbitlang/async/http",
+}
+
+// Values
+pub fn default_options(String) -> ServeOptions
+
+pub fn parse_serve_args(Array[String]) -> ServeOptions?
+
+// Errors
+
+// Types and methods
+pub struct ServeOptions {
+  root : String
+  hostname : String
+  port : Int
+}
+pub impl Show for ServeOptions
+pub impl ToJson for ServeOptions
+
+pub struct Server {
+  server : @http.Server
+  port : Int
+}
+pub fn Server::close(Self) -> Unit
+pub fn Server::new(String, Int, dual_stack? : Bool, reuse_addr? : Bool) -> Self raise
+pub fn Server::port(Self) -> Int
+pub async fn Server::serve_directory(Self, String) -> Unit
+
+// Type aliases
+
+// Traits
+
