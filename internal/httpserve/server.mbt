@@ -108,12 +108,22 @@ pub fn Server::new(
   dual_stack? : Bool = true,
   reuse_addr? : Bool = false,
 ) -> Server raise {
+  let host = normalize_bind_host(host)
   let server = @http.Server::new(
     @socket.Addr::parse("\{host}:\{port}"),
     dual_stack~,
     reuse_addr~,
   )
   { server, port: server.addr().port() }
+}
+
+///|
+fn normalize_bind_host(host : String) -> String {
+  if host == "localhost" {
+    "127.0.0.1"
+  } else {
+    host
+  }
 }
 
 ///|
@@ -314,6 +324,12 @@ test "serve args parser handles defaults and flags" {
   assert_true(parse_serve_args(["./book", "--watcher", "other"]) is None)
   assert_true(parse_serve_args(["-p"]) is None)
   assert_true(parse_serve_args(["./book", "--port", "bad"]) is None)
+}
+
+///|
+test "normalize localhost bind host" {
+  assert_eq(normalize_bind_host("localhost"), "127.0.0.1")
+  assert_eq(normalize_bind_host("127.0.0.1"), "127.0.0.1")
 }
 
 ///|
