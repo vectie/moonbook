@@ -2,6 +2,7 @@ import {
   "moonbitlang/async",
   "moonbitlang/async/fs",
   "username/moonbook/internal/fsx",
+  "username/moonbook/internal/pathx",
 }
 
 import {

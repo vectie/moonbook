@@ -121,6 +121,7 @@ async fn run_serve(args : Array[String]) -> Unit {
     }
   }
   let build_dir = @driver.resolved_build_dir(options.root, book.config)
+  let watch_filter = @watcher.load_watch_filter(options.root)
   write_live_reload_token(build_dir)
   let server = @httpserve.Server::new(options.hostname, options.port) catch {
     error => {
@@ -156,7 +157,9 @@ async fn run_serve(args : Array[String]) -> Unit {
       .join(@path.Path("book.toml"))
       .to_string()
     let watch_paths = [src_dir, config_path]
-    @watcher.rebuild_on_change(watch_paths, async fn(changed : Array[String]) {
+    @watcher.rebuild_on_change(watch_paths, filter=watch_filter, async fn(
+      changed : Array[String],
+    ) {
       let changed_text = changed.join(", ")
       println("files changed: \{changed_text}")
       let book = @driver.load_with_config(options.root, serve_config) catch {
@@ -201,6 +204,7 @@ async fn run_watch(args : Array[String]) -> Unit {
     .join(@path.Path("book.toml"))
     .to_string()
   let watch_paths = [src_dir, config_path]
+  let watch_filter = @watcher.load_watch_filter(options.root)
   book.build() catch {
     error => {
       println("moonbook watch initial build failed: \{error}")
@@ -210,6 +214,7 @@ async fn run_watch(args : Array[String]) -> Unit {
   println("watching \{options.root}")
   @watcher.rebuild_on_change(
     watch_paths,
+    filter=watch_filter,
     async fn(changed : Array[String]) {
       let changed_text = changed.join(", ")
       println("files changed: \{changed_text}")

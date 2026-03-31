@@ -4,11 +4,15 @@ package "username/moonbook/internal/watcher"
 // Values
 pub fn changed_paths(Map[String, FileState], Map[String, FileState]) -> Array[String]
 
+pub async fn load_watch_filter(String) -> WatchFilter?
+
 pub fn parse_watch_args(Array[String]) -> WatchOptions?
 
-pub async fn rebuild_on_change(Array[String], interval_ms? : Int, async (Array[String]) -> Unit) -> Unit
+pub async fn rebuild_on_change(Array[String], interval_ms? : Int, filter? : WatchFilter?, async (Array[String]) -> Unit) -> Unit
 
 pub async fn scan_paths(Array[String]) -> Map[String, FileState]
+
+pub async fn scan_paths_filtered(Array[String], WatchFilter?) -> Map[String, FileState]
 
 // Errors
 
@@ -22,6 +26,13 @@ pub impl Compare for FileState
 pub impl Eq for FileState
 pub impl Show for FileState
 pub impl ToJson for FileState
+
+pub struct WatchFilter {
+  root : String
+  patterns : Array[String]
+}
+pub impl Show for WatchFilter
+pub impl ToJson for WatchFilter
 
 pub struct WatchOptions {
   root : String
