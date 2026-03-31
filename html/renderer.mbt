@@ -1812,11 +1812,27 @@ fn strip_link_anchor(path : String) -> String {
 fn collect_markdown_assets(markdown : String) -> Array[String] {
   let assets : Array[String] = []
   let mut i = 0
-  while i + 1 < markdown.length() {
+  while i < markdown.length() {
     if markdown[i] == '!' && markdown[i + 1] == '[' {
       match markdown[i + 2:].find("](") {
         Some(mid) => {
           let close_index = i + 2 + mid
+          match markdown[close_index + 2:].find(")") {
+            Some(end) => {
+              assets.push(
+                markdown[close_index + 2:close_index + 2 + end].to_string(),
+              )
+              i = close_index + end + 3
+            }
+            None => i += 1
+          }
+        }
+        None => i += 1
+      }
+    } else if markdown[i] == '[' {
+      match markdown[i + 1:].find("](") {
+        Some(mid) => {
+          let close_index = i + 1 + mid
           match markdown[close_index + 2:].find(")") {
             Some(end) => {
               assets.push(
@@ -2299,6 +2315,16 @@ test "collect markdown assets finds image sources" {
     "![One](images/one.png) and ![Two](./nested/two.jpg)",
   )
   assert_eq(assets, ["images/one.png", "./nested/two.jpg"])
+}
+
+///|
+test "collect markdown assets finds normal file links" {
+  let assets = collect_markdown_assets(
+    "[Config](downloads/openclaw-config.json) and [Archive](./downloads/package.zip#latest)",
+  )
+  assert_eq(assets, [
+    "downloads/openclaw-config.json", "./downloads/package.zip#latest",
+  ])
 }
 
 ///|
