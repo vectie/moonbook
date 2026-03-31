@@ -4,7 +4,11 @@ package "username/moonbook/internal/fsx"
 // Values
 pub async fn exists(StringView) -> Bool
 
+pub async fn list_directory(StringView) -> Array[String]
+
 pub async fn make_directory(StringView, recursive? : Bool, exists_ok? : Bool) -> Unit
+
+pub fn mtime(StringView) -> Int64?
 
 pub async fn read_file(StringView) -> String
 

@@ -5,6 +5,7 @@ async fn main {
     ["build", root] => run_build(root)
     ["build"] => run_build(".")
     ["serve", .. serve_args] => run_serve(serve_args.to_array())
+    ["watch", .. watch_args] => run_watch(watch_args.to_array())
     ["init", root] => run_init(root)
     ["init"] => run_init(".")
     ["clean", root] => run_clean(root)
@@ -124,9 +125,64 @@ async fn run_serve(args : Array[String]) -> Unit {
 }
 
 ///|
+async fn run_watch(args : Array[String]) -> Unit {
+  let options = match @watcher.parse_watch_args(args) {
+    Some(options) => options
+    None => {
+      println("moonbook watch usage: moonbook watch [root]")
+      return
+    }
+  }
+  let book = @driver.load(options.root) catch {
+    error => {
+      println("moonbook watch failed to load: \{error}")
+      return
+    }
+  }
+  let src_dir = @path.Path(options.root)
+    .join(@path.Path(book.config.book.src))
+    .to_string()
+  let config_path = @path.Path(options.root)
+    .join(@path.Path("book.toml"))
+    .to_string()
+  let watch_paths = [src_dir, config_path]
+  book.build() catch {
+    error => {
+      println("moonbook watch initial build failed: \{error}")
+      return
+    }
+  }
+  println("watching \{options.root}")
+  @watcher.rebuild_on_change(
+    watch_paths,
+    async fn(changed : Array[String]) {
+      let changed_text = changed.join(", ")
+      println("files changed: \{changed_text}")
+      let book = @driver.load(options.root) catch {
+        error => {
+          println("moonbook watch reload failed: \{error}")
+          return
+        }
+      }
+      book.build() catch {
+        error => {
+          println("moonbook watch rebuild failed: \{error}")
+          return
+        }
+      }
+      println(
+        "rebuilt \{options.root} -> \{@path.Path(options.root).join(@path.Path(book.config.build.build_dir)).to_string()}",
+      )
+    },
+    interval_ms=options.interval_ms,
+  )
+}
+
+///|
 fn print_usage() -> Unit {
   println("moonbook build [root]")
   println("moonbook serve [root] [-n hostname] [-p port]")
+  println("moonbook watch [root]")
   println("moonbook init [root]")
   println("moonbook clean [root]")
   println("moonbook load [root]")

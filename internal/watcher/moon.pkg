@@ -1,0 +1,9 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "username/moonbook/internal/fsx",
+}
+
+import {
+  "moonbitlang/core/test",
+} for "test"

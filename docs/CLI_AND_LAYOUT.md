@@ -45,6 +45,16 @@ Current defaults:
 - hostname: `localhost`
 - port: `3000`
 
+### `moon run cmd/main -- watch <root>`
+
+Runs a polling rebuild loop for the book:
+
+1. load config
+2. build the book once
+3. scan `book.src/` and `book.toml`
+4. poll for changes every second
+5. rebuild on detected changes
+
 ### `moon run cmd/main -- load <root>`
 
 Loads the book and prints the full JSON representation of:

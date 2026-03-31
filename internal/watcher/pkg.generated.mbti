@@ -1,0 +1,36 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "username/moonbook/internal/watcher"
+
+// Values
+pub fn changed_paths(Map[String, FileState], Map[String, FileState]) -> Array[String]
+
+pub fn parse_watch_args(Array[String]) -> WatchOptions?
+
+pub async fn rebuild_on_change(Array[String], interval_ms? : Int, async (Array[String]) -> Unit) -> Unit
+
+pub async fn scan_paths(Array[String]) -> Map[String, FileState]
+
+// Errors
+
+// Types and methods
+pub struct FileState {
+  path : String
+  kind : String
+  mtime : Int64
+}
+pub impl Compare for FileState
+pub impl Eq for FileState
+pub impl Show for FileState
+pub impl ToJson for FileState
+
+pub struct WatchOptions {
+  root : String
+  interval_ms : Int
+}
+pub impl Show for WatchOptions
+pub impl ToJson for WatchOptions
+
+// Type aliases
+
+// Traits
+

@@ -9,6 +9,7 @@ Implemented commands:
 - `moonbook init [root]`
 - `moonbook build [root]`
 - `moonbook serve [root] [-n hostname] [-p port]`
+- `moonbook watch [root]`
 - `moonbook load [root]`
 - `moonbook test [root]`
 - `moonbook clean [root]`
@@ -23,6 +24,8 @@ Implemented behaviors:
 - `serve` supports configurable hostname and port
 - `serve` serves `index.html` at `/`
 - `serve` serves `404.html` as a fallback when present
+- `watch` performs an initial build, then polls for source/config changes
+- `watch` rebuilds when files under `book.src/` or `book.toml` change
 - writes `book.json` manifest into the build directory
 - `test` counts Rust fenced blocks in the loaded book
 - `clean` removes the generated build directory and reports removal stats
@@ -196,10 +199,10 @@ Not implemented yet:
 - full mdBook theme system
 - search index and search UI
 - print renderer/output
-- `watch`
 - live reload websocket for `serve`
 - `serve --open`
 - `serve --dest-dir`
+- `watch --watcher` parity with upstream `poll`/`native` modes
 - `serve`/`watch` `.gitignore` ignore behavior
 - `test` parity with upstream mdBook behavior
 - external preprocessors and renderers

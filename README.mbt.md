@@ -10,8 +10,9 @@ Moonbook is a MoonBit rewrite of the mdBook toolchain currently focused on:
 - parsing `SUMMARY.md`
 - building a static HTML output tree
 - serving the built book over local HTTP
+- watching source files and rebuilding on change
 - preserving mdBook-style navigation and many markdown rendering behaviors
-- exposing a native CLI flow for `init`, `build`, `serve`, `load`, `test`, and `clean`
+- exposing a native CLI flow for `init`, `build`, `serve`, `watch`, `load`, `test`, and `clean`
 
 The project is not at full upstream parity yet. The current state is a working vertical slice with a growing set of mdBook-compatible cases.
 
@@ -20,7 +21,7 @@ The project is not at full upstream parity yet. The current state is a working v
 - native MoonBit book/config model
 - `book.toml` loading for core book/build/rust fields
 - `SUMMARY.md` parsing with numbering, nesting, parts, separators, and draft chapters
-- end-to-end `init`, `build`, `serve`, `load`, `test`, `clean`, and `version` commands
+- end-to-end `init`, `build`, `serve`, `watch`, `load`, `test`, `clean`, and `version` commands
 - HTML output with sidebar navigation, breadcrumbs, and previous/next links
 - markdown rendering for the implemented mdBook-compatible cases listed in [docs/FEATURE_MATRIX.md](/Users/kq/Workspace/moonbook/docs/FEATURE_MATRIX.md)
 - copied local asset handling for images and raw HTML references
@@ -37,6 +38,7 @@ moon check
 moon run cmd/main -- init ./book-example
 moon run cmd/main -- build ./book-example
 moon run cmd/main -- serve ./book-example -n 127.0.0.1 -p 3000
+moon run cmd/main -- watch ./book-example
 moon run cmd/main -- load ./book-example
 moon run cmd/main -- test ./book-example
 moon run cmd/main -- clean ./book-example
@@ -79,4 +81,4 @@ moon test driver
 
 ## Current Boundary
 
-Moonbook currently behaves like a partial mdBook replacement for straightforward books. It now includes basic static `serve`, but it does not yet provide full upstream behavior for `watch`, live reload, themes, search, preprocessors/plugins, print output, or the complete markdown/rendering edge-case surface of Rust mdBook.
+Moonbook currently behaves like a partial mdBook replacement for straightforward books. It now includes basic static `serve` and polling `watch`, but it does not yet provide full upstream behavior for live reload, watcher-mode parity, themes, search, preprocessors/plugins, print output, or the complete markdown/rendering edge-case surface of Rust mdBook.
