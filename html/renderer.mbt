@@ -30,6 +30,7 @@ pub async fn render_html(context : RenderContext) -> Unit {
       render_navigation(context.book.items, "index.html"),
       "<p>No chapters found.</p>",
       render_pagelinks(None, None, "index.html"),
+      render_live_reload_script(context.config),
     )
   } else {
     let first = chapters[0]
@@ -39,6 +40,7 @@ pub async fn render_html(context : RenderContext) -> Unit {
       render_navigation(context.book.items, "index.html"),
       "<p><a href=\"\{first_href}\">Open \{escape_html(first.name)}</a></p>",
       render_pagelinks(None, Some(first), "index.html"),
+      render_live_reload_script(context.config),
     )
   }
   write_text_file(
@@ -54,6 +56,7 @@ pub async fn render_html(context : RenderContext) -> Unit {
       render_navigation(context.book.items, output_path),
       render_chapter_body(chapter),
       render_pagelinks(previous, next, output_path),
+      render_live_reload_script(context.config),
     )
     ensure_parent_dir(path.to_string())
     write_text_file(path.to_string(), page)
@@ -196,8 +199,24 @@ fn render_shell(
   navigation : String,
   body : String,
   pagelinks : String,
+  live_reload_script : String,
 ) -> String {
-  "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>\{escape_html(title)}</title><style>:root{--bg:#f6f1e8;--paper:#fffaf2;--ink:#2f241c;--accent:#8a2d0a;--line:#dfd2bf}*{box-sizing:border-box}body{font-family:Georgia,Cambria,\"Times New Roman\",serif;color:var(--ink);margin:0;display:grid;grid-template-columns:18rem 1fr;min-height:100vh;background:linear-gradient(180deg,#f3ecdf 0%,#fbf7f0 100%)}.sidebar{padding:2rem 1.25rem;background:#efe4d2;border-right:1px solid var(--line)}.toc,.toc ol{margin:0;padding-left:1.1rem}.toc{padding-left:0;list-style:none}.toc ol{list-style:none}.chapter-item,.part-title,.separator{margin:.35rem 0}.part-title{margin-top:1rem;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6a5747}.separator hr{border:none;border-top:1px solid var(--line)}.sidebar a{text-decoration:none;color:var(--ink)}.sidebar a.current{color:var(--accent);font-weight:700}.content{padding:2.5rem;max-width:56rem}.chapter{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:2rem;box-shadow:0 12px 40px rgba(73,49,24,.06)}.chapter h1{margin-top:0}.chapter pre{white-space:pre-wrap;background:#fff3e2;padding:1rem;border-radius:12px;overflow:auto}.pagelinks{display:flex;justify-content:space-between;gap:1rem;margin:0 0 1.5rem}.pagelinks a{text-decoration:none;color:var(--accent);font-weight:600}.pagelinks span{color:#8d7c6f}@media (max-width:900px){body{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--line)}.content{padding:1rem}}</style></head><body>\{navigation}<main class=\"content\">\{pagelinks}\{body}</main></body></html>"
+  "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>\{escape_html(title)}</title><style>:root{--bg:#f6f1e8;--paper:#fffaf2;--ink:#2f241c;--accent:#8a2d0a;--line:#dfd2bf}*{box-sizing:border-box}body{font-family:Georgia,Cambria,\"Times New Roman\",serif;color:var(--ink);margin:0;display:grid;grid-template-columns:18rem 1fr;min-height:100vh;background:linear-gradient(180deg,#f3ecdf 0%,#fbf7f0 100%)}.sidebar{padding:2rem 1.25rem;background:#efe4d2;border-right:1px solid var(--line)}.toc,.toc ol{margin:0;padding-left:1.1rem}.toc{padding-left:0;list-style:none}.toc ol{list-style:none}.chapter-item,.part-title,.separator{margin:.35rem 0}.part-title{margin-top:1rem;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6a5747}.separator hr{border:none;border-top:1px solid var(--line)}.sidebar a{text-decoration:none;color:var(--ink)}.sidebar a.current{color:var(--accent);font-weight:700}.content{padding:2.5rem;max-width:56rem}.chapter{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:2rem;box-shadow:0 12px 40px rgba(73,49,24,.06)}.chapter h1{margin-top:0}.chapter pre{white-space:pre-wrap;background:#fff3e2;padding:1rem;border-radius:12px;overflow:auto}.pagelinks{display:flex;justify-content:space-between;gap:1rem;margin:0 0 1.5rem}.pagelinks a{text-decoration:none;color:var(--accent);font-weight:600}.pagelinks span{color:#8d7c6f}@media (max-width:900px){body{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--line)}.content{padding:1rem}}</style></head><body>\{navigation}<main class=\"content\">\{pagelinks}\{body}</main>\{live_reload_script}</body></html>"
+}
+
+///|
+fn render_live_reload_script(config : @core.Config) -> String {
+  match config.read("output.html.live-reload-endpoint") {
+    Some(String(endpoint)) => {
+      let endpoint = if endpoint.has_prefix("/") {
+        endpoint
+      } else {
+        "/" + endpoint
+      }
+      "<script>(function(){var e=\"\{escape_html(endpoint)}\";var c=null;async function p(){try{var r=await fetch(e,{cache:\"no-store\"});if(r.ok){var t=await r.text();if(c===null){c=t}else if(c!==t){location.reload();return}}}catch(_){ }setTimeout(p,1000)}setTimeout(p,1000)})();</script>"
+    }
+    _ => ""
+  }
 }
 
 ///|

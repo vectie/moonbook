@@ -96,6 +96,7 @@ pub struct Config {
 pub fn Config::contains_key(Self, String) -> Bool
 pub fn Config::read(Self, String) -> Json?
 pub fn Config::set(Self, String, Json) -> Self
+pub fn Config::with_build_dir(Self, String) -> Self
 pub impl Show for Config
 pub impl ToJson for Config
 

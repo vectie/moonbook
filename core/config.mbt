@@ -199,6 +199,21 @@ pub fn Config::set(self : Config, name : String, value : Json) -> Config {
 }
 
 ///|
+pub fn Config::with_build_dir(self : Config, build_dir : String) -> Config {
+  {
+    book: self.book,
+    build: {
+      build_dir,
+      create_missing: self.build.create_missing,
+      use_default_preprocessors: self.build.use_default_preprocessors,
+    },
+    rust: self.rust,
+    output: self.output,
+    preprocessor: self.preprocessor,
+  }
+}
+
+///|
 fn split_dotted_path(path : String) -> Array[String] {
   let parts : Array[String] = []
   for piece in path.split(".") {

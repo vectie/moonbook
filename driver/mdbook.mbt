@@ -122,20 +122,29 @@ pub async fn init_book(
 ///|
 pub async fn MDBook::build(self : MDBook) -> Unit {
   let preprocessed_book = preprocess_book(self.book)
-  let build_dir = @path.Path(self.root).join(
-    @path.Path(self.config.build.build_dir),
-  )
+  let build_dir = resolved_build_dir(self.root, self.config)
   @html.render_html(
     @html.new_render_context(
       self.root,
-      build_dir.to_string(),
+      build_dir,
       self.config,
       preprocessed_book,
     ),
   )
-  let manifest_path = build_dir.join(@path.Path("book.json")).to_string()
+  let manifest_path = @path.Path(build_dir)
+    .join(@path.Path("book.json"))
+    .to_string()
   let manifest = { ..self, book: preprocessed_book }
   write_text_file(manifest_path, manifest.to_json().stringify(indent=2))
+}
+
+///|
+pub fn resolved_build_dir(root : String, config : @core.Config) -> String {
+  if @pathx.is_absolute(config.build.build_dir) {
+    @pathx.normalize(config.build.build_dir)
+  } else {
+    @path.Path(root).join(@path.Path(config.build.build_dir)).to_string()
+  }
 }
 
 ///|
@@ -167,8 +176,7 @@ pub async fn clean_book(
   }
   let target = match dest_dir {
     Some(dest_dir) => dest_dir
-    None =>
-      @path.Path(book_root).join(@path.Path(config.build.build_dir)).to_string()
+    None => resolved_build_dir(book_root, config)
   }
   let stats = collect_clean_stats(target)
   if @afs.exists(target) {

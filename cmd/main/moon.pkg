@@ -1,6 +1,7 @@
 import {
   "moonbitlang/async",
   "moonbitlang/core/env",
+  "username/moonbook/internal/fsx",
   "username/moonbook/internal/httpserve",
   "username/moonbook/internal/watcher",
   "username/moonbook/driver",

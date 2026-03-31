@@ -3,11 +3,15 @@ pub struct ServeOptions {
   root : String
   hostname : String
   port : Int
+  dest_dir : String?
 } derive(Show, ToJson)
 
 ///|
+pub let live_reload_token_file : String = ".moonbook-livereload"
+
+///|
 pub fn default_options(root : String) -> ServeOptions {
-  { root, hostname: "localhost", port: 3000 }
+  { root, hostname: "localhost", port: 3000, dest_dir: None }
 }
 
 ///|
@@ -15,6 +19,7 @@ pub fn parse_serve_args(args : Array[String]) -> ServeOptions? {
   let mut root = "."
   let mut hostname = "localhost"
   let mut port = 3000
+  let mut dest_dir : String? = None
   let mut index = 0
   let mut seen_root = false
   while index < args.length() {
@@ -33,6 +38,13 @@ pub fn parse_serve_args(args : Array[String]) -> ServeOptions? {
         } else {
           return None
         }
+      "-d" | "--dest-dir" =>
+        if index + 1 < args.length() {
+          dest_dir = Some(args[index + 1])
+          index += 2
+        } else {
+          return None
+        }
       value =>
         if !seen_root && !value.has_prefix("-") {
           root = value
@@ -43,7 +55,7 @@ pub fn parse_serve_args(args : Array[String]) -> ServeOptions? {
         }
     }
   }
-  Some({ root, hostname, port })
+  Some({ root, hostname, port, dest_dir })
 }
 
 ///|
@@ -83,12 +95,21 @@ async fn handle_file_request(
   method_ : @http.RequestMethod,
   path : StringView,
   conn : @http.ServerConnection,
+  live_reload_endpoint? : String? = None,
 ) -> Unit {
   let root = @pathx.normalize(root)
   guard method_ is @http.RequestMethod::Get ||
     method_ is @http.RequestMethod::Head else {
     send_status(conn, 405, "Method Not Allowed", "Method Not Allowed\n")
     return
+  }
+  match live_reload_endpoint {
+    Some(endpoint) =>
+      if is_live_reload_path(path, endpoint) {
+        send_live_reload(conn, method_, root)
+        return
+      }
+    None => ()
   }
   let resolved = resolve_request_path(root, path)
   match resolved {
@@ -126,6 +147,16 @@ fn resolve_request_path(root : String, request_path : StringView) -> String? {
 }
 
 ///|
+fn is_live_reload_path(path : StringView, endpoint : String) -> Bool {
+  let normalized = if endpoint.has_prefix("/") {
+    endpoint
+  } else {
+    "/" + endpoint
+  }
+  path == normalized
+}
+
+///|
 async fn send_not_found(
   root : String,
   conn : @http.ServerConnection,
@@ -140,13 +171,47 @@ async fn send_not_found(
 }
 
 ///|
-pub async fn Server::serve_directory(self : Server, root : String) -> Unit {
+pub async fn Server::serve_directory(
+  self : Server,
+  root : String,
+  live_reload_endpoint? : String? = None,
+) -> Unit {
   self.server.run_forever(
     (request, _, conn) => {
-      handle_file_request(root, request.meth, request.path, conn)
+      handle_file_request(
+        root,
+        request.meth,
+        request.path,
+        conn,
+        live_reload_endpoint~,
+      )
     },
     allow_failure=true,
   )
+}
+
+///|
+async fn send_live_reload(
+  conn : @http.ServerConnection,
+  method_ : @http.RequestMethod,
+  root : String,
+) -> Unit {
+  let token_path = @pathx.join(root, live_reload_token_file)
+  let token = if @fs.exists(token_path) {
+    @fs.read_file(token_path).text()
+  } else {
+    "0"
+  }
+  conn.send_response(200, "OK", extra_headers={
+    "content-type": "text/plain; charset=utf-8",
+    "cache-control": "no-store, no-cache, must-revalidate",
+  })
+  if method_ is @http.RequestMethod::Head {
+    conn.end_response()
+    return
+  }
+  conn.write(token)
+  conn.end_response()
 }
 
 ///|
@@ -206,10 +271,13 @@ test "serve args parser handles defaults and flags" {
   assert_eq(defaults.root, "./book")
   assert_eq(defaults.hostname, "localhost")
   assert_eq(defaults.port, 3000)
+  assert_eq(defaults.dest_dir, None)
   let explicit = parse_serve_args(["./book", "-n", "127.0.0.1", "-p", "8001"]).unwrap()
   assert_eq(explicit.root, "./book")
   assert_eq(explicit.hostname, "127.0.0.1")
   assert_eq(explicit.port, 8001)
+  let with_dest = parse_serve_args(["./book", "-d", "dist"]).unwrap()
+  assert_eq(with_dest.dest_dir, Some("dist"))
   assert_true(parse_serve_args(["-p"]) is None)
   assert_true(parse_serve_args(["./book", "--port", "bad"]) is None)
 }
@@ -225,4 +293,11 @@ test "resolve request path normalizes and rejects traversal" {
     Some("/tmp/moonbook-serve/nested/page.html"),
   )
   assert_eq(resolve_request_path("/tmp/moonbook-serve", "/../secret"), None)
+}
+
+///|
+test "live reload path matching accepts relative and absolute endpoint values" {
+  assert_true(is_live_reload_path("/__livereload", "__livereload"))
+  assert_true(is_live_reload_path("/__livereload", "/__livereload"))
+  assert_false(is_live_reload_path("/chapter.html", "__livereload"))
 }

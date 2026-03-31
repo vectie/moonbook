@@ -8,6 +8,8 @@ import {
 // Values
 pub fn default_options(String) -> ServeOptions
 
+pub let live_reload_token_file : String
+
 pub fn parse_serve_args(Array[String]) -> ServeOptions?
 
 // Errors
@@ -17,6 +19,7 @@ pub struct ServeOptions {
   root : String
   hostname : String
   port : Int
+  dest_dir : String?
 }
 pub impl Show for ServeOptions
 pub impl ToJson for ServeOptions
@@ -28,7 +31,7 @@ pub struct Server {
 pub fn Server::close(Self) -> Unit
 pub fn Server::new(String, Int, dual_stack? : Bool, reuse_addr? : Bool) -> Self raise
 pub fn Server::port(Self) -> Int
-pub async fn Server::serve_directory(Self, String) -> Unit
+pub async fn Server::serve_directory(Self, String, live_reload_endpoint? : String?) -> Unit
 
 // Type aliases
 
