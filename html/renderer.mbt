@@ -23,7 +23,12 @@ pub async fn render_html(context : RenderContext) -> Unit {
   let src_root = @path.Path(context.root)
     .join(@path.Path(context.config.book.src))
     .to_string()
-  copy_static_assets(src_root, context.build_dir, chapters)
+  let not_found_markdown = load_not_found_markdown(src_root, context.config)
+  let extra_markdown = match not_found_markdown {
+    Some(markdown) => [markdown]
+    None => []
+  }
+  copy_static_assets(src_root, context.build_dir, chapters, extra_markdown)
   let index_body = if chapters.is_empty() {
     render_shell(
       context_title(context.config),
@@ -31,6 +36,7 @@ pub async fn render_html(context : RenderContext) -> Unit {
       "<p>No chapters found.</p>",
       render_pagelinks(None, None, "index.html"),
       render_live_reload_script(context.config),
+      "",
     )
   } else {
     let first = chapters[0]
@@ -41,6 +47,7 @@ pub async fn render_html(context : RenderContext) -> Unit {
       "<p><a href=\"\{first_href}\">Open \{escape_html(first.name)}</a></p>",
       render_pagelinks(None, Some(first), "index.html"),
       render_live_reload_script(context.config),
+      "",
     )
   }
   write_text_file(
@@ -57,10 +64,12 @@ pub async fn render_html(context : RenderContext) -> Unit {
       render_chapter_body(chapter),
       render_pagelinks(previous, next, output_path),
       render_live_reload_script(context.config),
+      "",
     )
     ensure_parent_dir(path.to_string())
     write_text_file(path.to_string(), page)
   }
+  render_not_found_page(context, not_found_markdown)
 }
 
 ///|
@@ -89,6 +98,7 @@ async fn copy_static_assets(
   src_root : String,
   build_dir : String,
   chapters : Array[@core.Chapter],
+  extra_markdown : Array[String],
 ) -> Unit {
   let copied : Map[String, Unit] = {}
   for chapter in chapters {
@@ -108,6 +118,29 @@ async fn copy_static_assets(
             @pathx.join(chapter_dir, asset_path)
           },
         )
+        if !copied.contains(normalized) {
+          let source_path = @path.Path(src_root)
+            .join(@path.Path(normalized))
+            .to_string()
+          let dest_path = @path.Path(build_dir)
+            .join(@path.Path(normalized))
+            .to_string()
+          ensure_parent_dir(dest_path)
+          @fsx.write_to_file(
+            dest_path,
+            @fsx.read_file(source_path),
+            create=0o666,
+          )
+          copied[normalized] = ()
+        }
+      }
+    }
+  }
+  for markdown in extra_markdown {
+    for asset in collect_markdown_assets(markdown) {
+      if is_local_asset(asset) {
+        let asset_path = strip_link_anchor(asset)
+        let normalized = @pathx.normalize(asset_path)
         if !copied.contains(normalized) {
           let source_path = @path.Path(src_root)
             .join(@path.Path(normalized))
@@ -200,8 +233,9 @@ fn render_shell(
   body : String,
   pagelinks : String,
   live_reload_script : String,
+  head_extra : String,
 ) -> String {
-  "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>\{escape_html(title)}</title><style>:root{--bg:#f6f1e8;--paper:#fffaf2;--ink:#2f241c;--accent:#8a2d0a;--line:#dfd2bf}*{box-sizing:border-box}body{font-family:Georgia,Cambria,\"Times New Roman\",serif;color:var(--ink);margin:0;display:grid;grid-template-columns:18rem 1fr;min-height:100vh;background:linear-gradient(180deg,#f3ecdf 0%,#fbf7f0 100%)}.sidebar{padding:2rem 1.25rem;background:#efe4d2;border-right:1px solid var(--line)}.toc,.toc ol{margin:0;padding-left:1.1rem}.toc{padding-left:0;list-style:none}.toc ol{list-style:none}.chapter-item,.part-title,.separator{margin:.35rem 0}.part-title{margin-top:1rem;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6a5747}.separator hr{border:none;border-top:1px solid var(--line)}.sidebar a{text-decoration:none;color:var(--ink)}.sidebar a.current{color:var(--accent);font-weight:700}.content{padding:2.5rem;max-width:56rem}.chapter{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:2rem;box-shadow:0 12px 40px rgba(73,49,24,.06)}.chapter h1{margin-top:0}.chapter pre{white-space:pre-wrap;background:#fff3e2;padding:1rem;border-radius:12px;overflow:auto}.pagelinks{display:flex;justify-content:space-between;gap:1rem;margin:0 0 1.5rem}.pagelinks a{text-decoration:none;color:var(--accent);font-weight:600}.pagelinks span{color:#8d7c6f}@media (max-width:900px){body{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--line)}.content{padding:1rem}}</style></head><body>\{navigation}<main class=\"content\">\{pagelinks}\{body}</main>\{live_reload_script}</body></html>"
+  "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>\{escape_html(title)}</title>\{head_extra}<style>:root{--bg:#f6f1e8;--paper:#fffaf2;--ink:#2f241c;--accent:#8a2d0a;--line:#dfd2bf}*{box-sizing:border-box}body{font-family:Georgia,Cambria,\"Times New Roman\",serif;color:var(--ink);margin:0;display:grid;grid-template-columns:18rem 1fr;min-height:100vh;background:linear-gradient(180deg,#f3ecdf 0%,#fbf7f0 100%)}.sidebar{padding:2rem 1.25rem;background:#efe4d2;border-right:1px solid var(--line)}.toc,.toc ol{margin:0;padding-left:1.1rem}.toc{padding-left:0;list-style:none}.toc ol{list-style:none}.chapter-item,.part-title,.separator{margin:.35rem 0}.part-title{margin-top:1rem;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6a5747}.separator hr{border:none;border-top:1px solid var(--line)}.sidebar a{text-decoration:none;color:var(--ink)}.sidebar a.current{color:var(--accent);font-weight:700}.content{padding:2.5rem;max-width:56rem}.chapter{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:2rem;box-shadow:0 12px 40px rgba(73,49,24,.06)}.chapter h1{margin-top:0}.chapter pre{white-space:pre-wrap;background:#fff3e2;padding:1rem;border-radius:12px;overflow:auto}.pagelinks{display:flex;justify-content:space-between;gap:1rem;margin:0 0 1.5rem}.pagelinks a{text-decoration:none;color:var(--accent);font-weight:600}.pagelinks span{color:#8d7c6f}@media (max-width:900px){body{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--line)}.content{padding:1rem}}</style></head><body>\{navigation}<main class=\"content\">\{pagelinks}\{body}</main>\{live_reload_script}</body></html>"
 }
 
 ///|
@@ -233,6 +267,124 @@ fn render_chapter_body(chapter : @core.Chapter) -> String {
   let content = render_markdown_with_refs(markdown, references) +
     render_footnotes(footnotes, references)
   "<article class=\"chapter\">\{breadcrumbs}<h1>\{escape_html(chapter.display())}</h1>\{content}</article>"
+}
+
+///|
+async fn render_not_found_page(
+  context : RenderContext,
+  markdown : String?,
+) -> Unit {
+  let output_path = match not_found_output_path(context.config) {
+    Some(path) => path
+    None => return
+  }
+  let markdown = match markdown {
+    Some(markdown) => markdown
+    None => default_not_found_markdown()
+  }
+  let page = render_shell(
+    context_title(context.config) + " - 404",
+    render_navigation(context.book.items, output_path),
+    render_not_found_body(markdown),
+    render_pagelinks(None, None, output_path),
+    render_live_reload_script(context.config),
+    render_not_found_head(context.config),
+  )
+  let dest_path = @path.Path(context.build_dir).join(@path.Path(output_path)).to_string()
+  ensure_parent_dir(dest_path)
+  write_text_file(dest_path, page)
+}
+
+///|
+fn render_not_found_body(markdown : String) -> String {
+  let (without_refs, references) = split_link_references(markdown)
+  let (body, footnotes) = split_footnotes(without_refs)
+  let content = render_markdown_with_refs(body, references) +
+    render_footnotes(footnotes, references)
+  "<article class=\"chapter not-found\">\{content}</article>"
+}
+
+///|
+fn render_not_found_head(config : @core.Config) -> String {
+  let base_url = normalized_site_url(config)
+  "<base href=\"\{escape_html(base_url)}\">"
+}
+
+///|
+fn normalized_site_url(config : @core.Config) -> String {
+  let base_url = match config.read("output.html.site-url") {
+    Some(String(site_url)) if !site_url.is_empty() => site_url
+    _ => "/"
+  }
+  if base_url.has_suffix("/") {
+    base_url
+  } else {
+    base_url + "/"
+  }
+}
+
+///|
+fn default_not_found_markdown() -> String {
+  "# Document not found (404)\n\nThis URL is invalid, sorry. Please use the navigation bar or search to continue.\n"
+}
+
+///|
+fn not_found_output_path(config : @core.Config) -> String? {
+  match not_found_input_path(config) {
+    Some(path) => Some(markdown_output_path(path))
+    None => None
+  }
+}
+
+///|
+fn not_found_input_path(config : @core.Config) -> String? {
+  match config.read("output.html.input-404") {
+    Some(String(path)) =>
+      if path.is_empty() {
+        None
+      } else {
+        Some(path)
+      }
+    _ => Some("404.md")
+  }
+}
+
+///|
+fn markdown_output_path(path : String) -> String {
+  if path.has_suffix(".md") {
+    path.replace(old=".md", new=".html").to_string()
+  } else {
+    path + ".html"
+  }
+}
+
+///|
+async fn load_not_found_markdown(
+  src_root : String,
+  config : @core.Config,
+) -> String? {
+  match not_found_input_path(config) {
+    Some(path) => {
+      let source_path = @path.Path(src_root).join(@path.Path(path)).to_string()
+      if @fsx.exists(source_path) {
+        Some(strip_utf8_bom_text(@fsx.read_file(source_path)))
+      } else if path == "404.md" {
+        Some(default_not_found_markdown())
+      } else {
+        fail("missing configured 404 source: \{source_path}")
+      }
+    }
+    None => None
+  }
+}
+
+///|
+fn strip_utf8_bom_text(text : String) -> String {
+  if text.has_prefix("\u{feff}") {
+    text[1:].to_string()
+  } else {
+    text
+  }
 }
 
 ///|
@@ -1979,6 +2131,29 @@ test "collect markdown assets finds image sources" {
     "![One](images/one.png) and ![Two](./nested/two.jpg)",
   )
   assert_eq(assets, ["images/one.png", "./nested/two.jpg"])
+}
+
+///|
+test "404 path helpers support default custom and disabled cases" {
+  let default_cfg = @core.default()
+  assert_eq(not_found_input_path(default_cfg), Some("404.md"))
+  assert_eq(not_found_output_path(default_cfg), Some("404.html"))
+  let custom_cfg = default_cfg.set(
+    "output.html.input-404",
+    Json::string("not-found.md"),
+  )
+  assert_eq(not_found_input_path(custom_cfg), Some("not-found.md"))
+  assert_eq(not_found_output_path(custom_cfg), Some("not-found.html"))
+  let disabled_cfg = default_cfg.set("output.html.input-404", Json::string(""))
+  assert_eq(not_found_input_path(disabled_cfg), None)
+  assert_eq(not_found_output_path(disabled_cfg), None)
+}
+
+///|
+test "404 head uses configured site url as base href" {
+  let config = @core.default().set("output.html.site-url", Json::string("/docs"))
+  let head = render_not_found_head(config)
+  assert_true(head.contains("<base href=\"/docs/\">"))
 }
 
 ///|
