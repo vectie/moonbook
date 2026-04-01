@@ -1391,8 +1391,9 @@ fn render_inline_with_refs(
   let mut i = 0
   while i < text.length() {
     if text[i] == '\\' && i + 1 < text.length() {
-      builder.write_string(escape_html(text[i + 1:i + 2].to_string()))
-      i += 2
+      let escaped = current_scalar(text, i + 1)
+      builder.write_string(escape_html(escaped))
+      i = i + 1 + scalar_width(text, i + 1)
     } else if i + 1 < text.length() && text[i] == '[' && text[i + 1] == '^' {
       match text[i + 2:].find("]") {
         Some(end) => {
@@ -1567,8 +1568,8 @@ fn render_inline_with_refs(
         }
       }
     } else {
-      builder.write_string(escape_html(text[i:i + 1].to_string()))
-      i += 1
+      builder.write_string(escape_html(current_scalar(text, i)))
+      i += scalar_width(text, i)
     }
   }
   builder.to_string()
@@ -1583,8 +1584,9 @@ fn inline_text_content(
   let mut i = 0
   while i < text.length() {
     if text[i] == '\\' && i + 1 < text.length() {
-      builder.write_string(text[i + 1:i + 2].to_string())
-      i += 2
+      let escaped = current_scalar(text, i + 1)
+      builder.write_string(escaped)
+      i = i + 1 + scalar_width(text, i + 1)
     } else if i + 1 < text.length() && text[i] == '[' && text[i + 1] == '^' {
       match text[i + 2:].find("]") {
         Some(end) => {
@@ -1711,11 +1713,31 @@ fn inline_text_content(
         }
       }
     } else {
-      builder.write_string(text[i:i + 1].to_string())
-      i += 1
+      builder.write_string(current_scalar(text, i))
+      i += scalar_width(text, i)
     }
   }
   builder.to_string()
+}
+
+///|
+fn scalar_width(text : String, index : Int) -> Int {
+  if index + 1 < text.length() {
+    let first = text[index].to_int()
+    let second = text[index + 1].to_int()
+    if first >= 0xD800 &&
+      first <= 0xDBFF &&
+      second >= 0xDC00 &&
+      second <= 0xDFFF {
+      return 2
+    }
+  }
+  1
+}
+
+///|
+fn current_scalar(text : String, index : Int) -> String {
+  text[index:index + scalar_width(text, index)].to_string()
 }
 
 ///|
@@ -2091,6 +2113,20 @@ test "render inline handles references autolinks escapes and underscores" {
   assert_true(
     html.contains("<a href=\"https://example.com/\">https://example.com/</a>"),
   )
+}
+
+///|
+test "render inline preserves emoji scalars" {
+  let html = render_inline("Hello 🦞 world")
+  assert_true(html.contains("🦞"))
+}
+
+///|
+test "inline text content handles escaped emoji" {
+  let text = inline_text_content("\\🦞 [ref]", {
+    "ref": "https://example.com",
+  })
+  assert_eq(text, "🦞 ref")
 }
 
 ///|
