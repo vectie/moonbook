@@ -7,6 +7,10 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 - native MoonBit model for books/config
 - `SUMMARY.md` parsing for the currently documented cases
 - end-to-end local CLI flow for `init`, `build`, `serve`, `watch`, `load`, `test`, and `clean`
+- first wiki bootstrap flow with `moonbook wiki init`
+- first wiki ingest flow with `moonbook wiki ingest`
+- first wiki query flow with `moonbook wiki query`
+- first wiki lint flow with `moonbook wiki lint`
 - static HTML generation for normal chapter trees
 - broad markdown coverage for common book content
 - mdBook-style heading/link behavior for many inline cases
@@ -32,6 +36,7 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 ### Config Gaps
 
 - broader `output.html.*` compatibility
+- deeper lint analysis for contradictions, stale claims, and missing concept/entity pages beyond the current structural checks
 - full `preprocessor.*` compatibility
 - theme/search/playground config parity
 - redirect and print-specific config support

@@ -2,6 +2,7 @@
 async fn main {
   let args = @env.args()
   match args[1:] {
+    ["wiki", .. wiki_args] => run_wiki(wiki_args.to_array())
     ["build", root] => run_build(root)
     ["build"] => run_build(".")
     ["serve", .. serve_args] => run_serve(serve_args.to_array())
@@ -17,6 +18,116 @@ async fn main {
     ["version"] => println(@core.mdbook_version)
     _ => print_usage()
   }
+}
+
+///|
+async fn run_wiki(args : Array[String]) -> Unit {
+  match args {
+    ["lint", root] => run_wiki_lint(root)
+    ["lint"] => run_wiki_lint(".")
+    ["query", .. query_args] => run_wiki_query(query_args.to_array())
+    ["ingest", root, source] => run_wiki_ingest(root, source)
+    ["ingest", source] => run_wiki_ingest(".", source)
+    ["init", root] => run_wiki_init(root)
+    ["init"] => run_wiki_init(".")
+    _ =>
+      println(
+        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]",
+      )
+  }
+}
+
+///|
+async fn run_wiki_init(root : String) -> Unit {
+  let workspace = @wiki.init_workspace(root) catch {
+    error => {
+      println("moonbook wiki init failed: \{error}")
+      return
+    }
+  }
+  println("initialized wiki workspace at \{workspace.root}")
+  println("raw sources: \{workspace.raw_dir}")
+  println("wiki pages: \{workspace.wiki_dir}")
+  println("schema: \{workspace.schema_path}")
+}
+
+///|
+async fn run_wiki_ingest(root : String, source : String) -> Unit {
+  let result = @wiki.ingest_source(root, source) catch {
+    error => {
+      println("moonbook wiki ingest failed: \{error}")
+      return
+    }
+  }
+  println("ingested \{result.title}")
+  println("raw source: \{result.raw_path}")
+  println("wiki page: \{result.page_path}")
+}
+
+///|
+async fn run_wiki_query(args : Array[String]) -> Unit {
+  let parsed = parse_wiki_query_args(args) catch {
+    error => {
+      println("moonbook wiki query failed: \{error}")
+      return
+    }
+  }
+  let result = @wiki.query_wiki(parsed.root, parsed.question, save=parsed.save) catch {
+    error => {
+      println("moonbook wiki query failed: \{error}")
+      return
+    }
+  }
+  println(result.answer)
+  match result.saved_page {
+    Some(path) => println("saved query page: \{path}")
+    None => ()
+  }
+}
+
+///|
+async fn run_wiki_lint(root : String) -> Unit {
+  let result = @wiki.lint_wiki(root) catch {
+    error => {
+      println("moonbook wiki lint failed: \{error}")
+      return
+    }
+  }
+  println(result.report)
+}
+
+///|
+struct ParsedWikiQueryArgs {
+  root : String
+  question : String
+  save : Bool
+}
+
+///|
+async fn parse_wiki_query_args(args : Array[String]) -> ParsedWikiQueryArgs {
+  let filtered : Array[String] = []
+  let mut save = false
+  for arg in args {
+    if arg == "--save" {
+      save = true
+    } else {
+      filtered.push(arg)
+    }
+  }
+  if filtered.is_empty() {
+    fail("usage: moonbook wiki query [root] <question> [--save]")
+  }
+  if filtered.length() >= 2 && looks_like_wiki_root(filtered[0]) {
+    { root: filtered[0], question: filtered[1:].join(" "), save }
+  } else {
+    { root: ".", question: filtered.join(" "), save }
+  }
+}
+
+///|
+async fn looks_like_wiki_root(path : String) -> Bool {
+  let summary = @path.Path(path).join(@path.Path("wiki/SUMMARY.md")).to_string()
+  @fsx.exists(summary)
 }
 
 ///|
@@ -267,6 +378,10 @@ async fn run_watch(args : Array[String]) -> Unit {
 
 ///|
 fn print_usage() -> Unit {
+  println("moonbook wiki init [root]")
+  println("moonbook wiki ingest [root] <source>")
+  println("moonbook wiki query [root] <question> [--save]")
+  println("moonbook wiki lint [root]")
   println("moonbook build [root]")
   println(
     "moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]",

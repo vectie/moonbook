@@ -43,6 +43,51 @@ Runs a local static HTTP server for the built book:
 8. serve `404.html` for missing paths when present
 9. poll for source/config changes and rebuild the served output
 
+### `moon run cmd/main -- wiki init [root]`
+
+Bootstraps a wiki workspace instead of a plain mdBook:
+
+1. creates `raw/` for immutable source material
+2. creates `wiki/` as the rendered markdown knowledge base
+3. writes `wiki/SUMMARY.md`, `wiki/Home.md`, `wiki/index.md`, and `wiki/log.md`
+4. writes a root `AGENTS.md` schema file for future ingest/query/lint workflows
+5. writes `book.toml` with `src = "wiki"` so the workspace can already be built and served by MoonBook
+6. writes `wiki.toml` as a small machine-readable workspace descriptor
+
+### `moon run cmd/main -- wiki ingest [root] <source>`
+
+Ingests one source into an existing wiki workspace:
+
+1. resolves the source path
+2. copies it into `raw/imported/` when it is outside the workspace raw tree
+3. derives a source title from the first heading or first non-empty line
+4. writes a source page to `wiki/sources/<slug>.md`
+5. appends the page to `wiki/SUMMARY.md`
+6. adds a Sources entry to `wiki/index.md`
+7. appends an ingest event to `wiki/log.md`
+
+### `moon run cmd/main -- wiki query [root] <question> [--save]`
+
+Queries the maintained wiki layer instead of raw files:
+
+1. scans markdown pages under `wiki/`
+2. ranks pages using simple keyword relevance
+3. prints a synthesized markdown answer with page citations
+4. with `--save`, writes the result to `wiki/queries/<slug>.md`
+5. with `--save`, also updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
+
+### `moon run cmd/main -- wiki lint [root]`
+
+Runs a health check against the maintained wiki layer:
+
+1. scans markdown pages under `wiki/`
+2. detects orphan pages with no inbound links and no `SUMMARY.md` entry
+3. detects pages missing from `wiki/index.md`
+4. detects placeholder `_None yet._` sections still left in `wiki/index.md`
+5. detects source pages missing their raw-source link
+6. prints a markdown lint report
+7. appends a lint event to `wiki/log.md`
+
 Current defaults:
 
 - hostname: `localhost`
@@ -158,6 +203,10 @@ Owns:
 ### `internal/`
 
 Contains internal filesystem/path helpers and a minimal HTTP static server adapted from MoonClaw where needed.
+
+### `wiki/`
+
+Contains the first wiki-oriented subsystem. It currently handles workspace initialization, one-source-at-a-time ingestion, wiki-first querying with optional saved query pages, and lint-style health checks. Future deeper contradiction analysis should live here rather than inside the mdBook driver or HTTP server packages.
 
 ### `ui/`
 

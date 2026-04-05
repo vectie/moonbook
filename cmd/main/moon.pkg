@@ -7,6 +7,7 @@ import {
   "username/moonbook/internal/watcher",
   "username/moonbook/driver",
   "username/moonbook/core",
+  "username/moonbook/wiki",
   "moonbitlang/x/path",
 }
 

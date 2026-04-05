@@ -1,0 +1,64 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "username/moonbook/wiki"
+
+// Values
+pub async fn ingest_source(String, String) -> IngestResult
+
+pub async fn init_workspace(String, title? : String?) -> WikiWorkspace
+
+pub async fn lint_wiki(String) -> LintResult
+
+pub async fn query_wiki(String, String, save? : Bool) -> QueryResult
+
+// Errors
+
+// Types and methods
+pub struct IngestResult {
+  page_path : String
+  raw_path : String
+  title : String
+  imported : Bool
+}
+pub impl Show for IngestResult
+pub impl ToJson for IngestResult
+
+pub struct LintFinding {
+  kind : String
+  path : String?
+  message : String
+}
+pub impl Show for LintFinding
+pub impl ToJson for LintFinding
+
+pub struct LintResult {
+  findings : Array[LintFinding]
+  report : String
+}
+pub impl Show for LintResult
+pub impl ToJson for LintResult
+
+pub struct QueryResult {
+  question : String
+  answer : String
+  citations : Array[String]
+  saved_page : String?
+}
+pub impl Show for QueryResult
+pub impl ToJson for QueryResult
+
+pub struct WikiWorkspace {
+  root : String
+  raw_dir : String
+  wiki_dir : String
+  schema_path : String
+  config_path : String
+  summary_path : String
+  build_dir : String
+}
+pub impl Show for WikiWorkspace
+pub impl ToJson for WikiWorkspace
+
+// Type aliases
+
+// Traits
+

@@ -9,6 +9,10 @@ Implemented commands:
 - `moonbook init [root]`
 - `moonbook build [root]`
 - `moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]`
+- `moonbook wiki init [root]`
+- `moonbook wiki ingest [root] <source>`
+- `moonbook wiki query [root] <question> [--save]`
+- `moonbook wiki lint [root]`
 - `moonbook watch [root] [-d dest-dir] [-o] [--watcher poll|native]`
 - `moonbook load [root]`
 - `moonbook test [root]`
@@ -28,6 +32,20 @@ Implemented behaviors:
 - `serve` serves `index.html` at `/`
 - `serve` serves `404.html` as a fallback when present
 - `serve --watcher native` currently falls back to the poll backend with an explicit notice
+- `wiki init` scaffolds `raw/`, `wiki/`, `AGENTS.md`, `wiki.toml`, and a MoonBook-compatible `book.toml`
+- `wiki init` outputs a workspace that can immediately be built with `moonbook build`
+- `wiki ingest` imports sources into `raw/imported/` when needed
+- `wiki ingest` generates `wiki/sources/<slug>.md`
+- `wiki ingest` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
+- `wiki query` searches markdown pages under `wiki/`
+- `wiki query` returns a synthesized markdown answer with citations to wiki pages
+- `wiki query --save` writes `wiki/queries/<slug>.md`
+- `wiki query --save` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
+- `wiki lint` detects orphan pages
+- `wiki lint` detects pages missing from `wiki/index.md`
+- `wiki lint` detects placeholder sections still left in `wiki/index.md`
+- `wiki lint` detects source pages missing a raw-source link
+- `wiki lint` appends a lint pass to `wiki/log.md`
 - `watch` performs an initial build, then polls for source/config changes
 - `watch` supports `--dest-dir`
 - `watch` supports `--open`
