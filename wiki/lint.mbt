@@ -24,6 +24,7 @@ pub async fn lint_wiki(root : String) -> LintResult {
     .to_string()
   let index_text = @fsx.read_file(index_path)
   let findings : Array[LintFinding] = []
+  let contents = page_content_map(page_paths, workspace.root)
 
   let inbound = inbound_link_counts(page_paths, workspace.root)
   let summary_links = extract_markdown_links(summary_text)
@@ -77,6 +78,12 @@ pub async fn lint_wiki(root : String) -> LintResult {
       path: Some("wiki/index.md"),
       message: placeholder,
     })
+  }
+  for finding in stale_wording_findings(contents) {
+    findings.push(finding)
+  }
+  for finding in contradiction_findings(contents) {
+    findings.push(finding)
   }
 
   let report = lint_report(findings)
@@ -155,6 +162,18 @@ async fn inbound_link_counts(
 }
 
 ///|
+async fn page_content_map(
+  page_paths : Array[String],
+  root : String,
+) -> Map[String, String] {
+  let contents : Map[String, String] = {}
+  for path in page_paths {
+    contents[relative_to_root(path, root)] = @fsx.read_file(path)
+  }
+  contents
+}
+
+///|
 fn extract_markdown_links(markdown : String) -> Array[String] {
   let links : Array[String] = []
   let mut i = 0
@@ -224,6 +243,157 @@ fn index_placeholders(index_text : String) -> Array[String] {
 }
 
 ///|
+fn stale_wording_findings(contents : Map[String, String]) -> Array[LintFinding] {
+  let findings : Array[LintFinding] = []
+  for path in contents.keys() {
+    let content = contents[path]
+    for raw in content.split("\n") {
+      let line = raw.trim().to_string()
+      if line.is_empty() || line.has_prefix("#") || line.has_prefix("- ") {
+        continue
+      }
+      let lower = line.to_lower()
+      if contains_stale_word(lower) && !contains_explicit_year(line) {
+        findings.push({
+          kind: "stale-wording",
+          path: Some(path),
+          message: "time-sensitive wording without an explicit year/date: \{clamp_line(line)}",
+        })
+        break
+      }
+    }
+  }
+  findings
+}
+
+///|
+fn contradiction_findings(contents : Map[String, String]) -> Array[LintFinding] {
+  let findings : Array[LintFinding] = []
+  let claims : Map[String, Array[Claim]] = {}
+  for path in contents.keys() {
+    for claim in extract_claims(path, contents[path]) {
+      let bucket = claims.get(claim.subject).unwrap_or([])
+      bucket.push(claim)
+      claims[claim.subject] = bucket
+    }
+  }
+  for subject in claims.keys() {
+    let entries = claims[subject]
+    let predicates : Array[String] = []
+    for entry in entries {
+      if !predicates.contains(entry.predicate) {
+        predicates.push(entry.predicate)
+      }
+    }
+    if predicates.length() >= 2 {
+      let evidence = entries
+        .map(entry => "\{entry.path} => \{entry.predicate}")
+        .join("; ")
+      findings.push({
+        kind: "contradictory-claim",
+        path: None,
+        message: "subject `\{subject}` has conflicting `is` claims: \{evidence}",
+      })
+    }
+  }
+  findings
+}
+
+///|
+priv struct Claim {
+  subject : String
+  predicate : String
+  path : String
+}
+
+///|
+fn extract_claims(path : String, content : String) -> Array[Claim] {
+  let claims : Array[Claim] = []
+  for raw in content.split("\n") {
+    let line = strip_inline_markup(raw.trim().to_string())
+    if line.is_empty() || line.has_prefix("#") || line.has_prefix("- ") {
+      continue
+    }
+    match line.find(" is ") {
+      Some(index) => {
+        let subject = line[:index].trim().to_string()
+        let predicate = cleanup_predicate(line[index + 4:].to_string())
+        if likely_claim_subject(subject) && likely_claim_predicate(predicate) {
+          claims.push({ subject, predicate, path })
+        }
+      }
+      None => ()
+    }
+  }
+  claims
+}
+
+///|
+fn cleanup_predicate(text : String) -> String {
+  let cleaned = text
+    .replace(old=".", new="")
+    .to_string()
+    .replace(old="!", new="")
+    .to_string()
+    .replace(old="?", new="")
+    .to_string()
+  cleaned.trim().to_string()
+}
+
+///|
+fn likely_claim_subject(text : String) -> Bool {
+  if text.is_empty() || text.length() > 48 {
+    return false
+  }
+  let mut words = 0
+  for piece in text.split(" ") {
+    if !piece.to_string().is_empty() {
+      words += 1
+    }
+  }
+  words >= 1 && words <= 6
+}
+
+///|
+fn likely_claim_predicate(text : String) -> Bool {
+  !text.is_empty() && text.length() <= 120
+}
+
+///|
+fn contains_stale_word(text : String) -> Bool {
+  text.contains("latest") ||
+  text.contains("current") ||
+  text.contains("recent") ||
+  text.contains("today") ||
+  text.contains("now")
+}
+
+///|
+fn contains_explicit_year(text : String) -> Bool {
+  let mut run = 0
+  for c in text {
+    if c >= '0' && c <= '9' {
+      run += 1
+      if run >= 4 {
+        return true
+      }
+    } else {
+      run = 0
+    }
+  }
+  false
+}
+
+///|
+fn clamp_line(text : String) -> String {
+  if text.length() > 120 {
+    text[:120].to_string() + "..."
+  } else {
+    text
+  }
+}
+
+///|
 fn lint_report(findings : Array[LintFinding]) -> String {
   let builder = StringBuilder::new()
   builder.write_string("# Wiki Lint\n\n")
@@ -282,4 +452,23 @@ test "index placeholder detection reports empty sections" {
   assert_eq(placeholders, [
     "Entities section is still empty", "Sources section is still empty",
   ])
+}
+
+///|
+test "stale wording finds time-sensitive lines without dates" {
+  let findings = stale_wording_findings({
+    "wiki/page.md": "The latest version is stable.\n",
+  })
+  assert_eq(findings.length(), 1)
+  assert_eq(findings[0].kind, "stale-wording")
+}
+
+///|
+test "contradiction findings detect conflicting simple claims" {
+  let findings = contradiction_findings({
+    "wiki/a.md": "Alpha is red.\n",
+    "wiki/b.md": "Alpha is blue.\n",
+  })
+  assert_eq(findings.length(), 1)
+  assert_eq(findings[0].kind, "contradictory-claim")
 }
