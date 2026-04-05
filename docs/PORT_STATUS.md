@@ -45,11 +45,11 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 
 ### Wiki/Agent Gaps
 
-- ingest now updates source pages plus first-pass `entities/` and `synthesis/overview.md`, but it still does not do rich concept-page or multi-page synthesis maintenance
+- ingest now updates source pages plus first-pass `entities/`, `concepts/`, `synthesis/overview.md`, and `synthesis/claims.md`, but it still does not do rich multi-page synthesis maintenance
 - query is still keyword-ranked page synthesis rather than a deeper agentic read-plan-update workflow
 - `moonclaw` is the only extension pack today
 - `moonclaw.jobs.json` is a seeded profile template, not a domain-tuned job pack
-- no claim model for supersession, support strength, or explicit confidence
+- claim tracking is still lightweight: no supersession, support strength, or structured confidence model beyond simple markers
 - no review/approval workflow for agent-proposed wiki edits
 
 ### Rendering Gaps

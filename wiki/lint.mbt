@@ -85,6 +85,12 @@ pub async fn lint_wiki(root : String) -> LintResult {
   for finding in contradiction_findings(contents) {
     findings.push(finding)
   }
+  for finding in missing_concept_page_findings(contents) {
+    findings.push(finding)
+  }
+  for finding in weak_synthesis_findings(contents) {
+    findings.push(finding)
+  }
 
   let report = lint_report(findings)
   append_lint_log(
@@ -300,6 +306,82 @@ fn contradiction_findings(contents : Map[String, String]) -> Array[LintFinding] 
 }
 
 ///|
+fn missing_concept_page_findings(
+  contents : Map[String, String],
+) -> Array[LintFinding] {
+  let findings : Array[LintFinding] = []
+  let concept_pages : Map[String, Bool] = {}
+  for path in contents.keys() {
+    if path.has_prefix("wiki/concepts/") {
+      concept_pages[file_stem(path)] = true
+    }
+  }
+  let suggested : Map[String, Array[String]] = {}
+  for path in contents.keys() {
+    if !path.has_prefix("wiki/sources/") &&
+      !path.has_prefix("wiki/entities/") &&
+      !path.has_prefix("wiki/synthesis/") {
+      continue
+    }
+    for concept in extract_candidate_concepts(contents[path]) {
+      let slug = slugify_title(concept)
+      if concept_pages.contains(slug) {
+        continue
+      }
+      let bucket = suggested.get(slug).unwrap_or([])
+      if !bucket.contains(path) {
+        bucket.push(path)
+      }
+      suggested[slug] = bucket
+    }
+  }
+  for slug in suggested.keys() {
+    let evidence = suggested[slug]
+    if evidence.length() >= 2 || is_salient_concept_word(slug) {
+      let evidence_text = evidence.join(", ")
+      findings.push({
+        kind: "missing-concept-page",
+        path: None,
+        message: "concept `\{title_case(slug)}` appears in \{evidence_text} but has no page under `wiki/concepts/`",
+      })
+    }
+  }
+  findings
+}
+
+///|
+fn weak_synthesis_findings(contents : Map[String, String]) -> Array[LintFinding] {
+  let findings : Array[LintFinding] = []
+  let overview = contents.get("wiki/synthesis/overview.md").unwrap_or("")
+  let claims = contents.get("wiki/synthesis/claims.md").unwrap_or("")
+  for path in contents.keys() {
+    if !path.has_prefix("wiki/sources/") {
+      continue
+    }
+    let title = first_markdown_heading(contents[path])
+    if title.is_empty() {
+      continue
+    }
+    if !overview.contains(title) {
+      findings.push({
+        kind: "missing-synthesis-coverage",
+        path: Some(path),
+        message: "source is not reflected in `wiki/synthesis/overview.md`",
+      })
+    }
+    let claims_in_source = extract_claim_statements(contents[path])
+    if !claims_in_source.is_empty() && !claims.contains(title) {
+      findings.push({
+        kind: "missing-claim-coverage",
+        path: Some(path),
+        message: "source has claim-like statements but is not reflected in `wiki/synthesis/claims.md`",
+      })
+    }
+  }
+  findings
+}
+
+///|
 priv struct Claim {
   subject : String
   predicate : String
@@ -471,4 +553,24 @@ test "contradiction findings detect conflicting simple claims" {
   })
   assert_eq(findings.length(), 1)
   assert_eq(findings[0].kind, "contradictory-claim")
+}
+
+///|
+test "missing concept page findings suggest absent concept pages" {
+  let findings = missing_concept_page_findings({
+    "wiki/sources/a.md": "Runtime pipeline confidence.\n",
+    "wiki/synthesis/overview.md": "Runtime confidence.\n",
+  })
+  assert_true(findings.length() >= 1)
+  assert_eq(findings[0].kind, "missing-concept-page")
+}
+
+///|
+test "weak synthesis findings detect uncovered source" {
+  let findings = weak_synthesis_findings({
+    "wiki/sources/a.md": "# Alpha\n\nAlpha integrates with Beta.\n",
+    "wiki/synthesis/overview.md": "# Overview\n\n",
+    "wiki/synthesis/claims.md": "# Claims\n\n",
+  })
+  assert_eq(findings.length(), 2)
 }

@@ -42,11 +42,14 @@ Implemented behaviors:
 - `wiki ingest` imports sources into `raw/imported/` when needed
 - `wiki ingest` generates `wiki/sources/<slug>.md`
 - `wiki ingest` generates or updates related `wiki/entities/*.md` pages for lightweight extracted entities
+- `wiki ingest` generates or updates related `wiki/concepts/*.md` pages for lightweight extracted concepts
 - `wiki ingest` updates `wiki/synthesis/overview.md` with cross-source entries
+- `wiki ingest` updates `wiki/synthesis/claims.md` with lightweight extracted claims and confidence markers
 - `wiki ingest` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
 - `wiki query` searches markdown pages under `wiki/`
 - `wiki query` returns a synthesized markdown answer with citations to wiki pages
 - `wiki query --save` writes `wiki/queries/<slug>.md`
+- `wiki query --save` updates `wiki/synthesis/query-insights.md`
 - `wiki query --save` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
 - `wiki lint` detects orphan pages
 - `wiki lint` detects pages missing from `wiki/index.md`
@@ -54,6 +57,8 @@ Implemented behaviors:
 - `wiki lint` detects source pages missing a raw-source link
 - `wiki lint` detects time-sensitive stale wording with no explicit date markers
 - `wiki lint` detects simple contradictory `X is Y` claims across pages
+- `wiki lint` detects missing concept pages implied by existing content
+- `wiki lint` detects weak synthesis/claim coverage for source pages
 - `wiki lint` appends a lint pass to `wiki/log.md`
 - `watch` performs an initial build, then polls for source/config changes
 - `watch` supports `--dest-dir`

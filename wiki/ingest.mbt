@@ -282,6 +282,7 @@ async fn enrich_ingest(
       "Binary source ingested. Review the raw file directly.",
       [],
       [],
+      [],
     )
     return [synthesis_page]
   }
@@ -290,6 +291,7 @@ async fn enrich_ingest(
   let related_pages : Array[String] = []
   let entities = extract_candidate_entities(source_title, content)
   let concepts = extract_candidate_concepts(content)
+  let claims = extract_claim_statements(content)
   for entity in entities {
     let relative = ensure_entity_page(
       workspace, entity, source_title, source_relative_page, content,
@@ -310,8 +312,19 @@ async fn enrich_ingest(
       summarize_source(content),
       entities,
       concepts,
+      claims,
     ),
   )
+  if !claims.is_empty() {
+    related_pages.push(
+      ensure_claims_register(
+        workspace,
+        source_title,
+        source_relative_page,
+        claims,
+      ),
+    )
+  }
   related_pages
 }
 
@@ -418,6 +431,7 @@ async fn ensure_synthesis_overview(
   overview : String,
   entities : Array[String],
   concepts : Array[String],
+  claims : Array[String],
 ) -> String {
   let relative_page = "synthesis/overview.md"
   let page_path = @path.Path(workspace.wiki_dir)
@@ -428,9 +442,15 @@ async fn ensure_synthesis_overview(
     "wiki/" + source_relative_page,
   )
   let related = related_signal_line(entities, concepts)
+  let claim_line = if claims.is_empty() {
+    ""
+  } else {
+    "- Claims: " + claims.length().to_string() + "\n"
+  }
   let entry = "### \{source_title}\n\n" +
     "- Source page: [\{source_title}](\{source_link})\n" +
     "- Signal: \{overview}\n" +
+    claim_line +
     "\{related}\n"
   let existing = if @fsx.exists(page_path) {
     @fsx.read_file(page_path)
@@ -454,6 +474,56 @@ async fn ensure_synthesis_overview(
     "Overview",
     relative_page,
     "cross-source synthesis page",
+  )
+  relative_page
+}
+
+///|
+async fn ensure_claims_register(
+  workspace : Paths,
+  source_title : String,
+  source_relative_page : String,
+  claims : Array[String],
+) -> String {
+  let relative_page = "synthesis/claims.md"
+  let page_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(relative_page))
+    .to_string()
+  let source_link = relative_from_page(
+    "wiki/" + relative_page,
+    "wiki/" + source_relative_page,
+  )
+  let builder = StringBuilder::new()
+  builder.write_string("### \{source_title}\n\n")
+  builder.write_string("- Source page: [\{source_title}](\{source_link})\n")
+  builder.write_string("- Confidence: `low`\n")
+  builder.write_string("- Claims:\n")
+  for claim in claims {
+    builder.write_string("  - \{claim}\n")
+  }
+  builder.write_string("\n")
+  let block = builder.to_string()
+  let existing = if @fsx.exists(page_path) {
+    @fsx.read_file(page_path)
+  } else {
+    ""
+  }
+  let updated = if existing.is_empty() {
+    "# Claims Register\n\n" +
+    "This page collects lightweight extracted claims from ingested sources.\n\n" +
+    "## Claims\n\n" +
+    block
+  } else {
+    append_section_block(existing, "## Claims", block)
+  }
+  @fsx.write_to_file(page_path, updated, create=0o644)
+  update_summary(workspace.summary_path, "Claims Register", relative_page)
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Core Pages",
+    "Claims Register",
+    relative_page,
+    "lightweight extracted claims with confidence markers",
   )
   relative_page
 }
@@ -708,11 +778,29 @@ fn extract_candidate_concepts(content : String) -> Array[String] {
     if selected.length() >= 4 {
       break
     }
-    if counts.get(word).unwrap_or(0) >= 2 {
+    if counts.get(word).unwrap_or(0) >= 2 || is_salient_concept_word(word) {
       selected.push(word)
     }
   }
   selected
+}
+
+///|
+fn extract_claim_statements(content : String) -> Array[String] {
+  let claims : Array[String] = []
+  for raw in content.split("\n") {
+    let line = strip_inline_markup(raw.trim().to_string())
+    if line.is_empty() || line.has_prefix("#") || line.has_prefix("- ") {
+      continue
+    }
+    if likely_claim_line(line) && !claims.contains(line) {
+      claims.push(clamp_excerpt(line))
+      if claims.length() >= 5 {
+        break
+      }
+    }
+  }
+  claims
 }
 
 ///|
@@ -847,6 +935,52 @@ fn should_keep_concept_word(word : String) -> Bool {
     | "summary" => false
     _ => true
   }
+}
+
+///|
+fn is_salient_concept_word(word : String) -> Bool {
+  has_any_suffix(word, [
+    "tion", "ment", "ness", "ity", "ism", "ship", "ance", "ence", "ing",
+  ]) || [
+    "runtime",
+    "pipeline",
+    "synthesis",
+    "confidence",
+    "ingestion",
+    "integration",
+    "workflow",
+    "state",
+    "memory",
+    "evidence",
+    "claims",
+    "claim",
+    "contradiction",
+    "support",
+    "query",
+    "queries",
+    "entity",
+    "concept",
+  ].contains(word)
+}
+
+///|
+fn has_any_suffix(text : String, suffixes : Array[String]) -> Bool {
+  for suffix in suffixes {
+    if text.has_suffix(suffix) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn likely_claim_line(line : String) -> Bool {
+  line.contains(" is ") ||
+  line.contains(" integrates with ") ||
+  line.contains(" uses ") ||
+  line.contains(" supports ") ||
+  line.contains(" improves ") ||
+  line.contains(" keeps ")
 }
 
 ///|
@@ -1095,6 +1229,23 @@ test "extract candidate concepts ranks repeated lowercase words" {
     "ingestion ingestion synthesis synthesis synthesis claims confidence",
   )
   assert_eq(concepts[0], "synthesis")
+}
+
+///|
+test "extract candidate concepts keeps salient words even without repetition" {
+  let concepts = extract_candidate_concepts(
+    "runtime pipeline confidence synthesis",
+  )
+  assert_true(concepts.contains("runtime"))
+  assert_true(concepts.contains("synthesis"))
+}
+
+///|
+test "extract claim statements keeps simple grounded lines" {
+  let claims = extract_claim_statements(
+    "OpenClaw integrates with MoonClaw runtime.\nThe system improves synthesis.\n",
+  )
+  assert_eq(claims.length(), 2)
 }
 
 ///|

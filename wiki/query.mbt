@@ -4,6 +4,7 @@ pub struct QueryResult {
   answer : String
   citations : Array[String]
   saved_page : String?
+  related_pages : Array[String]
 } derive(Show, ToJson)
 
 ///|
@@ -31,21 +32,37 @@ pub async fn query_wiki(
   let selected = top_matches(matches, 3)
   if selected.is_empty() {
     let answer = no_results_answer(question)
-    let saved_page = if save {
+    let saved = if save {
       Some(save_query_answer(workspace, question, answer, []))
     } else {
       None
     }
-    return { question, answer, citations: [], saved_page }
+    let saved_page = match saved {
+      Some(pair) => Some(pair.0)
+      None => None
+    }
+    let related_pages = match saved {
+      Some((_, related)) => related
+      None => []
+    }
+    return { question, answer, citations: [], saved_page, related_pages }
   }
   let answer = answer_text(question, selected)
   let citations = selected.map(match_ => match_.relative_path)
-  let saved_page = if save {
+  let saved = if save {
     Some(save_query_answer(workspace, question, answer, citations))
   } else {
     None
   }
-  { question, answer, citations, saved_page }
+  let saved_page = match saved {
+    Some(pair) => Some(pair.0)
+    None => None
+  }
+  let related_pages = match saved {
+    Some((_, related)) => related
+    None => []
+  }
+  { question, answer, citations, saved_page, related_pages }
 }
 
 ///|
@@ -75,7 +92,13 @@ async fn scan_markdown_pages(path : String, pages : Array[String]) -> Unit {
 fn is_queryable_page(path : String) -> Bool {
   let normalized = @pathx.normalize(path)
   let base = @path.Path(normalized).basename().to_string()
-  @pathx.ext(normalized).to_string() == ".md" && base != "SUMMARY.md"
+  @pathx.ext(normalized).to_string() == ".md" &&
+  base != "SUMMARY.md" &&
+  base != "Home.md" &&
+  base != "index.md" &&
+  base != "log.md" &&
+  !normalized.has_suffix("/wiki/synthesis/query-insights.md") &&
+  !normalized.contains("/wiki/queries/")
 }
 
 ///|
@@ -230,7 +253,7 @@ async fn save_query_answer(
   question : String,
   answer : String,
   citations : Array[String],
-) -> String {
+) -> (String, Array[String]) {
   let queries_dir = @path.Path(workspace.wiki_dir)
     .join(@path.Path("queries"))
     .to_string()
@@ -248,12 +271,23 @@ async fn save_query_answer(
     question,
     relative_page,
   )
+  let related_pages : Array[String] = [relative_page]
+  related_pages.push(
+    update_query_insights(
+      workspace,
+      question,
+      relative_page,
+      citations,
+      answer,
+    ),
+  )
   append_query_log(
     @path.Path(workspace.wiki_dir).join(@path.Path("log.md")).to_string(),
     question,
     relative_page,
+    related_pages,
   )
-  page_path
+  (page_path, related_pages)
 }
 
 ///|
@@ -309,10 +343,12 @@ async fn append_query_log(
   log_path : String,
   question : String,
   relative_page : String,
+  related_pages : Array[String],
 ) -> Unit {
   let now = "\{@async.now().to_int()}"
   let entry = "## [\{now}] query | \{question}\n\n" +
-    "- page: `wiki/\{relative_page}`\n"
+    "- page: `wiki/\{relative_page}`\n" +
+    format_related_query_lines(related_pages)
   let current = @fsx.read_file(log_path)
   let next = if current.has_suffix("\n") {
     current + "\n" + entry
@@ -320,6 +356,81 @@ async fn append_query_log(
     current + "\n\n" + entry
   }
   @fsx.write_to_file(log_path, next, create=0o644)
+}
+
+///|
+async fn update_query_insights(
+  workspace : Paths,
+  question : String,
+  relative_query_page : String,
+  citations : Array[String],
+  answer : String,
+) -> String {
+  let relative_page = "synthesis/query-insights.md"
+  let page_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(relative_page))
+    .to_string()
+  @fsx.make_directory(
+    @path.Path(workspace.wiki_dir).join(@path.Path("synthesis")).to_string(),
+    recursive=true,
+    exists_ok=true,
+  )
+  let query_link = relative_from_page(
+    "wiki/" + relative_page,
+    "wiki/" + relative_query_page,
+  )
+  let citation_text = citations.map(citation => "`\{citation}`").join(", ")
+  let builder = StringBuilder::new()
+  builder.write_string("### \{question}\n\n")
+  builder.write_string("- Query page: [Query: \{question}](\{query_link})\n")
+  if !citations.is_empty() {
+    builder.write_string("- Citations: " + citation_text + "\n")
+  }
+  builder.write_string("- Insight: \{query_insight_summary(answer)}\n\n")
+  let block = builder.to_string()
+  let existing = if @fsx.exists(page_path) { @fsx.read_file(page_path) } else { "" }
+  let updated = if existing.is_empty() {
+    "# Query Insights\n\n" +
+    "This page accumulates durable insights captured from saved queries.\n\n" +
+    "## Insights\n\n" +
+    block
+  } else {
+    append_section_block(existing, "## Insights", block)
+  }
+  @fsx.write_to_file(page_path, updated, create=0o644)
+  update_summary(workspace.summary_path, "Query Insights", relative_page)
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Core Pages",
+    "Query Insights",
+    relative_page,
+    "durable insights captured from saved queries",
+  )
+  relative_page
+}
+
+///|
+fn query_insight_summary(answer : String) -> String {
+  for raw in answer.split("\n") {
+    let line = raw.trim().to_string()
+    if line.is_empty() || line.has_prefix("#") || line.has_prefix("- ") {
+      continue
+    }
+    return clamp_excerpt(strip_inline_markup(line))
+  }
+  "Saved query result."
+}
+
+///|
+fn format_related_query_lines(related_pages : Array[String]) -> String {
+  let builder = StringBuilder::new()
+  for page in related_pages {
+    if page == related_pages[0] {
+      continue
+    }
+    builder.write_string("- related: `wiki/\{page}`\n")
+  }
+  builder.to_string()
 }
 
 ///|

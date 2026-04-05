@@ -78,10 +78,12 @@ Ingests one source into an existing wiki workspace:
 4. writes a source page to `wiki/sources/<slug>.md`
 5. extracts lightweight candidate entities and concepts from text sources
 6. creates or updates related `wiki/entities/*.md` pages
-7. creates or updates `wiki/synthesis/overview.md`
-8. appends touched pages to `wiki/SUMMARY.md`
-9. updates the relevant sections in `wiki/index.md`
-10. appends an ingest event to `wiki/log.md`
+7. creates or updates related `wiki/concepts/*.md` pages
+8. creates or updates `wiki/synthesis/overview.md`
+9. creates or updates `wiki/synthesis/claims.md` when claim-like statements are detected
+10. appends touched pages to `wiki/SUMMARY.md`
+11. updates the relevant sections in `wiki/index.md`
+12. appends an ingest event to `wiki/log.md`
 
 ### `moon run cmd/main -- wiki query [root] <question> [--save]`
 
@@ -91,7 +93,8 @@ Queries the maintained wiki layer instead of raw files:
 2. ranks pages using simple keyword relevance
 3. prints a synthesized markdown answer with page citations
 4. with `--save`, writes the result to `wiki/queries/<slug>.md`
-5. with `--save`, also updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
+5. with `--save`, also updates `wiki/synthesis/query-insights.md`
+6. with `--save`, also updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
 
 ### `moon run cmd/main -- wiki lint [root]`
 
@@ -104,8 +107,10 @@ Runs a health check against the maintained wiki layer:
 5. detects source pages missing their raw-source link
 6. detects time-sensitive stale wording with no explicit dates
 7. detects simple contradictory `X is Y` claims across pages
-8. prints a markdown lint report
-9. appends a lint event to `wiki/log.md`
+8. detects missing concept pages implied by existing source/entity/synthesis content
+9. detects weak synthesis coverage for sources not reflected in synthesis pages
+10. prints a markdown lint report
+11. appends a lint event to `wiki/log.md`
 
 Current defaults:
 
@@ -245,6 +250,10 @@ Created by `moonbook wiki init`:
   reserved directory for concept pages
 - `wiki/synthesis/`
   reserved directory for synthesis pages
+- `wiki/synthesis/claims.md`
+  lightweight extracted claims with simple confidence markers when present
+- `wiki/synthesis/query-insights.md`
+  durable insights captured from saved queries
 - `AGENTS.md`
   wiki-maintainer schema instructions
 - `wiki.toml`
