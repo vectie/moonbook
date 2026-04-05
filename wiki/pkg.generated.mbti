@@ -2,6 +2,8 @@
 package "username/moonbook/wiki"
 
 // Values
+pub async fn enable_extension(String, String) -> ExtensionInstallResult
+
 pub async fn ingest_source(String, String) -> IngestResult
 
 pub async fn init_workspace(String, title? : String?) -> WikiWorkspace
@@ -10,9 +12,20 @@ pub async fn lint_wiki(String) -> LintResult
 
 pub async fn query_wiki(String, String, save? : Bool) -> QueryResult
 
+pub fn supported_extensions() -> Array[String]
+
 // Errors
 
 // Types and methods
+pub struct ExtensionInstallResult {
+  root : String
+  extension : String
+  manifest_path : String
+  installed_files : Array[String]
+}
+pub impl Show for ExtensionInstallResult
+pub impl ToJson for ExtensionInstallResult
+
 pub struct IngestResult {
   page_path : String
   raw_path : String

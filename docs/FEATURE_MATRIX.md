@@ -10,6 +10,7 @@ Implemented commands:
 - `moonbook build [root]`
 - `moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]`
 - `moonbook wiki init [root]`
+- `moonbook wiki enable <extension> [root]`
 - `moonbook wiki ingest [root] <source>`
 - `moonbook wiki query [root] <question> [--save]`
 - `moonbook wiki lint [root]`
@@ -33,7 +34,11 @@ Implemented behaviors:
 - `serve` serves `404.html` as a fallback when present
 - `serve --watcher native` currently falls back to the poll backend with an explicit notice
 - `wiki init` scaffolds `raw/`, `wiki/`, `AGENTS.md`, `wiki.toml`, and a MoonBook-compatible `book.toml`
+- `wiki init` keeps the core workspace agent-agnostic
+- `wiki init` seeds `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
 - `wiki init` outputs a workspace that can immediately be built with `moonbook build`
+- `wiki enable moonclaw` installs MoonClaw-specific runtime/config/workspace files without overwriting them
+- `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`
 - `wiki ingest` imports sources into `raw/imported/` when needed
 - `wiki ingest` generates `wiki/sources/<slug>.md`
 - `wiki ingest` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
@@ -45,6 +50,8 @@ Implemented behaviors:
 - `wiki lint` detects pages missing from `wiki/index.md`
 - `wiki lint` detects placeholder sections still left in `wiki/index.md`
 - `wiki lint` detects source pages missing a raw-source link
+- `wiki lint` detects time-sensitive stale wording with no explicit date markers
+- `wiki lint` detects simple contradictory `X is Y` claims across pages
 - `wiki lint` appends a lint pass to `wiki/log.md`
 - `watch` performs an initial build, then polls for source/config changes
 - `watch` supports `--dest-dir`

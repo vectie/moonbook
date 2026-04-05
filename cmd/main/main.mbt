@@ -23,6 +23,8 @@ async fn main {
 ///|
 async fn run_wiki(args : Array[String]) -> Unit {
   match args {
+    ["enable", extension, root] => run_wiki_enable(root, extension)
+    ["enable", extension] => run_wiki_enable(".", extension)
     ["lint", root] => run_wiki_lint(root)
     ["lint"] => run_wiki_lint(".")
     ["query", .. query_args] => run_wiki_query(query_args.to_array())
@@ -32,7 +34,7 @@ async fn run_wiki(args : Array[String]) -> Unit {
     ["init"] => run_wiki_init(".")
     _ =>
       println(
-        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]",
+        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki lint [root]",
       )
   }
 }
@@ -49,6 +51,23 @@ async fn run_wiki_init(root : String) -> Unit {
   println("raw sources: \{workspace.raw_dir}")
   println("wiki pages: \{workspace.wiki_dir}")
   println("schema: \{workspace.schema_path}")
+}
+
+///|
+async fn run_wiki_enable(root : String, extension : String) -> Unit {
+  let integration = @wiki.enable_extension(root, extension) catch {
+    error => {
+      println("moonbook wiki enable failed: \{error}")
+      return
+    }
+  }
+  println(
+    "enabled wiki extension \{integration.extension} at \{integration.root}",
+  )
+  println("extension manifest: \{integration.manifest_path}")
+  for path in integration.installed_files {
+    println("installed: \{path}")
+  }
 }
 
 ///|
@@ -379,6 +398,7 @@ async fn run_watch(args : Array[String]) -> Unit {
 ///|
 fn print_usage() -> Unit {
   println("moonbook wiki init [root]")
+  println("moonbook wiki enable <extension> [root]")
   println("moonbook wiki ingest [root] <source>")
   println("moonbook wiki query [root] <question> [--save]")
   println("moonbook wiki lint [root]")

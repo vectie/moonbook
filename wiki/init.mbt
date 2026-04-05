@@ -43,6 +43,17 @@ pub async fn init_workspace(
   let raw_readme_path = @path.Path(raw_dir)
     .join(@path.Path("README.md"))
     .to_string()
+  let entities_dir = @path.Path(wiki_dir)
+    .join(@path.Path("entities"))
+    .to_string()
+  let concepts_dir = @path.Path(wiki_dir)
+    .join(@path.Path("concepts"))
+    .to_string()
+  let synthesis_dir = @path.Path(wiki_dir)
+    .join(@path.Path("synthesis"))
+    .to_string()
+  let queries_dir = @path.Path(wiki_dir).join(@path.Path("queries")).to_string()
+  let sources_dir = @path.Path(wiki_dir).join(@path.Path("sources")).to_string()
   let assets_keep_path = @path.Path(raw_assets_dir)
     .join(@path.Path(".gitkeep"))
     .to_string()
@@ -52,6 +63,11 @@ pub async fn init_workspace(
   @fsx.make_directory(raw_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(raw_assets_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(wiki_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(entities_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(concepts_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(synthesis_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(queries_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(sources_dir, recursive=true, exists_ok=true)
 
   write_if_missing(book_toml_path, book_toml_text(resolved_title))
   write_if_missing(config_path, wiki_config_text())
@@ -170,11 +186,16 @@ fn schema_text() -> String {
   "- `wiki/`: maintained markdown knowledge base. The LLM owns updates here.\n" +
   "- `wiki/index.md`: content catalog. Update it whenever pages are added or meaningfully changed.\n" +
   "- `wiki/log.md`: append-only activity log. Add one entry per ingest, query, or lint pass.\n\n" +
+  "## Extension Boundary\n\n" +
+  "- Core wiki workspaces should stay agent-agnostic.\n" +
+  "- Agent-specific runtime files should be installed through optional extension packs.\n" +
+  "- Do not assume a single agent runtime owns the workspace.\n\n" +
   "## Operations\n\n" +
   "### Ingest\n\n" +
   "When ingesting a source:\n\n" +
   "1. Read the source from `raw/`\n" +
   "2. Create or update relevant wiki pages in `wiki/`\n" +
+  "3. Prefer revising related entity, concept, and synthesis pages instead of creating isolated summaries only\n" +
   "3. Update `wiki/index.md`\n" +
   "4. Append a timestamped entry to `wiki/log.md`\n" +
   "5. Preserve uncertainty and note contradictions explicitly\n\n" +
@@ -231,4 +252,5 @@ test "schema explains ingest query and lint workflows" {
   assert_true(text.contains("### Lint"))
   assert_true(text.contains("wiki/index.md"))
   assert_true(text.contains("wiki/log.md"))
+  assert_true(text.contains("agent-agnostic"))
 }

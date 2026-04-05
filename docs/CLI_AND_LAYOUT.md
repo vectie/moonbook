@@ -53,6 +53,20 @@ Bootstraps a wiki workspace instead of a plain mdBook:
 4. writes a root `AGENTS.md` schema file for future ingest/query/lint workflows
 5. writes `book.toml` with `src = "wiki"` so the workspace can already be built and served by MoonBook
 6. writes `wiki.toml` as a small machine-readable workspace descriptor
+7. creates reserved directories for `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
+
+### `moon run cmd/main -- wiki enable <extension> [root]`
+
+Installs an optional runtime/agent extension pack into an existing wiki workspace:
+
+1. creates `.moonbook/extensions/`
+2. writes an extension manifest for the selected pack
+3. writes any extension-owned runtime/config/workspace files
+4. preserves existing files instead of overwriting them
+
+Current supported extensions:
+
+- `moonclaw`
 
 ### `moon run cmd/main -- wiki ingest [root] <source>`
 
@@ -85,8 +99,10 @@ Runs a health check against the maintained wiki layer:
 3. detects pages missing from `wiki/index.md`
 4. detects placeholder `_None yet._` sections still left in `wiki/index.md`
 5. detects source pages missing their raw-source link
-6. prints a markdown lint report
-7. appends a lint event to `wiki/log.md`
+6. detects time-sensitive stale wording with no explicit dates
+7. detects simple contradictory `X is Y` claims across pages
+8. prints a markdown lint report
+9. appends a lint event to `wiki/log.md`
 
 Current defaults:
 
@@ -206,7 +222,43 @@ Contains internal filesystem/path helpers and a minimal HTTP static server adapt
 
 ### `wiki/`
 
-Contains the first wiki-oriented subsystem. It currently handles workspace initialization, one-source-at-a-time ingestion, wiki-first querying with optional saved query pages, and lint-style health checks. Future deeper contradiction analysis should live here rather than inside the mdBook driver or HTTP server packages.
+Contains the first wiki-oriented subsystem. It currently handles workspace initialization, optional runtime extension scaffolding, one-source-at-a-time ingestion, wiki-first querying with optional saved query pages, and lint-style health checks. Future deeper contradiction analysis should live here rather than inside the mdBook driver or HTTP server packages.
+
+### Wiki Workspace Files
+
+Created by `moonbook wiki init`:
+
+- `raw/`
+  immutable source material
+- `wiki/`
+  maintained markdown pages for the knowledge base
+- `wiki/sources/`
+  source summary pages
+- `wiki/queries/`
+  saved query pages
+- `wiki/entities/`
+  reserved directory for entity pages
+- `wiki/concepts/`
+  reserved directory for concept pages
+- `wiki/synthesis/`
+  reserved directory for synthesis pages
+- `AGENTS.md`
+  wiki-maintainer schema instructions
+- `wiki.toml`
+  workspace descriptor
+- `.moonbook/extensions/`
+  installed extension manifests
+
+### `moonclaw` Extension Pack
+
+Installed by `moonbook wiki enable moonclaw [root]`:
+
+- `moonclaw.json`
+  points MoonClaw at the same workspace root
+- `moonclaw.jobs.json`
+  seeds wiki-oriented MoonClaw job profiles
+- `IDENTITY.md`, `USER.md`, `ROUTINES.md`, `MEMORY.md`
+  MoonClaw-managed workspace context files
 
 ### `ui/`
 
