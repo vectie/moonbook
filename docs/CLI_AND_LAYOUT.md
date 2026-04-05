@@ -271,6 +271,12 @@ Contains internal filesystem/path helpers and a minimal HTTP static server adapt
 
 Contains the first wiki-oriented subsystem. It currently handles workspace initialization, optional runtime extension scaffolding, one-source-at-a-time ingestion, wiki-first querying with optional saved query pages, review lifecycle commands, lint-style health checks, and shared internal helpers for workspace resolution plus maintenance-plan/review-page updates. Future deeper contradiction analysis should live here rather than inside the mdBook driver or HTTP server packages.
 
+Related architecture docs:
+
+- [SYSTEM_ARCHITECTURE.md](/Users/kq/Workspace/moonbook/docs/SYSTEM_ARCHITECTURE.md)
+- [WIKI_WORKFLOW.md](/Users/kq/Workspace/moonbook/docs/WIKI_WORKFLOW.md)
+- [EXTENSION_PACKS.md](/Users/kq/Workspace/moonbook/docs/EXTENSION_PACKS.md)
+
 Current package organization:
 
 - `init.mbt`
