@@ -4,6 +4,7 @@ pub struct IngestResult {
   raw_path : String
   title : String
   imported : Bool
+  related_pages : Array[String]
 } derive(Show, ToJson)
 
 ///|
@@ -11,6 +12,26 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
   let workspace = workspace_paths(root)
   @fsx.make_directory(
     @path.Path(workspace.wiki_dir).join(@path.Path("sources")).to_string(),
+    recursive=true,
+    exists_ok=true,
+  )
+  @fsx.make_directory(
+    @path.Path(workspace.wiki_dir).join(@path.Path("entities")).to_string(),
+    recursive=true,
+    exists_ok=true,
+  )
+  @fsx.make_directory(
+    @path.Path(workspace.wiki_dir).join(@path.Path("concepts")).to_string(),
+    recursive=true,
+    exists_ok=true,
+  )
+  @fsx.make_directory(
+    @path.Path(workspace.wiki_dir).join(@path.Path("synthesis")).to_string(),
+    recursive=true,
+    exists_ok=true,
+  )
+  @fsx.make_directory(
+    @path.Path(workspace.wiki_dir).join(@path.Path("queries")).to_string(),
     recursive=true,
     exists_ok=true,
   )
@@ -46,6 +67,10 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
   )
   @fsx.write_to_file(page_path, page_body, create=0o644)
 
+  let related_pages = enrich_ingest(
+    workspace, title, relative_page, stored_raw_path,
+  )
+
   update_summary(workspace.summary_path, title, relative_page)
   update_index(
     @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
@@ -58,9 +83,16 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
     title,
     relative_raw,
     relative_page,
+    related_pages,
   )
 
-  { page_path, raw_path: stored_raw_path, title, imported: !source_under_raw }
+  {
+    page_path,
+    raw_path: stored_raw_path,
+    title,
+    imported: !source_under_raw,
+    related_pages,
+  }
 }
 
 ///|
@@ -236,16 +268,257 @@ async fn update_index(
 }
 
 ///|
+async fn enrich_ingest(
+  workspace : Paths,
+  source_title : String,
+  source_relative_page : String,
+  stored_raw_path : String,
+) -> Array[String] {
+  if !is_text_source(stored_raw_path) {
+    let synthesis_page = ensure_synthesis_overview(
+      workspace,
+      source_title,
+      source_relative_page,
+      "Binary source ingested. Review the raw file directly.",
+      [],
+      [],
+    )
+    return [synthesis_page]
+  }
+
+  let content = @fsx.read_file(stored_raw_path)
+  let related_pages : Array[String] = []
+  let entities = extract_candidate_entities(source_title, content)
+  let concepts = extract_candidate_concepts(content)
+  for entity in entities {
+    let relative = ensure_entity_page(
+      workspace, entity, source_title, source_relative_page, content,
+    )
+    related_pages.push(relative)
+  }
+  for concept in concepts {
+    let relative = ensure_concept_page(
+      workspace, concept, source_title, source_relative_page, content,
+    )
+    related_pages.push(relative)
+  }
+  related_pages.push(
+    ensure_synthesis_overview(
+      workspace,
+      source_title,
+      source_relative_page,
+      summarize_source(content),
+      entities,
+      concepts,
+    ),
+  )
+  related_pages
+}
+
+///|
+async fn ensure_entity_page(
+  workspace : Paths,
+  entity : String,
+  source_title : String,
+  source_relative_page : String,
+  content : String,
+) -> String {
+  let slug = slugify_title(entity)
+  let relative_page = "entities/\{slug}.md"
+  let page_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(relative_page))
+    .to_string()
+  let source_link = relative_from_page(
+    "wiki/" + relative_page,
+    "wiki/" + source_relative_page,
+  )
+  let existing = if @fsx.exists(page_path) {
+    @fsx.read_file(page_path)
+  } else {
+    ""
+  }
+  let updated = if existing.is_empty() {
+    "# \{entity}\n\n" +
+    "## Summary\n\n" +
+    "\{entity_summary(entity, content)}\n\n" +
+    "## Sources\n\n" +
+    "- [\{source_title}](\{source_link})\n"
+  } else {
+    append_list_entry(
+      existing,
+      "## Sources",
+      "- [\{source_title}](\{source_link})",
+    )
+  }
+  @fsx.write_to_file(page_path, updated, create=0o644)
+  update_summary(workspace.summary_path, entity, relative_page)
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Entities",
+    entity,
+    relative_page,
+    "entity page",
+  )
+  relative_page
+}
+
+///|
+async fn ensure_concept_page(
+  workspace : Paths,
+  concept : String,
+  source_title : String,
+  source_relative_page : String,
+  content : String,
+) -> String {
+  let title = title_case(concept)
+  let slug = slugify_title(concept)
+  let relative_page = "concepts/\{slug}.md"
+  let page_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(relative_page))
+    .to_string()
+  let source_link = relative_from_page(
+    "wiki/" + relative_page,
+    "wiki/" + source_relative_page,
+  )
+  let existing = if @fsx.exists(page_path) {
+    @fsx.read_file(page_path)
+  } else {
+    ""
+  }
+  let updated = if existing.is_empty() {
+    "# \{title}\n\n" +
+    "## Summary\n\n" +
+    "\{concept_summary(concept, content)}\n\n" +
+    "## Sources\n\n" +
+    "- [\{source_title}](\{source_link})\n"
+  } else {
+    append_list_entry(
+      existing,
+      "## Sources",
+      "- [\{source_title}](\{source_link})",
+    )
+  }
+  @fsx.write_to_file(page_path, updated, create=0o644)
+  update_summary(workspace.summary_path, title, relative_page)
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Concepts",
+    title,
+    relative_page,
+    "concept page",
+  )
+  relative_page
+}
+
+///|
+async fn ensure_synthesis_overview(
+  workspace : Paths,
+  source_title : String,
+  source_relative_page : String,
+  overview : String,
+  entities : Array[String],
+  concepts : Array[String],
+) -> String {
+  let relative_page = "synthesis/overview.md"
+  let page_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(relative_page))
+    .to_string()
+  let source_link = relative_from_page(
+    "wiki/" + relative_page,
+    "wiki/" + source_relative_page,
+  )
+  let related = related_signal_line(entities, concepts)
+  let entry = "### \{source_title}\n\n" +
+    "- Source page: [\{source_title}](\{source_link})\n" +
+    "- Signal: \{overview}\n" +
+    "\{related}\n"
+  let existing = if @fsx.exists(page_path) {
+    @fsx.read_file(page_path)
+  } else {
+    ""
+  }
+  let updated = if existing.is_empty() {
+    "# Overview\n\n" +
+    "## Current Synthesis\n\n" +
+    "This page accumulates cross-source wiki signals.\n\n" +
+    "## Source Updates\n\n" +
+    entry
+  } else {
+    append_section_block(existing, "## Source Updates", entry)
+  }
+  @fsx.write_to_file(page_path, updated, create=0o644)
+  update_summary(workspace.summary_path, "Overview", relative_page)
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Core Pages",
+    "Overview",
+    relative_page,
+    "cross-source synthesis page",
+  )
+  relative_page
+}
+
+///|
+fn related_signal_line(
+  entities : Array[String],
+  concepts : Array[String],
+) -> String {
+  let parts : Array[String] = []
+  if !entities.is_empty() {
+    parts.push("entities: " + entities.join(", "))
+  }
+  if !concepts.is_empty() {
+    parts.push("concepts: " + concepts.map(title_case).join(", "))
+  }
+  if parts.is_empty() {
+    ""
+  } else {
+    "- Related: " + parts.join(" | ") + "\n"
+  }
+}
+
+///|
+async fn update_index_section(
+  index_path : String,
+  section_title : String,
+  title : String,
+  relative_page : String,
+  description : String,
+) -> Unit {
+  let current = @fsx.read_file(index_path)
+  let bullet = "- [\{title}](./\{relative_page}): \{description}"
+  if current.contains(bullet) {
+    return
+  }
+  let placeholder = "## \{section_title}\n\n_None yet._"
+  let section_header = "## \{section_title}\n"
+  let next = if current.contains(placeholder) {
+    current
+    .replace(old=placeholder, new="## \{section_title}\n\n\{bullet}")
+    .to_string()
+  } else if current.contains(section_header) {
+    current
+    .replace(old=section_header, new="## \{section_title}\n\{bullet}\n")
+    .to_string()
+  } else {
+    current + "\n## \{section_title}\n\n" + bullet + "\n"
+  }
+  @fsx.write_to_file(index_path, next, create=0o644)
+}
+
+///|
 async fn append_log(
   log_path : String,
   title : String,
   relative_raw : String,
   relative_page : String,
+  related_pages : Array[String],
 ) -> Unit {
   let now = "\{@async.now().to_int()}"
   let entry = "## [\{now}] ingest | \{title}\n\n" +
     "- raw: `\{relative_raw}`\n" +
-    "- page: `wiki/\{relative_page}`\n"
+    "- page: `wiki/\{relative_page}`\n" +
+    format_related_log_lines(related_pages)
   let current = @fsx.read_file(log_path)
   let next = if current.has_suffix("\n") {
     current + "\n" + entry
@@ -253,6 +526,16 @@ async fn append_log(
     current + "\n\n" + entry
   }
   @fsx.write_to_file(log_path, next, create=0o644)
+}
+
+///|
+fn format_related_log_lines(related_pages : Array[String]) -> String {
+  if related_pages.is_empty() {
+    ""
+  } else {
+    let lines = related_pages.map(page => "- related: `wiki/\{page}`\n")
+    lines.join("")
+  }
 }
 
 ///|
@@ -327,6 +610,317 @@ fn strip_inline_markup(text : String) -> String {
   .to_string()
   .replace(old="]", new="")
   .to_string()
+}
+
+///|
+fn append_list_entry(
+  content : String,
+  section_header : String,
+  entry : String,
+) -> String {
+  if content.contains(entry) {
+    return content
+  }
+  if content.contains(section_header + "\n\n") {
+    content
+    .replace(
+      old=section_header + "\n\n",
+      new=section_header + "\n\n" + entry + "\n",
+    )
+    .to_string()
+  } else if content.contains(section_header + "\n") {
+    content
+    .replace(
+      old=section_header + "\n",
+      new=section_header + "\n" + entry + "\n",
+    )
+    .to_string()
+  } else if content.has_suffix("\n") {
+    content + "\n" + section_header + "\n\n" + entry + "\n"
+  } else {
+    content + "\n\n" + section_header + "\n\n" + entry + "\n"
+  }
+}
+
+///|
+fn append_section_block(
+  content : String,
+  section_header : String,
+  block : String,
+) -> String {
+  if content.contains(block.trim().to_string()) {
+    return content
+  }
+  if content.contains(section_header + "\n\n") {
+    content
+    .replace(
+      old=section_header + "\n\n",
+      new=section_header + "\n\n" + block + "\n",
+    )
+    .to_string()
+  } else if content.contains(section_header + "\n") {
+    content
+    .replace(
+      old=section_header + "\n",
+      new=section_header + "\n" + block + "\n",
+    )
+    .to_string()
+  } else if content.has_suffix("\n") {
+    content + "\n" + section_header + "\n\n" + block + "\n"
+  } else {
+    content + "\n\n" + section_header + "\n\n" + block + "\n"
+  }
+}
+
+///|
+fn extract_candidate_entities(
+  title : String,
+  content : String,
+) -> Array[String] {
+  let counts : Map[String, Int] = {}
+  for phrase in candidate_titlecase_phrases(title + "\n" + content) {
+    if should_keep_entity_phrase(phrase) {
+      counts[phrase] = counts.get(phrase).unwrap_or(0) + 1
+    }
+  }
+  let ranked = rank_phrase_counts(counts)
+  let selected : Array[String] = []
+  for phrase in ranked {
+    if selected.length() >= 3 {
+      break
+    }
+    selected.push(phrase)
+  }
+  selected
+}
+
+///|
+fn extract_candidate_concepts(content : String) -> Array[String] {
+  let counts : Map[String, Int] = {}
+  for word in lowercase_word_candidates(content) {
+    if should_keep_concept_word(word) {
+      counts[word] = counts.get(word).unwrap_or(0) + 1
+    }
+  }
+  let ranked = rank_phrase_counts(counts)
+  let selected : Array[String] = []
+  for word in ranked {
+    if selected.length() >= 4 {
+      break
+    }
+    if counts.get(word).unwrap_or(0) >= 2 {
+      selected.push(word)
+    }
+  }
+  selected
+}
+
+///|
+fn candidate_titlecase_phrases(text : String) -> Array[String] {
+  let words = split_words(text)
+  let phrases : Array[String] = []
+  let mut current : Array[String] = []
+  for word in words {
+    if is_titlecase_word(word) {
+      current.push(word)
+      if current.length() >= 3 {
+        phrases.push(current.join(" "))
+        current = []
+      }
+    } else if !current.is_empty() {
+      phrases.push(current.join(" "))
+      current = []
+    }
+  }
+  if !current.is_empty() {
+    phrases.push(current.join(" "))
+  }
+  phrases
+}
+
+///|
+fn lowercase_word_candidates(text : String) -> Array[String] {
+  let words : Array[String] = []
+  for word in split_words(text) {
+    let lower = word.to_lower()
+    if lower == word {
+      words.push(lower)
+    }
+  }
+  words
+}
+
+///|
+fn split_words(text : String) -> Array[String] {
+  let words : Array[String] = []
+  let builder = StringBuilder::new()
+  for c in text {
+    if is_word_char(c) {
+      builder.write_char(c)
+    } else if builder.to_string() != "" {
+      words.push(builder.to_string())
+      builder.reset()
+    }
+  }
+  if builder.to_string() != "" {
+    words.push(builder.to_string())
+  }
+  words
+}
+
+///|
+fn is_word_char(c : Char) -> Bool {
+  let value = c.to_int()
+  (value >= 'a'.to_int() && value <= 'z'.to_int()) ||
+  (value >= 'A'.to_int() && value <= 'Z'.to_int()) ||
+  (value >= '0'.to_int() && value <= '9'.to_int()) ||
+  value == '-'.to_int()
+}
+
+///|
+fn is_titlecase_word(word : String) -> Bool {
+  if word.length() < 3 {
+    return false
+  }
+  let first = word[0].to_int()
+  let second = if word.length() > 1 { word[1].to_int() } else { 0 }
+  first >= 'A'.to_int() &&
+  first <= 'Z'.to_int() &&
+  second >= 'a'.to_int() &&
+  second <= 'z'.to_int()
+}
+
+///|
+fn should_keep_entity_phrase(phrase : String) -> Bool {
+  let words = split_words(phrase)
+  if words.is_empty() || phrase.length() < 3 {
+    return false
+  }
+  for word in words {
+    match word {
+      "The"
+      | "This"
+      | "That"
+      | "These"
+      | "Those"
+      | "Source"
+      | "Overview"
+      | "Notes"
+      | "Guide"
+      | "Chapter"
+      | "Summary" => return false
+      _ => ()
+    }
+  }
+  true
+}
+
+///|
+fn should_keep_concept_word(word : String) -> Bool {
+  if word.length() < 5 {
+    return false
+  }
+  match word {
+    "about"
+    | "there"
+    | "which"
+    | "their"
+    | "would"
+    | "could"
+    | "should"
+    | "source"
+    | "title"
+    | "query"
+    | "pages"
+    | "page"
+    | "keeps"
+    | "improves"
+    | "integrates"
+    | "mentioned"
+    | "review"
+    | "using"
+    | "where"
+    | "these"
+    | "those"
+    | "wiki"
+    | "index"
+    | "summary" => false
+    _ => true
+  }
+}
+
+///|
+fn rank_phrase_counts(counts : Map[String, Int]) -> Array[String] {
+  let pairs : Array[(String, Int)] = []
+  for key, value in counts {
+    pairs.push((key, value))
+  }
+  pairs.sort_by(fn(left, right) {
+    if left.1 == right.1 {
+      left.0.compare(right.0)
+    } else {
+      right.1.compare(left.1)
+    }
+  })
+  let ranked : Array[String] = []
+  for pair in pairs {
+    ranked.push(pair.0)
+  }
+  ranked
+}
+
+///|
+fn entity_summary(entity : String, content : String) -> String {
+  first_matching_sentence(content, entity).unwrap_or(
+    "\{entity} is mentioned in the current source and should be refined as more sources arrive.",
+  )
+}
+
+///|
+fn concept_summary(concept : String, content : String) -> String {
+  first_matching_sentence(content, concept).unwrap_or(
+    "The concept `\{concept}` appears in the current source and should be refined as the wiki accumulates more evidence.",
+  )
+}
+
+///|
+fn first_matching_sentence(content : String, needle : String) -> String? {
+  for raw in content.split("\n") {
+    let line = strip_inline_markup(raw.trim().to_string())
+    if line.is_empty() || line.has_prefix("#") {
+      continue
+    }
+    if line.to_lower().contains(needle.to_lower()) {
+      return Some(clamp_excerpt(line))
+    }
+  }
+  None
+}
+
+///|
+fn title_case(text : String) -> String {
+  if text.is_empty() {
+    return text
+  }
+  let builder = StringBuilder::new()
+  let mut capitalize = true
+  for c in text {
+    if c == ' ' || c == '-' {
+      builder.write_char(c)
+      capitalize = true
+    } else if capitalize {
+      let value = c.to_int()
+      if value >= 'a'.to_int() && value <= 'z'.to_int() {
+        builder.write_char(Int::unsafe_to_char(value - 32))
+      } else {
+        builder.write_char(c)
+      }
+      capitalize = false
+    } else {
+      builder.write_char(c)
+    }
+  }
+  builder.to_string()
 }
 
 ///|
@@ -484,4 +1078,28 @@ test "detect source title prefers markdown heading" {
   ignore(tmp)
   let title = first_markdown_heading("# Demo Title\n\nBody\n")
   assert_eq(title, "Demo Title")
+}
+
+///|
+test "extract candidate entities uses titlecase phrases" {
+  let entities = extract_candidate_entities(
+    "OpenClaw Deploy Guide", "OpenClaw connects to MoonClaw runtime.\nMoonClaw stores workspace state.\n",
+  )
+  assert_true(entities.contains("OpenClaw"))
+  assert_true(entities.contains("MoonClaw"))
+}
+
+///|
+test "extract candidate concepts ranks repeated lowercase words" {
+  let concepts = extract_candidate_concepts(
+    "ingestion ingestion synthesis synthesis synthesis claims confidence",
+  )
+  assert_eq(concepts[0], "synthesis")
+}
+
+///|
+test "append list entry avoids duplicates" {
+  let content = "# Demo\n\n## Sources\n\n- [One](./one.md)\n"
+  let updated = append_list_entry(content, "## Sources", "- [One](./one.md)")
+  assert_eq(updated, content)
 }

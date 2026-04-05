@@ -41,6 +41,8 @@ Implemented behaviors:
 - `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`
 - `wiki ingest` imports sources into `raw/imported/` when needed
 - `wiki ingest` generates `wiki/sources/<slug>.md`
+- `wiki ingest` generates or updates related `wiki/entities/*.md` pages for lightweight extracted entities
+- `wiki ingest` updates `wiki/synthesis/overview.md` with cross-source entries
 - `wiki ingest` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
 - `wiki query` searches markdown pages under `wiki/`
 - `wiki query` returns a synthesized markdown answer with citations to wiki pages

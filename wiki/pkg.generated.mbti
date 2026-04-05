@@ -31,6 +31,7 @@ pub struct IngestResult {
   raw_path : String
   title : String
   imported : Bool
+  related_pages : Array[String]
 }
 pub impl Show for IngestResult
 pub impl ToJson for IngestResult

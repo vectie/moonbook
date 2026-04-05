@@ -76,9 +76,12 @@ Ingests one source into an existing wiki workspace:
 2. copies it into `raw/imported/` when it is outside the workspace raw tree
 3. derives a source title from the first heading or first non-empty line
 4. writes a source page to `wiki/sources/<slug>.md`
-5. appends the page to `wiki/SUMMARY.md`
-6. adds a Sources entry to `wiki/index.md`
-7. appends an ingest event to `wiki/log.md`
+5. extracts lightweight candidate entities and concepts from text sources
+6. creates or updates related `wiki/entities/*.md` pages
+7. creates or updates `wiki/synthesis/overview.md`
+8. appends touched pages to `wiki/SUMMARY.md`
+9. updates the relevant sections in `wiki/index.md`
+10. appends an ingest event to `wiki/log.md`
 
 ### `moon run cmd/main -- wiki query [root] <question> [--save]`
 
