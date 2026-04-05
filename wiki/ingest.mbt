@@ -36,6 +36,11 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
     exists_ok=true,
   )
   @fsx.make_directory(
+    @path.Path(workspace.wiki_dir).join(@path.Path("reviews")).to_string(),
+    recursive=true,
+    exists_ok=true,
+  )
+  @fsx.make_directory(
     @path.Path(workspace.raw_dir).join(@path.Path("imported")).to_string(),
     recursive=true,
     exists_ok=true,
@@ -93,27 +98,6 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
     imported: !source_under_raw,
     related_pages,
   }
-}
-
-///|
-priv struct Paths {
-  root : String
-  raw_dir : String
-  wiki_dir : String
-  summary_path : String
-}
-
-///|
-fn workspace_paths(root : String) -> Paths {
-  let normalized_root = @pathx.normalize(root)
-  let raw_dir = @path.Path(normalized_root).join(@path.Path("raw")).to_string()
-  let wiki_dir = @path.Path(normalized_root)
-    .join(@path.Path("wiki"))
-    .to_string()
-  let summary_path = @path.Path(wiki_dir)
-    .join(@path.Path("SUMMARY.md"))
-    .to_string()
-  { root: normalized_root, raw_dir, wiki_dir, summary_path }
 }
 
 ///|
@@ -228,9 +212,11 @@ async fn update_summary(
   title : String,
   relative_page : String,
 ) -> Unit {
-  let link = "- [\{title}](./\{relative_page})"
+  let safe_title = escape_link_label(title)
+  let link = "- [\{safe_title}](./\{relative_page})"
   let current = @fsx.read_file(summary_path)
-  if current.contains(link) {
+  if current.contains("(./\{relative_page})") ||
+    current.contains("(\{relative_page})") {
     return
   }
   let next = if current.has_suffix("\n") {
@@ -291,18 +277,28 @@ async fn enrich_ingest(
   let related_pages : Array[String] = []
   let entities = extract_candidate_entities(source_title, content)
   let concepts = extract_candidate_concepts(content)
-  let claims = extract_claim_statements(content)
+  let claims = extract_structured_claims(content)
   for entity in entities {
     let relative = ensure_entity_page(
-      workspace, entity, source_title, source_relative_page, content,
+      workspace, entity, source_title, source_relative_page, content, entities, concepts,
     )
     related_pages.push(relative)
   }
   for concept in concepts {
     let relative = ensure_concept_page(
-      workspace, concept, source_title, source_relative_page, content,
+      workspace, concept, source_title, source_relative_page, content, entities,
+      concepts,
     )
     related_pages.push(relative)
+  }
+  for
+    relative in ensure_claim_relationship_pages(
+      workspace, source_title, source_relative_page, content, entities, concepts,
+      claims,
+    ) {
+    if !related_pages.contains(relative) {
+      related_pages.push(relative)
+    }
   }
   related_pages.push(
     ensure_synthesis_overview(
@@ -312,20 +308,226 @@ async fn enrich_ingest(
       summarize_source(content),
       entities,
       concepts,
-      claims,
+      claims.map(claim => claim.summary_line()),
     ),
   )
   if !claims.is_empty() {
-    related_pages.push(
-      ensure_claims_register(
-        workspace,
-        source_title,
-        source_relative_page,
-        claims,
-      ),
+    let claims_page = ensure_claims_register(
+      workspace, source_title, source_relative_page, claims,
     )
+    related_pages.push(claims_page)
+    let review_page = ensure_claim_review_items(
+      workspace, source_title, source_relative_page, claims,
+    )
+    if !review_page.is_empty() {
+      related_pages.push(review_page)
+    }
+  }
+  let maintenance_plan_page = ensure_maintenance_plan_entry(
+    workspace,
+    "Ingest: \{source_title}",
+    "ingest",
+    "wiki/" + source_relative_page,
+    related_pages,
+    ingest_plan_notes(entities, concepts, claims),
+  )
+  if !related_pages.contains(maintenance_plan_page) {
+    related_pages.push(maintenance_plan_page)
   }
   related_pages
+}
+
+///|
+fn ingest_plan_notes(
+  entities : Array[String],
+  concepts : Array[String],
+  claims : Array[StructuredClaim],
+) -> Array[String] {
+  let notes : Array[String] = []
+  if !entities.is_empty() {
+    notes.push("entities: " + entities.join(", "))
+  }
+  if !concepts.is_empty() {
+    notes.push("concepts: " + concepts.map(title_case).join(", "))
+  }
+  if !claims.is_empty() {
+    notes.push("claims: " + claims.length().to_string())
+  }
+  notes
+}
+
+///|
+priv struct StructuredClaim {
+  subject : String
+  predicate : String
+  confidence : String
+}
+
+///|
+fn StructuredClaim::id(self : StructuredClaim) -> String {
+  "\{slugify_title(self.subject)}::\{slugify_title(self.predicate)}"
+}
+
+///|
+fn StructuredClaim::summary_line(self : StructuredClaim) -> String {
+  "\{self.subject} -> \{self.predicate} [\{self.confidence}]"
+}
+
+///|
+async fn ensure_claim_relationship_pages(
+  workspace : Paths,
+  source_title : String,
+  source_relative_page : String,
+  content : String,
+  entities : Array[String],
+  concepts : Array[String],
+  claims : Array[StructuredClaim],
+) -> Array[String] {
+  let related : Array[String] = []
+  for claim in claims {
+    let subject = claim.subject.trim().to_string()
+    if subject.is_empty() || !looks_like_entity_name(subject) {
+      continue
+    }
+    let subject_page = ensure_entity_page(
+      workspace,
+      subject,
+      source_title,
+      source_relative_page,
+      content,
+      merge_unique_strings(entities, [subject]),
+      concepts,
+    )
+    if !related.contains(subject_page) {
+      related.push(subject_page)
+    }
+    match claim_relationship_target(claim) {
+      Some((target_kind, target_name, relation_line)) => {
+        let subject_path = @path.Path(workspace.wiki_dir)
+          .join(@path.Path(subject_page))
+          .to_string()
+        let source_link = relative_from_page(
+          "wiki/" + subject_page,
+          "wiki/" + source_relative_page,
+        )
+        let updated_subject = append_list_entry(
+          @fsx.read_file(subject_path),
+          "## Relationships",
+          "- \{relation_line} via [\{source_title}](\{source_link})",
+        )
+        @fsx.write_to_file(subject_path, updated_subject, create=0o644)
+        match target_kind {
+          "entity" => {
+            let target_page = ensure_entity_page(
+              workspace,
+              target_name,
+              source_title,
+              source_relative_page,
+              content,
+              merge_unique_strings(entities, [subject, target_name]),
+              concepts,
+            )
+            if !related.contains(target_page) {
+              related.push(target_page)
+            }
+          }
+          _ => {
+            let normalized_target = target_name.to_lower()
+            let target_page = ensure_concept_page(
+              workspace,
+              normalized_target,
+              source_title,
+              source_relative_page,
+              content,
+              merge_unique_strings(entities, [subject]),
+              merge_unique_strings(concepts, [normalized_target]),
+            )
+            if !related.contains(target_page) {
+              related.push(target_page)
+            }
+          }
+        }
+      }
+      None => ()
+    }
+  }
+  related
+}
+
+///|
+fn claim_relationship_target(
+  claim : StructuredClaim,
+) -> (String, String, String)? {
+  let predicate = claim.predicate.trim().to_string()
+  let lowered = predicate.to_lower()
+  if lowered.has_prefix("supports ") {
+    let target = predicate[9:].trim().to_string()
+    return Some(relationship_target_tuple("supports", target))
+  }
+  if lowered.has_prefix("uses ") {
+    let target = predicate[5:].trim().to_string()
+    return Some(relationship_target_tuple("uses", target))
+  }
+  if lowered.has_prefix("improves ") {
+    let target = predicate[9:].trim().to_string()
+    return Some(relationship_target_tuple("improves", target))
+  }
+  if lowered.has_prefix("keeps ") {
+    let target = predicate[6:].trim().to_string()
+    return Some(relationship_target_tuple("keeps", target))
+  }
+  if looks_like_entity_name(predicate) {
+    return Some(relationship_target_tuple("integrates with", predicate))
+  }
+  None
+}
+
+///|
+fn relationship_target_tuple(
+  verb : String,
+  target : String,
+) -> (String, String, String) {
+  let kind = if looks_like_entity_name(target) { "entity" } else { "concept" }
+  let relation = if kind == "entity" {
+    "\{verb} [\{target}](../entities/\{slugify_title(target)}.md)"
+  } else {
+    let concept = target.to_lower()
+    "\{verb} [\{title_case(concept)}](../concepts/\{slugify_title(concept)}.md)"
+  }
+  (kind, target, relation)
+}
+
+///|
+fn looks_like_entity_name(text : String) -> Bool {
+  let words = split_words(text)
+  if words.is_empty() {
+    return false
+  }
+  for word in words {
+    if is_titlecase_word(word) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn merge_unique_strings(
+  left : Array[String],
+  right : Array[String],
+) -> Array[String] {
+  let merged : Array[String] = []
+  for item in left {
+    if !merged.contains(item) {
+      merged.push(item)
+    }
+  }
+  for item in right {
+    if !merged.contains(item) {
+      merged.push(item)
+    }
+  }
+  merged
 }
 
 ///|
@@ -335,6 +537,8 @@ async fn ensure_entity_page(
   source_title : String,
   source_relative_page : String,
   content : String,
+  all_entities : Array[String],
+  concepts : Array[String],
 ) -> String {
   let slug = slugify_title(entity)
   let relative_page = "entities/\{slug}.md"
@@ -354,13 +558,25 @@ async fn ensure_entity_page(
     "# \{entity}\n\n" +
     "## Summary\n\n" +
     "\{entity_summary(entity, content)}\n\n" +
+    related_entities_section(entity, all_entities) +
+    related_concepts_section(concepts) +
     "## Sources\n\n" +
     "- [\{source_title}](\{source_link})\n"
   } else {
-    append_list_entry(
+    let with_sources = append_list_entry(
       existing,
       "## Sources",
       "- [\{source_title}](\{source_link})",
+    )
+    let with_entities = append_related_entries(
+      with_sources,
+      "## Related Entities",
+      related_entity_entries(entity, all_entities),
+    )
+    append_related_entries(
+      with_entities,
+      "## Related Concepts",
+      related_concept_entries(concepts),
     )
   }
   @fsx.write_to_file(page_path, updated, create=0o644)
@@ -382,6 +598,8 @@ async fn ensure_concept_page(
   source_title : String,
   source_relative_page : String,
   content : String,
+  entities : Array[String],
+  all_concepts : Array[String],
 ) -> String {
   let title = title_case(concept)
   let slug = slugify_title(concept)
@@ -402,13 +620,25 @@ async fn ensure_concept_page(
     "# \{title}\n\n" +
     "## Summary\n\n" +
     "\{concept_summary(concept, content)}\n\n" +
+    related_entities_from_concept_section(entities) +
+    related_concepts_from_concept_section(concept, all_concepts) +
     "## Sources\n\n" +
     "- [\{source_title}](\{source_link})\n"
   } else {
-    append_list_entry(
+    let with_sources = append_list_entry(
       existing,
       "## Sources",
       "- [\{source_title}](\{source_link})",
+    )
+    let with_entities = append_related_entries(
+      with_sources,
+      "## Related Entities",
+      related_entity_entries("", entities),
+    )
+    append_related_entries(
+      with_entities,
+      "## Related Concepts",
+      related_concept_entries(all_concepts.filter(fn(item) { item != concept })),
     )
   }
   @fsx.write_to_file(page_path, updated, create=0o644)
@@ -483,7 +713,7 @@ async fn ensure_claims_register(
   workspace : Paths,
   source_title : String,
   source_relative_page : String,
-  claims : Array[String],
+  claims : Array[StructuredClaim],
 ) -> String {
   let relative_page = "synthesis/claims.md"
   let page_path = @path.Path(workspace.wiki_dir)
@@ -493,28 +723,17 @@ async fn ensure_claims_register(
     "wiki/" + relative_page,
     "wiki/" + source_relative_page,
   )
-  let builder = StringBuilder::new()
-  builder.write_string("### \{source_title}\n\n")
-  builder.write_string("- Source page: [\{source_title}](\{source_link})\n")
-  builder.write_string("- Confidence: `low`\n")
-  builder.write_string("- Claims:\n")
-  for claim in claims {
-    builder.write_string("  - \{claim}\n")
-  }
-  builder.write_string("\n")
-  let block = builder.to_string()
   let existing = if @fsx.exists(page_path) {
     @fsx.read_file(page_path)
   } else {
-    ""
-  }
-  let updated = if existing.is_empty() {
     "# Claims Register\n\n" +
     "This page collects lightweight extracted claims from ingested sources.\n\n" +
     "## Claims\n\n" +
-    block
-  } else {
-    append_section_block(existing, "## Claims", block)
+    "_None yet._\n"
+  }
+  let mut updated = existing
+  for claim in claims {
+    updated = upsert_claim_block(updated, claim, source_title, source_link)
   }
   @fsx.write_to_file(page_path, updated, create=0o644)
   update_summary(workspace.summary_path, "Claims Register", relative_page)
@@ -524,6 +743,62 @@ async fn ensure_claims_register(
     "Claims Register",
     relative_page,
     "lightweight extracted claims with confidence markers",
+  )
+  relative_page
+}
+
+///|
+async fn ensure_claim_review_items(
+  workspace : Paths,
+  source_title : String,
+  source_relative_page : String,
+  claims : Array[StructuredClaim],
+) -> String {
+  let contested = contested_claims(
+    @path.Path(workspace.wiki_dir)
+    .join(@path.Path("synthesis/claims.md"))
+    .to_string(),
+    claims,
+  )
+  if contested.is_empty() {
+    return ""
+  }
+  let relative_page = "reviews/pending.md"
+  let page_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(relative_page))
+    .to_string()
+  let source_link = relative_from_page(
+    "wiki/" + relative_page,
+    "wiki/" + source_relative_page,
+  )
+  let existing = if @fsx.exists(page_path) {
+    @fsx.read_file(page_path)
+  } else {
+    "# Pending Review\n\n## Items\n\n_None yet._\n"
+  }
+  let review_id = "claim-review-\{slugify_title(source_title)}"
+  let builder = StringBuilder::new()
+  builder.write_string("### Claim review | \{source_title}\n\n")
+  builder.write_string("- Review ID: `\{review_id}`\n")
+  builder.write_string("- Source page: [\{source_title}](\{source_link})\n")
+  builder.write_string("- Status: `pending`\n")
+  builder.write_string(
+    "- Reason: conflicting or uncertain claims need review\n",
+  )
+  builder.write_string("- Claims:\n")
+  for claim in contested {
+    builder.write_string("  - \{claim.summary_line()}\n")
+  }
+  builder.write_string("\n")
+  let updated = append_section_block(existing, "## Items", builder.to_string())
+  @fsx.write_to_file(page_path, updated, create=0o644)
+  update_summary(workspace.summary_path, "Pending Review", relative_page)
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Core Pages",
+    "Pending Review",
+    relative_page,
+    "queue of human review items for contested or uncertain updates",
   )
   relative_page
 }
@@ -609,6 +884,101 @@ fn format_related_log_lines(related_pages : Array[String]) -> String {
 }
 
 ///|
+fn related_entities_section(
+  current : String,
+  entities : Array[String],
+) -> String {
+  let entries = related_entity_entries(current, entities)
+  if entries.is_empty() {
+    ""
+  } else {
+    "## Related Entities\n\n" + entries.join("\n") + "\n\n"
+  }
+}
+
+///|
+fn related_concepts_section(concepts : Array[String]) -> String {
+  let entries = related_concept_entries(concepts)
+  if entries.is_empty() {
+    ""
+  } else {
+    "## Related Concepts\n\n" + entries.join("\n") + "\n\n"
+  }
+}
+
+///|
+fn related_entities_from_concept_section(entities : Array[String]) -> String {
+  let entries = related_entity_entries("", entities)
+  if entries.is_empty() {
+    ""
+  } else {
+    "## Related Entities\n\n" + entries.join("\n") + "\n\n"
+  }
+}
+
+///|
+fn related_concepts_from_concept_section(
+  current : String,
+  concepts : Array[String],
+) -> String {
+  let entries = related_concept_entries(
+    concepts.filter(fn(item) { item != current }),
+  )
+  if entries.is_empty() {
+    ""
+  } else {
+    "## Related Concepts\n\n" + entries.join("\n") + "\n\n"
+  }
+}
+
+///|
+fn related_entity_entries(
+  current : String,
+  entities : Array[String],
+) -> Array[String] {
+  let entries : Array[String] = []
+  for entity in entities {
+    if entity == current {
+      continue
+    }
+    let label = entity
+    let link = "../entities/\{slugify_title(entity)}.md"
+    let entry = "- [\{label}](\{link})"
+    if !entries.contains(entry) {
+      entries.push(entry)
+    }
+  }
+  entries
+}
+
+///|
+fn related_concept_entries(concepts : Array[String]) -> Array[String] {
+  let entries : Array[String] = []
+  for concept in concepts {
+    let label = title_case(concept)
+    let link = "../concepts/\{slugify_title(concept)}.md"
+    let entry = "- [\{label}](\{link})"
+    if !entries.contains(entry) {
+      entries.push(entry)
+    }
+  }
+  entries
+}
+
+///|
+fn append_related_entries(
+  content : String,
+  section_header : String,
+  entries : Array[String],
+) -> String {
+  let mut next = content
+  for entry in entries {
+    next = append_list_entry(next, section_header, entry)
+  }
+  next
+}
+
+///|
 fn summarize_source(content : String) -> String {
   let paragraph = first_nonempty_line(content)
   let cleaned = strip_inline_markup(paragraph)
@@ -683,32 +1053,220 @@ fn strip_inline_markup(text : String) -> String {
 }
 
 ///|
+fn upsert_claim_block(
+  content : String,
+  claim : StructuredClaim,
+  source_title : String,
+  source_link : String,
+) -> String {
+  let header = "### \{claim.subject} :: \{claim.predicate}"
+  let source_entry = "  - [\{source_title}](\{source_link})"
+  let base = if content.contains("_None yet._") {
+    content.replace(old="_None yet._", new="").to_string()
+  } else {
+    content
+  }
+  if !base.contains(header) {
+    let block = header +
+      "\n\n" +
+      "- Subject: `\{claim.subject}`\n" +
+      "- Predicate: `\{claim.predicate}`\n" +
+      "- Confidence: `\{claim.confidence}`\n" +
+      "- Support: `1`\n" +
+      "- Status: `active`\n" +
+      "- Superseded by: `_None_`\n" +
+      "- Sources:\n" +
+      source_entry +
+      "\n\n"
+    return append_section_block(base, "## Claims", block)
+  }
+  let support_line = find_claim_field(base, header, "- Support: `").unwrap_or(
+    "1",
+  )
+  let increment = if base.contains(source_entry) { 0 } else { 1 }
+  let updated_support = parse_decimal_int(support_line) + increment
+  let with_support = replace_claim_field(
+    base,
+    header,
+    "- Support: `",
+    "\{updated_support}",
+  )
+  if with_support.contains(source_entry) {
+    with_support
+  } else {
+    insert_claim_source_entry(with_support, header, source_entry)
+  }
+}
+
+///|
+async fn contested_claims(
+  claims_page_path : String,
+  claims : Array[StructuredClaim],
+) -> Array[StructuredClaim] {
+  let existing = if @fsx.exists(claims_page_path) {
+    @fsx.read_file(claims_page_path)
+  } else {
+    ""
+  }
+  let contested : Array[StructuredClaim] = []
+  for claim in claims {
+    let pattern = "### \{claim.subject} :: "
+    if existing.contains(pattern) &&
+      !existing.contains("### \{claim.subject} :: \{claim.predicate}") {
+      contested.push(claim)
+    } else if claim.confidence == "low" {
+      contested.push(claim)
+    }
+  }
+  contested
+}
+
+///|
+fn parse_decimal_int(text : String) -> Int {
+  let mut value = 0
+  for c in text {
+    if c >= '0' && c <= '9' {
+      value = value * 10 + (c.to_int() - '0'.to_int())
+    }
+  }
+  value
+}
+
+///|
+fn find_claim_field(
+  content : String,
+  header : String,
+  prefix : String,
+) -> String? {
+  let lines = lines_array(content)
+  let mut in_block = false
+  for line in lines {
+    if line == header {
+      in_block = true
+      continue
+    }
+    if in_block && line.has_prefix("### ") {
+      break
+    }
+    if in_block && line.has_prefix(prefix) && line.has_suffix("`") {
+      return Some(line[prefix.length():line.length() - 1].to_string())
+    }
+  }
+  None
+}
+
+///|
+fn replace_claim_field(
+  content : String,
+  header : String,
+  prefix : String,
+  value : String,
+) -> String {
+  let lines = lines_array(content)
+  let rebuilt : Array[String] = []
+  let mut in_block = false
+  for line in lines {
+    if line == header {
+      in_block = true
+      rebuilt.push(line)
+      continue
+    }
+    if in_block && line.has_prefix("### ") {
+      in_block = false
+    }
+    if in_block && line.has_prefix(prefix) {
+      rebuilt.push(prefix + value + "`")
+    } else {
+      rebuilt.push(line)
+    }
+  }
+  rebuilt.join("\n")
+}
+
+///|
+fn insert_claim_source_entry(
+  content : String,
+  header : String,
+  source_entry : String,
+) -> String {
+  let lines = lines_array(content)
+  let rebuilt : Array[String] = []
+  let mut in_block = false
+  let mut in_sources = false
+  let mut inserted = false
+  for line in lines {
+    if line == header {
+      in_block = true
+      rebuilt.push(line)
+      continue
+    }
+    if in_block && line.has_prefix("### ") {
+      if in_sources && !inserted {
+        rebuilt.push(source_entry)
+        inserted = true
+      }
+      in_block = false
+      in_sources = false
+    }
+    if in_block && line == "- Sources:" {
+      in_sources = true
+      rebuilt.push(line)
+      continue
+    }
+    if in_block &&
+      in_sources &&
+      !inserted &&
+      !line.has_prefix("  - ") &&
+      !line.trim().is_empty() {
+      rebuilt.push(source_entry)
+      inserted = true
+      in_sources = false
+    }
+    rebuilt.push(line)
+  }
+  if in_sources && !inserted {
+    rebuilt.push(source_entry)
+  }
+  rebuilt.join("\n")
+}
+
+///|
+fn lines_array(content : String) -> Array[String] {
+  let lines : Array[String] = []
+  for raw in content.split("\n") {
+    lines.push(raw.to_string())
+  }
+  lines
+}
+
+///|
 fn append_list_entry(
   content : String,
   section_header : String,
   entry : String,
 ) -> String {
+  let cleaned = content.replace(old="_None yet._\n", new="").to_string()
   if content.contains(entry) {
-    return content
+    return cleaned
   }
-  if content.contains(section_header + "\n\n") {
-    content
+  if cleaned.contains(section_header + "\n\n") {
+    cleaned
     .replace(
       old=section_header + "\n\n",
       new=section_header + "\n\n" + entry + "\n",
     )
     .to_string()
-  } else if content.contains(section_header + "\n") {
-    content
+  } else if cleaned.contains(section_header + "\n") {
+    cleaned
     .replace(
       old=section_header + "\n",
       new=section_header + "\n" + entry + "\n",
     )
     .to_string()
-  } else if content.has_suffix("\n") {
-    content + "\n" + section_header + "\n\n" + entry + "\n"
+  } else if cleaned.has_suffix("\n") {
+    cleaned + "\n" + section_header + "\n\n" + entry + "\n"
   } else {
-    content + "\n\n" + section_header + "\n\n" + entry + "\n"
+    cleaned + "\n\n" + section_header + "\n\n" + entry + "\n"
   }
 }
 
@@ -718,27 +1276,28 @@ fn append_section_block(
   section_header : String,
   block : String,
 ) -> String {
+  let cleaned = content.replace(old="_None yet._\n", new="").to_string()
   if content.contains(block.trim().to_string()) {
-    return content
+    return cleaned
   }
-  if content.contains(section_header + "\n\n") {
-    content
+  if cleaned.contains(section_header + "\n\n") {
+    cleaned
     .replace(
       old=section_header + "\n\n",
       new=section_header + "\n\n" + block + "\n",
     )
     .to_string()
-  } else if content.contains(section_header + "\n") {
-    content
+  } else if cleaned.contains(section_header + "\n") {
+    cleaned
     .replace(
       old=section_header + "\n",
       new=section_header + "\n" + block + "\n",
     )
     .to_string()
-  } else if content.has_suffix("\n") {
-    content + "\n" + section_header + "\n\n" + block + "\n"
+  } else if cleaned.has_suffix("\n") {
+    cleaned + "\n" + section_header + "\n\n" + block + "\n"
   } else {
-    content + "\n\n" + section_header + "\n\n" + block + "\n"
+    cleaned + "\n\n" + section_header + "\n\n" + block + "\n"
   }
 }
 
@@ -759,7 +1318,10 @@ fn extract_candidate_entities(
     if selected.length() >= 3 {
       break
     }
-    selected.push(phrase)
+    let normalized = normalize_entity_name(phrase)
+    if !normalized.is_empty() && !selected.contains(normalized) {
+      selected.push(normalized)
+    }
   }
   selected
 }
@@ -779,7 +1341,10 @@ fn extract_candidate_concepts(content : String) -> Array[String] {
       break
     }
     if counts.get(word).unwrap_or(0) >= 2 || is_salient_concept_word(word) {
-      selected.push(word)
+      let normalized = normalize_concept_name(word)
+      if !normalized.is_empty() && !selected.contains(normalized) {
+        selected.push(normalized)
+      }
     }
   }
   selected
@@ -804,6 +1369,102 @@ fn extract_claim_statements(content : String) -> Array[String] {
 }
 
 ///|
+fn extract_structured_claims(content : String) -> Array[StructuredClaim] {
+  let claims : Array[StructuredClaim] = []
+  for statement in extract_claim_statements(content) {
+    match parse_structured_claim(statement) {
+      Some(claim) =>
+        if !claims.map(claim_ => claim_.id()).contains(claim.id()) {
+          claims.push(claim)
+        }
+      None => ()
+    }
+  }
+  claims
+}
+
+///|
+fn parse_structured_claim(statement : String) -> StructuredClaim? {
+  let lowered = statement.to_lower()
+  match lowered.find(" integrates with ") {
+    Some(index) =>
+      Some({
+        subject: normalize_entity_name(statement[:index].trim().to_string()),
+        predicate: normalize_claim_fragment(
+          statement[index + 17:].trim().to_string(),
+        ),
+        confidence: "medium",
+      })
+    None =>
+      match lowered.find(" keeps ") {
+        Some(index) =>
+          Some({
+            subject: normalize_entity_name(statement[:index].trim().to_string()),
+            predicate: "keeps " +
+            normalize_claim_fragment(statement[index + 7:].trim().to_string()),
+            confidence: "low",
+          })
+        None =>
+          match lowered.find(" improves ") {
+            Some(index) =>
+              Some({
+                subject: normalize_entity_name(
+                  statement[:index].trim().to_string(),
+                ),
+                predicate: "improves " +
+                normalize_claim_fragment(
+                  statement[index + 10:].trim().to_string(),
+                ),
+                confidence: "low",
+              })
+            None =>
+              match lowered.find(" supports ") {
+                Some(index) =>
+                  Some({
+                    subject: normalize_entity_name(
+                      statement[:index].trim().to_string(),
+                    ),
+                    predicate: "supports " +
+                    normalize_claim_fragment(
+                      statement[index + 10:].trim().to_string(),
+                    ),
+                    confidence: "medium",
+                  })
+                None =>
+                  match lowered.find(" uses ") {
+                    Some(index) =>
+                      Some({
+                        subject: normalize_entity_name(
+                          statement[:index].trim().to_string(),
+                        ),
+                        predicate: "uses " +
+                        normalize_claim_fragment(
+                          statement[index + 6:].trim().to_string(),
+                        ),
+                        confidence: "medium",
+                      })
+                    None =>
+                      match lowered.find(" is ") {
+                        Some(index) =>
+                          Some({
+                            subject: normalize_entity_name(
+                              statement[:index].trim().to_string(),
+                            ),
+                            predicate: normalize_claim_fragment(
+                              statement[index + 4:].trim().to_string(),
+                            ),
+                            confidence: "medium",
+                          })
+                        None => None
+                      }
+                  }
+              }
+          }
+      }
+  }
+}
+
+///|
 fn candidate_titlecase_phrases(text : String) -> Array[String] {
   let words = split_words(text)
   let phrases : Array[String] = []
@@ -824,6 +1485,67 @@ fn candidate_titlecase_phrases(text : String) -> Array[String] {
     phrases.push(current.join(" "))
   }
   phrases
+}
+
+///|
+fn normalize_entity_name(text : String) -> String {
+  strip_leading_determiner(clean_phrase(text))
+}
+
+///|
+fn normalize_concept_name(text : String) -> String {
+  clean_phrase(text).to_lower()
+}
+
+///|
+fn normalize_claim_fragment(text : String) -> String {
+  clean_phrase(text)
+}
+
+///|
+fn clean_phrase(text : String) -> String {
+  strip_surrounding_punctuation(text.trim().to_string())
+}
+
+///|
+fn strip_leading_determiner(text : String) -> String {
+  if text.has_prefix("The ") {
+    text[4:].to_string()
+  } else if text.has_prefix("A ") {
+    text[2:].to_string()
+  } else if text.has_prefix("An ") {
+    text[3:].to_string()
+  } else {
+    text
+  }
+}
+
+///|
+fn strip_surrounding_punctuation(text : String) -> String {
+  let mut start = 0
+  let mut end = text.length()
+  while start < end && is_trimmable_punctuation(text[start]) {
+    start += 1
+  }
+  while end > start && is_trimmable_punctuation(text[end - 1]) {
+    end -= 1
+  }
+  text[start:end].trim().to_string()
+}
+
+///|
+fn is_trimmable_punctuation(c : UInt16) -> Bool {
+  let value = c.to_int()
+  value == '.'.to_int() ||
+  value == ','.to_int() ||
+  value == ':'.to_int() ||
+  value == ';'.to_int() ||
+  value == '!'.to_int() ||
+  value == '?'.to_int() ||
+  value == '"'.to_int() ||
+  value == '\''.to_int() ||
+  value == '('.to_int() ||
+  value == ')'.to_int()
 }
 
 ///|
@@ -941,25 +1663,11 @@ fn should_keep_concept_word(word : String) -> Bool {
 fn is_salient_concept_word(word : String) -> Bool {
   has_any_suffix(word, [
     "tion", "ment", "ness", "ity", "ism", "ship", "ance", "ence", "ing",
-  ]) || [
-    "runtime",
-    "pipeline",
-    "synthesis",
-    "confidence",
-    "ingestion",
-    "integration",
-    "workflow",
-    "state",
-    "memory",
-    "evidence",
-    "claims",
-    "claim",
-    "contradiction",
-    "support",
-    "query",
-    "queries",
-    "entity",
-    "concept",
+  ]) ||
+  [
+    "runtime", "pipeline", "synthesis", "confidence", "ingestion", "integration",
+    "workflow", "state", "memory", "evidence", "claims", "claim", "contradiction",
+    "support", "query", "queries", "entity", "concept",
   ].contains(word)
 }
 
@@ -1178,6 +1886,15 @@ fn file_stem(path : String) -> String {
 }
 
 ///|
+fn escape_link_label(text : String) -> String {
+  text
+  .replace(old="[", new="(")
+  .to_string()
+  .replace(old="]", new=")")
+  .to_string()
+}
+
+///|
 fn is_text_source(path : String) -> Bool {
   match @pathx.ext(path).to_string().to_lower() {
     ".md"
@@ -1246,6 +1963,28 @@ test "extract claim statements keeps simple grounded lines" {
     "OpenClaw integrates with MoonClaw runtime.\nThe system improves synthesis.\n",
   )
   assert_eq(claims.length(), 2)
+}
+
+///|
+test "parse structured claim extracts subject predicate and confidence" {
+  let claim = parse_structured_claim(
+    "OpenClaw integrates with MoonClaw runtime.",
+  ).unwrap()
+  assert_eq(claim.subject, "OpenClaw")
+  assert_eq(claim.confidence, "medium")
+}
+
+///|
+test "upsert claim block accumulates support" {
+  let content = "# Claims Register\n\n## Claims\n\n_None yet._\n"
+  let claim = {
+    subject: "OpenClaw",
+    predicate: "MoonClaw runtime",
+    confidence: "medium",
+  }
+  let once = upsert_claim_block(content, claim, "Source A", "../sources/a.md")
+  let twice = upsert_claim_block(once, claim, "Source B", "../sources/b.md")
+  assert_true(twice.contains("- Support: `2`"))
 }
 
 ///|

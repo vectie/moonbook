@@ -14,7 +14,7 @@ Moonbook is a MoonBit rewrite of the mdBook toolchain currently focused on:
 - respecting the book root `.gitignore` during polling rebuilds
 - preserving mdBook-style navigation and many markdown rendering behaviors
 - exposing a native CLI flow for `init`, `build`, `serve`, `watch`, `load`, `test`, and `clean`
-- adding first wiki-workspace flows with `moonbook wiki init`, `moonbook wiki enable`, `moonbook wiki ingest`, `moonbook wiki query`, and `moonbook wiki lint`
+- adding first wiki-workspace flows with `moonbook wiki init`, `moonbook wiki enable`, `moonbook wiki ingest`, `moonbook wiki query`, `moonbook wiki review`, and `moonbook wiki lint`
 
 The project is not at full upstream parity yet. The current state is a working vertical slice with a growing set of mdBook-compatible cases.
 
@@ -26,9 +26,10 @@ The project is not at full upstream parity yet. The current state is a working v
 - end-to-end `init`, `build`, `serve`, `watch`, `load`, `test`, `clean`, and `version` commands
 - `moonbook wiki init` scaffolding for `raw/` + `wiki/` workspaces that can be built by MoonBook
 - `moonbook wiki enable` for installing optional agent/runtime extension packs into a wiki workspace
-- `moonbook wiki ingest` for one-source-at-a-time source ingestion that now also updates related entity pages, concept pages, synthesis pages, and a lightweight claims register
-- `moonbook wiki query` for page search, answer synthesis from wiki pages, and saved query pages that also update durable query insights
-- `moonbook wiki lint` for orphan/index/placeholder/stale-wording/simple-contradiction plus missing-concept and weak-synthesis health checks against the maintained wiki layer
+- `moonbook wiki ingest` for one-source-at-a-time source ingestion that now also updates related entity pages, concept pages, relationship sections, synthesis pages, a structured claims register, a maintenance plan, and pending review items
+- `moonbook wiki query` for page search, answer synthesis from wiki pages, and saved query pages that also update durable query insights, cited page query signals, the maintenance plan, and pending review items
+- `moonbook wiki review` for listing, approving, and rejecting pending review items while promoting approved updates into the maintained wiki
+- `moonbook wiki lint` for orphan/index/placeholder/stale-wording/simple-contradiction plus missing-concept, weak-synthesis, and review-queue health checks against the maintained wiki layer
 - extension-based runtime integration with the first `moonclaw` pack
 - HTML output with sidebar navigation, breadcrumbs, and previous/next links
 - markdown rendering for the implemented mdBook-compatible cases listed in [docs/FEATURE_MATRIX.md](/Users/kq/Workspace/moonbook/docs/FEATURE_MATRIX.md)
@@ -52,6 +53,8 @@ moon run cmd/main -- wiki init ./research-wiki
 moon run cmd/main -- wiki enable moonclaw ./research-wiki
 moon run cmd/main -- wiki ingest ./research-wiki ./raw/article.md
 moon run cmd/main -- wiki query ./research-wiki "retrieval synthesis" --save
+moon run cmd/main -- wiki review list ./research-wiki
+moon run cmd/main -- wiki review approve ./research-wiki <review-id>
 moon run cmd/main -- wiki lint ./research-wiki
 moon run cmd/main -- build ./research-wiki
 moon run cmd/main -- watch ./book-example -o
@@ -82,7 +85,7 @@ moon test driver
 - `cmd/main/`
   native CLI entrypoint
 - `wiki/`
-  wiki workspace bootstrap, extension scaffolding, ingest, query, and lint flows
+  wiki workspace bootstrap, extension scaffolding, ingest, query, review, lint, and shared maintenance/workspace helpers
 - `internal/`
   copied filesystem and path helpers adapted from MoonClaw
 - `ui/`
@@ -101,4 +104,4 @@ moon test driver
 
 Moonbook currently behaves like a partial mdBook replacement for straightforward books. It includes static `serve`, polling `watch`, current CLI conveniences like `--open` and `--dest-dir`, generated 404 output, and some `output.html.*` support, but it does not yet provide full upstream behavior for websocket live reload, true native watcher parity, themes, search, preprocessors/plugins, print output, or the complete markdown/rendering edge-case surface of Rust mdBook.
 
-MoonBook also now includes the first wiki-server milestones: `moonbook wiki init` creates an agent-agnostic workspace with `raw/` immutable sources, a `wiki/` markdown knowledge base, `index.md`, `log.md`, and an `AGENTS.md` schema file. `moonbook wiki enable <extension>` installs optional runtime packs, with `moonclaw` as the first supported extension. That extension writes `moonclaw.json`, `moonclaw.jobs.json`, `IDENTITY.md`, `USER.md`, `ROUTINES.md`, and `MEMORY.md`, plus a manifest under `.moonbook/extensions/`. `moonbook wiki ingest` now goes beyond a source page: it imports a source, generates a durable wiki source page under `wiki/sources/`, updates related `wiki/entities/` and `wiki/concepts/` pages, updates `wiki/synthesis/overview.md`, updates `wiki/synthesis/claims.md`, and records all touched pages in `SUMMARY.md`, `index.md`, and `log.md`. `moonbook wiki query` searches the maintained wiki pages, synthesizes an answer with citations, and with `--save` files the result back into `wiki/queries/` plus `wiki/synthesis/query-insights.md`. `moonbook wiki lint` checks for orphan pages, missing index references, placeholder sections, stale wording, simple contradictory `X is Y` claims, missing concept pages, and weak synthesis/claim coverage, and records the lint pass in `wiki/log.md`. The workspace is now capable of init+enable+ingest+query+lint+serve while keeping the core wiki contract separate from any one agent runtime.
+MoonBook also now includes a stronger wiki-server slice: `moonbook wiki init` creates an agent-agnostic workspace with `raw/` immutable sources, a `wiki/` markdown knowledge base, `index.md`, `log.md`, `reviews/`, and an `AGENTS.md` schema file. `moonbook wiki enable <extension>` installs optional runtime packs, with `moonclaw` as the first supported extension. That extension writes `moonclaw.json`, `moonclaw.jobs.json`, `IDENTITY.md`, `USER.md`, `ROUTINES.md`, and `MEMORY.md`, plus a manifest under `.moonbook/extensions/`. `moonbook wiki ingest` imports a source, generates a durable wiki source page under `wiki/sources/`, updates related `wiki/entities/` and `wiki/concepts/` pages, adds relationship sections derived from claims, updates `wiki/synthesis/overview.md`, maintains structured `wiki/synthesis/claims.md` and `wiki/synthesis/maintenance-plan.md` pages with confidence/support/status markers, and queues contested or low-confidence items in `wiki/reviews/pending.md`. `moonbook wiki query` searches the maintained wiki pages, synthesizes an answer with citations, and with `--save` files the result back into `wiki/queries/`, `wiki/synthesis/query-insights.md`, cited wiki pages through `Query Signals`, the maintenance plan, and the pending review queue when the answer looks worth promoting. `moonbook wiki review` lists pending items and moves them through approve/reject lifecycle commands, updating `wiki/reviews/approved.md` and promoting approved changes back into synthesis/claims pages. `moonbook wiki lint` checks for orphan pages, missing index references, placeholder sections, stale wording, simple contradictory `X is Y` claims, missing concept pages, weak synthesis/claim coverage, and low-confidence claims that are not actually queued for review. The workspace is now capable of init+enable+ingest+query+review+lint+serve while keeping the core wiki contract separate from any one agent runtime.

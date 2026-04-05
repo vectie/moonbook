@@ -53,7 +53,23 @@ pub async fn init_workspace(
     .join(@path.Path("synthesis"))
     .to_string()
   let queries_dir = @path.Path(wiki_dir).join(@path.Path("queries")).to_string()
+  let reviews_dir = @path.Path(wiki_dir).join(@path.Path("reviews")).to_string()
   let sources_dir = @path.Path(wiki_dir).join(@path.Path("sources")).to_string()
+  let claims_path = @path.Path(synthesis_dir)
+    .join(@path.Path("claims.md"))
+    .to_string()
+  let maintenance_plan_path = @path.Path(synthesis_dir)
+    .join(@path.Path("maintenance-plan.md"))
+    .to_string()
+  let query_insights_path = @path.Path(synthesis_dir)
+    .join(@path.Path("query-insights.md"))
+    .to_string()
+  let pending_review_path = @path.Path(reviews_dir)
+    .join(@path.Path("pending.md"))
+    .to_string()
+  let approved_review_path = @path.Path(reviews_dir)
+    .join(@path.Path("approved.md"))
+    .to_string()
   let assets_keep_path = @path.Path(raw_assets_dir)
     .join(@path.Path(".gitkeep"))
     .to_string()
@@ -67,6 +83,7 @@ pub async fn init_workspace(
   @fsx.make_directory(concepts_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(synthesis_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(queries_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(reviews_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(sources_dir, recursive=true, exists_ok=true)
 
   write_if_missing(book_toml_path, book_toml_text(resolved_title))
@@ -77,6 +94,11 @@ pub async fn init_workspace(
   write_if_missing(home_path, home_text())
   write_if_missing(index_path, index_text())
   write_if_missing(log_path, log_text())
+  write_if_missing(claims_path, claims_text())
+  write_if_missing(maintenance_plan_path, maintenance_plan_text())
+  write_if_missing(query_insights_path, query_insights_text())
+  write_if_missing(pending_review_path, pending_review_text())
+  write_if_missing(approved_review_path, approved_review_text())
   write_if_missing(raw_readme_path, raw_readme_text())
   write_if_missing(assets_keep_path, "")
 
@@ -127,7 +149,12 @@ fn summary_text() -> String {
   "# Summary\n\n" +
   "- [Home](./Home.md)\n" +
   "- [Index](./index.md)\n" +
-  "- [Log](./log.md)\n"
+  "- [Log](./log.md)\n" +
+  "- [Claims Register](./synthesis/claims.md)\n" +
+  "- [Maintenance Plan](./synthesis/maintenance-plan.md)\n" +
+  "- [Query Insights](./synthesis/query-insights.md)\n" +
+  "- [Pending Review](./reviews/pending.md)\n" +
+  "- [Approved Review](./reviews/approved.md)\n"
 }
 
 ///|
@@ -137,6 +164,9 @@ fn home_text() -> String {
   "## Structure\n\n" +
   "- [Index](./index.md): content catalog of the wiki\n" +
   "- [Log](./log.md): append-only timeline of ingests, queries, and lint passes\n" +
+  "- [Claims Register](./synthesis/claims.md): structured claims extracted from sources\n" +
+  "- [Maintenance Plan](./synthesis/maintenance-plan.md): queued multi-page wiki revisions\n" +
+  "- [Pending Review](./reviews/pending.md): human review queue for contested or high-value updates\n" +
   "- `../raw/`: immutable source documents\n\n" +
   "## Usage\n\n" +
   "1. Drop a source into `raw/`\n" +
@@ -150,10 +180,17 @@ fn index_text() -> String {
   "## Core Pages\n\n" +
   "- [Home](./Home.md): wiki landing page\n" +
   "- [Index](./index.md): content catalog\n" +
-  "- [Log](./log.md): activity timeline\n\n" +
+  "- [Log](./log.md): activity timeline\n" +
+  "- [Claims Register](./synthesis/claims.md): structured claims with confidence and support markers\n" +
+  "- [Maintenance Plan](./synthesis/maintenance-plan.md): queued multi-page wiki revisions\n" +
+  "- [Query Insights](./synthesis/query-insights.md): durable insights from saved queries\n" +
+  "- [Pending Review](./reviews/pending.md): pending human review items\n" +
+  "- [Approved Review](./reviews/approved.md): accepted review decisions\n\n" +
   "## Entities\n\n" +
   "_None yet._\n\n" +
   "## Concepts\n\n" +
+  "_None yet._\n\n" +
+  "## Queries\n\n" +
   "_None yet._\n\n" +
   "## Sources\n\n" +
   "_None yet._\n"
@@ -178,6 +215,38 @@ fn raw_readme_text() -> String {
 }
 
 ///|
+fn claims_text() -> String {
+  "# Claims Register\n\n" +
+  "This page stores lightweight structured claims extracted from sources.\n\n" +
+  "## Claims\n\n" +
+  "_None yet._\n"
+}
+
+///|
+fn query_insights_text() -> String {
+  "# Query Insights\n\n" +
+  "This page accumulates durable insights captured from saved queries.\n\n" +
+  "## Insights\n\n" +
+  "_None yet._\n"
+}
+
+///|
+fn pending_review_text() -> String {
+  "# Pending Review\n\n" +
+  "This page queues low-confidence or contested updates for human review.\n\n" +
+  "## Items\n\n" +
+  "_None yet._\n"
+}
+
+///|
+fn approved_review_text() -> String {
+  "# Approved Review\n\n" +
+  "This page records review items that were accepted or resolved.\n\n" +
+  "## Items\n\n" +
+  "_None yet._\n"
+}
+
+///|
 fn schema_text() -> String {
   "# Wiki Maintainer Instructions\n\n" +
   "This workspace is a persistent LLM-maintained wiki.\n\n" +
@@ -186,6 +255,9 @@ fn schema_text() -> String {
   "- `wiki/`: maintained markdown knowledge base. The LLM owns updates here.\n" +
   "- `wiki/index.md`: content catalog. Update it whenever pages are added or meaningfully changed.\n" +
   "- `wiki/log.md`: append-only activity log. Add one entry per ingest, query, or lint pass.\n\n" +
+  "- `wiki/reviews/pending.md`: items that should be reviewed before being treated as trusted synthesis.\n" +
+  "- `wiki/reviews/approved.md`: review items that have been accepted or resolved.\n\n" +
+  "- `wiki/synthesis/maintenance-plan.md`: queue of planned multi-page wiki revisions.\n\n" +
   "## Extension Boundary\n\n" +
   "- Core wiki workspaces should stay agent-agnostic.\n" +
   "- Agent-specific runtime files should be installed through optional extension packs.\n" +
@@ -196,9 +268,10 @@ fn schema_text() -> String {
   "1. Read the source from `raw/`\n" +
   "2. Create or update relevant wiki pages in `wiki/`\n" +
   "3. Prefer revising related entity, concept, and synthesis pages instead of creating isolated summaries only\n" +
-  "3. Update `wiki/index.md`\n" +
-  "4. Append a timestamped entry to `wiki/log.md`\n" +
-  "5. Preserve uncertainty and note contradictions explicitly\n\n" +
+  "4. Update `wiki/index.md`\n" +
+  "5. Append a timestamped entry to `wiki/log.md`\n" +
+  "6. Preserve uncertainty and note contradictions explicitly\n" +
+  "7. Queue contested or low-confidence updates in `wiki/reviews/pending.md`\n\n" +
   "### Query\n\n" +
   "When answering a question:\n\n" +
   "1. Read `wiki/index.md` first\n" +
@@ -242,6 +315,10 @@ test "summary seeds wiki navigation pages" {
   assert_true(text.contains("[Home](./Home.md)"))
   assert_true(text.contains("[Index](./index.md)"))
   assert_true(text.contains("[Log](./log.md)"))
+  assert_true(text.contains("[Pending Review](./reviews/pending.md)"))
+  assert_true(
+    text.contains("[Maintenance Plan](./synthesis/maintenance-plan.md)"),
+  )
 }
 
 ///|
@@ -253,4 +330,5 @@ test "schema explains ingest query and lint workflows" {
   assert_true(text.contains("wiki/index.md"))
   assert_true(text.contains("wiki/log.md"))
   assert_true(text.contains("agent-agnostic"))
+  assert_true(text.contains("wiki/reviews/pending.md"))
 }

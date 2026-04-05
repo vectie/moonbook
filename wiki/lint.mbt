@@ -91,6 +91,9 @@ pub async fn lint_wiki(root : String) -> LintResult {
   for finding in weak_synthesis_findings(contents) {
     findings.push(finding)
   }
+  for finding in review_queue_findings(contents) {
+    findings.push(finding)
+  }
 
   let report = lint_report(findings)
   append_lint_log(
@@ -350,7 +353,9 @@ fn missing_concept_page_findings(
 }
 
 ///|
-fn weak_synthesis_findings(contents : Map[String, String]) -> Array[LintFinding] {
+fn weak_synthesis_findings(
+  contents : Map[String, String],
+) -> Array[LintFinding] {
   let findings : Array[LintFinding] = []
   let overview = contents.get("wiki/synthesis/overview.md").unwrap_or("")
   let claims = contents.get("wiki/synthesis/claims.md").unwrap_or("")
@@ -379,6 +384,76 @@ fn weak_synthesis_findings(contents : Map[String, String]) -> Array[LintFinding]
     }
   }
   findings
+}
+
+///|
+fn review_queue_findings(contents : Map[String, String]) -> Array[LintFinding] {
+  let findings : Array[LintFinding] = []
+  let claims = contents.get("wiki/synthesis/claims.md").unwrap_or("")
+  let pending = contents.get("wiki/reviews/pending.md").unwrap_or("")
+  let mut low_confidence_active = 0
+  for block in claim_blocks(claims) {
+    let confidence = claim_block_field(block, "- Confidence: `").unwrap_or("")
+    let status = claim_block_field(block, "- Status: `").unwrap_or("active")
+    if confidence == "low" &&
+      status != "approved" &&
+      !pending.contains(block[0]) {
+      findings.push({
+        kind: "unreviewed-low-confidence-claim",
+        path: Some("wiki/synthesis/claims.md"),
+        message: "low-confidence claim is not queued in `wiki/reviews/pending.md`: \{block[0]}",
+      })
+    }
+    if confidence == "low" && status == "active" {
+      low_confidence_active += 1
+    }
+  }
+  if low_confidence_active >= 3 {
+    findings.push({
+      kind: "review-backlog",
+      path: Some("wiki/reviews/pending.md"),
+      message: "wiki has \{low_confidence_active} active low-confidence claims; review backlog is growing",
+    })
+  }
+  findings
+}
+
+///|
+fn claim_blocks(content : String) -> Array[Array[String]] {
+  let blocks : Array[Array[String]] = []
+  let mut current : Array[String] = []
+  for raw in content.split("\n") {
+    let line = raw.to_string()
+    if line.has_prefix("### ") && !current.is_empty() {
+      let snapshot : Array[String] = []
+      for item in current {
+        snapshot.push(item)
+      }
+      blocks.push(snapshot)
+      current = []
+    }
+    if line.has_prefix("### ") || !current.is_empty() {
+      current.push(line)
+    }
+  }
+  if !current.is_empty() {
+    let snapshot : Array[String] = []
+    for item in current {
+      snapshot.push(item)
+    }
+    blocks.push(snapshot)
+  }
+  blocks
+}
+
+///|
+fn claim_block_field(lines : Array[String], prefix : String) -> String? {
+  for line in lines {
+    if line.has_prefix(prefix) && line.has_suffix("`") {
+      return Some(line[prefix.length():line.length() - 1].to_string())
+    }
+  }
+  None
 }
 
 ///|
@@ -573,4 +648,17 @@ test "weak synthesis findings detect uncovered source" {
     "wiki/synthesis/claims.md": "# Claims\n\n",
   })
   assert_eq(findings.length(), 2)
+}
+
+///|
+test "review queue findings flag low confidence claims not queued" {
+  let findings = review_queue_findings({
+    "wiki/synthesis/claims.md": "# Claims\n\n## Claims\n\n" +
+    "### Alpha :: beta\n\n" +
+    "- Confidence: `low`\n" +
+    "- Status: `active`\n",
+    "wiki/reviews/pending.md": "# Pending Review\n\n## Items\n\n_None yet._\n",
+  })
+  assert_eq(findings.length(), 1)
+  assert_eq(findings[0].kind, "unreviewed-low-confidence-claim")
 }

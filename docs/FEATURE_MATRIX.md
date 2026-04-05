@@ -13,6 +13,9 @@ Implemented commands:
 - `moonbook wiki enable <extension> [root]`
 - `moonbook wiki ingest [root] <source>`
 - `moonbook wiki query [root] <question> [--save]`
+- `moonbook wiki review list [root]`
+- `moonbook wiki review approve [root] <review-id>`
+- `moonbook wiki review reject [root] <review-id>`
 - `moonbook wiki lint [root]`
 - `moonbook watch [root] [-d dest-dir] [-o] [--watcher poll|native]`
 - `moonbook load [root]`
@@ -36,6 +39,7 @@ Implemented behaviors:
 - `wiki init` scaffolds `raw/`, `wiki/`, `AGENTS.md`, `wiki.toml`, and a MoonBook-compatible `book.toml`
 - `wiki init` keeps the core workspace agent-agnostic
 - `wiki init` seeds `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
+- `wiki init` seeds claims, maintenance-plan, query-insights, pending-review, and approved-review pages
 - `wiki init` outputs a workspace that can immediately be built with `moonbook build`
 - `wiki enable moonclaw` installs MoonClaw-specific runtime/config/workspace files without overwriting them
 - `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`
@@ -43,14 +47,23 @@ Implemented behaviors:
 - `wiki ingest` generates `wiki/sources/<slug>.md`
 - `wiki ingest` generates or updates related `wiki/entities/*.md` pages for lightweight extracted entities
 - `wiki ingest` generates or updates related `wiki/concepts/*.md` pages for lightweight extracted concepts
+- `wiki ingest` adds relationship entries to relevant entity pages based on extracted claims
 - `wiki ingest` updates `wiki/synthesis/overview.md` with cross-source entries
-- `wiki ingest` updates `wiki/synthesis/claims.md` with lightweight extracted claims and confidence markers
+- `wiki ingest` updates `wiki/synthesis/claims.md` with structured claims, confidence markers, support counts, status, and superseded markers
+- `wiki ingest` updates `wiki/synthesis/maintenance-plan.md` with a multi-page follow-up entry
+- `wiki ingest` queues contested or low-confidence updates in `wiki/reviews/pending.md`
 - `wiki ingest` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
 - `wiki query` searches markdown pages under `wiki/`
 - `wiki query` returns a synthesized markdown answer with citations to wiki pages
 - `wiki query --save` writes `wiki/queries/<slug>.md`
 - `wiki query --save` updates `wiki/synthesis/query-insights.md`
+- `wiki query --save` propagates `Query Signals` into cited entity/concept/source pages
+- `wiki query --save` updates `wiki/synthesis/maintenance-plan.md`
+- `wiki query --save` can queue pending review items for promoting saved answers into maintained wiki pages
 - `wiki query --save` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
+- `wiki review list` enumerates pending review ids/kinds/status/titles
+- `wiki review approve` moves items from pending to approved and promotes approved changes into synthesis/claims pages
+- `wiki review reject` moves items from pending to approved with rejected status
 - `wiki lint` detects orphan pages
 - `wiki lint` detects pages missing from `wiki/index.md`
 - `wiki lint` detects placeholder sections still left in `wiki/index.md`
@@ -59,6 +72,8 @@ Implemented behaviors:
 - `wiki lint` detects simple contradictory `X is Y` claims across pages
 - `wiki lint` detects missing concept pages implied by existing content
 - `wiki lint` detects weak synthesis/claim coverage for source pages
+- `wiki lint` detects low-confidence claims that are not queued for review
+- `wiki lint` detects review backlog growth from multiple active low-confidence claims
 - `wiki lint` appends a lint pass to `wiki/log.md`
 - `watch` performs an initial build, then polls for source/config changes
 - `watch` supports `--dest-dir`

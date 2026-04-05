@@ -27,6 +27,7 @@ async fn run_wiki(args : Array[String]) -> Unit {
     ["enable", extension] => run_wiki_enable(".", extension)
     ["lint", root] => run_wiki_lint(root)
     ["lint"] => run_wiki_lint(".")
+    ["review", .. review_args] => run_wiki_review(review_args.to_array())
     ["query", .. query_args] => run_wiki_query(query_args.to_array())
     ["ingest", root, source] => run_wiki_ingest(root, source)
     ["ingest", source] => run_wiki_ingest(".", source)
@@ -34,7 +35,7 @@ async fn run_wiki(args : Array[String]) -> Unit {
     ["init"] => run_wiki_init(".")
     _ =>
       println(
-        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki lint [root]",
+        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki lint [root]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>",
       )
   }
 }
@@ -113,6 +114,68 @@ async fn run_wiki_lint(root : String) -> Unit {
     }
   }
   println(result.report)
+}
+
+///|
+async fn run_wiki_review(args : Array[String]) -> Unit {
+  match args {
+    ["list", root] => run_wiki_review_list(root)
+    ["list"] => run_wiki_review_list(".")
+    ["approve", root, review_id] =>
+      run_wiki_review_action(root, review_id, "approve")
+    ["approve", review_id] => run_wiki_review_action(".", review_id, "approve")
+    ["reject", root, review_id] =>
+      run_wiki_review_action(root, review_id, "reject")
+    ["reject", review_id] => run_wiki_review_action(".", review_id, "reject")
+    _ =>
+      println(
+        "moonbook wiki review usage: moonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>",
+      )
+  }
+}
+
+///|
+async fn run_wiki_review_list(root : String) -> Unit {
+  let items = @wiki.list_pending_reviews(root) catch {
+    error => {
+      println("moonbook wiki review failed: \{error}")
+      return
+    }
+  }
+  if items.is_empty() {
+    println("no pending review items")
+    return
+  }
+  for item in items {
+    println("\{item.review_id}\t\{item.kind}\t\{item.status}\t\{item.title}")
+  }
+}
+
+///|
+async fn run_wiki_review_action(
+  root : String,
+  review_id : String,
+  action : String,
+) -> Unit {
+  let result = if action == "approve" {
+    @wiki.approve_review(root, review_id) catch {
+      error => {
+        println("moonbook wiki review failed: \{error}")
+        return
+      }
+    }
+  } else {
+    @wiki.reject_review(root, review_id) catch {
+      error => {
+        println("moonbook wiki review failed: \{error}")
+        return
+      }
+    }
+  }
+  println("\{action}d review \{result.review_id}")
+  for page in result.promoted_pages {
+    println("updated: wiki/\{page}")
+  }
 }
 
 ///|

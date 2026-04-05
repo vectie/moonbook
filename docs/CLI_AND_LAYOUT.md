@@ -54,6 +54,7 @@ Bootstraps a wiki workspace instead of a plain mdBook:
 5. writes `book.toml` with `src = "wiki"` so the workspace can already be built and served by MoonBook
 6. writes `wiki.toml` as a small machine-readable workspace descriptor
 7. creates reserved directories for `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
+8. seeds `wiki/synthesis/claims.md`, `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/query-insights.md`, `wiki/reviews/pending.md`, and `wiki/reviews/approved.md`
 
 ### `moon run cmd/main -- wiki enable <extension> [root]`
 
@@ -79,11 +80,14 @@ Ingests one source into an existing wiki workspace:
 5. extracts lightweight candidate entities and concepts from text sources
 6. creates or updates related `wiki/entities/*.md` pages
 7. creates or updates related `wiki/concepts/*.md` pages
-8. creates or updates `wiki/synthesis/overview.md`
-9. creates or updates `wiki/synthesis/claims.md` when claim-like statements are detected
-10. appends touched pages to `wiki/SUMMARY.md`
-11. updates the relevant sections in `wiki/index.md`
-12. appends an ingest event to `wiki/log.md`
+8. adds relationship entries to relevant entity pages when structured claims point at entities or concepts
+9. creates or updates `wiki/synthesis/overview.md`
+10. creates or updates `wiki/synthesis/claims.md` with structured claim entries, support counts, status, and superseded markers when claim-like statements are detected
+11. creates or updates `wiki/synthesis/maintenance-plan.md` with a multi-page follow-up entry
+12. queues contested or low-confidence claim updates in `wiki/reviews/pending.md`
+13. appends touched pages to `wiki/SUMMARY.md`
+14. updates the relevant sections in `wiki/index.md`
+15. appends an ingest event to `wiki/log.md`
 
 ### `moon run cmd/main -- wiki query [root] <question> [--save]`
 
@@ -94,7 +98,40 @@ Queries the maintained wiki layer instead of raw files:
 3. prints a synthesized markdown answer with page citations
 4. with `--save`, writes the result to `wiki/queries/<slug>.md`
 5. with `--save`, also updates `wiki/synthesis/query-insights.md`
-6. with `--save`, also updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
+6. with `--save`, propagates `Query Signals` into cited entity/concept/source pages
+7. with `--save`, updates `wiki/synthesis/maintenance-plan.md`
+8. with `--save`, can queue a pending review item for promoting the answer into maintained wiki pages
+9. with `--save`, also updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
+
+### `moon run cmd/main -- wiki review list [root]`
+
+Lists pending review items with:
+
+- review id
+- review kind
+- status
+- title
+
+### `moon run cmd/main -- wiki review approve [root] <review-id>`
+
+Approves one pending review item:
+
+1. removes it from `wiki/reviews/pending.md`
+2. appends it to `wiki/reviews/approved.md`
+3. promotes the approved result back into synthesis pages
+4. for claim reviews, updates `wiki/synthesis/claims.md`
+5. for query reviews, updates `wiki/synthesis/overview.md`
+6. updates `wiki/synthesis/maintenance-plan.md`
+7. appends a review event to `wiki/log.md`
+
+### `moon run cmd/main -- wiki review reject [root] <review-id>`
+
+Rejects one pending review item:
+
+1. removes it from `wiki/reviews/pending.md`
+2. appends it to `wiki/reviews/approved.md` with rejected status
+3. updates `wiki/synthesis/maintenance-plan.md`
+4. appends a review event to `wiki/log.md`
 
 ### `moon run cmd/main -- wiki lint [root]`
 
@@ -109,8 +146,10 @@ Runs a health check against the maintained wiki layer:
 7. detects simple contradictory `X is Y` claims across pages
 8. detects missing concept pages implied by existing source/entity/synthesis content
 9. detects weak synthesis coverage for sources not reflected in synthesis pages
-10. prints a markdown lint report
-11. appends a lint event to `wiki/log.md`
+10. detects low-confidence claims that are not actually queued in the review system
+11. detects growing low-confidence review backlog
+12. prints a markdown lint report
+13. appends a lint event to `wiki/log.md`
 
 Current defaults:
 
@@ -230,7 +269,28 @@ Contains internal filesystem/path helpers and a minimal HTTP static server adapt
 
 ### `wiki/`
 
-Contains the first wiki-oriented subsystem. It currently handles workspace initialization, optional runtime extension scaffolding, one-source-at-a-time ingestion, wiki-first querying with optional saved query pages, and lint-style health checks. Future deeper contradiction analysis should live here rather than inside the mdBook driver or HTTP server packages.
+Contains the first wiki-oriented subsystem. It currently handles workspace initialization, optional runtime extension scaffolding, one-source-at-a-time ingestion, wiki-first querying with optional saved query pages, review lifecycle commands, lint-style health checks, and shared internal helpers for workspace resolution plus maintenance-plan/review-page updates. Future deeper contradiction analysis should live here rather than inside the mdBook driver or HTTP server packages.
+
+Current package organization:
+
+- `init.mbt`
+  workspace bootstrap and seeded wiki files
+- `extensions.mbt`
+  optional runtime/agent extension installation
+- `ingest.mbt`
+  source import, entity/concept extraction, relationship updates, and claims maintenance
+- `query.mbt`
+  wiki-first ranking, answer synthesis, saved query pages, and query-signal propagation
+- `review.mbt`
+  pending review listing plus approve/reject lifecycle actions
+- `lint.mbt`
+  structural and review/claim health checks
+- `workspace.mbt`
+  shared workspace path resolution
+- `maintenance.mbt`
+  shared synthesis maintenance-plan writing
+- `review_helpers.mbt`
+  shared parsing and normalization for review pages
 
 ### Wiki Workspace Files
 
@@ -251,9 +311,15 @@ Created by `moonbook wiki init`:
 - `wiki/synthesis/`
   reserved directory for synthesis pages
 - `wiki/synthesis/claims.md`
-  lightweight extracted claims with simple confidence markers when present
+  lightweight structured claims with confidence/support/status/superseded markers when present
+- `wiki/synthesis/maintenance-plan.md`
+  queued multi-page maintenance actions produced by ingest, query, and review flows
 - `wiki/synthesis/query-insights.md`
   durable insights captured from saved queries
+- `wiki/reviews/pending.md`
+  queued review items for contested claims or high-value query promotions
+- `wiki/reviews/approved.md`
+  accepted or resolved review items
 - `AGENTS.md`
   wiki-maintainer schema instructions
 - `wiki.toml`

@@ -45,12 +45,12 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 
 ### Wiki/Agent Gaps
 
-- ingest now updates source pages plus first-pass `entities/`, `concepts/`, `synthesis/overview.md`, and `synthesis/claims.md`, but it still does not do rich multi-page synthesis maintenance
+- ingest now updates source pages plus first-pass `entities/`, `concepts/`, relationship sections, `synthesis/overview.md`, `synthesis/claims.md`, `synthesis/maintenance-plan.md`, and pending review items, but it still does not do rich domain-specific synthesis maintenance
 - query is still keyword-ranked page synthesis rather than a deeper agentic read-plan-update workflow
 - `moonclaw` is the only extension pack today
 - `moonclaw.jobs.json` is a seeded profile template, not a domain-tuned job pack
-- claim tracking is still lightweight: no supersession, support strength, or structured confidence model beyond simple markers
-- no review/approval workflow for agent-proposed wiki edits
+- claim tracking is stronger now with support/confidence/status/superseded markers, but it is still heuristic rather than a true claim graph with explicit evidence weighting
+- review workflow now has list/approve/reject commands and an approved page, but it still lacks a richer operator UI and merge-policy system
 
 ### Rendering Gaps
 
@@ -70,11 +70,11 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 
 High-value next steps:
 
-1. upgrade `wiki ingest` to create and revise `entities/`, `concepts/`, and `synthesis/` pages
-2. generalize the extension-pack format beyond the first `moonclaw` pack
-3. turn the seeded MoonClaw wiki job profiles into a real domain workflow pack
-4. continue renderer parity with more mdBook rendering tests
-5. connect Rabbita to real built-book state and navigation
+1. deepen wiki synthesis beyond the current overview/claims/maintenance-plan pages into richer domain-specific multi-page revisions
+2. turn review approvals into stronger page-specific revisions instead of mainly synthesis/claims updates
+3. generalize the extension-pack format beyond the first `moonclaw` pack
+4. turn the seeded MoonClaw wiki job profiles into a real domain workflow pack
+5. continue renderer parity with more mdBook rendering tests
 
 ## Documentation Rule
 

@@ -98,6 +98,7 @@ fn is_queryable_page(path : String) -> Bool {
   base != "index.md" &&
   base != "log.md" &&
   !normalized.has_suffix("/wiki/synthesis/query-insights.md") &&
+  !normalized.contains("/wiki/reviews/") &&
   !normalized.contains("/wiki/queries/")
 }
 
@@ -273,14 +274,38 @@ async fn save_query_answer(
   )
   let related_pages : Array[String] = [relative_page]
   related_pages.push(
-    update_query_insights(
-      workspace,
-      question,
-      relative_page,
-      citations,
-      answer,
-    ),
+    update_query_insights(workspace, question, relative_page, citations, answer),
   )
+  for
+    page in propagate_query_signals(
+      workspace, question, relative_page, citations, answer,
+    ) {
+    if !related_pages.contains(page) {
+      related_pages.push(page)
+    }
+  }
+  let review_page = queue_query_review(
+    workspace, question, relative_page, citations, answer,
+  )
+  if !review_page.is_empty() {
+    related_pages.push(review_page)
+  }
+  let maintenance_plan_page = ensure_maintenance_plan_entry(
+    workspace,
+    "Query: \{question}",
+    "query",
+    "wiki/" + relative_page,
+    citations.map(citation => {
+      citation.strip_prefix("wiki/").unwrap_or(citation).to_string()
+    }),
+    [
+      "candidate insight: \{query_insight_summary(answer)}",
+      "citations: \{citations.length()}",
+    ],
+  )
+  if !related_pages.contains(maintenance_plan_page) {
+    related_pages.push(maintenance_plan_page)
+  }
   append_query_log(
     @path.Path(workspace.wiki_dir).join(@path.Path("log.md")).to_string(),
     question,
@@ -288,6 +313,49 @@ async fn save_query_answer(
     related_pages,
   )
   (page_path, related_pages)
+}
+
+///|
+async fn propagate_query_signals(
+  workspace : Paths,
+  question : String,
+  relative_query_page : String,
+  citations : Array[String],
+  answer : String,
+) -> Array[String] {
+  let updated_pages : Array[String] = []
+  let insight = query_insight_summary(answer)
+  for citation in citations {
+    let page_relative = citation
+      .strip_prefix("wiki/")
+      .unwrap_or(citation)
+      .to_string()
+    if !page_relative.has_prefix("entities/") &&
+      !page_relative.has_prefix("concepts/") &&
+      !page_relative.has_prefix("sources/") {
+      continue
+    }
+    let page_path = @path.Path(workspace.root)
+      .join(@path.Path(citation))
+      .to_string()
+    if !@fsx.exists(page_path) {
+      continue
+    }
+    let query_link = relative_from_page(
+      "wiki/" + page_relative,
+      "wiki/" + relative_query_page,
+    )
+    let updated = append_list_entry(
+      @fsx.read_file(page_path),
+      "## Query Signals",
+      "- [Query: \{question}](\{query_link}): \{insight}",
+    )
+    @fsx.write_to_file(page_path, updated, create=0o644)
+    if !updated_pages.contains(page_relative) {
+      updated_pages.push(page_relative)
+    }
+  }
+  updated_pages
 }
 
 ///|
@@ -388,7 +456,11 @@ async fn update_query_insights(
   }
   builder.write_string("- Insight: \{query_insight_summary(answer)}\n\n")
   let block = builder.to_string()
-  let existing = if @fsx.exists(page_path) { @fsx.read_file(page_path) } else { "" }
+  let existing = if @fsx.exists(page_path) {
+    @fsx.read_file(page_path)
+  } else {
+    ""
+  }
   let updated = if existing.is_empty() {
     "# Query Insights\n\n" +
     "This page accumulates durable insights captured from saved queries.\n\n" +
@@ -405,6 +477,60 @@ async fn update_query_insights(
     "Query Insights",
     relative_page,
     "durable insights captured from saved queries",
+  )
+  relative_page
+}
+
+///|
+async fn queue_query_review(
+  workspace : Paths,
+  question : String,
+  relative_query_page : String,
+  citations : Array[String],
+  answer : String,
+) -> String {
+  if citations.is_empty() {
+    return ""
+  }
+  let relative_page = "reviews/pending.md"
+  let page_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(relative_page))
+    .to_string()
+  let query_link = relative_from_page(
+    "wiki/" + relative_page,
+    "wiki/" + relative_query_page,
+  )
+  let existing = if @fsx.exists(page_path) {
+    @fsx.read_file(page_path)
+  } else {
+    "# Pending Review\n\n## Items\n\n_None yet._\n"
+  }
+  let review_id = "query-review-\{slugify_title(question)}"
+  let builder = StringBuilder::new()
+  builder.write_string("### Query review | \{question}\n\n")
+  builder.write_string("- Review ID: `\{review_id}`\n")
+  builder.write_string("- Query page: [Query: \{question}](\{query_link})\n")
+  builder.write_string("- Status: `pending`\n")
+  builder.write_string(
+    "- Reason: decide whether this saved query should revise synthesis, concept, or entity pages\n",
+  )
+  builder.write_string(
+    "- Citations: " +
+    citations.map(citation => "`\{citation}`").join(", ") +
+    "\n",
+  )
+  builder.write_string(
+    "- Candidate insight: \{query_insight_summary(answer)}\n\n",
+  )
+  let updated = append_section_block(existing, "## Items", builder.to_string())
+  @fsx.write_to_file(page_path, updated, create=0o644)
+  update_summary(workspace.summary_path, "Pending Review", relative_page)
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Core Pages",
+    "Pending Review",
+    relative_page,
+    "queue of human review items for contested or high-value updates",
   )
   relative_page
 }

@@ -2,6 +2,8 @@
 package "username/moonbook/wiki"
 
 // Values
+pub async fn approve_review(String, String) -> ReviewActionResult
+
 pub async fn enable_extension(String, String) -> ExtensionInstallResult
 
 pub async fn ingest_source(String, String) -> IngestResult
@@ -10,7 +12,11 @@ pub async fn init_workspace(String, title? : String?) -> WikiWorkspace
 
 pub async fn lint_wiki(String) -> LintResult
 
+pub async fn list_pending_reviews(String) -> Array[ReviewItem]
+
 pub async fn query_wiki(String, String, save? : Bool) -> QueryResult
+
+pub async fn reject_review(String, String) -> ReviewActionResult
 
 pub fn supported_extensions() -> Array[String]
 
@@ -51,14 +57,34 @@ pub struct LintResult {
 pub impl Show for LintResult
 pub impl ToJson for LintResult
 
+type Paths
+
 pub struct QueryResult {
   question : String
   answer : String
   citations : Array[String]
   saved_page : String?
+  related_pages : Array[String]
 }
 pub impl Show for QueryResult
 pub impl ToJson for QueryResult
+
+pub struct ReviewActionResult {
+  review_id : String
+  action : String
+  promoted_pages : Array[String]
+}
+pub impl Show for ReviewActionResult
+pub impl ToJson for ReviewActionResult
+
+pub struct ReviewItem {
+  review_id : String
+  kind : String
+  title : String
+  status : String
+}
+pub impl Show for ReviewItem
+pub impl ToJson for ReviewItem
 
 pub struct WikiWorkspace {
   root : String
