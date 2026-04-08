@@ -1,10 +1,12 @@
 # MoonBook
 
-> 📚 MoonBit-native mdBook port + 🧱 static renderer + 🌐 local server + 🧠 persistent wiki workspace
+> 📚 MoonBit-native rewrite of rust-lang/mdBook + 🧱 static renderer + 🌐 local server + 🧠 persistent wiki workspace
 
 `MoonBit` `mdBook` `Wiki` `SUMMARY.md` `HTML Renderer` `Serve` `Watch` `Rabbita`
 
-MoonBook is a MoonBit rewrite of the mdBook toolchain, extended into a local wiki-maintainer workspace instead of stopping at static book generation.
+MoonBook is a MoonBit rewrite of [rust-lang/mdBook](https://github.com/rust-lang/mdBook), extended into a local wiki-maintainer workspace instead of stopping at static book generation.
+
+The project is also motivated by [karpathy/llm-wiki.md](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f): the idea that raw sources should accumulate into a persistent, maintained markdown wiki rather than being rediscovered from scratch at query time.
 
 It is designed for:
 
