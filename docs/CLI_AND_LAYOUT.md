@@ -54,7 +54,7 @@ Bootstraps a wiki workspace instead of a plain mdBook:
 5. writes `book.toml` with `src = "wiki"` so the workspace can already be built and served by MoonBook
 6. writes `wiki.toml` as a small machine-readable workspace descriptor
 7. creates reserved directories for `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
-8. seeds `wiki/synthesis/claims.md`, `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/query-insights.md`, `wiki/reviews/pending.md`, and `wiki/reviews/approved.md`
+8. seeds `wiki/synthesis/claims.md`, `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/query-insights.md`, `wiki/synthesis/observations.md`, `wiki/reviews/pending.md`, and `wiki/reviews/approved.md`
 
 ### `moon run cmd/main -- wiki enable <extension> [root]`
 
@@ -68,6 +68,63 @@ Installs an optional runtime/agent extension pack into an existing wiki workspac
 Current supported extensions:
 
 - `moonclaw`
+- `moontown`
+
+### `moon run cmd/main -- wiki book accept [root] <goal>`
+
+Runs the town-to-book acceptance check and prints JSON:
+
+1. inspects the current book state
+2. plans a local task batch for the goal
+3. returns whether the goal is accepted into book-local planning
+
+### `moon run cmd/main -- wiki book tasks [root] <goal>`
+
+Produces a machine-readable local task batch for a town-issued goal:
+
+1. inspects current book state and review backlog
+2. derives local review, synthesis, analysis, or ingest-follow-up tasks
+3. prints a JSON task batch
+
+### `moon run cmd/main -- wiki book context [root] <goal> [--task <task-id>]`
+
+Hydrates a worker-ready context bundle:
+
+1. derives the local task batch for the goal
+2. selects the first task or the requested `--task`
+3. packages prompt, policy lines, routine lines, context pages, and memory summary
+4. prints a JSON worker context bundle
+
+### `moon run cmd/main -- wiki book persist [root] <result.json>`
+
+Persists a machine-readable worker result back into the book:
+
+1. reads a JSON `BookResult`
+2. appends it to `wiki/synthesis/observations.md`
+3. promotes durable memory candidates into target pages
+4. updates `wiki/synthesis/maintenance-plan.md`
+5. optionally queues a review item
+6. appends a persist event to `wiki/log.md`
+
+### `moon run cmd/main -- wiki book catalog [root]`
+
+Prints a JSON catalog record aligned with the current `moontown` persisted book-provider boundary:
+
+- book id
+- display name
+- purpose
+- workspace root
+- memory scope
+- tags
+- skills
+
+### `moon run cmd/main -- wiki book summary [root]`
+
+Prints a JSON summary of current book-local state.
+
+### `moon run cmd/main -- wiki book health [root]`
+
+Prints a JSON health report for the book.
 
 ### `moon run cmd/main -- wiki ingest [root] <source>`
 
@@ -269,7 +326,7 @@ Contains internal filesystem/path helpers and a minimal HTTP static server adapt
 
 ### `wiki/`
 
-Contains the first wiki-oriented subsystem. It currently handles workspace initialization, optional runtime extension scaffolding, one-source-at-a-time ingestion, wiki-first querying with optional saved query pages, review lifecycle commands, lint-style health checks, and shared internal helpers for workspace resolution plus maintenance-plan/review-page updates. Future deeper contradiction analysis should live here rather than inside the mdBook driver or HTTP server packages.
+Contains the first wiki-oriented subsystem. It currently handles workspace initialization, optional runtime extension scaffolding, one-source-at-a-time ingestion, wiki-first querying with optional saved query pages, review lifecycle commands, town-facing book-harness APIs, lint-style health checks, and shared internal helpers for workspace resolution plus maintenance-plan/review-page updates. Future deeper contradiction analysis should live here rather than inside the mdBook driver or HTTP server packages.
 
 Related architecture docs:
 
@@ -283,6 +340,8 @@ Current package organization:
   workspace bootstrap and seeded wiki files
 - `extensions.mbt`
   optional runtime/agent extension installation
+- `bookapi.mbt`
+  reusable town-facing book harness APIs for planning, context hydration, result persistence, catalog export, summary, and health
 - `ingest.mbt`
   source import, entity/concept extraction, relationship updates, and claims maintenance
 - `query.mbt`
@@ -322,6 +381,8 @@ Created by `moonbook wiki init`:
   queued multi-page maintenance actions produced by ingest, query, and review flows
 - `wiki/synthesis/query-insights.md`
   durable insights captured from saved queries
+- `wiki/synthesis/observations.md`
+  persisted worker results and promoted observations
 - `wiki/reviews/pending.md`
   queued review items for contested claims or high-value query promotions
 - `wiki/reviews/approved.md`
@@ -340,9 +401,24 @@ Installed by `moonbook wiki enable moonclaw [root]`:
 - `moonclaw.json`
   points MoonClaw at the same workspace root
 - `moonclaw.jobs.json`
-  seeds wiki-oriented MoonClaw job profiles
-- `IDENTITY.md`, `USER.md`, `ROUTINES.md`, `MEMORY.md`
+  seeds role-aware wiki controller/worker profiles aligned with MoonClaw's role substrate
+- `IDENTITY.md`, `USER.md`, `ROUTINES.md`, `MEMORY.md`, `KEEPER.md`
   MoonClaw-managed workspace context files
+- `skills/wiki-maintainer/SKILL.md`
+  host-owned keeper/revision skill for MoonBook wiki maintenance
+- `skills/wiki-review/SKILL.md`
+  host-owned review skill for MoonBook wiki consistency checks
+
+### `moontown` Extension Pack
+
+Installed by `moonbook wiki enable moontown [root]`:
+
+- `moontown.book.json`
+  machine-readable manifest describing the optional town-to-book API commands plus catalog export
+- `BOOK_API.md`
+  human-readable guide for the town-facing book boundary
+
+This pack does not change the core wiki directories or make MoonBook depend on Moontown at runtime. It only advertises the optional book-harness surface over the same workspace.
 
 ### `ui/`
 

@@ -12,6 +12,7 @@ Current commands:
 - `moonbook wiki enable`
 - `moonbook wiki ingest`
 - `moonbook wiki query`
+- `moonbook wiki book`
 - `moonbook wiki review`
 - `moonbook wiki lint`
 
@@ -33,6 +34,7 @@ This creates:
 - `wiki/synthesis/claims.md`
 - `wiki/synthesis/maintenance-plan.md`
 - `wiki/synthesis/query-insights.md`
+- `wiki/synthesis/observations.md`
 - `wiki/reviews/pending.md`
 - `wiki/reviews/approved.md`
 
@@ -40,6 +42,8 @@ This creates:
 
 ```bash
 moon run cmd/main -- wiki enable moonclaw ./research-wiki
+moon run cmd/main -- wiki enable moontown ./research-wiki
+moon run cmd/main -- wiki book catalog ./research-wiki
 ```
 
 This is optional. It installs runtime-specific files without changing the core workspace contract.
@@ -79,7 +83,28 @@ Current query behavior:
 - updates `wiki/synthesis/maintenance-plan.md`
 - can queue a review item for later promotion
 
-### 5. Review
+### 5. Book Harness APIs
+
+For town-level orchestration, MoonBook can expose a machine-readable book boundary:
+
+```bash
+moon run cmd/main -- wiki book tasks ./research-wiki "refresh synthesis for recent ingest"
+moon run cmd/main -- wiki book context ./research-wiki "refresh synthesis for recent ingest" --task goal-refresh-synthesis
+moon run cmd/main -- wiki book summary ./research-wiki
+moon run cmd/main -- wiki book health ./research-wiki
+```
+
+Current book-harness behavior:
+
+- exports a catalog record for persisted town bootstrap
+- accepts town-style goals into book-local planning
+- produces local tasks inside the book boundary
+- hydrates worker context from book policy, routines, and durable wiki pages
+- persists worker results into `synthesis/observations.md`
+- promotes durable memory candidates into target pages
+- reports book-local state and health without requiring a town runtime
+
+### 6. Review
 
 List pending review items:
 
@@ -107,7 +132,7 @@ Current review behavior:
 - updates `synthesis/maintenance-plan.md`
 - appends the action to `wiki/log.md`
 
-### 6. Lint
+### 7. Lint
 
 ```bash
 moon run cmd/main -- wiki lint ./research-wiki
@@ -143,6 +168,8 @@ The maintained wiki currently revolves around these page families:
   queued follow-up work
 - `wiki/synthesis/query-insights.md`
   durable saved-query insights
+- `wiki/synthesis/observations.md`
+  persisted worker results and promoted observations
 - `wiki/reviews/`
   pending and approved operator review items
 

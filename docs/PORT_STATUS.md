@@ -9,8 +9,11 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 - end-to-end local CLI flow for `init`, `build`, `serve`, `watch`, `load`, `test`, and `clean`
 - first wiki bootstrap flow with `moonbook wiki init`
 - first extension-based runtime integration flow with `moonbook wiki enable`
+- optional `moontown` add-on for a town-facing book harness boundary
+- `moontown`-aligned catalog export for persisted town bootstrap
 - first wiki ingest flow with `moonbook wiki ingest`
 - first wiki query flow with `moonbook wiki query`
+- first reusable book-harness API flow with `moonbook wiki book`
 - first wiki lint flow with `moonbook wiki lint`
 - extension manifests under `.moonbook/extensions/`
 - static HTML generation for normal chapter trees
@@ -47,8 +50,9 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 
 - ingest now updates source pages plus first-pass `entities/`, `concepts/`, relationship sections, `synthesis/overview.md`, `synthesis/claims.md`, `synthesis/maintenance-plan.md`, and pending review items, but it still does not do rich domain-specific synthesis maintenance
 - query is still keyword-ranked page synthesis rather than a deeper agentic read-plan-update workflow
-- `moonclaw` is the only extension pack today
-- `moonclaw.jobs.json` is a seeded profile template, not a domain-tuned job pack
+- `moonclaw` and `moontown` are the current extension packs
+- `moonclaw.jobs.json` is now role-aware and closer to the current wiki-maintainer pack shape, but it is still a seeded host pack rather than a fully exercised production workflow
+- the new book-harness API and catalog export are file/CLI-oriented today; they are not yet a stronger RPC/service boundary
 - claim tracking is stronger now with support/confidence/status/superseded markers, but it is still heuristic rather than a true claim graph with explicit evidence weighting
 - review workflow now has list/approve/reject commands and an approved page, but it still lacks a richer operator UI and merge-policy system
 
@@ -72,7 +76,7 @@ High-value next steps:
 
 1. deepen wiki synthesis beyond the current overview/claims/maintenance-plan pages into richer domain-specific multi-page revisions
 2. turn review approvals into stronger page-specific revisions instead of mainly synthesis/claims updates
-3. generalize the extension-pack format beyond the first `moonclaw` pack
+3. turn the `moontown` add-on from a manifest bridge into a stronger town/book integration contract
 4. turn the seeded MoonClaw wiki job profiles into a real domain workflow pack
 5. continue renderer parity with more mdBook rendering tests
 

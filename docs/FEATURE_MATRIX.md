@@ -13,6 +13,13 @@ Implemented commands:
 - `moonbook wiki enable <extension> [root]`
 - `moonbook wiki ingest [root] <source>`
 - `moonbook wiki query [root] <question> [--save]`
+- `moonbook wiki book accept [root] <goal>`
+- `moonbook wiki book tasks [root] <goal>`
+- `moonbook wiki book context [root] <goal> [--task <task-id>]`
+- `moonbook wiki book persist [root] <result.json>`
+- `moonbook wiki book catalog [root]`
+- `moonbook wiki book summary [root]`
+- `moonbook wiki book health [root]`
 - `moonbook wiki review list [root]`
 - `moonbook wiki review approve [root] <review-id>`
 - `moonbook wiki review reject [root] <review-id>`
@@ -40,9 +47,14 @@ Implemented behaviors:
 - `wiki init` keeps the core workspace agent-agnostic
 - `wiki init` seeds `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
 - `wiki init` seeds claims, maintenance-plan, query-insights, pending-review, and approved-review pages
+- `wiki init` seeds an observations page for persisted book results
 - `wiki init` outputs a workspace that can immediately be built with `moonbook build`
 - `wiki enable moonclaw` installs MoonClaw-specific runtime/config/workspace files without overwriting them
 - `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`
+- `wiki enable moonclaw` seeds `KEEPER.md` plus `skills/wiki-maintainer/SKILL.md` and `skills/wiki-review/SKILL.md`
+- `wiki enable moonclaw` seeds role-aware controller/worker profiles with explicit `role_runtime` envelopes aligned to MoonClaw's planner substrate
+- `wiki enable moontown` installs an optional town-facing book API manifest and guide without changing the core wiki contract
+- `wiki enable moontown` records an extension manifest under `.moonbook/extensions/moontown.json`
 - `wiki ingest` imports sources into `raw/imported/` when needed
 - `wiki ingest` generates `wiki/sources/<slug>.md`
 - `wiki ingest` generates or updates related `wiki/entities/*.md` pages for lightweight extracted entities
@@ -61,6 +73,13 @@ Implemented behaviors:
 - `wiki query --save` updates `wiki/synthesis/maintenance-plan.md`
 - `wiki query --save` can queue pending review items for promoting saved answers into maintained wiki pages
 - `wiki query --save` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
+- `wiki book accept` returns a machine-readable goal acceptance summary
+- `wiki book tasks` returns a machine-readable local task batch for a town-issued goal
+- `wiki book context` returns a machine-readable worker context bundle derived from book-local policy, routines, and durable pages
+- `wiki book persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, promotes durable memory candidates into target pages, updates the maintenance plan, and can queue review
+- `wiki book catalog` returns a machine-readable town catalog record with id, purpose, workspace root, memory scope, tags, and skills
+- `wiki book summary` returns page/review counts and a compact state summary
+- `wiki book health` returns backlog and low-confidence claim health signals for the book
 - `wiki review list` enumerates pending review ids/kinds/status/titles
 - `wiki review approve` moves items from pending to approved and promotes approved changes into synthesis/claims pages
 - `wiki review reject` moves items from pending to approved with rejected status

@@ -55,6 +55,8 @@ The wiki path builds on the same rendering/build infrastructure, but introduces 
   wiki-first retrieval, saved query pages, and query-signal propagation
 - `wiki/review.mbt`
   review lifecycle commands
+- `wiki/bookapi.mbt`
+  town-facing book harness APIs for planning, context hydration, result persistence, catalog export, summary, and health
 - `wiki/lint.mbt`
   structural and wiki-health checks
 - `wiki/workspace.mbt`
@@ -101,6 +103,7 @@ Important wiki subdirectories:
 - `wiki/synthesis/`
 - `wiki/queries/`
 - `wiki/reviews/`
+- `wiki/synthesis/observations.md`
 
 ## Extension Boundary
 
@@ -115,6 +118,13 @@ The design intent is:
 Current extension packs:
 
 - `moonclaw`
+- `moontown`
+
+The current `moontown` alignment is intentionally additive:
+
+- MoonBook exports a catalog-style book record for town bootstrap
+- MoonBook exposes optional book-harness commands for planning, hydration, persistence, summary, and health
+- MoonBook does not take over town scheduling or worker execution
 
 This keeps MoonBook from depending on one agent runtime while still allowing runtime-specific setup.
 
@@ -135,4 +145,4 @@ What should stay out of MoonBook core:
 - provider/model-specific agent logic
 - external operator UX assumptions
 
-Those belong in extension packs or external systems like MoonClaw.
+Those belong in extension packs or external systems like MoonClaw and Moontown.

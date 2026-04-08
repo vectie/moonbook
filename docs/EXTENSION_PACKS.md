@@ -32,6 +32,7 @@ Then install a runtime pack explicitly:
 
 ```bash
 moon run cmd/main -- wiki enable moonclaw ./research-wiki
+moon run cmd/main -- wiki enable moontown ./research-wiki
 ```
 
 ## Current Pack
@@ -39,16 +40,36 @@ moon run cmd/main -- wiki enable moonclaw ./research-wiki
 Supported today:
 
 - `moonclaw`
+- `moontown`
 
-Installed files include:
+Installed files by pack:
 
-- `.moonbook/extensions/moonclaw.json`
-- `moonclaw.json`
-- `moonclaw.jobs.json`
-- `IDENTITY.md`
-- `USER.md`
-- `ROUTINES.md`
-- `MEMORY.md`
+- `moonclaw`
+  - `.moonbook/extensions/moonclaw.json`
+  - `moonclaw.json`
+  - `moonclaw.jobs.json`
+  - `IDENTITY.md`
+  - `USER.md`
+  - `ROUTINES.md`
+  - `MEMORY.md`
+  - `KEEPER.md`
+  - `skills/wiki-maintainer/SKILL.md`
+  - `skills/wiki-review/SKILL.md`
+- `moontown`
+  - `.moonbook/extensions/moontown.json`
+  - `moontown.book.json`
+  - `BOOK_API.md`
+
+The `moontown` pack is aligned to Moontown's current persisted bootstrap shape:
+
+- MoonBook can export a catalog-style record with `moonbook wiki book catalog`
+- `moontown.book.json` advertises both that catalog export and the town-to-book API commands
+
+The `moonclaw` pack is aligned to MoonClaw's current role substrate:
+
+- controller profiles carry explicit `role_runtime` planner envelopes
+- revision/review workers carry explicit execution envelopes
+- MoonBook owns the lead/review policy files and skill docs that make the embedded planner feel book-specific
 
 The exact set depends on the pack installer, but the important boundary is that these files are added by `wiki enable`, not by `wiki init`.
 
@@ -98,11 +119,10 @@ What exists:
 
 - explicit enable step
 - manifest directory
-- one real pack (`moonclaw`)
+- multiple real packs (`moonclaw`, `moontown`)
 
 What is still missing:
 
-- multiple first-class packs
 - richer pack metadata
 - stronger validation of pack contents
 - clearer compatibility/versioning rules between MoonBook and extension packs

@@ -64,6 +64,9 @@ pub async fn init_workspace(
   let query_insights_path = @path.Path(synthesis_dir)
     .join(@path.Path("query-insights.md"))
     .to_string()
+  let observations_path = @path.Path(synthesis_dir)
+    .join(@path.Path("observations.md"))
+    .to_string()
   let pending_review_path = @path.Path(reviews_dir)
     .join(@path.Path("pending.md"))
     .to_string()
@@ -97,6 +100,7 @@ pub async fn init_workspace(
   write_if_missing(claims_path, claims_text())
   write_if_missing(maintenance_plan_path, maintenance_plan_text())
   write_if_missing(query_insights_path, query_insights_text())
+  write_if_missing(observations_path, observations_text())
   write_if_missing(pending_review_path, pending_review_text())
   write_if_missing(approved_review_path, approved_review_text())
   write_if_missing(raw_readme_path, raw_readme_text())
@@ -153,6 +157,7 @@ fn summary_text() -> String {
   "- [Claims Register](./synthesis/claims.md)\n" +
   "- [Maintenance Plan](./synthesis/maintenance-plan.md)\n" +
   "- [Query Insights](./synthesis/query-insights.md)\n" +
+  "- [Observations](./synthesis/observations.md)\n" +
   "- [Pending Review](./reviews/pending.md)\n" +
   "- [Approved Review](./reviews/approved.md)\n"
 }
@@ -166,6 +171,7 @@ fn home_text() -> String {
   "- [Log](./log.md): append-only timeline of ingests, queries, and lint passes\n" +
   "- [Claims Register](./synthesis/claims.md): structured claims extracted from sources\n" +
   "- [Maintenance Plan](./synthesis/maintenance-plan.md): queued multi-page wiki revisions\n" +
+  "- [Observations](./synthesis/observations.md): persisted worker results and promoted observations\n" +
   "- [Pending Review](./reviews/pending.md): human review queue for contested or high-value updates\n" +
   "- `../raw/`: immutable source documents\n\n" +
   "## Usage\n\n" +
@@ -184,6 +190,7 @@ fn index_text() -> String {
   "- [Claims Register](./synthesis/claims.md): structured claims with confidence and support markers\n" +
   "- [Maintenance Plan](./synthesis/maintenance-plan.md): queued multi-page wiki revisions\n" +
   "- [Query Insights](./synthesis/query-insights.md): durable insights from saved queries\n" +
+  "- [Observations](./synthesis/observations.md): persisted task results and promoted book observations\n" +
   "- [Pending Review](./reviews/pending.md): pending human review items\n" +
   "- [Approved Review](./reviews/approved.md): accepted review decisions\n\n" +
   "## Entities\n\n" +
@@ -227,6 +234,14 @@ fn query_insights_text() -> String {
   "# Query Insights\n\n" +
   "This page accumulates durable insights captured from saved queries.\n\n" +
   "## Insights\n\n" +
+  "_None yet._\n"
+}
+
+///|
+fn observations_text() -> String {
+  "# Observations\n\n" +
+  "This page stores persisted task results and durable observations promoted by the book harness.\n\n" +
+  "## Results\n\n" +
   "_None yet._\n"
 }
 
@@ -315,6 +330,7 @@ test "summary seeds wiki navigation pages" {
   assert_true(text.contains("[Home](./Home.md)"))
   assert_true(text.contains("[Index](./index.md)"))
   assert_true(text.contains("[Log](./log.md)"))
+  assert_true(text.contains("[Observations](./synthesis/observations.md)"))
   assert_true(text.contains("[Pending Review](./reviews/pending.md)"))
   assert_true(
     text.contains("[Maintenance Plan](./synthesis/maintenance-plan.md)"),
