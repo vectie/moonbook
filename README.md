@@ -168,6 +168,8 @@ moon test wiki
   book-vs-wiki architecture, package boundaries, and extension separation
 - [docs/WIKI_WORKFLOW.md](/Users/kq/Workspace/moonbook/docs/WIKI_WORKFLOW.md)
   current init/ingest/query/review/lint loop for persistent wiki workspaces
+- [docs/KEEPER_CALL_CHAIN.md](/Users/kq/Workspace/moonbook/docs/KEEPER_CALL_CHAIN.md)
+  detailed end-to-end call chain for MoonBook keeper packet submission into MoonClaw
 - [docs/EXTENSION_PACKS.md](/Users/kq/Workspace/moonbook/docs/EXTENSION_PACKS.md)
   extension-pack model and the current MoonClaw integration boundary
 - [docs/PORT_STATUS.md](/Users/kq/Workspace/moonbook/docs/PORT_STATUS.md)
