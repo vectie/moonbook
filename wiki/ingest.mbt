@@ -61,7 +61,7 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
   let relative_raw = relative_to_root(stored_raw_path, workspace.root)
   let slug = unique_source_slug(
     @path.Path(workspace.wiki_dir).join(@path.Path("sources")).to_string(),
-    slugify_title(title),
+    suggest_source_slug(title, stored_raw_path),
   )
   let relative_page = "sources/\{slug}.md"
   let page_path = @path.Path(workspace.wiki_dir)
@@ -114,6 +114,73 @@ fn resolve_input_source(source_path : String) -> String {
       None => @path.Path(source_path).normalize().to_string()
     }
   }
+}
+
+///|
+async fn suggest_source_slug(title : String, path : String) -> String {
+  let basename_slug = slugify_title(file_stem(path))
+  if !is_text_source(path) {
+    return prefer_non_generic_slug(slugify_title(title), basename_slug)
+  }
+  let content = @fsx.read_file(path)
+  let title_signal = (title + "\n" + file_stem(path)).to_lower()
+  let content_signal = content.to_lower()
+  let suggested = if title_signal.contains("troubleshoot") ||
+    title_signal.contains("verification") ||
+    title_signal.contains("common issue") ||
+    title_signal.contains("常见问题") ||
+    title_signal.contains("验证") {
+    "verification-and-troubleshooting"
+  } else if title_signal.contains("macos") ||
+    title_signal.contains("menu bar") ||
+    title_signal.contains("imessage") {
+    "macos-installation"
+  } else if title_signal.contains("windows") && title_signal.contains("部署") {
+    "windows-manual-deployment"
+  } else if title_signal.contains("install") ||
+    title_signal.contains("环境准备") ||
+    title_signal.contains("wsl") {
+    "environment-preparation-and-installation"
+  } else if content_signal.contains("wsl") {
+    "environment-preparation-and-installation"
+  } else if content_signal.contains("windows") &&
+    content_signal.contains("powershell") {
+    "windows-manual-deployment"
+  } else if content_signal.contains("macos") &&
+    (
+      content_signal.contains("install script") ||
+      content_signal.contains("pnpm") ||
+      content_signal.contains("imessage")
+    ) {
+    "macos-installation"
+  } else if content_signal.contains("troubleshoot") ||
+    content_signal.contains("common issue") {
+    "verification-and-troubleshooting"
+  } else {
+    slugify_title(title)
+  }
+  prefer_non_generic_slug(suggested, basename_slug)
+}
+
+///|
+fn prefer_non_generic_slug(primary : String, fallback : String) -> String {
+  if is_generic_source_slug(primary) {
+    if is_generic_source_slug(fallback) {
+      "source"
+    } else {
+      fallback
+    }
+  } else {
+    primary
+  }
+}
+
+///|
+fn is_generic_source_slug(slug : String) -> Bool {
+  slug.is_empty() ||
+  [
+    "source", "readme", "index", "home", "summary", "guide", "notes", "doc", "docs",
+  ].contains(slug)
 }
 
 ///|
@@ -188,13 +255,19 @@ async fn source_page_text(
   let now = "\{@async.now().to_int()}"
   if is_text_source(stored_raw_path) {
     let content = @fsx.read_file(stored_raw_path)
-    let overview = summarize_source(content)
+    let overview = summarize_source(title, content)
     let excerpt = excerpt_source(content, 24)
+    let source_type = detect_source_type(title, stored_raw_path, content)
+    let scope = detect_source_scope(title, stored_raw_path, content)
+    let signals = detect_source_signals(title, stored_raw_path, content)
     "# \{title}\n\n" +
     "- Raw source: [\{relative_raw}](\{raw_link})\n" +
+    "- Source type: \{source_type}\n" +
+    "- Scope: \{scope}\n" +
     "- Ingested at: `\{now}`\n\n" +
-    "## Overview\n\n" +
+    "## Summary\n\n" +
     "\{overview}\n\n" +
+    render_source_signals(signals) +
     "## Extract\n\n" +
     "```text\n\{excerpt}\n```\n"
   } else {
@@ -261,6 +334,16 @@ async fn enrich_ingest(
   stored_raw_path : String,
 ) -> Array[String] {
   if !is_text_source(stored_raw_path) {
+    let maintenance_plan_page = ensure_maintenance_plan_entry(
+      workspace,
+      "Ingest: \{source_title}",
+      "ingest",
+      "wiki/" + source_relative_page,
+      ["synthesis/overview.md"],
+      [
+        "skill-followup: source-diarize, synthesis-revise, index-maintain", "binary source: review raw asset directly before semantic revision",
+      ],
+    )
     let synthesis_page = ensure_synthesis_overview(
       workspace,
       source_title,
@@ -270,7 +353,7 @@ async fn enrich_ingest(
       [],
       [],
     )
-    let pages : Array[String] = [synthesis_page]
+    let pages : Array[String] = [synthesis_page, maintenance_plan_page]
     let synthesis_map_page = refresh_synthesis_map(workspace.root)
     if !pages.contains(synthesis_map_page) {
       pages.push(synthesis_map_page)
@@ -283,34 +366,12 @@ async fn enrich_ingest(
   let entities = extract_candidate_entities(source_title, content)
   let concepts = extract_candidate_concepts(content)
   let claims = extract_structured_claims(content)
-  for entity in entities {
-    let relative = ensure_entity_page(
-      workspace, entity, source_title, source_relative_page, content, entities, concepts,
-    )
-    related_pages.push(relative)
-  }
-  for concept in concepts {
-    let relative = ensure_concept_page(
-      workspace, concept, source_title, source_relative_page, content, entities,
-      concepts,
-    )
-    related_pages.push(relative)
-  }
-  for
-    relative in ensure_claim_relationship_pages(
-      workspace, source_title, source_relative_page, content, entities, concepts,
-      claims,
-    ) {
-    if !related_pages.contains(relative) {
-      related_pages.push(relative)
-    }
-  }
   related_pages.push(
     ensure_synthesis_overview(
       workspace,
       source_title,
       source_relative_page,
-      summarize_source(content),
+      summarize_source(source_title, content),
       entities,
       concepts,
       claims.map(claim => claim.summary_line()),
@@ -334,7 +395,7 @@ async fn enrich_ingest(
     "ingest",
     "wiki/" + source_relative_page,
     related_pages,
-    ingest_plan_notes(entities, concepts, claims),
+    ingest_plan_notes(source_relative_page, entities, concepts, claims),
   )
   if !related_pages.contains(maintenance_plan_page) {
     related_pages.push(maintenance_plan_page)
@@ -348,19 +409,32 @@ async fn enrich_ingest(
 
 ///|
 fn ingest_plan_notes(
+  source_relative_page : String,
   entities : Array[String],
   concepts : Array[String],
   claims : Array[StructuredClaim],
 ) -> Array[String] {
   let notes : Array[String] = []
+  notes.push(
+    "skill-followup: source-diarize, synthesis-revise, index-maintain, claim-audit",
+  )
+  notes.push(
+    "consider-skill: entity-revise on wiki/entities/* from wiki/\{source_relative_page}",
+  )
   if !entities.is_empty() {
-    notes.push("entities: " + entities.join(", "))
+    notes.push("candidate-entities: " + entities.join(", "))
   }
+  notes.push(
+    "consider-skill: concept-revise on wiki/concepts/* from wiki/\{source_relative_page}",
+  )
   if !concepts.is_empty() {
-    notes.push("concepts: " + concepts.map(title_case).join(", "))
+    notes.push("candidate-concepts: " + concepts.map(title_case).join(", "))
   }
   if !claims.is_empty() {
     notes.push("claims: " + claims.length().to_string())
+    notes.push(
+      "consider-skill: contradiction-review and review-decision for low-confidence or conflicting claims",
+    )
   }
   notes
 }
@@ -398,110 +472,6 @@ fn StructuredClaim::kind(self : StructuredClaim) -> String {
   } else {
     "statement"
   }
-}
-
-///|
-async fn ensure_claim_relationship_pages(
-  workspace : Paths,
-  source_title : String,
-  source_relative_page : String,
-  content : String,
-  entities : Array[String],
-  concepts : Array[String],
-  claims : Array[StructuredClaim],
-) -> Array[String] {
-  let related : Array[String] = []
-  for claim in claims {
-    let subject = claim.subject.trim().to_string()
-    if subject.is_empty() || !looks_like_entity_name(subject) {
-      continue
-    }
-    let subject_page = ensure_entity_page(
-      workspace,
-      subject,
-      source_title,
-      source_relative_page,
-      content,
-      merge_unique_strings(entities, [subject]),
-      concepts,
-    )
-    if !related.contains(subject_page) {
-      related.push(subject_page)
-    }
-    let relation_verb = claim_relationship_verb(claim)
-    match claim_relationship_target(claim) {
-      Some((target_kind, target_name, relation_line)) => {
-        let subject_path = @path.Path(workspace.wiki_dir)
-          .join(@path.Path(subject_page))
-          .to_string()
-        let source_link = relative_from_page(
-          "wiki/" + subject_page,
-          "wiki/" + source_relative_page,
-        )
-        let updated_subject = append_list_entry(
-          @fsx.read_file(subject_path),
-          "## Relationships",
-          "- \{relation_line} via [\{source_title}](\{source_link})",
-        )
-        @fsx.write_to_file(subject_path, updated_subject, create=0o644)
-        match target_kind {
-          "entity" => {
-            let target_page = ensure_entity_page(
-              workspace,
-              target_name,
-              source_title,
-              source_relative_page,
-              content,
-              merge_unique_strings(entities, [subject, target_name]),
-              concepts,
-            )
-            if !related.contains(target_page) {
-              related.push(target_page)
-            }
-            append_relationship_entry(
-              workspace,
-              target_page,
-              reciprocal_relationship_line(
-                relation_verb,
-                claim.subject,
-                "entity",
-              ),
-              source_title,
-              source_relative_page,
-            )
-          }
-          _ => {
-            let normalized_target = target_name.to_lower()
-            let target_page = ensure_concept_page(
-              workspace,
-              normalized_target,
-              source_title,
-              source_relative_page,
-              content,
-              merge_unique_strings(entities, [subject]),
-              merge_unique_strings(concepts, [normalized_target]),
-            )
-            if !related.contains(target_page) {
-              related.push(target_page)
-            }
-            append_relationship_entry(
-              workspace,
-              target_page,
-              reciprocal_relationship_line(
-                relation_verb,
-                claim.subject,
-                "concept",
-              ),
-              source_title,
-              source_relative_page,
-            )
-          }
-        }
-      }
-      None => ()
-    }
-  }
-  related
 }
 
 ///|
@@ -548,70 +518,6 @@ fn relationship_target_tuple(
 }
 
 ///|
-fn claim_relationship_verb(claim : StructuredClaim) -> String {
-  let predicate = claim.predicate.to_lower()
-  if predicate.has_prefix("supports ") {
-    "supports"
-  } else if predicate.has_prefix("uses ") {
-    "uses"
-  } else if predicate.has_prefix("improves ") {
-    "improves"
-  } else if predicate.has_prefix("keeps ") {
-    "keeps"
-  } else {
-    "integrates with"
-  }
-}
-
-///|
-fn reciprocal_relationship_line(
-  verb : String,
-  subject : String,
-  target_kind : String,
-) -> String {
-  let subject_link = "../entities/\{slugify_title(subject)}.md"
-  let subject_ref = "[\{subject}](\{subject_link})"
-  match verb {
-    "supports" => "is supported by \{subject_ref}"
-    "uses" =>
-      if target_kind == "concept" {
-        "is used by \{subject_ref}"
-      } else {
-        "works with \{subject_ref}"
-      }
-    "improves" => "is improved by \{subject_ref}"
-    "keeps" => "is maintained by \{subject_ref}"
-    _ => "integrates with \{subject_ref}"
-  }
-}
-
-///|
-async fn append_relationship_entry(
-  workspace : Paths,
-  relative_page : String,
-  relation_line : String,
-  source_title : String,
-  source_relative_page : String,
-) -> Unit {
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
-    .to_string()
-  if !@fsx.exists(absolute) {
-    return
-  }
-  let source_link = relative_from_page(
-    "wiki/" + relative_page,
-    "wiki/" + source_relative_page,
-  )
-  let updated = append_list_entry(
-    @fsx.read_file(absolute),
-    "## Relationships",
-    "- \{relation_line} via [\{source_title}](\{source_link})",
-  )
-  @fsx.write_to_file(absolute, updated, create=0o644)
-}
-
-///|
 fn looks_like_entity_name(text : String) -> Bool {
   let words = split_words(text)
   if words.is_empty() {
@@ -623,148 +529,6 @@ fn looks_like_entity_name(text : String) -> Bool {
     }
   }
   false
-}
-
-///|
-fn merge_unique_strings(
-  left : Array[String],
-  right : Array[String],
-) -> Array[String] {
-  let merged : Array[String] = []
-  for item in left {
-    if !merged.contains(item) {
-      merged.push(item)
-    }
-  }
-  for item in right {
-    if !merged.contains(item) {
-      merged.push(item)
-    }
-  }
-  merged
-}
-
-///|
-async fn ensure_entity_page(
-  workspace : Paths,
-  entity : String,
-  source_title : String,
-  source_relative_page : String,
-  content : String,
-  all_entities : Array[String],
-  concepts : Array[String],
-) -> String {
-  let slug = slugify_title(entity)
-  let relative_page = "entities/\{slug}.md"
-  let page_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
-    .to_string()
-  let source_link = relative_from_page(
-    "wiki/" + relative_page,
-    "wiki/" + source_relative_page,
-  )
-  let existing = if @fsx.exists(page_path) {
-    @fsx.read_file(page_path)
-  } else {
-    ""
-  }
-  let updated = if existing.is_empty() {
-    "# \{entity}\n\n" +
-    "## Summary\n\n" +
-    "\{entity_summary(entity, content)}\n\n" +
-    related_entities_section(entity, all_entities) +
-    related_concepts_section(concepts) +
-    "## Sources\n\n" +
-    "- [\{source_title}](\{source_link})\n"
-  } else {
-    let with_sources = append_list_entry(
-      existing,
-      "## Sources",
-      "- [\{source_title}](\{source_link})",
-    )
-    let with_entities = append_related_entries(
-      with_sources,
-      "## Related Entities",
-      related_entity_entries(entity, all_entities),
-    )
-    append_related_entries(
-      with_entities,
-      "## Related Concepts",
-      related_concept_entries(concepts),
-    )
-  }
-  @fsx.write_to_file(page_path, updated, create=0o644)
-  update_summary(workspace.summary_path, entity, relative_page)
-  update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
-    "Entities",
-    entity,
-    relative_page,
-    "entity page",
-  )
-  relative_page
-}
-
-///|
-async fn ensure_concept_page(
-  workspace : Paths,
-  concept : String,
-  source_title : String,
-  source_relative_page : String,
-  content : String,
-  entities : Array[String],
-  all_concepts : Array[String],
-) -> String {
-  let title = title_case(concept)
-  let slug = slugify_title(concept)
-  let relative_page = "concepts/\{slug}.md"
-  let page_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
-    .to_string()
-  let source_link = relative_from_page(
-    "wiki/" + relative_page,
-    "wiki/" + source_relative_page,
-  )
-  let existing = if @fsx.exists(page_path) {
-    @fsx.read_file(page_path)
-  } else {
-    ""
-  }
-  let updated = if existing.is_empty() {
-    "# \{title}\n\n" +
-    "## Summary\n\n" +
-    "\{concept_summary(concept, content)}\n\n" +
-    related_entities_from_concept_section(entities) +
-    related_concepts_from_concept_section(concept, all_concepts) +
-    "## Sources\n\n" +
-    "- [\{source_title}](\{source_link})\n"
-  } else {
-    let with_sources = append_list_entry(
-      existing,
-      "## Sources",
-      "- [\{source_title}](\{source_link})",
-    )
-    let with_entities = append_related_entries(
-      with_sources,
-      "## Related Entities",
-      related_entity_entries("", entities),
-    )
-    append_related_entries(
-      with_entities,
-      "## Related Concepts",
-      related_concept_entries(all_concepts.filter(fn(item) { item != concept })),
-    )
-  }
-  @fsx.write_to_file(page_path, updated, create=0o644)
-  update_summary(workspace.summary_path, title, relative_page)
-  update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
-    "Concepts",
-    title,
-    relative_page,
-    "concept page",
-  )
-  relative_page
 }
 
 ///|
@@ -945,25 +709,106 @@ async fn update_index_section(
   relative_page : String,
   description : String,
 ) -> Unit {
-  let current = @fsx.read_file(index_path)
   let bullet = "- [\{title}](./\{relative_page}): \{description}"
-  if current.contains(bullet) {
+  let original = @fsx.read_file(index_path)
+  if original.contains(bullet) {
     return
   }
-  let placeholder = "## \{section_title}\n\n_None yet._"
-  let section_header = "## \{section_title}\n"
-  let next = if current.contains(placeholder) {
-    current
-    .replace(old=placeholder, new="## \{section_title}\n\n\{bullet}")
-    .to_string()
-  } else if current.contains(section_header) {
-    current
-    .replace(old=section_header, new="## \{section_title}\n\{bullet}\n")
-    .to_string()
-  } else {
-    current + "\n## \{section_title}\n\n" + bullet + "\n"
-  }
+  let current = remove_index_entry(original, relative_page)
+  let next = normalize_markdown_spacing(
+    insert_index_entry(current, section_title, bullet),
+  )
   @fsx.write_to_file(index_path, next, create=0o644)
+}
+
+///|
+fn remove_index_entry(content : String, relative_page : String) -> String {
+  let link_marker = "(./\{relative_page})"
+  let kept : Array[String] = []
+  for line in content.split("\n") {
+    if line.has_prefix("- [") && line.contains(link_marker) {
+      continue
+    }
+    kept.push(line.to_string())
+  }
+  kept.join("\n")
+}
+
+///|
+fn insert_index_entry(
+  content : String,
+  section_title : String,
+  bullet : String,
+) -> String {
+  let target_header = "## \{section_title}"
+  let lines = content.split("\n")
+  let rebuilt : Array[String] = []
+  let mut in_target = false
+  let mut inserted = false
+  for raw in lines {
+    let line = raw.to_string()
+    if line == target_header {
+      in_target = true
+      rebuilt.push(line)
+      continue
+    }
+    if in_target && line.has_prefix("## ") {
+      if !inserted {
+        if !rebuilt.is_empty() &&
+          rebuilt[rebuilt.length() - 1] != "" &&
+          rebuilt[rebuilt.length() - 1] != target_header {
+          rebuilt.push("")
+        }
+        rebuilt.push(bullet)
+        inserted = true
+      }
+      in_target = false
+    }
+    if in_target && line == "_None yet._" {
+      rebuilt.push(bullet)
+      inserted = true
+      continue
+    }
+    rebuilt.push(line)
+  }
+  if in_target && !inserted {
+    if !rebuilt.is_empty() &&
+      rebuilt[rebuilt.length() - 1] != "" &&
+      rebuilt[rebuilt.length() - 1] != target_header {
+      rebuilt.push("")
+    }
+    rebuilt.push(bullet)
+    inserted = true
+  }
+  if inserted {
+    rebuilt.join("\n")
+  } else {
+    content + "\n## \{section_title}\n\n" + bullet + "\n"
+  }
+}
+
+///|
+fn normalize_markdown_spacing(content : String) -> String {
+  let normalized : Array[String] = []
+  let mut blank_run = 0
+  for raw in content.split("\n") {
+    let line = raw.to_string()
+    if line.trim().is_empty() {
+      if blank_run == 0 {
+        normalized.push("")
+      }
+      blank_run += 1
+    } else {
+      blank_run = 0
+      normalized.push(line)
+    }
+  }
+  let joined = normalized.join("\n")
+  if joined.has_suffix("\n") {
+    joined
+  } else {
+    joined + "\n"
+  }
 }
 
 ///|
@@ -999,103 +844,8 @@ fn format_related_log_lines(related_pages : Array[String]) -> String {
 }
 
 ///|
-fn related_entities_section(
-  current : String,
-  entities : Array[String],
-) -> String {
-  let entries = related_entity_entries(current, entities)
-  if entries.is_empty() {
-    ""
-  } else {
-    "## Related Entities\n\n" + entries.join("\n") + "\n\n"
-  }
-}
-
-///|
-fn related_concepts_section(concepts : Array[String]) -> String {
-  let entries = related_concept_entries(concepts)
-  if entries.is_empty() {
-    ""
-  } else {
-    "## Related Concepts\n\n" + entries.join("\n") + "\n\n"
-  }
-}
-
-///|
-fn related_entities_from_concept_section(entities : Array[String]) -> String {
-  let entries = related_entity_entries("", entities)
-  if entries.is_empty() {
-    ""
-  } else {
-    "## Related Entities\n\n" + entries.join("\n") + "\n\n"
-  }
-}
-
-///|
-fn related_concepts_from_concept_section(
-  current : String,
-  concepts : Array[String],
-) -> String {
-  let entries = related_concept_entries(
-    concepts.filter(fn(item) { item != current }),
-  )
-  if entries.is_empty() {
-    ""
-  } else {
-    "## Related Concepts\n\n" + entries.join("\n") + "\n\n"
-  }
-}
-
-///|
-fn related_entity_entries(
-  current : String,
-  entities : Array[String],
-) -> Array[String] {
-  let entries : Array[String] = []
-  for entity in entities {
-    if entity == current {
-      continue
-    }
-    let label = entity
-    let link = "../entities/\{slugify_title(entity)}.md"
-    let entry = "- [\{label}](\{link})"
-    if !entries.contains(entry) {
-      entries.push(entry)
-    }
-  }
-  entries
-}
-
-///|
-fn related_concept_entries(concepts : Array[String]) -> Array[String] {
-  let entries : Array[String] = []
-  for concept in concepts {
-    let label = title_case(concept)
-    let link = "../concepts/\{slugify_title(concept)}.md"
-    let entry = "- [\{label}](\{link})"
-    if !entries.contains(entry) {
-      entries.push(entry)
-    }
-  }
-  entries
-}
-
-///|
-fn append_related_entries(
-  content : String,
-  section_header : String,
-  entries : Array[String],
-) -> String {
-  let mut next = content
-  for entry in entries {
-    next = append_list_entry(next, section_header, entry)
-  }
-  next
-}
-
-///|
-fn summarize_source(content : String) -> String {
-  let paragraph = first_nonempty_line(content)
+fn summarize_source(title : String, content : String) -> String {
+  let paragraph = first_meaningful_line(title, content)
   let cleaned = strip_inline_markup(paragraph)
   if cleaned.is_empty() {
     "Source ingested. Open the raw file for details."
@@ -1104,6 +854,52 @@ fn summarize_source(content : String) -> String {
   } else {
     cleaned
   }
+}
+
+///|
+fn first_meaningful_line(title : String, content : String) -> String {
+  let mut in_fence = false
+  for raw in content.split("\n") {
+    let line = raw.trim().to_string()
+    if line.has_prefix("```") {
+      in_fence = !in_fence
+      continue
+    }
+    if in_fence ||
+      line.is_empty() ||
+      line.has_prefix("#") ||
+      line.has_prefix("![](") ||
+      line == "---" {
+      continue
+    }
+    let cleaned = strip_inline_markup(line)
+    if is_weak_summary_line(title, cleaned) {
+      continue
+    }
+    if cleaned.length() >= 6 {
+      return cleaned
+    }
+  }
+  first_nonempty_line(content)
+}
+
+///|
+fn is_weak_summary_line(title : String, line : String) -> Bool {
+  let lowered = line.to_lower()
+  let title_lowered = title.to_lower()
+  lowered.has_prefix("相关页面") ||
+  lowered.has_prefix("see also") ||
+  lowered.has_prefix("上一篇") ||
+  lowered.has_prefix("下一篇") ||
+  lowered.has_prefix("view ") ||
+  lowered.has_prefix("- ") ||
+  lowered.has_prefix("* ") ||
+  lowered.has_prefix("> ") ||
+  lowered.has_prefix("[") ||
+  lowered.contains("index.html") ||
+  lowered.contains("./macos.md") ||
+  lowered.contains("./readme.md") ||
+  lowered == title_lowered
 }
 
 ///|
@@ -1493,6 +1289,7 @@ fn extract_candidate_entities(
   title : String,
   content : String,
 ) -> Array[String] {
+  let selected = detect_known_entities(title, content)
   let counts : Map[String, Int] = {}
   for phrase in candidate_titlecase_phrases(title + "\n" + content) {
     if should_keep_entity_phrase(phrase) {
@@ -1500,10 +1297,15 @@ fn extract_candidate_entities(
     }
   }
   let ranked = rank_phrase_counts(counts)
-  let selected : Array[String] = []
+  if selected.length() >= 4 {
+    return selected
+  }
   for phrase in ranked {
-    if selected.length() >= 3 {
+    if selected.length() >= 5 {
       break
+    }
+    if counts.get(phrase).unwrap_or(0) < 2 && !title.contains(phrase) {
+      continue
     }
     let normalized = normalize_entity_name(phrase)
     if !normalized.is_empty() && !selected.contains(normalized) {
@@ -1515,6 +1317,10 @@ fn extract_candidate_entities(
 
 ///|
 fn extract_candidate_concepts(content : String) -> Array[String] {
+  let selected = detect_canonical_concepts(content)
+  if selected.length() >= 3 {
+    return selected
+  }
   let counts : Map[String, Int] = {}
   for word in lowercase_word_candidates(content) {
     if should_keep_concept_word(word) {
@@ -1522,12 +1328,11 @@ fn extract_candidate_concepts(content : String) -> Array[String] {
     }
   }
   let ranked = rank_phrase_counts(counts)
-  let selected : Array[String] = []
   for word in ranked {
-    if selected.length() >= 4 {
+    if selected.length() >= 6 {
       break
     }
-    if counts.get(word).unwrap_or(0) >= 2 || is_salient_concept_word(word) {
+    if counts.get(word).unwrap_or(0) >= 3 || is_salient_concept_word(word) {
       let normalized = normalize_concept_name(word)
       if !normalized.is_empty() && !selected.contains(normalized) {
         selected.push(normalized)
@@ -1676,7 +1481,24 @@ fn candidate_titlecase_phrases(text : String) -> Array[String] {
 
 ///|
 fn normalize_entity_name(text : String) -> String {
-  strip_leading_determiner(clean_phrase(text))
+  let cleaned = strip_leading_determiner(clean_phrase(text))
+  match cleaned.to_lower() {
+    "openclaw" => "OpenClaw"
+    "moonclaw" => "MoonClaw"
+    "moontown" => "Moontown"
+    "feishu" => "Feishu"
+    "nodejs" | "node-js" | "node.js" => "Node.js"
+    "powershell" => "PowerShell"
+    "wsl2" => "WSL2"
+    "git" => "Git"
+    "nginx" => "Nginx"
+    "docker" => "Docker"
+    "volcengine" => "Volcengine"
+    "kimi" => "Kimi"
+    "imessage" => "iMessage"
+    "tailscale" => "Tailscale"
+    _ => cleaned
+  }
 }
 
 ///|
@@ -1805,7 +1627,16 @@ fn should_keep_entity_phrase(phrase : String) -> Bool {
       | "Notes"
       | "Guide"
       | "Chapter"
-      | "Summary" => return false
+      | "Summary"
+      | "QuickStart"
+      | "Version"
+      | "Status"
+      | "Token"
+      | "Secret"
+      | "App"
+      | "Yes"
+      | "No"
+      | "Skip" => return false
       _ => ()
     }
   }
@@ -1841,8 +1672,270 @@ fn should_keep_concept_word(word : String) -> Bool {
     | "those"
     | "wiki"
     | "index"
-    | "summary" => false
+    | "summary"
+    | "portal"
+    | "upload"
+    | "volcfe"
+    | "status"
+    | "token"
+    | "secret"
+    | "quickstart" => false
     _ => true
+  }
+}
+
+///|
+fn detect_known_entities(title : String, content : String) -> Array[String] {
+  let title_lowered = title.to_lower()
+  let lowered = (title + "\n" + content).to_lower()
+  let ranked : Array[(String, Int)] = []
+  let known : Array[(String, String)] = [
+    ("openclaw", "OpenClaw"),
+    ("moonclaw", "MoonClaw"),
+    ("moontown", "Moontown"),
+    ("feishu", "Feishu"),
+    ("node.js", "Node.js"),
+    ("nodejs", "Node.js"),
+    ("powershell", "PowerShell"),
+    ("wsl2", "WSL2"),
+    ("volcengine", "Volcengine"),
+    ("kimi", "Kimi"),
+    ("git", "Git"),
+    ("nginx", "Nginx"),
+    ("docker", "Docker"),
+    ("tailscale", "Tailscale"),
+    ("imessage", "iMessage"),
+  ]
+  for item in known {
+    let pattern = item.0
+    let label = item.1
+    let occurrences = count_substring(lowered, pattern)
+    let mut score = occurrences * 10
+    if title_lowered.contains(pattern) {
+      score += 100
+    }
+    if score >= 20 || score >= 100 {
+      ranked.push((label, score))
+    }
+  }
+  ranked.sort_by(fn(left, right) {
+    if left.1 == right.1 {
+      left.0.compare(right.0)
+    } else {
+      right.1.compare(left.1)
+    }
+  })
+  let entities : Array[String] = []
+  for item in ranked {
+    if entities.length() >= 5 {
+      break
+    }
+    if !entities.contains(item.0) {
+      entities.push(item.0)
+    }
+  }
+  entities
+}
+
+///|
+fn count_substring(text : String, pattern : String) -> Int {
+  if pattern.is_empty() {
+    return 0
+  }
+  let mut count = 0
+  let mut start = 0
+  while start < text.length() {
+    match text[start:].find(pattern) {
+      Some(index) => {
+        count += 1
+        start += index + pattern.length()
+      }
+      None => break
+    }
+  }
+  count
+}
+
+///|
+fn detect_canonical_concepts(text : String) -> Array[String] {
+  let lowered = text.to_lower()
+  let concepts : Array[String] = []
+  if lowered.contains("install") ||
+    lowered.contains("onboard") ||
+    lowered.contains("npm") ||
+    lowered.contains("pnpm") ||
+    lowered.contains("source build") {
+    concepts.push("installation methods")
+  }
+  if lowered.contains("gateway") ||
+    lowered.contains("restart") ||
+    lowered.contains("daemon") ||
+    lowered.contains("status") ||
+    lowered.contains("service") {
+    concepts.push("gateway operations")
+  }
+  if lowered.contains("feishu") ||
+    lowered.contains("channel") ||
+    lowered.contains("plugin") ||
+    lowered.contains("imessage") ||
+    lowered.contains("pairing") {
+    concepts.push("channel integration")
+  }
+  if lowered.contains("windows") ||
+    lowered.contains("macos") ||
+    lowered.contains("wsl") ||
+    lowered.contains("server") ||
+    lowered.contains("cloud") {
+    concepts.push("deployment environments")
+  }
+  if lowered.contains("troubleshoot") ||
+    lowered.contains("error") ||
+    lowered.contains("verify") ||
+    lowered.contains("validation") ||
+    lowered.contains("常见问题") ||
+    lowered.contains("验证") {
+    concepts.push("troubleshooting patterns")
+  }
+  concepts
+}
+
+///|
+fn source_signal_text(
+  title : String,
+  path : String,
+  content : String,
+) -> String {
+  title + "\n" + file_stem(path) + "\n" + content
+}
+
+///|
+fn detect_source_type(
+  title : String,
+  path : String,
+  content : String,
+) -> String {
+  let title_lowered = (title + "\n" + file_stem(path)).to_lower()
+  let lowered = source_signal_text(title, path, content).to_lower()
+  if title_lowered.contains("install") ||
+    title_lowered.contains("安装") ||
+    title_lowered.contains("部署") ||
+    title_lowered.contains("onboard") {
+    "installation guide"
+  } else if title_lowered.contains("troubleshoot") ||
+    title_lowered.contains("常见问题") ||
+    title_lowered.contains("验证") ||
+    lowered.contains("troubleshoot") ||
+    lowered.contains("常见问题") ||
+    lowered.contains("验证") {
+    "troubleshooting guide"
+  } else if title_lowered.contains("reference") ||
+    title_lowered.contains("api") ||
+    lowered.contains("reference") ||
+    lowered.contains("api") {
+    "reference"
+  } else if lowered.contains("install") ||
+    lowered.contains("部署") ||
+    lowered.contains("onboard") {
+    "installation guide"
+  } else {
+    "source summary"
+  }
+}
+
+///|
+fn detect_source_scope(
+  title : String,
+  path : String,
+  content : String,
+) -> String {
+  let title_lowered = (title + "\n" + file_stem(path)).to_lower()
+  let lowered = source_signal_text(title, path, content).to_lower()
+  let environment = if title_lowered.contains("macos") {
+    "macOS"
+  } else if title_lowered.contains("wsl") {
+    "Windows + WSL2"
+  } else if title_lowered.contains("windows") {
+    "Windows"
+  } else if lowered.contains("macos") {
+    "macOS"
+  } else if lowered.contains("wsl") {
+    "Windows + WSL2"
+  } else if lowered.contains("windows") {
+    "Windows"
+  } else {
+    "mixed environments"
+  }
+  let focus = if title_lowered.contains("troubleshoot") ||
+    title_lowered.contains("验证") ||
+    title_lowered.contains("常见问题") ||
+    lowered.contains("troubleshoot") ||
+    lowered.contains("验证") ||
+    lowered.contains("常见问题") {
+    "verification and recovery"
+  } else if title_lowered.contains("install") ||
+    title_lowered.contains("安装") ||
+    title_lowered.contains("部署") ||
+    title_lowered.contains("onboard") {
+    "installation and onboarding"
+  } else if title_lowered.contains("gateway") ||
+    title_lowered.contains("config") ||
+    title_lowered.contains("token") ||
+    lowered.contains("gateway") ||
+    lowered.contains("config") ||
+    lowered.contains("token") {
+    "configuration and operations"
+  } else if lowered.contains("install") ||
+    lowered.contains("部署") ||
+    lowered.contains("onboard") {
+    "installation and onboarding"
+  } else {
+    "general operational guidance"
+  }
+  "\{environment}; \{focus}"
+}
+
+///|
+fn detect_source_signals(
+  title : String,
+  path : String,
+  content : String,
+) -> Array[String] {
+  let lowered = source_signal_text(title, path, content).to_lower()
+  let signals : Array[String] = []
+  if lowered.contains("wsl") {
+    signals.push("WSL2 is a first-class path in this source.")
+  }
+  if lowered.contains("gateway") && lowered.contains("restart") {
+    signals.push("Gateway restart is part of the operational flow.")
+  }
+  if lowered.contains("feishu") || lowered.contains("imessage") {
+    signals.push(
+      "Channel integration appears in the source and should stay separate from base installation.",
+    )
+  }
+  if lowered.contains("token") ||
+    lowered.contains("api key") ||
+    lowered.contains("model") {
+    signals.push(
+      "Configuration secrets and model settings are operationally important.",
+    )
+  }
+  if lowered.contains("install script") ||
+    lowered.contains("npm") ||
+    lowered.contains("pnpm") {
+    signals.push("Multiple installation methods are described.")
+  }
+  signals
+}
+
+///|
+fn render_source_signals(signals : Array[String]) -> String {
+  if signals.is_empty() {
+    ""
+  } else {
+    "## Key Signals\n\n" +
+    signals.map(signal => "- " + signal + "\n").join("") +
+    "\n"
   }
 }
 
@@ -1896,34 +1989,6 @@ fn rank_phrase_counts(counts : Map[String, Int]) -> Array[String] {
     ranked.push(pair.0)
   }
   ranked
-}
-
-///|
-fn entity_summary(entity : String, content : String) -> String {
-  first_matching_sentence(content, entity).unwrap_or(
-    "\{entity} is mentioned in the current source and should be refined as more sources arrive.",
-  )
-}
-
-///|
-fn concept_summary(concept : String, content : String) -> String {
-  first_matching_sentence(content, concept).unwrap_or(
-    "The concept `\{concept}` appears in the current source and should be refined as the wiki accumulates more evidence.",
-  )
-}
-
-///|
-fn first_matching_sentence(content : String, needle : String) -> String? {
-  for raw in content.split("\n") {
-    let line = strip_inline_markup(raw.trim().to_string())
-    if line.is_empty() || line.has_prefix("#") {
-      continue
-    }
-    if line.to_lower().contains(needle.to_lower()) {
-      return Some(clamp_excerpt(line))
-    }
-  }
-  None
 }
 
 ///|
@@ -2103,6 +2168,11 @@ test "slugify title normalizes punctuation and case" {
 }
 
 ///|
+test "prefer non generic slug falls back to basename" {
+  assert_eq(prefer_non_generic_slug("source", "install"), "install")
+}
+
+///|
 test "relative link from page reaches raw source" {
   assert_eq(
     relative_from_page("wiki/sources/example.md", "raw/imported/file.md"),
@@ -2128,6 +2198,16 @@ test "extract candidate entities uses titlecase phrases" {
 }
 
 ///|
+test "extract candidate entities keeps known lowercase runtime names" {
+  let entities = extract_candidate_entities(
+    "OpenClaw guide", "openclaw works with feishu feishu and powershell powershell on windows",
+  )
+  assert_true(entities.contains("OpenClaw"))
+  assert_true(entities.contains("Feishu"))
+  assert_true(entities.contains("PowerShell"))
+}
+
+///|
 test "extract candidate concepts ranks repeated lowercase words" {
   let concepts = extract_candidate_concepts(
     "ingestion ingestion synthesis synthesis synthesis claims confidence",
@@ -2142,6 +2222,34 @@ test "extract candidate concepts keeps salient words even without repetition" {
   )
   assert_true(concepts.contains("runtime"))
   assert_true(concepts.contains("synthesis"))
+}
+
+///|
+test "extract candidate concepts prefers canonical operational concepts" {
+  let concepts = extract_candidate_concepts(
+    "Install OpenClaw with npm, restart the gateway, and verify Feishu channel status on macOS.",
+  )
+  assert_true(concepts.contains("installation methods"))
+  assert_true(concepts.contains("gateway operations"))
+  assert_true(concepts.contains("channel integration"))
+}
+
+///|
+test "summarize source skips related-page boilerplate" {
+  let summary = summarize_source(
+    "在Windows操作系统中手动部署OpenClaw", "# 在Windows操作系统中手动部署OpenClaw\n\n相关页面：[查看 macOS 安装说明](./macos.md)\n\n在PowerShell中执行如下命令，安装最新版本的OpenClaw。\n",
+  )
+  assert_eq(
+    summary, "在PowerShell中执行如下命令，安装最新版本的OpenClaw。",
+  )
+}
+
+///|
+test "detect source scope prefers title over incidental cross links" {
+  let scope = detect_source_scope(
+    "在Windows操作系统中手动部署OpenClaw", "README.md", "相关页面：[查看 macOS 安装说明](./macos.md)\n\n在PowerShell中执行如下命令。",
+  )
+  assert_eq(scope, "Windows; installation and onboarding")
 }
 
 ///|
@@ -2179,4 +2287,26 @@ test "append list entry avoids duplicates" {
   let content = "# Demo\n\n## Sources\n\n- [One](./one.md)\n"
   let updated = append_list_entry(content, "## Sources", "- [One](./one.md)")
   assert_eq(updated, content)
+}
+
+///|
+async test "ingest leaves ontology revision to follow-up skills" {
+  let root = "/tmp/moonbook-ingest-thin-harness"
+  ignore(init_workspace(root))
+  let source = @path.Path(root).join(@path.Path("raw/demo.md")).to_string()
+  @fsx.write_to_file(
+    source,
+    "# Demo Source\n\nOpenClaw integrates with Feishu.\n\nGateway restart is required after config changes.\n",
+    create=0o644,
+  )
+  let result = ingest_source(root, source)
+  assert_true(result.related_pages.contains("synthesis/overview.md"))
+  assert_true(result.related_pages.contains("synthesis/maintenance-plan.md"))
+  assert_true(result.related_pages.contains("synthesis/claims.md"))
+  assert_true(!@fsx.exists(root + "/wiki/entities/openclaw.md"))
+  assert_true(!@fsx.exists(root + "/wiki/concepts/gateway-operations.md"))
+  let plan = @fsx.read_file(root + "/wiki/synthesis/maintenance-plan.md")
+  assert_true(plan.contains("skill-followup: source-diarize"))
+  assert_true(plan.contains("consider-skill: entity-revise"))
+  assert_true(plan.contains("consider-skill: concept-revise"))
 }

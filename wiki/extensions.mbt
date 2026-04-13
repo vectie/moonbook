@@ -229,7 +229,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"plan_revisions\",\n" +
   "            \"title\": \"Plan durable wiki revisions\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Turn the inspected wiki state for ${proposal.title} into a concrete revision plan. Specify which pages to create or update under wiki/entities/, wiki/concepts/, wiki/synthesis/, wiki/sources/, wiki/queries/, plus the required changes to wiki/index.md and wiki/log.md. Prefer cumulative revisions over one-off chat summaries.\",\n" +
+  "            \"prompt_template\": \"Turn the inspected wiki state for ${proposal.title} into a concrete revision plan. Specify which pages to create or update under wiki/entities/, wiki/concepts/, wiki/synthesis/, wiki/sources/, wiki/queries/, plus the required changes to wiki/index.md and wiki/log.md. Prefer cumulative revisions over one-off chat summaries. Favor stable domain pages and synthesis pages over token-derived or low-signal pages. Merge or delete noisy pages instead of preserving weak ontology.\",\n" +
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
@@ -241,7 +241,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"apply_revisions\",\n" +
   "            \"title\": \"Apply wiki revisions\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Apply the approved wiki revision plan for ${proposal.title}. Edit the wiki markdown directly, keep raw/ immutable, update cross-links, and make sure wiki/index.md and wiki/log.md reflect the changes.\",\n" +
+  "            \"request_template\": \"Apply the approved wiki revision plan for ${proposal.title}. Edit the wiki markdown directly, keep raw/ immutable, update cross-links, and make sure wiki/index.md and wiki/log.md reflect the changes. Prefer high-signal source summaries, stable entity/concept naming, and synthesis-first organization over token extraction.\",\n" +
   "            \"child_profile\": \"wiki_revision_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
@@ -254,7 +254,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"review_revisions\",\n" +
   "            \"title\": \"Review wiki consistency\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Review the wiki revisions for ${proposal.title}. Check link integrity, missing backreferences, unsupported claims, stale wording, and whether wiki/index.md and wiki/log.md were updated consistently.\",\n" +
+  "            \"request_template\": \"Review the wiki revisions for ${proposal.title}. Check link integrity, missing backreferences, unsupported claims, stale wording, whether wiki/index.md and wiki/log.md were updated consistently, and whether the resulting ontology is clean rather than token-derived.\",\n" +
   "            \"child_profile\": \"wiki_review_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
@@ -542,6 +542,7 @@ fn routines_text() -> String {
 fn keeper_text() -> String {
   "# Keeper\n\n" +
   "This file defines MoonBook's host-owned keeper policy for the embedded MoonClaw planner.\n\n" +
+  "MoonBook is the thin harness. The keeper should load skill files and workspace memory, then make latent-space judgments there instead of pushing more policy into code.\n\n" +
   "## Role\n\n" +
   "- role id: `moonbook-keeper`\n" +
   "- planning layer: domain\n" +
@@ -550,10 +551,13 @@ fn keeper_text() -> String {
   "- primary job: produce revision plans, context slices, and persistence decisions for this book\n\n" +
   "## Responsibilities\n\n" +
   "1. decompose town or user goals into book-local tasks\n" +
-  "2. read `wiki/index.md` and `wiki/log.md` before broad revisions\n" +
-  "3. preserve `raw/` as immutable source material\n" +
-  "4. prefer cumulative wiki revisions over chat-only summaries\n" +
-  "5. queue uncertain or contested changes for review instead of silently promoting them\n"
+  "2. read `RESOLVER.md` and load the relevant `skills/*/SKILL.md` before broad planning\n" +
+  "3. read `wiki/index.md` and `wiki/log.md` before broad revisions\n" +
+  "4. preserve `raw/` as immutable source material\n" +
+  "5. prefer cumulative wiki revisions over chat-only summaries\n" +
+  "6. queue uncertain or contested changes for review instead of silently promoting them\n" +
+  "7. prefer stable domain ontology and synthesis pages over token-derived pages\n" +
+  "8. collapse noisy low-signal pages into stronger maintained pages when necessary\n"
 }
 
 ///|
@@ -573,13 +577,15 @@ fn wiki_maintainer_skill_text() -> String {
   "description: Keeper/revision skill for maintaining a MoonBook wiki workspace.\n" +
   "---\n\n" +
   "# Wiki Maintainer\n\n" +
-  "Operate on the maintained wiki layer, not on raw chat history.\n\n" +
+  "Operate on the maintained wiki layer, not on raw chat history. Treat this as a reusable method, not a one-off prompt.\n\n" +
   "## Rules\n\n" +
-  "1. Read `wiki/index.md` first.\n" +
+  "1. Read `RESOLVER.md`, then `wiki/index.md`.\n" +
   "2. Treat `raw/` as immutable source-of-truth input.\n" +
   "3. Prefer revising existing entity, concept, source, synthesis, and query pages over creating isolated notes.\n" +
   "4. Update `wiki/index.md` and `wiki/log.md` whenever the maintained wiki changes.\n" +
-  "5. Preserve uncertainty explicitly; do not flatten contradictions.\n"
+  "5. Preserve uncertainty explicitly; do not flatten contradictions.\n" +
+  "6. Prefer stable domain pages over token-derived or low-signal pages.\n" +
+  "7. Source pages should read like durable summaries, not raw excerpt dumps.\n"
 }
 
 ///|
@@ -595,7 +601,8 @@ fn wiki_review_skill_text() -> String {
   "2. unsupported claims or overreach\n" +
   "3. stale wording without clear dates\n" +
   "4. missing backreferences or cross-links\n" +
-  "5. missing `wiki/index.md` / `wiki/log.md` maintenance\n"
+  "5. missing `wiki/index.md` / `wiki/log.md` maintenance\n" +
+  "6. weak ontology: token-derived, duplicate, or low-signal pages that should be merged or renamed\n"
 }
 
 ///|

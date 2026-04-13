@@ -34,6 +34,7 @@ pub struct WorkerContextBundle {
   prompt : String
   policy : Array[String]
   routines : Array[String]
+  skill_paths : Array[String]
   context_pages : Array[String]
   active_memory : Array[String]
   user_memory : Array[String]
@@ -155,7 +156,7 @@ pub async fn produce_task_batch(
       id: "\{normalized_goal_id}-review",
       title: "Review pending book updates",
       kind: "review",
-      prompt: "Inspect `wiki/reviews/pending.md`, decide what should be approved, rejected, or revised for the goal: \{goal}",
+      prompt: "Load `skills/wiki-review/SKILL.md` and inspect `wiki/reviews/pending.md` to decide what should be approved, rejected, or revised for the goal: \{goal}",
       priority: 100,
       requires_review: false,
       target_pages: [
@@ -181,7 +182,7 @@ pub async fn produce_task_batch(
       id: "\{normalized_goal_id}-synthesis",
       title: "Update local synthesis and memory",
       kind: "synthesis",
-      prompt: "Use `wiki/synthesis/maintenance-plan.md`, `wiki/index.md`, and `wiki/log.md` to revise durable wiki pages for the goal: \{goal}",
+      prompt: "Load `skills/wiki-memory/SKILL.md` and `skills/wiki-query/SKILL.md`, then use `wiki/synthesis/maintenance-plan.md`, `wiki/index.md`, and `wiki/log.md` to revise durable wiki pages for the goal: \{goal}",
       priority: 90,
       requires_review: true,
       target_pages: [
@@ -198,7 +199,7 @@ pub async fn produce_task_batch(
       id: "\{normalized_goal_id}-planning",
       title: "Refresh local planning surfaces",
       kind: "planning",
-      prompt: "Use `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/map.md`, `wiki/synthesis/evidence.md`, and `keeper/INSIGHTS.md` to plan the next local wiki revisions for the goal: \{goal}",
+      prompt: "Load `RESOLVER.md` and `skills/wiki-lint/SKILL.md`, then use `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/map.md`, `wiki/synthesis/evidence.md`, and `keeper/INSIGHTS.md` to plan the next local wiki revisions for the goal: \{goal}",
       priority: 95,
       requires_review: true,
       target_pages: [
@@ -212,7 +213,7 @@ pub async fn produce_task_batch(
     id: "\{normalized_goal_id}-analysis",
     title: "Produce domain-local task result",
     kind: "analysis",
-    prompt: "Answer the goal inside this book boundary. Use the wiki pages as the durable context and do not leak into other books: \{goal}",
+    prompt: "Load `skills/wiki-query/SKILL.md` and answer the goal inside this book boundary. Use the wiki pages as the durable context and do not leak into other books: \{goal}",
     priority: 80,
     requires_review: true,
     target_pages: ["index.md", "log.md", "synthesis/query-insights.md"],
@@ -226,7 +227,7 @@ pub async fn produce_task_batch(
       id: "\{normalized_goal_id}-ingest-followup",
       title: "Prepare ingest follow-up",
       kind: "ingest",
-      prompt: "Inspect `raw/` and `wiki/sources/` to determine whether the goal requires new source ingestion or revision of existing source summaries: \{goal}",
+      prompt: "Load `skills/wiki-ingest/SKILL.md` and inspect `raw/` and `wiki/sources/` to determine whether the goal requires new source ingestion or revision of existing source summaries: \{goal}",
       priority: 70,
       requires_review: true,
       target_pages: ["sources/", "synthesis/overview.md"],
@@ -259,6 +260,7 @@ pub async fn hydrate_worker_context(
     prompt: task.prompt,
     policy,
     routines,
+    skill_paths: resolve_skill_paths(root, task),
     context_pages: select_context_pages(root, task, terms),
     active_memory: select_memory_entries(keeper.active_memory, terms, 6),
     user_memory: select_memory_entries(keeper.user_memory, terms, 4),
@@ -544,37 +546,45 @@ async fn catalog_tags(root : String) -> Array[String] {
 
 ///|
 async fn catalog_skills(root : String) -> Array[String] {
-  let skills : Array[String] = ["analysis", "memory", "review"]
-  for line in routine_lines(root) {
-    let lowered = line.to_lower()
-    if lowered.contains("plan") && !skills.contains("planning") {
-      skills.push("planning")
-    }
-    if lowered.contains("index") && !skills.contains("retrieval") {
-      skills.push("retrieval")
+  let skills : Array[String] = []
+  for path in skill_markdown_paths(root) {
+    let content = @fsx.read_file(path)
+    let fallback = skill_name_from_path(path)
+    let name = parse_skill_name(content, fallback)
+    if !name.is_empty() && !skills.contains(name) {
+      skills.push(name)
     }
   }
-  skills
+  if skills.is_empty() {
+    ["wiki-ingest", "wiki-query", "wiki-lint", "wiki-review", "wiki-memory"]
+  } else {
+    skills
+  }
 }
 
 ///|
 async fn policy_lines(root : String) -> Array[String] {
-  let path = @path.Path(@pathx.normalize(root))
-    .join(@path.Path("AGENTS.md"))
-    .to_string()
+  let normalized = @pathx.normalize(root)
+  let candidate_paths = [
+    @path.Path(normalized).join(@path.Path("keeper/POLICY.md")).to_string(),
+    @path.Path(normalized).join(@path.Path("AGENTS.md")).to_string(),
+  ]
   let lines : Array[String] = []
-  if !@fsx.exists(path) {
-    return [
-      "respect book-local boundaries", "promote only durable knowledge", "queue uncertain changes for review",
-    ]
-  }
-  for raw in @fsx.read_file(path).split("\n") {
-    let line = raw.trim().to_string()
-    if line.has_prefix("- ") {
-      lines.push(line.strip_prefix("- ").unwrap_or(line).to_string())
-      if lines.length() >= 6 {
-        break
+  for path in candidate_paths {
+    if !@fsx.exists(path) {
+      continue
+    }
+    for raw in @fsx.read_file(path).split("\n") {
+      let line = raw.trim().to_string()
+      if line.has_prefix("- ") {
+        lines.push(line.strip_prefix("- ").unwrap_or(line).to_string())
+        if lines.length() >= 6 {
+          break
+        }
       }
+    }
+    if lines.length() >= 6 {
+      break
     }
   }
   if lines.is_empty() {
@@ -588,9 +598,8 @@ async fn policy_lines(root : String) -> Array[String] {
 
 ///|
 async fn routine_lines(root : String) -> Array[String] {
-  let path = @path.Path(@pathx.normalize(root))
-    .join(@path.Path("ROUTINES.md"))
-    .to_string()
+  let normalized = @pathx.normalize(root)
+  let path = @path.Path(normalized).join(@path.Path("ROUTINES.md")).to_string()
   let lines : Array[String] = []
   if @fsx.exists(path) {
     for raw in @fsx.read_file(path).split("\n") {
@@ -600,6 +609,20 @@ async fn routine_lines(root : String) -> Array[String] {
         line.has_prefix("3.") ||
         line.has_prefix("4.") {
         lines.push(line)
+      }
+    }
+  }
+  let resolver = @path.Path(normalized)
+    .join(@path.Path("RESOLVER.md"))
+    .to_string()
+  if @fsx.exists(resolver) {
+    for raw in @fsx.read_file(resolver).split("\n") {
+      let line = raw.trim().to_string()
+      if line.has_prefix("- intent:") {
+        lines.push(line)
+      }
+      if lines.length() >= 6 {
+        break
       }
     }
   }
@@ -634,6 +657,144 @@ async fn summarize_memory(root : String) -> String {
   }
   let evidence = count_evidence_entries(root)
   "keeper_active=\{keeper.active_memory.length()} keeper_user=\{keeper.user_memory.length()} keeper_working=\{keeper.working_memory.length()} claims=\{claims} overview_updates=\{updates} evidence=\{evidence}"
+}
+
+///|
+async fn resolve_skill_paths(root : String, task : BookTask) -> Array[String] {
+  let normalized = @pathx.normalize(root)
+  let selected : Array[String] = []
+  let candidates = task_skill_names(task)
+  for name in candidates {
+    let path = @path.Path(normalized)
+      .join(@path.Path("skills/\{name}/SKILL.md"))
+      .to_string()
+    if @fsx.exists(path) {
+      selected.push(relative_to_root(path, normalized))
+    }
+  }
+  let resolver = @path.Path(normalized)
+    .join(@path.Path("RESOLVER.md"))
+    .to_string()
+  if @fsx.exists(resolver) {
+    selected.push(relative_to_root(resolver, normalized))
+  }
+  selected
+}
+
+///|
+fn task_skill_names(task : BookTask) -> Array[String] {
+  let names : Array[String] = []
+  let kinds = [task.kind]
+  for kind in kinds {
+    match kind {
+      "ingest" => {
+        names.push("wiki-ingest")
+        names.push("source-diarize")
+        names.push("entity-revise")
+        names.push("concept-revise")
+        names.push("synthesis-revise")
+        names.push("claim-audit")
+        names.push("index-maintain")
+        names.push("wiki-memory")
+      }
+      "review" => {
+        names.push("wiki-review")
+        names.push("review-decision")
+        names.push("contradiction-review")
+        names.push("claim-audit")
+      }
+      "planning" => {
+        names.push("wiki-lint")
+        names.push("contradiction-review")
+        names.push("index-maintain")
+        names.push("memory-prune")
+      }
+      "synthesis" => {
+        names.push("wiki-memory")
+        names.push("wiki-query")
+        names.push("synthesis-revise")
+        names.push("query-promote")
+        names.push("memory-prune")
+      }
+      _ => {
+        names.push("wiki-query")
+        names.push("query-promote")
+        names.push("claim-audit")
+      }
+    }
+  }
+  names
+}
+
+///|
+async fn skill_markdown_paths(root : String) -> Array[String] {
+  let dir = @path.Path(@pathx.normalize(root))
+    .join(@path.Path("skills"))
+    .to_string()
+  let paths : Array[String] = []
+  if !@fsx.exists(dir) {
+    return paths
+  }
+  for child in @fsx.list_directory(dir) {
+    let candidate = @path.Path(dir)
+      .join(@path.Path(child))
+      .join(@path.Path("SKILL.md"))
+      .to_string()
+    if @fsx.exists(candidate) {
+      paths.push(candidate)
+    }
+  }
+  paths.sort()
+  paths
+}
+
+///|
+fn parse_skill_name(content : String, fallback : String) -> String {
+  for raw in content.split("\n") {
+    let line = raw.trim().to_string()
+    if line.has_prefix("name:") {
+      return line.strip_prefix("name:").unwrap_or(line).trim().to_string()
+    }
+  }
+  fallback
+}
+
+///|
+fn skill_name_from_path(path : String) -> String {
+  let normalized = @pathx.normalize(path)
+  if normalized.contains("/skills/wiki-ingest/") {
+    "wiki-ingest"
+  } else if normalized.contains("/skills/wiki-query/") {
+    "wiki-query"
+  } else if normalized.contains("/skills/wiki-lint/") {
+    "wiki-lint"
+  } else if normalized.contains("/skills/wiki-review/") {
+    "wiki-review"
+  } else if normalized.contains("/skills/wiki-memory/") {
+    "wiki-memory"
+  } else if normalized.contains("/skills/source-diarize/") {
+    "source-diarize"
+  } else if normalized.contains("/skills/entity-revise/") {
+    "entity-revise"
+  } else if normalized.contains("/skills/concept-revise/") {
+    "concept-revise"
+  } else if normalized.contains("/skills/synthesis-revise/") {
+    "synthesis-revise"
+  } else if normalized.contains("/skills/claim-audit/") {
+    "claim-audit"
+  } else if normalized.contains("/skills/contradiction-review/") {
+    "contradiction-review"
+  } else if normalized.contains("/skills/index-maintain/") {
+    "index-maintain"
+  } else if normalized.contains("/skills/query-promote/") {
+    "query-promote"
+  } else if normalized.contains("/skills/memory-prune/") {
+    "memory-prune"
+  } else if normalized.contains("/skills/review-decision/") {
+    "review-decision"
+  } else {
+    @path.Path(normalized).basename().to_string()
+  }
 }
 
 ///|
@@ -1075,9 +1236,12 @@ async test "catalog skills include base harness skills" {
   let root = "/tmp/moonbook-bookapi-skills"
   ignore(init_workspace(root))
   let skills = catalog_skills(root)
-  assert_true(skills.contains("analysis"))
-  assert_true(skills.contains("memory"))
-  assert_true(skills.contains("review"))
+  assert_true(skills.contains("wiki-ingest"))
+  assert_true(skills.contains("wiki-query"))
+  assert_true(skills.contains("wiki-review"))
+  assert_true(skills.contains("source-diarize"))
+  assert_true(skills.contains("query-promote"))
+  assert_true(skills.contains("review-decision"))
 }
 
 ///|
@@ -1121,4 +1285,7 @@ async test "hydrate worker context includes keeper memory slices" {
   assert_true(context.user_memory.length() > 0)
   assert_true(context.active_memory.length() > 0)
   assert_true(context.working_memory.length() > 0)
+  assert_true(context.skill_paths.contains("skills/wiki-query/SKILL.md"))
+  assert_true(context.skill_paths.contains("skills/query-promote/SKILL.md"))
+  assert_true(context.skill_paths.contains("RESOLVER.md"))
 }
