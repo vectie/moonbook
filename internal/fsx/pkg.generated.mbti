@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "username/moonbook/internal/fsx"
+package "vectie/moonbook/internal/fsx"
 
 // Values
 pub async fn exists(StringView) -> Bool

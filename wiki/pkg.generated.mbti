@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "username/moonbook/wiki"
+package "vectie/moonbook/wiki"
 
 import {
   "moonbitlang/core/json",

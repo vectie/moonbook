@@ -1,4 +1,4 @@
 import {
-  "username/moonbook/core",
+  "vectie/moonbook/core",
   "moonbitlang/core/json",
 }

@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "username/moonbook/internal/watcher"
+package "vectie/moonbook/internal/watcher"
 
 // Values
 pub fn changed_paths(Map[String, FileState], Map[String, FileState]) -> Array[String]

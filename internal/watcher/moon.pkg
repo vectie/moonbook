@@ -1,8 +1,8 @@
 import {
   "moonbitlang/async",
   "moonbitlang/async/fs",
-  "username/moonbook/internal/fsx",
-  "username/moonbook/internal/pathx",
+  "vectie/moonbook/internal/fsx",
+  "vectie/moonbook/internal/pathx",
 }
 
 import {

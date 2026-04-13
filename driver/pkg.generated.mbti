@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "username/moonbook/driver"
+package "vectie/moonbook/driver"
 
 import {
-  "username/moonbook/core",
-  "username/moonbook/summary",
+  "vectie/moonbook/core",
+  "vectie/moonbook/summary",
 }
 
 // Values

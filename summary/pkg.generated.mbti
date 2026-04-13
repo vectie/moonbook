@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "username/moonbook/summary"
+package "vectie/moonbook/summary"
 
 import {
   "moonbitlang/core/json",
-  "username/moonbook/core",
+  "vectie/moonbook/core",
 }
 
 // Values

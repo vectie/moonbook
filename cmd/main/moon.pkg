@@ -3,12 +3,12 @@ import {
   "moonbitlang/async/process",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
-  "username/moonbook/internal/fsx",
-  "username/moonbook/internal/httpserve",
-  "username/moonbook/internal/watcher",
-  "username/moonbook/driver",
-  "username/moonbook/core",
-  "username/moonbook/wiki",
+  "vectie/moonbook/internal/fsx",
+  "vectie/moonbook/internal/httpserve",
+  "vectie/moonbook/internal/watcher",
+  "vectie/moonbook/driver",
+  "vectie/moonbook/core",
+  "vectie/moonbook/wiki",
   "moonbitlang/x/path",
 }
 

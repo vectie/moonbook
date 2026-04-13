@@ -3,9 +3,9 @@ import {
   "moonbitlang/async/fs",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
-  "username/moonbook/core",
-  "username/moonbook/internal/fsx",
-  "username/moonbook/internal/pathx",
+  "vectie/moonbook/core",
+  "vectie/moonbook/internal/fsx",
+  "vectie/moonbook/internal/pathx",
   "moonbitlang/x/path",
 }
 

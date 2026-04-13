@@ -1,6 +1,6 @@
 import {
   "moonbitlang/async/fs",
-  "username/moonbook/internal/pathx",
+  "vectie/moonbook/internal/pathx",
   "moonbitlang/core/encoding/utf8" @encoding/utf8,
 }
 

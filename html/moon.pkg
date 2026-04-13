@@ -1,6 +1,6 @@
 import {
-  "username/moonbook/internal/fsx",
-  "username/moonbook/internal/pathx",
-  "username/moonbook/core",
+  "vectie/moonbook/internal/fsx",
+  "vectie/moonbook/internal/pathx",
+  "vectie/moonbook/core",
   "moonbitlang/x/path",
 }

@@ -470,7 +470,7 @@ async fn parse_wiki_book_goal_args(
 ///|
 async fn parse_wiki_keeper_submit_args(
   args : Array[String],
-) -> ParsedWikiKeeperSubmitArgs raise {
+) -> ParsedWikiKeeperSubmitArgs {
   let filtered : Array[String] = []
   let mut confirm = false
   let mut latest = false
@@ -526,7 +526,11 @@ async fn parse_wiki_keeper_submit_args(
     )
   }
   let root = if latest {
-    if filtered.length() == 1 { filtered[0] } else { "." }
+    if filtered.length() == 1 {
+      filtered[0]
+    } else {
+      "."
+    }
   } else if filtered.length() == 2 {
     filtered[0]
   } else {
