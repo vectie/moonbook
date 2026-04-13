@@ -136,6 +136,12 @@ pub async fn MDBook::build(self : MDBook) -> Unit {
     .to_string()
   let manifest = { ..self, book: preprocessed_book }
   write_text_file(manifest_path, manifest.to_json().stringify(indent=2))
+  if is_wiki_workspace(self.root, self.config) {
+    let ui_state_path = @path.Path(build_dir)
+      .join(@path.Path("moonbook-ui-state.json"))
+      .to_string()
+    ignore(@wiki.write_ui_state(self.root, ui_state_path))
+  }
 }
 
 ///|
@@ -145,6 +151,12 @@ pub fn resolved_build_dir(root : String, config : @core.Config) -> String {
   } else {
     @path.Path(root).join(@path.Path(config.build.build_dir)).to_string()
   }
+}
+
+///|
+fn is_wiki_workspace(root : String, config : @core.Config) -> Bool {
+  config.book.src == "wiki" &&
+  @fs.path_exists(@path.Path(root).join(@path.Path("wiki.toml")).to_string())
 }
 
 ///|

@@ -1,7 +1,8 @@
 import {
   "moonbit-community/rabbita",
   "moonbit-community/rabbita/html",
-  "username/moonbook/core",
+  "moonbit-community/rabbita/http",
+  "moonbitlang/core/json",
 }
 
 options(

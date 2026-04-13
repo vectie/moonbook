@@ -27,62 +27,100 @@ struct WorkspaceMetric {
   value : String
   note : String
   tone : String
-}
+} derive(Show, FromJson)
 
 ///|
 struct WorkflowItem {
   title : String
   detail : String
   status : String
-}
+} derive(Show, FromJson)
 
 ///|
 struct PanelItem {
   title : String
   detail : String
   meta : String
+} derive(Show, FromJson)
+
+///|
+struct StatusChip {
+  label : String
+  tone : String
+} derive(Show, FromJson)
+
+///|
+struct ChapterLink {
+  title : String
+  href : String
+  source_path : String
+  number : String
+} derive(Show, FromJson)
+
+///|
+struct UiState {
+  title : String
+  summary : String
+  status_chips : Array[StatusChip]
+  metrics : Array[WorkspaceMetric]
+  workflow : Array[WorkflowItem]
+  review_queue : Array[PanelItem]
+  keeper_items : Array[PanelItem]
+  page_families : Array[PanelItem]
+  chapters : Array[ChapterLink]
+  synthesis_preview : String
+} derive(Show, FromJson)
+
+///|
+struct Model {
+  loading : Bool
+  state : UiState
+  error : String?
 }
 
 ///|
-fn demo_book() -> @core.Book {
-  @core.new_with_items([
-    @core.item_chapter(
-      @core.chapter(
-        "Home",
-        "# Home\n\nMoonBook turns books into maintained wiki workspaces.",
-        number=Some(@core.SectionNumber::new([1])),
-        path=Some("index.html"),
-        source_path=Some("Home.md"),
-      ),
-    ),
-    @core.item_chapter(
-      @core.chapter(
-        "Claims Register",
-        "# Claims Register\n\nTrack claim ids, confidence, and supersession.",
-        number=Some(@core.SectionNumber::new([2])),
-        path=Some("synthesis/claims.html"),
-        source_path=Some("synthesis/claims.md"),
-      ),
-    ),
-    @core.item_chapter(
-      @core.chapter(
-        "Synthesis Map",
-        "# Synthesis Map\n\nCoverage and open loops across the workspace.",
-        number=Some(@core.SectionNumber::new([3])),
-        path=Some("synthesis/map.html"),
-        source_path=Some("synthesis/map.md"),
-      ),
-    ),
-    @core.item_chapter(
-      @core.chapter(
-        "Evidence",
-        "# Evidence\n\nSupport records for persisted results and review outcomes.",
-        number=Some(@core.SectionNumber::new([4])),
-        path=Some("synthesis/evidence.html"),
-        source_path=Some("synthesis/evidence.md"),
-      ),
-    ),
-  ])
+enum Msg {
+  Loaded(Result[UiState, String])
+}
+
+///|
+fn demo_state() -> UiState {
+  {
+    title: "MoonBook",
+    summary: "A single Rabbita surface for reading chapters, inspecting workspace health, and steering Keeper-driven maintenance.",
+    status_chips: [
+      { label: "healthy", tone: "healthy" },
+      { label: "pending review", tone: "review" },
+      { label: "planning pressure", tone: "alert" },
+    ],
+    metrics: workspace_metrics(),
+    workflow: workflow_items(),
+    review_queue: review_queue_items(),
+    keeper_items: keeper_items(),
+    page_families: chapter_preview_items(),
+    chapters: [
+      { title: "Home", href: "index.html", source_path: "Home.md", number: "1" },
+      {
+        title: "Claims Register",
+        href: "synthesis/claims.html",
+        source_path: "synthesis/claims.md",
+        number: "2",
+      },
+      {
+        title: "Synthesis Map",
+        href: "synthesis/map.html",
+        source_path: "synthesis/map.md",
+        number: "3",
+      },
+      {
+        title: "Evidence",
+        href: "synthesis/evidence.html",
+        source_path: "synthesis/evidence.md",
+        number: "4",
+      },
+    ],
+    synthesis_preview: "## Coverage\n- Source pages: 12\n- Entity pages: 7\n- Concept pages: 5\n- Claim entries: 19\n- Evidence records: 18\n\n## Entity Hubs\n- wiki/entities/moonbook.md score=11\n- wiki/entities/moonclaw.md score=8\n\n## Open Loops\n- Pending reviews: 4\n- Low-confidence claims: 3\n- Keeper working memory is crowded: 8",
+  }
 }
 
 ///|
@@ -176,10 +214,7 @@ fn nav_link(
 }
 
 ///|
-fn render_chapter_link(chapter : @core.Chapter, index : Int) -> @rabbita.Html {
-  let chapter_number = chapter.number
-    .map(fn(n) { n.to_string() })
-    .unwrap_or("0")
+fn render_chapter_link(chapter : ChapterLink, index : Int) -> @rabbita.Html {
   let background = if index == 0 {
     "linear-gradient(180deg,rgba(37,99,235,.10),rgba(37,99,235,.04))"
   } else {
@@ -187,7 +222,7 @@ fn render_chapter_link(chapter : @core.Chapter, index : Int) -> @rabbita.Html {
   }
   li(style=["list-style:none"], [
     a(
-      href=chapter.path.unwrap_or("#"),
+      href=chapter.href,
       style=[
         "display:grid",
         "grid-template-columns:44px minmax(0,1fr)",
@@ -208,18 +243,18 @@ fn render_chapter_link(chapter : @core.Chapter, index : Int) -> @rabbita.Html {
             "justify-content:center", "font-family:'Fira Code','SFMono-Regular',monospace",
             "font-weight:700", "font-size:13px", "background:#eff6ff", "color:#1d4ed8",
           ],
-          chapter_number,
+          chapter.number,
         ),
         div([
           span(
             style=[
               "display:block", "font-size:15px", "font-weight:700", "margin-bottom:4px",
             ],
-            chapter.name,
+            chapter.title,
           ),
           small(
             style=["display:block", "color:#64748b", "line-height:1.45"],
-            chapter.source_path.unwrap_or("generated"),
+            chapter.source_path,
           ),
         ]),
       ],
@@ -228,9 +263,7 @@ fn render_chapter_link(chapter : @core.Chapter, index : Int) -> @rabbita.Html {
 }
 
 ///|
-fn render_chapter_links(
-  chapters : Array[@core.Chapter],
-) -> Array[@rabbita.Html] {
+fn render_chapter_links(chapters : Array[ChapterLink]) -> Array[@rabbita.Html] {
   let items : Array[@rabbita.Html] = []
   for i = 0; i < chapters.length(); i = i + 1 {
     items.push(render_chapter_link(chapters[i], i))
@@ -477,8 +510,13 @@ fn panel_list(
 }
 
 ///|
-fn render_sidebar(book : @core.Book) -> @rabbita.Html {
-  let chapters = book.chapters()
+fn render_sidebar(state : UiState, model : Model) -> @rabbita.Html {
+  let sidebar_note = match model.error {
+    Some(error) =>
+      "Using fallback snapshot because `moonbook-ui-state.json` could not be loaded: \{error}"
+    None =>
+      "The UI is now bound to `moonbook-ui-state.json` when the generated snapshot is present."
+  }
   aside(
     style=panel_style() +
       [
@@ -499,12 +537,9 @@ fn render_sidebar(book : @core.Book) -> @rabbita.Html {
           style=[
             "margin:16px 0 10px 0", "font-size:34px", "line-height:1.05", "letter-spacing:-.04em",
           ],
-          "Docs reader meets wiki operator console.",
+          state.title,
         ),
-        p(
-          style=muted_text_style() + ["margin:0"],
-          "A single Rabbita surface for reading chapters, inspecting workspace health, and steering Keeper-driven maintenance.",
-        ),
+        p(style=muted_text_style() + ["margin:0"], state.summary),
       ]),
       div(style=["display:grid", "gap:8px"], [
         nav_link("Workspace Overview", "#overview", current=true),
@@ -516,7 +551,7 @@ fn render_sidebar(book : @core.Book) -> @rabbita.Html {
         h3(style=["margin:0 0 12px 0", "font-size:16px"], "Reading Surface"),
         ul(
           style=["display:grid", "gap:10px", "padding:0", "margin:0"],
-          render_chapter_links(chapters),
+          render_chapter_links(state.chapters),
         ),
       ]),
       article(
@@ -534,11 +569,15 @@ fn render_sidebar(book : @core.Book) -> @rabbita.Html {
           ),
           h3(
             style=["margin:0", "font-size:18px"],
-            "Wire this UI to live workspace data.",
+            if model.loading {
+              "Loading workspace snapshot."
+            } else {
+              "Live workspace snapshot loaded."
+            },
           ),
           p(
             style=["margin:0", "line-height:1.6", "color:#cbd5e1"],
-            "The layout is now product-ready. The next layer is binding it to real book, review, and Keeper state instead of demo fixtures.",
+            sidebar_note,
           ),
         ],
       ),
@@ -547,7 +586,12 @@ fn render_sidebar(book : @core.Book) -> @rabbita.Html {
 }
 
 ///|
-fn hero_section() -> @rabbita.Html {
+fn hero_section(state : UiState, model : Model) -> @rabbita.Html {
+  let search_value = if state.chapters.is_empty() {
+    "synthesis map"
+  } else {
+    state.chapters[0].title.to_lower()
+  }
   header(
     id="overview",
     style=panel_style() +
@@ -584,19 +628,20 @@ fn hero_section() -> @rabbita.Html {
                 "margin:16px 0 14px 0", "font-size:50px", "line-height:.98", "letter-spacing:-.06em",
                 "max-width:14ch",
               ],
-              "Operate a maintained wiki like a product, not a folder tree.",
+              state.title,
             ),
             p(
               style=muted_text_style() +
                 ["margin:0", "max-width:64ch", "font-size:17px"],
-              "MoonBook now has enough Keeper, evidence, review, and synthesis state to justify a real interface. This UI centers the operator loop instead of hiding it behind CLI output.",
+              state.summary,
             ),
           ]),
-          div(style=["display:grid", "gap:10px", "min-width:230px"], [
-            status_chip("healthy", "healthy"),
-            status_chip("pending review", "review"),
-            status_chip("planning pressure", "alert"),
-          ]),
+          div(
+            style=["display:grid", "gap:10px", "min-width:230px"],
+            state.status_chips.map(fn(chip) {
+              status_chip(chip.label, chip.tone)
+            }),
+          ),
         ],
       ),
       div(
@@ -607,7 +652,7 @@ fn hero_section() -> @rabbita.Html {
         [
           input(
             placeholder="Search claims, chapters, concepts, or keeper notes",
-            value="synthesis map",
+            value=search_value,
             read_only=true,
             style=[
               "width:100%", "padding:15px 18px", "border-radius:18px", "border:1px solid rgba(148,163,184,.24)",
@@ -622,7 +667,11 @@ fn hero_section() -> @rabbita.Html {
               "color:#fff", "font-weight:700", "cursor:pointer", "box-shadow:0 16px 35px rgba(37,99,235,.22)",
               "transition:transform .2s ease, box-shadow .2s ease",
             ],
-            "Open Search",
+            if model.loading {
+              "Loading"
+            } else {
+              "Open Search"
+            },
           ),
         ],
       ),
@@ -631,17 +680,22 @@ fn hero_section() -> @rabbita.Html {
 }
 
 ///|
-fn render_page(book : @core.Book) -> @rabbita.Html {
+fn render_page(model : Model) -> @rabbita.Html {
+  let state = model.state
+  let operator_note = match model.error {
+    Some(error) => "Last load error: \{error}"
+    None => "Workspace snapshot currently available."
+  }
   div(style=app_shell_style(), [
     div(style=page_grid_style(), [
-      render_sidebar(book),
+      render_sidebar(state, model),
       main_(style=["display:grid", "gap:24px"], [
-        hero_section(),
+        hero_section(state, model),
         section(
           style=[
             "display:grid", "grid-template-columns:repeat(4,minmax(0,1fr))", "gap:14px",
           ],
-          workspace_metrics().map(metric_card),
+          state.metrics.map(metric_card),
         ),
         section(
           style=[
@@ -657,7 +711,7 @@ fn render_page(book : @core.Book) -> @rabbita.Html {
                 ),
                 p(
                   style=muted_text_style() + ["margin:0"],
-                  "The UI mirrors the current MoonBook loop: ingest, query, review, persist, and keep planning pressure visible.",
+                  "The UI mirrors the current MoonBook loop using generated workspace state instead of hardcoded demo counters.",
                 ),
               ]),
               div(
@@ -665,24 +719,24 @@ fn render_page(book : @core.Book) -> @rabbita.Html {
                   "display:grid", "grid-template-columns:repeat(2,minmax(0,1fr))",
                   "gap:14px",
                 ],
-                render_workflow_cards(workflow_items()),
+                render_workflow_cards(state.workflow),
               ),
               panel_list(
                 "Review Queue",
                 "High-value merges and promotions should be legible before they become durable wiki edits.",
-                review_queue_items(),
+                state.review_queue,
               ),
             ]),
             section(style=["display:grid", "gap:14px"], [
               panel_list(
                 "Keeper State",
                 "Bounded memory needs its own operator panel instead of disappearing into file names.",
-                keeper_items(),
+                state.keeper_items,
               ),
               panel_list(
                 "Page Families",
                 "The reading UI should make the maintained surfaces feel like a product map, not just markdown files.",
-                chapter_preview_items(),
+                state.page_families,
               ),
             ]),
           ],
@@ -710,11 +764,7 @@ fn render_page(book : @core.Book) -> @rabbita.Html {
                   "color:#dbeafe", "overflow:auto", "font-family:'Fira Code','SFMono-Regular',monospace",
                   "font-size:13px", "line-height:1.7",
                 ],
-                [
-                  code(
-                    "## Coverage\n- Source pages: 12\n- Entity pages: 7\n- Concept pages: 5\n- Claim entries: 19\n- Evidence records: 18\n\n## Entity Hubs\n- wiki/entities/moonbook.md score=11\n- wiki/entities/moonclaw.md score=8\n\n## Open Loops\n- Pending reviews: 4\n- Low-confidence claims: 3\n- Keeper working memory is crowded: 8",
-                  ),
-                ],
+                [code(state.synthesis_preview)],
               ),
             ]),
             article(
@@ -747,9 +797,16 @@ fn render_page(book : @core.Book) -> @rabbita.Html {
                       "Dashboard view for review backlog, evidence, and open loops.",
                     ),
                     li(
-                      "A synthesis map panel that reflects the new MoonBook planning layer.",
+                      "A synthesis map panel that reflects the generated planning layer.",
                     ),
-                    li("A visual place to wire live workspace state next."),
+                    li(
+                      if model.loading {
+                        "Loading snapshot from `moonbook-ui-state.json`."
+                      } else {
+                        "Snapshot loaded from `moonbook-ui-state.json`."
+                      },
+                    ),
+                    li(operator_note),
                   ],
                 ),
                 button(
@@ -757,7 +814,7 @@ fn render_page(book : @core.Book) -> @rabbita.Html {
                     "margin-top:auto", "padding:13px 16px", "border:none", "border-radius:16px",
                     "background:#0f172a", "color:#fff", "font-weight:700", "cursor:pointer",
                   ],
-                  "Bind Live Data",
+                  "Snapshot Ready",
                 ),
               ],
             ),
@@ -774,10 +831,37 @@ test {
   ignore(render_page)
   ignore(metric_card)
   ignore(panel_list)
+  ignore(fetch_ui_state_cmd)
+}
+
+///|
+fn fetch_ui_state_cmd(dispatch : (Msg) -> @rabbita.Cmd) -> @rabbita.Cmd {
+  @http.get(
+    "./moonbook-ui-state.json",
+    expect=@http.Json(fn(result) { dispatch(Loaded(result)) }, json => {
+      Ok(@json.from_json(json)) catch {
+        _ => Err("Invalid ui snapshot")
+      }
+    }),
+  )
+}
+
+///|
+fn update(msg : Msg, model : Model) -> Model {
+  match msg {
+    Loaded(Ok(state)) => { loading: false, state, error: None }
+    Loaded(Err(error)) => { ..model, loading: false, error: Some(error) }
+  }
 }
 
 ///|
 fn main {
-  let app = @rabbita.static_cell(render_page(demo_book()))
-  @rabbita.new(app).mount("app")
+  let (dispatch, cell) = @rabbita.simple_cell_with_dispatch(
+    model={ loading: true, state: demo_state(), error: None },
+    update~,
+    view=(_, model) => render_page(model),
+  )
+  let app = @rabbita.new(cell)
+  app.with_init(fetch_ui_state_cmd(dispatch))
+  app.mount("app")
 }

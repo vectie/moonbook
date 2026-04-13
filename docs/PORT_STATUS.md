@@ -67,7 +67,7 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 
 ### Frontend Gaps
 
-- Rabbita now has a real operator/dashboard surface, but it is still demo-data-driven rather than bound to live workspace state
+- Rabbita now has a real operator/dashboard surface and can load generated workspace state snapshots, but it is still not a fully integrated live editor/operator product
 - no integrated live preview with rebuild-triggered browser refresh
 
 ## Suggested Next Work

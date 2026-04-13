@@ -4,6 +4,7 @@ import {
   "username/moonbook/core",
   "username/moonbook/summary",
   "username/moonbook/html",
+  "username/moonbook/wiki",
   "username/moonbook/internal/fsx",
   "username/moonbook/internal/pathx",
   "moonbitlang/core/bytes",
