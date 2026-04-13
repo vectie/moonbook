@@ -40,6 +40,10 @@ pub fn MDBook::iter(Self) -> Array[@core.BookItem]
 pub impl Show for MDBook
 pub impl ToJson for MDBook
 
+type UiClientConfig
+pub impl Show for UiClientConfig
+pub impl ToJson for UiClientConfig
+
 // Type aliases
 
 // Traits

@@ -342,7 +342,7 @@ fn render_live_reload_script(config : @core.Config) -> String {
       } else {
         "/" + endpoint
       }
-      "<script>(function(){var e=\"\{escape_html(endpoint)}\";var c=null;async function p(){try{var r=await fetch(e,{cache:\"no-store\"});if(r.ok){var t=await r.text();if(c===null){c=t}else if(c!==t){location.reload();return}}}catch(_){ }setTimeout(p,1000)}setTimeout(p,1000)})();</script>"
+      "<script>(function(){var e=\"\{escape_html(endpoint)}\";if(!window.EventSource)return;var s=new EventSource(e);s.addEventListener(\"reload\",function(){location.reload()});s.onerror=function(){};window.addEventListener(\"beforeunload\",function(){try{s.close()}catch(_){}})})();</script>"
     }
     _ => ""
   }

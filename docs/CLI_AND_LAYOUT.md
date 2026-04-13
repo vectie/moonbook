@@ -455,4 +455,4 @@ This pack does not change the core wiki directories or make MoonBook depend on M
 
 ### `ui/`
 
-Contains Rabbita frontend work. The current Rabbita package renders a documentation-first operator dashboard for MoonBook and loads generated workspace state from `moonbook-ui-state.json`.
+Contains Rabbita frontend work. The current Rabbita package renders a documentation-first operator dashboard for MoonBook, loads generated workspace state from `moonbook-ui-state.json`, and subscribes to rebuild-triggered live refresh when a serve-time event endpoint is available.

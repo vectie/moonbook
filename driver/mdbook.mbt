@@ -14,6 +14,11 @@ pub struct CleanStats {
 } derive(Show, ToJson)
 
 ///|
+struct UiClientConfig {
+  live_reload_endpoint : String?
+} derive(Show, ToJson)
+
+///|
 pub async fn load(book_root : String) -> MDBook {
   let config_path = @path.Path(book_root).join(@path.Path("book.toml"))
   let config = if @fs.path_exists(config_path.to_string()) {
@@ -141,7 +146,24 @@ pub async fn MDBook::build(self : MDBook) -> Unit {
       .join(@path.Path("moonbook-ui-state.json"))
       .to_string()
     ignore(@wiki.write_ui_state(self.root, ui_state_path))
+    let ui_config_path = @path.Path(build_dir)
+      .join(@path.Path("moonbook-ui-config.json"))
+      .to_string()
+    write_text_file(
+      ui_config_path,
+      ui_client_config(self.config).to_json().stringify(indent=2),
+    )
   }
+}
+
+///|
+fn ui_client_config(config : @core.Config) -> UiClientConfig {
+  let live_reload_endpoint = match
+    config.read("output.html.live-reload-endpoint") {
+    Some(String(endpoint)) if !endpoint.is_empty() => Some(endpoint)
+    _ => None
+  }
+  { live_reload_endpoint, }
 }
 
 ///|

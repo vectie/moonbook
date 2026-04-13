@@ -72,15 +72,23 @@ struct UiState {
 } derive(Show, FromJson)
 
 ///|
+struct UiClientConfig {
+  live_reload_endpoint : String?
+} derive(Show, FromJson)
+
+///|
 struct Model {
   loading : Bool
   state : UiState
   error : String?
+  refresh_count : Int
+  live_reload_endpoint : String?
 }
 
 ///|
 enum Msg {
   Loaded(Result[UiState, String])
+  LoadedConfig(Result[UiClientConfig, String])
 }
 
 ///|
@@ -513,9 +521,13 @@ fn panel_list(
 fn render_sidebar(state : UiState, model : Model) -> @rabbita.Html {
   let sidebar_note = match model.error {
     Some(error) =>
-      "Using fallback snapshot because `moonbook-ui-state.json` could not be loaded: \{error}"
-    None =>
-      "The UI is now bound to `moonbook-ui-state.json` when the generated snapshot is present."
+      "Using fallback snapshot because the last refresh of `moonbook-ui-state.json` failed: \{error}"
+    None => match model.live_reload_endpoint {
+      Some(endpoint) =>
+        "The UI is subscribed to live updates from `\{endpoint}` and fetches `moonbook-ui-state.json` only after rebuild events."
+      None =>
+        "The UI is using static snapshot mode because no live update endpoint was configured for this build."
+    }
   }
   aside(
     style=panel_style() +
@@ -570,7 +582,7 @@ fn render_sidebar(state : UiState, model : Model) -> @rabbita.Html {
           h3(
             style=["margin:0", "font-size:18px"],
             if model.loading {
-              "Loading workspace snapshot."
+              "Refreshing workspace snapshot."
             } else {
               "Live workspace snapshot loaded."
             },
@@ -668,9 +680,9 @@ fn hero_section(state : UiState, model : Model) -> @rabbita.Html {
               "transition:transform .2s ease, box-shadow .2s ease",
             ],
             if model.loading {
-              "Loading"
+              "Refreshing"
             } else {
-              "Open Search"
+              "Snapshot Live"
             },
           ),
         ],
@@ -683,8 +695,17 @@ fn hero_section(state : UiState, model : Model) -> @rabbita.Html {
 fn render_page(model : Model) -> @rabbita.Html {
   let state = model.state
   let operator_note = match model.error {
-    Some(error) => "Last load error: \{error}"
+    Some(error) => "Last refresh error: \{error}"
     None => "Workspace snapshot currently available."
+  }
+  let refresh_note = if model.refresh_count == 0 {
+    "Waiting for the first successful live snapshot refresh."
+  } else {
+    "Snapshot refresh count: \{model.refresh_count}"
+  }
+  let transport_note = match model.live_reload_endpoint {
+    Some(endpoint) => "Live update transport: SSE via \{endpoint}"
+    None => "Live update transport: disabled for static builds"
   }
   div(style=app_shell_style(), [
     div(style=page_grid_style(), [
@@ -801,11 +822,13 @@ fn render_page(model : Model) -> @rabbita.Html {
                     ),
                     li(
                       if model.loading {
-                        "Loading snapshot from `moonbook-ui-state.json`."
+                        "Fetching `moonbook-ui-state.json` after a live update signal."
                       } else {
-                        "Snapshot loaded from `moonbook-ui-state.json`."
+                        "Latest snapshot loaded from `moonbook-ui-state.json`."
                       },
                     ),
+                    li(refresh_note),
+                    li(transport_note),
                     li(operator_note),
                   ],
                 ),
@@ -832,6 +855,8 @@ test {
   ignore(metric_card)
   ignore(panel_list)
   ignore(fetch_ui_state_cmd)
+  ignore(fetch_ui_config_cmd)
+  ignore(subscribe_live_reload_cmd)
 }
 
 ///|
@@ -847,21 +872,80 @@ fn fetch_ui_state_cmd(dispatch : (Msg) -> @rabbita.Cmd) -> @rabbita.Cmd {
 }
 
 ///|
-fn update(msg : Msg, model : Model) -> Model {
+fn fetch_ui_config_cmd(dispatch : (Msg) -> @rabbita.Cmd) -> @rabbita.Cmd {
+  @http.get(
+    "./moonbook-ui-config.json",
+    expect=@http.Json(fn(result) { dispatch(LoadedConfig(result)) }, json => {
+      Ok(@json.from_json(json)) catch {
+        _ => Err("Invalid ui config")
+      }
+    }),
+  )
+}
+
+///|
+#cfg(target="js")
+extern "js" fn install_live_reload(
+  endpoint : String,
+) = "(endpoint)=>{if(!window.EventSource)return;const existing=window.__moonbookLiveReload;if(existing&&existing.endpoint===endpoint)return;if(existing&&existing.source){try{existing.source.close()}catch(_){}}const source=new EventSource(endpoint);source.addEventListener('reload',()=>window.location.reload());source.onerror=()=>{};window.__moonbookLiveReload={endpoint,source}}"
+
+///|
+fn subscribe_live_reload_cmd(
+  dispatch : (Msg) -> @rabbita.Cmd,
+  endpoint : String,
+) -> @rabbita.Cmd {
+  ignore(dispatch)
+  @cmd.raw_effect(_ => install_live_reload(endpoint), kind=@cmd.after_render)
+}
+
+///|
+fn update(
+  dispatch : @rabbita.Dispatch[Msg],
+  msg : Msg,
+  model : Model,
+) -> (@rabbita.Cmd, Model) {
   match msg {
-    Loaded(Ok(state)) => { loading: false, state, error: None }
-    Loaded(Err(error)) => { ..model, loading: false, error: Some(error) }
+    LoadedConfig(Ok(config)) => match config.live_reload_endpoint {
+      Some(endpoint) =>
+        (
+          subscribe_live_reload_cmd(dispatch, endpoint),
+          { ..model, live_reload_endpoint: Some(endpoint) },
+        )
+      None => (@rabbita.none, { ..model, live_reload_endpoint: None })
+    }
+    LoadedConfig(Err(_)) => (@rabbita.none, { ..model, live_reload_endpoint: None })
+    Loaded(Ok(state)) =>
+      (@rabbita.none, {
+        loading: false,
+        state,
+        error: None,
+        refresh_count: model.refresh_count + 1,
+        live_reload_endpoint: model.live_reload_endpoint,
+      })
+    Loaded(Err(error)) =>
+      (@rabbita.none, { ..model, loading: false, error: Some(error) })
   }
 }
 
 ///|
 fn main {
-  let (dispatch, cell) = @rabbita.simple_cell_with_dispatch(
-    model={ loading: true, state: demo_state(), error: None },
+  let (dispatch, cell) = @rabbita.cell_with_dispatch(
+    model={
+      loading: true,
+      state: demo_state(),
+      error: None,
+      refresh_count: 0,
+      live_reload_endpoint: None,
+    },
     update~,
     view=(_, model) => render_page(model),
   )
   let app = @rabbita.new(cell)
-  app.with_init(fetch_ui_state_cmd(dispatch))
+  app.with_init(
+    @rabbita.batch([
+      fetch_ui_state_cmd(dispatch),
+      fetch_ui_config_cmd(dispatch),
+    ]),
+  )
   app.mount("app")
 }

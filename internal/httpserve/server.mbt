@@ -233,22 +233,49 @@ async fn send_live_reload(
   method_ : @http.RequestMethod,
   root : String,
 ) -> Unit {
-  let token_path = @pathx.join(root, live_reload_token_file)
-  let token = if @fs.exists(token_path) {
-    @fs.read_file(token_path).text()
-  } else {
-    "0"
-  }
   conn.send_response(200, "OK", extra_headers={
-    "content-type": "text/plain; charset=utf-8",
+    "content-type": "text/event-stream; charset=utf-8",
     "cache-control": "no-store, no-cache, must-revalidate",
+    "connection": "keep-alive",
+    "x-accel-buffering": "no",
   })
   if method_ is @http.RequestMethod::Head {
     conn.end_response()
     return
   }
-  conn.write(token)
-  conn.end_response()
+  let mut token = read_live_reload_token(root)
+  let mut heartbeat_ticks = 0
+  conn.write("retry: 1000\n")
+  conn.write(live_reload_event("ready", token))
+  while true {
+    @async.sleep(1000)
+    let next = read_live_reload_token(root)
+    if next != token {
+      token = next
+      conn.write(live_reload_event("reload", token))
+      heartbeat_ticks = 0
+    } else if heartbeat_ticks >= 14 {
+      conn.write(": keepalive\n\n")
+      heartbeat_ticks = 0
+    } else {
+      heartbeat_ticks += 1
+    }
+  }
+}
+
+///|
+async fn read_live_reload_token(root : String) -> String {
+  let token_path = @pathx.join(root, live_reload_token_file)
+  if @fs.exists(token_path) {
+    @fs.read_file(token_path).text()
+  } else {
+    "0"
+  }
+}
+
+///|
+fn live_reload_event(event_name : String, token : String) -> String {
+  "event: \{event_name}\ndata: \{token}\n\n"
 }
 
 ///|
@@ -350,4 +377,9 @@ test "live reload path matching accepts relative and absolute endpoint values" {
   assert_true(is_live_reload_path("/__livereload", "__livereload"))
   assert_true(is_live_reload_path("/__livereload", "/__livereload"))
   assert_false(is_live_reload_path("/chapter.html", "__livereload"))
+}
+
+///|
+test "live reload events use sse framing" {
+  assert_eq(live_reload_event("reload", "42"), "event: reload\ndata: 42\n\n")
 }

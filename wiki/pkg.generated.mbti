@@ -14,6 +14,8 @@ pub async fn catalog_record(String) -> BookCatalogRecord
 
 pub async fn enable_extension(String, String) -> ExtensionInstallResult
 
+pub async fn generate_ui_state(String) -> UiState
+
 pub async fn hydrate_worker_context(String, BookTask) -> WorkerContextBundle
 
 pub async fn ingest_source(String, String) -> IngestResult
@@ -37,6 +39,8 @@ pub async fn report_health(String) -> BookHealthReport
 pub async fn summarize_state(String) -> BookStateSummary
 
 pub fn supported_extensions() -> Array[String]
+
+pub async fn write_ui_state(String, String) -> String
 
 // Errors
 
@@ -215,6 +219,68 @@ pub struct ReviewItem {
 }
 pub impl Show for ReviewItem
 pub impl ToJson for ReviewItem
+
+pub struct UiChapterLink {
+  title : String
+  href : String
+  source_path : String
+  number : String
+}
+pub impl Show for UiChapterLink
+pub impl ToJson for UiChapterLink
+pub impl @json.FromJson for UiChapterLink
+
+pub struct UiMetric {
+  label : String
+  value : String
+  note : String
+  tone : String
+}
+pub impl Show for UiMetric
+pub impl ToJson for UiMetric
+pub impl @json.FromJson for UiMetric
+
+pub struct UiPanelItem {
+  title : String
+  detail : String
+  meta : String
+}
+pub impl Show for UiPanelItem
+pub impl ToJson for UiPanelItem
+pub impl @json.FromJson for UiPanelItem
+
+pub struct UiState {
+  title : String
+  summary : String
+  status_chips : Array[UiStatusChip]
+  metrics : Array[UiMetric]
+  workflow : Array[UiWorkflowItem]
+  review_queue : Array[UiPanelItem]
+  keeper_items : Array[UiPanelItem]
+  page_families : Array[UiPanelItem]
+  chapters : Array[UiChapterLink]
+  synthesis_preview : String
+}
+pub impl Show for UiState
+pub impl ToJson for UiState
+pub impl @json.FromJson for UiState
+
+pub struct UiStatusChip {
+  label : String
+  tone : String
+}
+pub impl Show for UiStatusChip
+pub impl ToJson for UiStatusChip
+pub impl @json.FromJson for UiStatusChip
+
+pub struct UiWorkflowItem {
+  title : String
+  detail : String
+  status : String
+}
+pub impl Show for UiWorkflowItem
+pub impl ToJson for UiWorkflowItem
+pub impl @json.FromJson for UiWorkflowItem
 
 pub struct WikiWorkspace {
   root : String
