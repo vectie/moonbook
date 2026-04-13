@@ -71,6 +71,8 @@ pub struct BookHealthReport {
   pending_review_count : Int
   low_confidence_claim_count : Int
   maintenance_entry_count : Int
+  keeper_working_count : Int
+  evidence_count : Int
   issues : Array[String]
 }
 pub impl Show for BookHealthReport
@@ -97,6 +99,9 @@ pub struct BookStateSummary {
   entity_count : Int
   concept_count : Int
   pending_review_count : Int
+  keeper_memory_count : Int
+  keeper_working_count : Int
+  evidence_count : Int
   summary : String
 }
 pub impl Show for BookStateSummary
@@ -178,6 +183,7 @@ pub struct PersistResultOutcome {
   updated_pages : Array[String]
   review_queued : Bool
   notify_town : Bool
+  evidence_id : String
 }
 pub impl Show for PersistResultOutcome
 pub impl ToJson for PersistResultOutcome

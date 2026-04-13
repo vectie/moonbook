@@ -276,6 +276,14 @@ async fn save_query_answer(
   related_pages.push(
     update_query_insights(workspace, question, relative_page, citations, answer),
   )
+  let keeper_page = keeper_capture_query_insight(
+    workspace.root,
+    question,
+    query_insight_summary(answer),
+  )
+  if !related_pages.contains(keeper_page) {
+    related_pages.push(keeper_page)
+  }
   for
     page in propagate_query_signals(
       workspace, question, relative_page, citations, answer,
@@ -305,6 +313,14 @@ async fn save_query_answer(
   )
   if !related_pages.contains(maintenance_plan_page) {
     related_pages.push(maintenance_plan_page)
+  }
+  let synthesis_map_page = refresh_synthesis_map(workspace.root)
+  if !related_pages.contains(synthesis_map_page) {
+    related_pages.push(synthesis_map_page)
+  }
+  let insights_page = refresh_keeper_insights(workspace.root)
+  if !related_pages.contains(insights_page) {
+    related_pages.push(insights_page)
   }
   append_query_log(
     @path.Path(workspace.wiki_dir).join(@path.Path("log.md")).to_string(),
@@ -510,6 +526,7 @@ async fn queue_query_review(
   builder.write_string("### Query review | \{question}\n\n")
   builder.write_string("- Review ID: `\{review_id}`\n")
   builder.write_string("- Query page: [Query: \{question}](\{query_link})\n")
+  builder.write_string("- Merge policy: `promote-query-insight`\n")
   builder.write_string("- Status: `pending`\n")
   builder.write_string(
     "- Reason: decide whether this saved query should revise synthesis, concept, or entity pages\n",
@@ -518,6 +535,15 @@ async fn queue_query_review(
     "- Citations: " +
     citations.map(citation => "`\{citation}`").join(", ") +
     "\n",
+  )
+  builder.write_string(
+    "- Candidate pages: `" +
+    citations
+    .map(citation => {
+      citation.strip_prefix("wiki/").unwrap_or(citation).to_string()
+    })
+    .join(", ") +
+    "`\n",
   )
   builder.write_string(
     "- Candidate insight: \{query_insight_summary(answer)}\n\n",

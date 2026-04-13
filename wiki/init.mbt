@@ -64,8 +64,14 @@ pub async fn init_workspace(
   let query_insights_path = @path.Path(synthesis_dir)
     .join(@path.Path("query-insights.md"))
     .to_string()
+  let synthesis_map_path = @path.Path(synthesis_dir)
+    .join(@path.Path("map.md"))
+    .to_string()
   let observations_path = @path.Path(synthesis_dir)
     .join(@path.Path("observations.md"))
+    .to_string()
+  let evidence_path = @path.Path(synthesis_dir)
+    .join(@path.Path("evidence.md"))
     .to_string()
   let pending_review_path = @path.Path(reviews_dir)
     .join(@path.Path("pending.md"))
@@ -87,6 +93,9 @@ pub async fn init_workspace(
     .to_string()
   let keeper_policy_path = @path.Path(keeper_dir)
     .join(@path.Path("POLICY.md"))
+    .to_string()
+  let keeper_insights_path = @path.Path(keeper_dir)
+    .join(@path.Path("INSIGHTS.md"))
     .to_string()
   let assets_keep_path = @path.Path(raw_assets_dir)
     .join(@path.Path(".gitkeep"))
@@ -116,13 +125,16 @@ pub async fn init_workspace(
   write_if_missing(claims_path, claims_text())
   write_if_missing(maintenance_plan_path, maintenance_plan_text())
   write_if_missing(query_insights_path, query_insights_text())
+  write_if_missing(synthesis_map_path, synthesis_map_text())
   write_if_missing(observations_path, observations_text())
+  write_if_missing(evidence_path, evidence_text())
   write_if_missing(pending_review_path, pending_review_text())
   write_if_missing(approved_review_path, approved_review_text())
   write_if_missing(keeper_memory_path, keeper_memory_text())
   write_if_missing(keeper_user_path, keeper_user_text())
   write_if_missing(keeper_working_path, keeper_working_text())
   write_if_missing(keeper_policy_path, keeper_policy_text())
+  write_if_missing(keeper_insights_path, keeper_insights_text())
   write_if_missing(raw_readme_path, raw_readme_text())
   write_if_missing(assets_keep_path, "")
 
@@ -177,7 +189,9 @@ fn summary_text() -> String {
   "- [Claims Register](./synthesis/claims.md)\n" +
   "- [Maintenance Plan](./synthesis/maintenance-plan.md)\n" +
   "- [Query Insights](./synthesis/query-insights.md)\n" +
+  "- [Synthesis Map](./synthesis/map.md)\n" +
   "- [Observations](./synthesis/observations.md)\n" +
+  "- [Evidence](./synthesis/evidence.md)\n" +
   "- [Pending Review](./reviews/pending.md)\n" +
   "- [Approved Review](./reviews/approved.md)\n"
 }
@@ -191,6 +205,7 @@ fn home_text() -> String {
   "- [Log](./log.md): append-only timeline of ingests, queries, and lint passes\n" +
   "- [Claims Register](./synthesis/claims.md): structured claims extracted from sources\n" +
   "- [Maintenance Plan](./synthesis/maintenance-plan.md): queued multi-page wiki revisions\n" +
+  "- [Synthesis Map](./synthesis/map.md): coverage and hub view across the wiki\n" +
   "- [Observations](./synthesis/observations.md): persisted worker results and promoted observations\n" +
   "- [Pending Review](./reviews/pending.md): human review queue for contested or high-value updates\n" +
   "- `../keeper/`: bounded active memory, user memory, and working memory for Keeper\n" +
@@ -211,7 +226,9 @@ fn index_text() -> String {
   "- [Claims Register](./synthesis/claims.md): structured claims with confidence and support markers\n" +
   "- [Maintenance Plan](./synthesis/maintenance-plan.md): queued multi-page wiki revisions\n" +
   "- [Query Insights](./synthesis/query-insights.md): durable insights from saved queries\n" +
+  "- [Synthesis Map](./synthesis/map.md): coverage and maintenance view across the maintained wiki\n" +
   "- [Observations](./synthesis/observations.md): persisted task results and promoted book observations\n" +
+  "- [Evidence](./synthesis/evidence.md): support records for persisted results and reviewed knowledge\n" +
   "- [Pending Review](./reviews/pending.md): pending human review items\n" +
   "- [Approved Review](./reviews/approved.md): accepted review decisions\n\n" +
   "## Entities\n\n" +
@@ -259,10 +276,42 @@ fn query_insights_text() -> String {
 }
 
 ///|
+fn synthesis_map_text() -> String {
+  "# Synthesis Map\n\n" +
+  "Coverage, hub pages, and open maintenance loops for this wiki.\n\n" +
+  "## Coverage\n\n" +
+  "_None yet._\n\n" +
+  "## Entity Hubs\n\n" +
+  "_None yet._\n\n" +
+  "## Concept Hubs\n\n" +
+  "_None yet._\n\n" +
+  "## Open Loops\n\n" +
+  "_None yet._\n"
+}
+
+///|
 fn observations_text() -> String {
   "# Observations\n\n" +
   "This page stores persisted task results and durable observations promoted by the book harness.\n\n" +
   "## Results\n\n" +
+  "_None yet._\n"
+}
+
+///|
+fn evidence_text() -> String {
+  "# Evidence\n\n" +
+  "Structured support records for persisted results and reviewed knowledge.\n\n" +
+  "## Records\n\n" +
+  "_None yet._\n"
+}
+
+///|
+fn keeper_insights_text() -> String {
+  "# Keeper Insights\n\n" +
+  "Signals and suggested cleanups for Keeper-managed memory.\n\n" +
+  "## Signals\n\n" +
+  "_None yet._\n\n" +
+  "## Actions\n\n" +
   "_None yet._\n"
 }
 
@@ -352,6 +401,8 @@ test "summary seeds wiki navigation pages" {
   assert_true(text.contains("[Index](./index.md)"))
   assert_true(text.contains("[Log](./log.md)"))
   assert_true(text.contains("[Observations](./synthesis/observations.md)"))
+  assert_true(text.contains("[Evidence](./synthesis/evidence.md)"))
+  assert_true(text.contains("[Synthesis Map](./synthesis/map.md)"))
   assert_true(text.contains("[Pending Review](./reviews/pending.md)"))
   assert_true(
     text.contains("[Maintenance Plan](./synthesis/maintenance-plan.md)"),
@@ -378,4 +429,7 @@ async test "init workspace seeds keeper memory files" {
   assert_true(@fsx.exists(root + "/keeper/USER.md"))
   assert_true(@fsx.exists(root + "/keeper/WORKING.md"))
   assert_true(@fsx.exists(root + "/keeper/POLICY.md"))
+  assert_true(@fsx.exists(root + "/keeper/INSIGHTS.md"))
+  assert_true(@fsx.exists(root + "/wiki/synthesis/evidence.md"))
+  assert_true(@fsx.exists(root + "/wiki/synthesis/map.md"))
 }

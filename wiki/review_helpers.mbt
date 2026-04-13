@@ -175,6 +175,36 @@ fn parse_review_claim_summary(line : String) -> StructuredClaim? {
 }
 
 ///|
+fn durable_candidates_from_review_block(
+  block : String,
+) -> Array[MemoryCandidate] {
+  let candidates : Array[MemoryCandidate] = []
+  for raw in block.split("\n") {
+    let line = raw.to_string()
+    if !line.has_prefix("  - ") {
+      continue
+    }
+    let entry = line.strip_prefix("  - ").unwrap_or(line).to_string()
+    let parts : Array[String] = []
+    for part in entry.split(" | ") {
+      parts.push(part.trim().to_string())
+    }
+    if parts.length() < 4 {
+      continue
+    }
+    let target_page = if parts[2].is_empty() { None } else { Some(parts[2]) }
+    candidates.push({
+      title: parts[0],
+      kind: parts[1],
+      target_page,
+      detail: parts[3],
+      durable: true,
+    })
+  }
+  candidates
+}
+
+///|
 fn supersede_conflicting_claims(
   claims_text : String,
   approved_claim : StructuredClaim,
@@ -268,4 +298,13 @@ test "supersede conflicting claims updates old claim status" {
   assert_true(updated.contains("### Alpha :: red"))
   assert_true(updated.contains("- Status: `superseded`"))
   assert_true(updated.contains("- Superseded by: `Alpha :: blue`"))
+}
+
+///|
+test "durable candidates from review block decode entries" {
+  let block = "### Result review | task\n\n- Durable candidates:\n  - Insight | concept | concepts/insight.md | useful detail\n"
+  let candidates = durable_candidates_from_review_block(block)
+  assert_eq(candidates.length(), 1)
+  assert_eq(candidates[0].title, "Insight")
+  assert_eq(candidates[0].target_page, Some("concepts/insight.md"))
 }

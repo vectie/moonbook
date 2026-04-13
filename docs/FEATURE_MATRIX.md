@@ -49,6 +49,7 @@ Implemented behaviors:
 - `wiki init` seeds claims, maintenance-plan, query-insights, pending-review, and approved-review pages
 - `wiki init` seeds an observations page for persisted book results
 - `wiki init` seeds bounded Keeper memory files under `keeper/`
+- `wiki init` seeds `wiki/synthesis/evidence.md`, `wiki/synthesis/map.md`, and `keeper/INSIGHTS.md`
 - `wiki init` outputs a workspace that can immediately be built with `moonbook build`
 - `wiki enable moonclaw` installs MoonClaw-specific runtime/config/workspace files without overwriting them
 - `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`
@@ -61,8 +62,11 @@ Implemented behaviors:
 - `wiki ingest` generates or updates related `wiki/entities/*.md` pages for lightweight extracted entities
 - `wiki ingest` generates or updates related `wiki/concepts/*.md` pages for lightweight extracted concepts
 - `wiki ingest` adds relationship entries to relevant entity pages based on extracted claims
+- `wiki ingest` adds reciprocal relationship entries to related entity/concept pages
 - `wiki ingest` updates `wiki/synthesis/overview.md` with cross-source entries
 - `wiki ingest` updates `wiki/synthesis/claims.md` with structured claims, confidence markers, support counts, status, and superseded markers
+- `wiki ingest` records claim id, kind, and related-page metadata inside the claims register
+- `wiki ingest` updates `wiki/synthesis/map.md`
 - `wiki ingest` updates `wiki/synthesis/maintenance-plan.md` with a multi-page follow-up entry
 - `wiki ingest` queues contested or low-confidence updates in `wiki/reviews/pending.md`
 - `wiki ingest` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
@@ -70,19 +74,23 @@ Implemented behaviors:
 - `wiki query` returns a synthesized markdown answer with citations to wiki pages
 - `wiki query --save` writes `wiki/queries/<slug>.md`
 - `wiki query --save` updates `wiki/synthesis/query-insights.md`
+- `wiki query --save` captures a condensed query insight in `keeper/MEMORY.md`
 - `wiki query --save` propagates `Query Signals` into cited entity/concept/source pages
+- `wiki query --save` updates `wiki/synthesis/map.md`
 - `wiki query --save` updates `wiki/synthesis/maintenance-plan.md`
 - `wiki query --save` can queue pending review items for promoting saved answers into maintained wiki pages
 - `wiki query --save` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
 - `wiki book accept` returns a machine-readable goal acceptance summary
 - `wiki book tasks` returns a machine-readable local task batch for a town-issued goal
-- `wiki book context` returns a machine-readable worker context bundle derived from book-local policy, Keeper memory, routines, and durable pages
-- `wiki book persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, syncs non-durable memory candidates into Keeper memory, promotes durable memory candidates into target pages, updates the maintenance plan, and can queue review
+- `wiki book tasks` emits a dedicated planning task when health or goal wording indicates planning pressure
+- `wiki book context` returns a machine-readable worker context bundle derived from book-local policy, Keeper memory, routines, and relevance-ranked durable pages
+- `wiki book persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, records evidence in `wiki/synthesis/evidence.md`, syncs non-durable memory candidates into Keeper memory, promotes immediately-safe durable candidates into target pages, stages review-gated durable candidates, refreshes `keeper/INSIGHTS.md`, updates the maintenance plan, and can queue review
 - `wiki book catalog` returns a machine-readable town catalog record with id, purpose, workspace root, memory scope, tags, and skills
-- `wiki book summary` returns page/review counts and a compact state summary
-- `wiki book health` returns backlog and low-confidence claim health signals for the book
+- `wiki book summary` returns page/review counts plus Keeper/evidence counts and a compact state summary
+- `wiki book health` returns backlog, low-confidence claim, crowded-working-memory, and missing-evidence health signals for the book
 - `wiki review list` enumerates pending review ids/kinds/status/titles
-- `wiki review approve` moves items from pending to approved and promotes approved changes into synthesis/claims pages
+- `wiki review approve` moves items from pending to approved, promotes approved changes into synthesis/claims/pages, updates linked evidence status, refreshes the synthesis map, and refreshes Keeper insights
+- `wiki review approve` promotes approved query insights into cited entity/concept/source pages
 - `wiki review reject` moves items from pending to approved with rejected status
 - `wiki lint` detects orphan pages
 - `wiki lint` detects pages missing from `wiki/index.md`
@@ -94,6 +102,8 @@ Implemented behaviors:
 - `wiki lint` detects weak synthesis/claim coverage for source pages
 - `wiki lint` detects low-confidence claims that are not queued for review
 - `wiki lint` detects review backlog growth from multiple active low-confidence claims
+- `wiki lint` detects crowded Keeper memory
+- `wiki lint` detects missing evidence capture when observations exist without evidence records
 - `wiki lint` appends a lint pass to `wiki/log.md`
 - `watch` performs an initial build, then polls for source/config changes
 - `watch` supports `--dest-dir`

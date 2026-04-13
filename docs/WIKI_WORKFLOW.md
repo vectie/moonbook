@@ -35,13 +35,16 @@ This creates:
 - `wiki/synthesis/claims.md`
 - `wiki/synthesis/maintenance-plan.md`
 - `wiki/synthesis/query-insights.md`
+- `wiki/synthesis/map.md`
 - `wiki/synthesis/observations.md`
+- `wiki/synthesis/evidence.md`
 - `wiki/reviews/pending.md`
 - `wiki/reviews/approved.md`
 - `keeper/MEMORY.md`
 - `keeper/USER.md`
 - `keeper/WORKING.md`
 - `keeper/POLICY.md`
+- `keeper/INSIGHTS.md`
 
 ### 2. Enable Optional Runtime Pack
 
@@ -67,6 +70,7 @@ Current ingest behavior:
 - updates `wiki/concepts/`
 - updates `wiki/synthesis/overview.md`
 - updates `wiki/synthesis/claims.md`
+- updates `wiki/synthesis/map.md`
 - updates `wiki/synthesis/maintenance-plan.md`
 - queues contested or low-confidence claims in `wiki/reviews/pending.md`
 - updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
@@ -84,6 +88,7 @@ Current query behavior:
 - prints an answer with citations
 - with `--save`, writes a saved query page under `wiki/queries/`
 - updates `wiki/synthesis/query-insights.md`
+- writes a condensed insight into `keeper/MEMORY.md`
 - propagates `Query Signals` into cited pages
 - updates `wiki/synthesis/maintenance-plan.md`
 - can queue a review item for later promotion
@@ -105,9 +110,13 @@ Current book-harness behavior:
 - accepts town-style goals into book-local planning
 - produces local tasks inside the book boundary
 - hydrates worker context from book policy, routines, Keeper memory, and durable wiki pages
+- emits a dedicated planning task when health or goal wording requires it
 - persists worker results into `synthesis/observations.md`
+- records persisted-result evidence in `synthesis/evidence.md`
 - syncs non-durable memory candidates into bounded Keeper memory files
-- promotes durable memory candidates into target pages
+- promotes immediately-safe durable memory candidates into target pages
+- stages review-gated durable candidates in `reviews/pending.md`
+- refreshes `keeper/INSIGHTS.md`
 - reports book-local state and health without requiring a town runtime
 
 ### 6. Review
@@ -135,6 +144,11 @@ Current review behavior:
 - moves items from `reviews/pending.md` to `reviews/approved.md`
 - for claim reviews, promotes changes into `synthesis/claims.md`
 - for query reviews, promotes changes into `synthesis/overview.md`
+- for approved query reviews, also promotes insights into cited entity/concept/source pages
+- for result reviews, promotes staged durable candidates into their target pages
+- updates linked evidence records with approved/rejected status
+- refreshes `synthesis/map.md`
+- refreshes `keeper/INSIGHTS.md`
 - updates `synthesis/maintenance-plan.md`
 - appends the action to `wiki/log.md`
 
@@ -155,6 +169,8 @@ Current lint checks:
 - weak synthesis and claim coverage
 - low-confidence claims not actually queued for review
 - review backlog growth
+- crowded Keeper memory
+- observations without evidence records
 
 ## Current Content Model
 
@@ -176,6 +192,10 @@ The maintained wiki currently revolves around these page families:
   durable saved-query insights
 - `wiki/synthesis/observations.md`
   persisted worker results and promoted observations
+- `wiki/synthesis/map.md`
+  coverage and maintenance view across entities, concepts, claims, and open loops
+- `wiki/synthesis/evidence.md`
+  support records for persisted worker results and review outcomes
 - `wiki/reviews/`
   pending and approved operator review items
 - `keeper/MEMORY.md`
@@ -184,6 +204,8 @@ The maintained wiki currently revolves around these page families:
   user preferences and collaboration habits
 - `keeper/WORKING.md`
   short-lived task and observation memory
+- `keeper/INSIGHTS.md`
+  Keeper-generated memory/evidence health signals
 
 ## Current Limits
 
@@ -193,8 +215,12 @@ What it does well now:
 
 - persistent markdown workspace
 - source-to-related-page updates
+- reciprocal relationship maintenance across related pages
 - saved query filing
 - lightweight review lifecycle
+- bounded Keeper memory with lightweight self-maintenance signals
+- persisted-result evidence capture
+- synthesis-map maintenance for coverage and planning pressure
 - static build/serve of the resulting wiki
 
 What is still missing:

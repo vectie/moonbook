@@ -48,13 +48,13 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 
 ### Wiki/Agent Gaps
 
-- ingest now updates source pages plus first-pass `entities/`, `concepts/`, relationship sections, `synthesis/overview.md`, `synthesis/claims.md`, `synthesis/maintenance-plan.md`, and pending review items, but it still does not do rich domain-specific synthesis maintenance
+- ingest now updates source pages plus first-pass `entities/`, `concepts/`, reciprocal relationship sections, `synthesis/overview.md`, `synthesis/claims.md`, `synthesis/map.md`, `synthesis/maintenance-plan.md`, and pending review items, but it still does not do rich domain-specific synthesis maintenance
 - query is still keyword-ranked page synthesis rather than a deeper agentic read-plan-update workflow
 - `moonclaw` and `moontown` are the current extension packs
 - `moonclaw.jobs.json` is now role-aware and closer to the current wiki-maintainer pack shape, but it is still a seeded host pack rather than a fully exercised production workflow
 - the new book-harness API and catalog export are file/CLI-oriented today; they are not yet a stronger RPC/service boundary
-- claim tracking is stronger now with support/confidence/status/superseded markers, but it is still heuristic rather than a true claim graph with explicit evidence weighting
-- review workflow now has list/approve/reject commands and an approved page, but it still lacks a richer operator UI and merge-policy system
+- claim tracking is stronger now with support/confidence/status/superseded markers plus an evidence page for persisted results, but it is still heuristic rather than a true claim graph with explicit evidence weighting
+- review workflow now has list/approve/reject commands, approved pages, durable promotion staging, evidence-status updates, and broader query-page promotion, but it still lacks a richer operator UI and full merge-policy system
 
 ### Rendering Gaps
 
@@ -74,8 +74,8 @@ Moonbook is a partial mdBook port, not a finished drop-in replacement.
 
 High-value next steps:
 
-1. deepen wiki synthesis beyond the current overview/claims/maintenance-plan pages into richer domain-specific multi-page revisions
-2. turn review approvals into stronger page-specific revisions instead of mainly synthesis/claims updates
+1. deepen wiki synthesis beyond the current overview/claims/maintenance-plan/evidence pages into richer domain-specific multi-page revisions
+2. turn review approvals into stronger page-specific revisions and merge-policy enforcement across more page families
 3. turn the `moontown` add-on from a manifest bridge into a stronger town/book integration contract
 4. turn the seeded MoonClaw wiki job profiles into a real domain workflow pack
 5. continue renderer parity with more mdBook rendering tests

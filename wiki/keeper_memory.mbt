@@ -84,6 +84,25 @@ async fn keeper_sync_result(
 }
 
 ///|
+async fn keeper_capture_query_insight(
+  root : String,
+  question : String,
+  insight : String,
+) -> String {
+  let paths = keeper_paths(root)
+  ensure_keeper_files(root)
+  ignore(
+    keeper_append_entry(
+      paths.memory_path,
+      "- Query insight | \{question}: \{keeper_compact_text(insight)}",
+      12,
+      1800,
+    ),
+  )
+  "keeper/MEMORY.md"
+}
+
+///|
 fn keeper_target_path(
   paths : KeeperPaths,
   candidate : MemoryCandidate,

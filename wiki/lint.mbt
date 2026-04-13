@@ -94,6 +94,12 @@ pub async fn lint_wiki(root : String) -> LintResult {
   for finding in review_queue_findings(contents) {
     findings.push(finding)
   }
+  for finding in keeper_memory_findings(root) {
+    findings.push(finding)
+  }
+  for finding in evidence_findings(root, contents) {
+    findings.push(finding)
+  }
 
   let report = lint_report(findings)
   append_lint_log(
@@ -231,6 +237,47 @@ fn strip_link_anchor(link : String) -> String {
 ///|
 fn builtin_tracked_pages() -> Array[String] {
   ["wiki/Home.md", "wiki/index.md", "wiki/log.md"]
+}
+
+///|
+async fn keeper_memory_findings(root : String) -> Array[LintFinding] {
+  let findings : Array[LintFinding] = []
+  let snapshot = keeper_snapshot(root)
+  if snapshot.working_memory.length() >= 8 {
+    findings.push({
+      kind: "keeper-working-crowded",
+      path: Some("keeper/WORKING.md"),
+      message: "working memory is crowded and should be pruned or promoted",
+    })
+  }
+  if snapshot.active_memory.length() >= 10 {
+    findings.push({
+      kind: "keeper-memory-crowded",
+      path: Some("keeper/MEMORY.md"),
+      message: "active Keeper memory is approaching its bounded cap",
+    })
+  }
+  findings
+}
+
+///|
+async fn evidence_findings(
+  root : String,
+  contents : Map[String, String],
+) -> Array[LintFinding] {
+  let findings : Array[LintFinding] = []
+  let evidence_count = count_evidence_entries(root)
+  let observations = contents
+    .get("wiki/synthesis/observations.md")
+    .unwrap_or("")
+  if observations.contains("### ") && evidence_count == 0 {
+    findings.push({
+      kind: "missing-evidence",
+      path: Some("wiki/synthesis/evidence.md"),
+      message: "observations exist but no structured evidence records were captured",
+    })
+  }
+  findings
 }
 
 ///|

@@ -59,6 +59,12 @@ The wiki path builds on the same rendering/build infrastructure, but introduces 
   town-facing book harness APIs for planning, context hydration, result persistence, catalog export, summary, and health
 - `wiki/keeper_memory.mbt`
   bounded Keeper memory bootstrap, recall snapshots, and result-sync rules
+- `wiki/keeper_evidence.mbt`
+  persisted-result evidence records and evidence-status updates
+- `wiki/keeper_insights.mbt`
+  derived Keeper health signals and cleanup suggestions
+- `wiki/synthesis_map.mbt`
+  maintained coverage, hub, and open-loop view across the wiki
 - `wiki/lint.mbt`
   structural and wiki-health checks
 - `wiki/workspace.mbt`
@@ -72,8 +78,11 @@ This layer is responsible for:
 
 - creating `raw/` + `wiki/` workspaces
 - maintaining bounded Keeper memory under `keeper/`
+- maintaining lightweight evidence under `wiki/synthesis/evidence.md`
+- maintaining a synthesis-planning surface under `wiki/synthesis/map.md`
 - maintaining persistent markdown pages across ingests
 - tracking lightweight claims and review queues
+- refreshing Keeper self-maintenance hints under `keeper/INSIGHTS.md`
 - saving query results back into the wiki
 - exposing the wiki as a normal MoonBook build/serve target
 
@@ -110,6 +119,7 @@ Important wiki subdirectories:
 - `wiki/queries/`
 - `wiki/reviews/`
 - `wiki/synthesis/observations.md`
+- `wiki/synthesis/evidence.md`
 
 ## Extension Boundary
 

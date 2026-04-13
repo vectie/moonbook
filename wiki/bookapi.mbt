@@ -67,6 +67,7 @@ pub struct PersistResultOutcome {
   updated_pages : Array[String]
   review_queued : Bool
   notify_town : Bool
+  evidence_id : String
 } derive(Show, ToJson, FromJson)
 
 ///|
@@ -78,6 +79,9 @@ pub struct BookStateSummary {
   entity_count : Int
   concept_count : Int
   pending_review_count : Int
+  keeper_memory_count : Int
+  keeper_working_count : Int
+  evidence_count : Int
   summary : String
 } derive(Show, ToJson, FromJson)
 
@@ -88,6 +92,8 @@ pub struct BookHealthReport {
   pending_review_count : Int
   low_confidence_claim_count : Int
   maintenance_entry_count : Int
+  keeper_working_count : Int
+  evidence_count : Int
   issues : Array[String]
 } derive(Show, ToJson, FromJson)
 
@@ -184,6 +190,24 @@ pub async fn produce_task_batch(
     })
   }
 
+  if health.level != "healthy" ||
+    notes.contains("plan") ||
+    notes.contains("roadmap") ||
+    notes.contains("next") {
+    tasks.push({
+      id: "\{normalized_goal_id}-planning",
+      title: "Refresh local planning surfaces",
+      kind: "planning",
+      prompt: "Use `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/map.md`, `wiki/synthesis/evidence.md`, and `keeper/INSIGHTS.md` to plan the next local wiki revisions for the goal: \{goal}",
+      priority: 95,
+      requires_review: true,
+      target_pages: [
+        "synthesis/maintenance-plan.md", "synthesis/map.md", "synthesis/evidence.md",
+        "../keeper/INSIGHTS.md",
+      ],
+    })
+  }
+
   tasks.push({
     id: "\{normalized_goal_id}-analysis",
     title: "Produce domain-local task result",
@@ -224,6 +248,7 @@ pub async fn hydrate_worker_context(
 ) -> WorkerContextBundle {
   let workspace = workspace_paths(root)
   let keeper = keeper_snapshot(root)
+  let terms = query_terms(task.title + " " + task.prompt)
   let policy = policy_lines(root)
   let routines = routine_lines(root)
   let memory_summary = summarize_memory(root)
@@ -234,10 +259,10 @@ pub async fn hydrate_worker_context(
     prompt: task.prompt,
     policy,
     routines,
-    context_pages: default_context_pages(task.target_pages),
-    active_memory: keeper.active_memory,
-    user_memory: keeper.user_memory,
-    working_memory: keeper.working_memory,
+    context_pages: select_context_pages(root, task, terms),
+    active_memory: select_memory_entries(keeper.active_memory, terms, 6),
+    user_memory: select_memory_entries(keeper.user_memory, terms, 4),
+    working_memory: select_memory_entries(keeper.working_memory, terms, 8),
     memory_summary,
     output_contract: [
       "summary", "artifacts", "memory_candidates", "requires_review", "notify_town",
@@ -262,6 +287,11 @@ pub async fn persist_result(
   let block = persisted_result_block(result)
   observations = append_section_block(observations, "## Results", block)
   @fsx.write_to_file(observations_path, observations, create=0o644)
+  let evidence_id = append_result_evidence(workspace, result)
+  let evidence_relative = evidence_relative_page()
+  if !updated_pages.contains(evidence_relative) {
+    updated_pages.push(evidence_relative)
+  }
 
   for page in keeper_sync_result(root, result) {
     if !updated_pages.contains(page) {
@@ -269,40 +299,13 @@ pub async fn persist_result(
     }
   }
 
-  for candidate in result.memory_candidates {
-    if !candidate.durable {
-      continue
-    }
-    let relative_page = match candidate.target_page {
-      Some(page) => page
-      None => observations_relative
-    }
-    let absolute = @path.Path(workspace.wiki_dir)
-      .join(@path.Path(relative_page))
-      .to_string()
-    if !@fsx.exists(absolute) {
-      seed_memory_candidate_page(absolute, candidate.title)
-      update_summary(workspace.summary_path, candidate.title, relative_page)
-      update_index_section(
-        @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
-        memory_candidate_section(relative_page),
-        candidate.title,
-        relative_page,
-        "durable memory promoted from persisted book results",
-      )
-      if !updated_pages.contains(relative_page) {
-        updated_pages.push(relative_page)
-      }
-    }
-    let current = @fsx.read_file(absolute)
-    let next = append_section_block(
-      current,
-      "## Durable Memory",
-      "### \{candidate.title}\n\n- Kind: `\{candidate.kind}`\n- Detail: \{candidate.detail}\n",
-    )
-    @fsx.write_to_file(absolute, next, create=0o644)
-    if !updated_pages.contains(relative_page) {
-      updated_pages.push(relative_page)
+  for
+    page in promote_durable_candidates(
+      workspace,
+      immediate_durable_candidates(result),
+    ) {
+    if !updated_pages.contains(page) {
+      updated_pages.push(page)
     }
   }
 
@@ -316,19 +319,32 @@ pub async fn persist_result(
       "notify_town: \{result.notify_town}",
       "requires_review: \{result.requires_review}",
       "artifacts: \{result.artifacts.length()}",
+      "evidence: \{evidence_id}",
     ],
   )
   if !updated_pages.contains(plan_relative) {
     updated_pages.push(plan_relative)
   }
+  let synthesis_map_relative = refresh_synthesis_map(root)
+  if !updated_pages.contains(synthesis_map_relative) {
+    updated_pages.push(synthesis_map_relative)
+  }
 
-  let review_queued = if result.requires_review {
-    queue_result_review(workspace, result, observations_relative)
+  let staged = staged_durable_candidates(result)
+  let review_queued = if result.requires_review || !staged.is_empty() {
+    queue_result_review(
+      workspace, result, observations_relative, evidence_id, staged,
+    )
   } else {
     false
   }
   if review_queued && !updated_pages.contains("reviews/pending.md") {
     updated_pages.push("reviews/pending.md")
+  }
+
+  let insights_relative = refresh_keeper_insights(root)
+  if !updated_pages.contains(insights_relative) {
+    updated_pages.push(insights_relative)
   }
 
   append_result_log(
@@ -343,6 +359,7 @@ pub async fn persist_result(
     updated_pages,
     review_queued,
     notify_town: result.notify_town,
+    evidence_id,
   }
 }
 
@@ -354,6 +371,8 @@ pub async fn summarize_state(root : String) -> BookStateSummary {
   let source_count = count_markdown_under(workspace.wiki_dir, "sources")
   let entity_count = count_markdown_under(workspace.wiki_dir, "entities")
   let concept_count = count_markdown_under(workspace.wiki_dir, "concepts")
+  let keeper = keeper_snapshot(root)
+  let evidence_count = count_evidence_entries(root)
   {
     book_id: book_identity(root),
     root: workspace.root,
@@ -362,7 +381,11 @@ pub async fn summarize_state(root : String) -> BookStateSummary {
     entity_count,
     concept_count,
     pending_review_count: pending.length(),
-    summary: "pages=\{pages.length()} sources=\{source_count} entities=\{entity_count} concepts=\{concept_count} pending_review=\{pending.length()}",
+    keeper_memory_count: keeper.active_memory.length() +
+    keeper.user_memory.length(),
+    keeper_working_count: keeper.working_memory.length(),
+    evidence_count,
+    summary: "pages=\{pages.length()} sources=\{source_count} entities=\{entity_count} concepts=\{concept_count} pending_review=\{pending.length()} keeper_working=\{keeper.working_memory.length()} evidence=\{evidence_count}",
   }
 }
 
@@ -390,6 +413,8 @@ pub async fn report_health(root : String) -> BookHealthReport {
       ""
     },
   )
+  let keeper = keeper_snapshot(root)
+  let evidence_count = count_evidence_entries(root)
   let issues : Array[String] = []
   if pending.length() >= 5 {
     issues.push("pending review backlog is high")
@@ -400,6 +425,12 @@ pub async fn report_health(root : String) -> BookHealthReport {
   if maintenance_entries >= 8 {
     issues.push("maintenance plan is growing and may need pruning")
   }
+  if keeper.working_memory.length() >= 8 {
+    issues.push("keeper working memory is crowded")
+  }
+  if evidence_count == 0 {
+    issues.push("no evidence records have been captured yet")
+  }
   let level = if issues.length() >= 3 {
     "critical"
   } else if !issues.is_empty() {
@@ -409,10 +440,12 @@ pub async fn report_health(root : String) -> BookHealthReport {
   }
   {
     level,
-    summary: "pending_review=\{pending.length()} low_confidence_claims=\{low_confidence} maintenance_entries=\{maintenance_entries}",
+    summary: "pending_review=\{pending.length()} low_confidence_claims=\{low_confidence} maintenance_entries=\{maintenance_entries} keeper_working=\{keeper.working_memory.length()} evidence=\{evidence_count}",
     pending_review_count: pending.length(),
     low_confidence_claim_count: low_confidence,
     maintenance_entry_count: maintenance_entries,
+    keeper_working_count: keeper.working_memory.length(),
+    evidence_count,
     issues,
   }
 }
@@ -599,13 +632,15 @@ async fn summarize_memory(root : String) -> String {
   } else {
     0
   }
-  "keeper_active=\{keeper.active_memory.length()} keeper_user=\{keeper.user_memory.length()} keeper_working=\{keeper.working_memory.length()} claims=\{claims} overview_updates=\{updates}"
+  let evidence = count_evidence_entries(root)
+  "keeper_active=\{keeper.active_memory.length()} keeper_user=\{keeper.user_memory.length()} keeper_working=\{keeper.working_memory.length()} claims=\{claims} overview_updates=\{updates} evidence=\{evidence}"
 }
 
 ///|
 fn default_context_pages(target_pages : Array[String]) -> Array[String] {
   let pages : Array[String] = [
-    "index.md", "log.md", "synthesis/overview.md", "synthesis/claims.md",
+    "index.md", "log.md", "synthesis/overview.md", "synthesis/claims.md", "synthesis/map.md",
+    "synthesis/evidence.md",
   ]
   for page in target_pages {
     if !pages.contains(page) {
@@ -613,6 +648,91 @@ fn default_context_pages(target_pages : Array[String]) -> Array[String] {
     }
   }
   pages
+}
+
+///|
+async fn select_context_pages(
+  root : String,
+  task : BookTask,
+  terms : Array[String],
+) -> Array[String] {
+  let workspace = workspace_paths(root)
+  let selected = default_context_pages(task.target_pages)
+  if terms.is_empty() {
+    return selected
+  }
+  let pages = collect_markdown_pages(workspace.wiki_dir)
+  let ranked : Array[(String, Int)] = []
+  for path in pages {
+    let relative = relative_to_root(path, workspace.root)
+      .strip_prefix("wiki/")
+      .unwrap_or(relative_to_root(path, workspace.root))
+      .to_string()
+    if selected.contains(relative) {
+      continue
+    }
+    let content = @fsx.read_file(path)
+    let score = relevance_score(
+      detect_page_title(path, content),
+      content,
+      terms,
+    )
+    if score > 0 {
+      ranked.push((relative, score))
+    }
+  }
+  ranked.sort_by(fn(a, b) {
+    if a.1 == b.1 {
+      a.0.compare(b.0)
+    } else {
+      b.1.compare(a.1)
+    }
+  })
+  for i = 0; i < ranked.length() && selected.length() < 8; i = i + 1 {
+    selected.push(ranked[i].0)
+  }
+  selected
+}
+
+///|
+fn select_memory_entries(
+  entries : Array[String],
+  terms : Array[String],
+  limit : Int,
+) -> Array[String] {
+  let selected : Array[String] = []
+  if entries.is_empty() {
+    return selected
+  }
+  let ranked : Array[(String, Int)] = []
+  for entry in entries {
+    ranked.push((entry, memory_entry_score(entry, terms)))
+  }
+  ranked.sort_by(fn(a, b) {
+    if a.1 == b.1 {
+      a.0.compare(b.0)
+    } else {
+      b.1.compare(a.1)
+    }
+  })
+  for i = 0; i < ranked.length() && selected.length() < limit; i = i + 1 {
+    if ranked[i].1 > 0 || i == 0 {
+      selected.push(ranked[i].0)
+    }
+  }
+  selected
+}
+
+///|
+fn memory_entry_score(entry : String, terms : Array[String]) -> Int {
+  let lowered = entry.to_lower()
+  let mut score = 0
+  for term in terms {
+    if lowered.contains(term) {
+      score += 3
+    }
+  }
+  score
 }
 
 ///|
@@ -689,6 +809,8 @@ async fn queue_result_review(
   workspace : Paths,
   result : BookResult,
   observations_relative : String,
+  evidence_id : String,
+  durable_candidates : Array[MemoryCandidate],
 ) -> Bool {
   let relative = "reviews/pending.md"
   let absolute = @path.Path(workspace.wiki_dir)
@@ -710,9 +832,13 @@ async fn queue_result_review(
   let block = "### Result review | \{result.task_id}\n\n" +
     "- Review ID: `\{review_id}`\n" +
     "- Result page: [\{result.task_id}](\{link})\n" +
+    "- Evidence ID: `\{evidence_id}`\n" +
+    "- Merge policy: `promote-durable`\n" +
     "- Status: `pending`\n" +
     "- Reason: persisted worker result requires promotion review\n" +
-    "- Candidate insight: \{clamp_excerpt(result.summary)}\n\n"
+    "- Candidate insight: \{clamp_excerpt(result.summary)}\n" +
+    format_review_candidate_lines(durable_candidates) +
+    "\n"
   let updated = append_section_block(current, "## Items", block)
   @fsx.write_to_file(absolute, updated, create=0o644)
   update_summary(workspace.summary_path, "Pending Review", relative)
@@ -744,6 +870,134 @@ async fn append_result_log(
     current + "\n\n" + entry
   }
   @fsx.write_to_file(log_path, next, create=0o644)
+}
+
+///|
+fn immediate_durable_candidates(result : BookResult) -> Array[MemoryCandidate] {
+  let selected : Array[MemoryCandidate] = []
+  for candidate in result.memory_candidates {
+    if candidate.durable && !result.requires_review {
+      selected.push(candidate)
+    }
+  }
+  selected
+}
+
+///|
+fn staged_durable_candidates(result : BookResult) -> Array[MemoryCandidate] {
+  let selected : Array[MemoryCandidate] = []
+  for candidate in result.memory_candidates {
+    if candidate.durable && result.requires_review {
+      selected.push(candidate)
+    }
+  }
+  selected
+}
+
+///|
+async fn promote_durable_candidates(
+  workspace : Paths,
+  candidates : Array[MemoryCandidate],
+) -> Array[String] {
+  let updated_pages : Array[String] = []
+  for candidate in candidates {
+    let relative_page = match candidate.target_page {
+      Some(page) => page
+      None => "synthesis/observations.md"
+    }
+    let absolute = @path.Path(workspace.wiki_dir)
+      .join(@path.Path(relative_page))
+      .to_string()
+    if !@fsx.exists(absolute) {
+      seed_memory_candidate_page(absolute, candidate.title)
+      update_summary(workspace.summary_path, candidate.title, relative_page)
+      update_index_section(
+        @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+        memory_candidate_section(relative_page),
+        candidate.title,
+        relative_page,
+        "durable memory promoted from persisted book results",
+      )
+    }
+    let current = @fsx.read_file(absolute)
+    let next = upsert_durable_candidate_block(current, candidate)
+    @fsx.write_to_file(absolute, next, create=0o644)
+    if !updated_pages.contains(relative_page) {
+      updated_pages.push(relative_page)
+    }
+  }
+  updated_pages
+}
+
+///|
+fn upsert_durable_candidate_block(
+  content : String,
+  candidate : MemoryCandidate,
+) -> String {
+  let header = "### \{candidate.title}"
+  let block = "### \{candidate.title}\n\n- Kind: `\{candidate.kind}`\n- Detail: \{candidate.detail}\n"
+  if !content.contains(header) {
+    return append_section_block(content, "## Durable Memory", block)
+  }
+  let with_kind = replace_durable_candidate_field(
+    content,
+    header,
+    "- Kind: `",
+    candidate.kind,
+  )
+  replace_durable_candidate_field(
+    with_kind,
+    header,
+    "- Detail: ",
+    candidate.detail,
+    quoted=false,
+  )
+}
+
+///|
+fn replace_durable_candidate_field(
+  content : String,
+  header : String,
+  prefix : String,
+  value : String,
+  quoted? : Bool = true,
+) -> String {
+  let lines = lines_array(content)
+  let rebuilt : Array[String] = []
+  let mut in_block = false
+  for line in lines {
+    if line == header {
+      in_block = true
+      rebuilt.push(line)
+      continue
+    }
+    if in_block && line.has_prefix("### ") {
+      in_block = false
+    }
+    if in_block && line.has_prefix(prefix) {
+      rebuilt.push(if quoted { prefix + value + "`" } else { prefix + value })
+    } else {
+      rebuilt.push(line)
+    }
+  }
+  rebuilt.join("\n")
+}
+
+///|
+fn format_review_candidate_lines(candidates : Array[MemoryCandidate]) -> String {
+  if candidates.is_empty() {
+    ""
+  } else {
+    let builder = StringBuilder::new()
+    builder.write_string("- Durable candidates:\n")
+    for candidate in candidates {
+      let target = candidate.target_page.unwrap_or("")
+      builder.write_string(
+        "  - \{candidate.title} | \{candidate.kind} | \{target} | \{candidate.detail}\n",
+      )
+    }
+    builder.to_string()
+  }
 }
 
 ///|

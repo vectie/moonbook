@@ -111,9 +111,22 @@ async fn apply_review_action(
   if !claims_relative.is_empty() {
     promoted_pages.push(claims_relative)
   }
-  let query_relative = maybe_apply_query_review(workspace, block, action)
-  if !query_relative.is_empty() {
-    promoted_pages.push(query_relative)
+  let result_pages = maybe_apply_result_review(workspace, block, action)
+  for page in result_pages {
+    if !promoted_pages.contains(page) {
+      promoted_pages.push(page)
+    }
+  }
+  let query_pages = maybe_apply_query_review(workspace, block, action)
+  for page in query_pages {
+    if !promoted_pages.contains(page) {
+      promoted_pages.push(page)
+    }
+  }
+  let evidence_relative = maybe_update_review_evidence(workspace, block, action)
+  if !evidence_relative.is_empty() &&
+    !promoted_pages.contains(evidence_relative) {
+    promoted_pages.push(evidence_relative)
   }
   let plan_relative = ensure_maintenance_plan_entry(
     workspace,
@@ -140,6 +153,14 @@ async fn apply_review_action(
     action,
     promoted_pages,
   )
+  let insights_relative = refresh_keeper_insights(workspace.root)
+  if !promoted_pages.contains(insights_relative) {
+    promoted_pages.push(insights_relative)
+  }
+  let synthesis_map_relative = refresh_synthesis_map(workspace.root)
+  if !promoted_pages.contains(synthesis_map_relative) {
+    promoted_pages.push(synthesis_map_relative)
+  }
   { review_id, action, promoted_pages }
 }
 
@@ -199,16 +220,16 @@ async fn maybe_apply_query_review(
   workspace : Paths,
   block : ReviewBlock,
   action : String,
-) -> String {
+) -> Array[String] {
   if !block.kind.to_lower().contains("query") || action != "approved" {
-    return ""
+    return []
   }
   let relative_page = "synthesis/overview.md"
   let overview_path = @path.Path(workspace.wiki_dir)
     .join(@path.Path(relative_page))
     .to_string()
   if !@fsx.exists(overview_path) {
-    return ""
+    return []
   }
   let query_page = find_review_field(block.block, "- Query page: [").unwrap_or(
     "./queries/unknown.md",
@@ -227,5 +248,99 @@ async fn maybe_apply_query_review(
     builder.to_string(),
   )
   @fsx.write_to_file(overview_path, updated, create=0o644)
-  relative_page
+  ignore(keeper_capture_query_insight(workspace.root, block.title, insight))
+  let promoted : Array[String] = [relative_page]
+  for citation in review_citations(block.block) {
+    let page_relative = citation
+      .strip_prefix("wiki/")
+      .unwrap_or(citation)
+      .to_string()
+    if !page_relative.has_prefix("entities/") &&
+      !page_relative.has_prefix("concepts/") &&
+      !page_relative.has_prefix("sources/") {
+      continue
+    }
+    let page_path = @path.Path(workspace.wiki_dir)
+      .join(@path.Path(page_relative))
+      .to_string()
+    if !@fsx.exists(page_path) {
+      continue
+    }
+    let query_link = relative_from_page(
+      "wiki/" + page_relative,
+      "wiki/" + query_page_relative(query_page),
+    )
+    let page_updated = append_list_entry(
+      @fsx.read_file(page_path),
+      "## Approved Insights",
+      "- [Query: \{block.title}](\{query_link}): \{insight}",
+    )
+    @fsx.write_to_file(page_path, page_updated, create=0o644)
+    if !promoted.contains(page_relative) {
+      promoted.push(page_relative)
+    }
+  }
+  promoted
+}
+
+///|
+async fn maybe_apply_result_review(
+  workspace : Paths,
+  block : ReviewBlock,
+  action : String,
+) -> Array[String] {
+  if !block.kind.to_lower().contains("result") || action != "approved" {
+    return []
+  }
+  let candidates = durable_candidates_from_review_block(block.block)
+  if candidates.is_empty() {
+    return []
+  }
+  promote_durable_candidates(workspace, candidates)
+}
+
+///|
+async fn maybe_update_review_evidence(
+  workspace : Paths,
+  block : ReviewBlock,
+  action : String,
+) -> String {
+  let evidence_id = find_review_field(block.block, "- Evidence ID: `").unwrap_or(
+    "",
+  )
+  if evidence_id.is_empty() {
+    return ""
+  }
+  update_evidence_status(
+    workspace,
+    evidence_id,
+    action,
+    "review \{action} for \{block.review_id}",
+  )
+}
+
+///|
+fn review_citations(block : String) -> Array[String] {
+  let raw = find_review_field(block, "- Citations: ").unwrap_or("")
+  let citations : Array[String] = []
+  if raw.is_empty() {
+    return citations
+  }
+  for piece in raw.split(", ") {
+    let text = piece.trim().to_string()
+    if text.is_empty() {
+      continue
+    }
+    let stripped = text.strip_prefix("`").unwrap_or(text).to_string()
+    citations.push(stripped.strip_suffix("`").unwrap_or(stripped).to_string())
+  }
+  citations
+}
+
+///|
+fn query_page_relative(link_field : String) -> String {
+  match link_field.find("](./") {
+    Some(index) => link_field[index + 4:link_field.length() - 1].to_string()
+    None => "queries/unknown.md"
+  }
 }

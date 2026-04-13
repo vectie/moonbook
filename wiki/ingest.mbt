@@ -270,7 +270,12 @@ async fn enrich_ingest(
       [],
       [],
     )
-    return [synthesis_page]
+    let pages : Array[String] = [synthesis_page]
+    let synthesis_map_page = refresh_synthesis_map(workspace.root)
+    if !pages.contains(synthesis_map_page) {
+      pages.push(synthesis_map_page)
+    }
+    return pages
   }
 
   let content = @fsx.read_file(stored_raw_path)
@@ -334,6 +339,10 @@ async fn enrich_ingest(
   if !related_pages.contains(maintenance_plan_page) {
     related_pages.push(maintenance_plan_page)
   }
+  let synthesis_map_page = refresh_synthesis_map(workspace.root)
+  if !related_pages.contains(synthesis_map_page) {
+    related_pages.push(synthesis_map_page)
+  }
   related_pages
 }
 
@@ -374,6 +383,24 @@ fn StructuredClaim::summary_line(self : StructuredClaim) -> String {
 }
 
 ///|
+fn StructuredClaim::kind(self : StructuredClaim) -> String {
+  let lowered = self.predicate.to_lower()
+  if lowered.has_prefix("supports ") {
+    "supports"
+  } else if lowered.has_prefix("uses ") {
+    "uses"
+  } else if lowered.has_prefix("improves ") {
+    "improves"
+  } else if lowered.has_prefix("keeps ") {
+    "keeps"
+  } else if lowered.contains("integrates with") {
+    "integration"
+  } else {
+    "statement"
+  }
+}
+
+///|
 async fn ensure_claim_relationship_pages(
   workspace : Paths,
   source_title : String,
@@ -401,6 +428,7 @@ async fn ensure_claim_relationship_pages(
     if !related.contains(subject_page) {
       related.push(subject_page)
     }
+    let relation_verb = claim_relationship_verb(claim)
     match claim_relationship_target(claim) {
       Some((target_kind, target_name, relation_line)) => {
         let subject_path = @path.Path(workspace.wiki_dir)
@@ -430,6 +458,17 @@ async fn ensure_claim_relationship_pages(
             if !related.contains(target_page) {
               related.push(target_page)
             }
+            append_relationship_entry(
+              workspace,
+              target_page,
+              reciprocal_relationship_line(
+                relation_verb,
+                claim.subject,
+                "entity",
+              ),
+              source_title,
+              source_relative_page,
+            )
           }
           _ => {
             let normalized_target = target_name.to_lower()
@@ -445,6 +484,17 @@ async fn ensure_claim_relationship_pages(
             if !related.contains(target_page) {
               related.push(target_page)
             }
+            append_relationship_entry(
+              workspace,
+              target_page,
+              reciprocal_relationship_line(
+                relation_verb,
+                claim.subject,
+                "concept",
+              ),
+              source_title,
+              source_relative_page,
+            )
           }
         }
       }
@@ -495,6 +545,70 @@ fn relationship_target_tuple(
     "\{verb} [\{title_case(concept)}](../concepts/\{slugify_title(concept)}.md)"
   }
   (kind, target, relation)
+}
+
+///|
+fn claim_relationship_verb(claim : StructuredClaim) -> String {
+  let predicate = claim.predicate.to_lower()
+  if predicate.has_prefix("supports ") {
+    "supports"
+  } else if predicate.has_prefix("uses ") {
+    "uses"
+  } else if predicate.has_prefix("improves ") {
+    "improves"
+  } else if predicate.has_prefix("keeps ") {
+    "keeps"
+  } else {
+    "integrates with"
+  }
+}
+
+///|
+fn reciprocal_relationship_line(
+  verb : String,
+  subject : String,
+  target_kind : String,
+) -> String {
+  let subject_link = "../entities/\{slugify_title(subject)}.md"
+  let subject_ref = "[\{subject}](\{subject_link})"
+  match verb {
+    "supports" => "is supported by \{subject_ref}"
+    "uses" =>
+      if target_kind == "concept" {
+        "is used by \{subject_ref}"
+      } else {
+        "works with \{subject_ref}"
+      }
+    "improves" => "is improved by \{subject_ref}"
+    "keeps" => "is maintained by \{subject_ref}"
+    _ => "integrates with \{subject_ref}"
+  }
+}
+
+///|
+async fn append_relationship_entry(
+  workspace : Paths,
+  relative_page : String,
+  relation_line : String,
+  source_title : String,
+  source_relative_page : String,
+) -> Unit {
+  let absolute = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(relative_page))
+    .to_string()
+  if !@fsx.exists(absolute) {
+    return
+  }
+  let source_link = relative_from_page(
+    "wiki/" + relative_page,
+    "wiki/" + source_relative_page,
+  )
+  let updated = append_list_entry(
+    @fsx.read_file(absolute),
+    "## Relationships",
+    "- \{relation_line} via [\{source_title}](\{source_link})",
+  )
+  @fsx.write_to_file(absolute, updated, create=0o644)
 }
 
 ///|
@@ -781,6 +895,7 @@ async fn ensure_claim_review_items(
   builder.write_string("### Claim review | \{source_title}\n\n")
   builder.write_string("- Review ID: `\{review_id}`\n")
   builder.write_string("- Source page: [\{source_title}](\{source_link})\n")
+  builder.write_string("- Merge policy: `claim-resolution`\n")
   builder.write_string("- Status: `pending`\n")
   builder.write_string(
     "- Reason: conflicting or uncertain claims need review\n",
@@ -1061,6 +1176,7 @@ fn upsert_claim_block(
 ) -> String {
   let header = "### \{claim.subject} :: \{claim.predicate}"
   let source_entry = "  - [\{source_title}](\{source_link})"
+  let related_pages = claim_related_pages(claim).join(", ")
   let base = if content.contains("_None yet._") {
     content.replace(old="_None yet._", new="").to_string()
   } else {
@@ -1069,12 +1185,15 @@ fn upsert_claim_block(
   if !base.contains(header) {
     let block = header +
       "\n\n" +
+      "- Claim ID: `\{claim.id()}`\n" +
       "- Subject: `\{claim.subject}`\n" +
       "- Predicate: `\{claim.predicate}`\n" +
+      "- Kind: `\{claim.kind()}`\n" +
       "- Confidence: `\{claim.confidence}`\n" +
       "- Support: `1`\n" +
       "- Status: `active`\n" +
       "- Superseded by: `_None_`\n" +
+      "- Related Pages: `\{related_pages}`\n" +
       "- Sources:\n" +
       source_entry +
       "\n\n"
@@ -1091,11 +1210,42 @@ fn upsert_claim_block(
     "- Support: `",
     "\{updated_support}",
   )
-  if with_support.contains(source_entry) {
-    with_support
+  let with_metadata = replace_or_append_claim_field(
+    replace_or_append_claim_field(
+      replace_or_append_claim_field(
+        with_support,
+        header,
+        "- Claim ID: `",
+        claim.id(),
+      ),
+      header,
+      "- Kind: `",
+      claim.kind(),
+    ),
+    header,
+    "- Related Pages: `",
+    related_pages,
+  )
+  if with_metadata.contains(source_entry) {
+    with_metadata
   } else {
-    insert_claim_source_entry(with_support, header, source_entry)
+    insert_claim_source_entry(with_metadata, header, source_entry)
   }
+}
+
+///|
+fn claim_related_pages(claim : StructuredClaim) -> Array[String] {
+  let pages : Array[String] = ["entities/\{slugify_title(claim.subject)}.md"]
+  match claim_relationship_target(claim) {
+    Some((target_kind, target_name, _)) =>
+      if target_kind == "entity" {
+        pages.push("entities/\{slugify_title(target_name)}.md")
+      } else {
+        pages.push("concepts/\{slugify_title(target_name.to_lower())}.md")
+      }
+    None => ()
+  }
+  pages
 }
 
 ///|
@@ -1179,6 +1329,43 @@ fn replace_claim_field(
     } else {
       rebuilt.push(line)
     }
+  }
+  rebuilt.join("\n")
+}
+
+///|
+fn replace_or_append_claim_field(
+  content : String,
+  header : String,
+  prefix : String,
+  value : String,
+) -> String {
+  let lines = lines_array(content)
+  let rebuilt : Array[String] = []
+  let mut in_block = false
+  let mut replaced = false
+  for line in lines {
+    if line == header {
+      in_block = true
+      rebuilt.push(line)
+      continue
+    }
+    if in_block && line.has_prefix("### ") {
+      if !replaced {
+        rebuilt.push(prefix + value + "`")
+        replaced = true
+      }
+      in_block = false
+    }
+    if in_block && line.has_prefix(prefix) {
+      rebuilt.push(prefix + value + "`")
+      replaced = true
+    } else {
+      rebuilt.push(line)
+    }
+  }
+  if in_block && !replaced {
+    rebuilt.push(prefix + value + "`")
   }
   rebuilt.join("\n")
 }

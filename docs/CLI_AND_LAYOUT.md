@@ -54,8 +54,8 @@ Bootstraps a wiki workspace instead of a plain mdBook:
 5. writes `book.toml` with `src = "wiki"` so the workspace can already be built and served by MoonBook
 6. writes `wiki.toml` as a small machine-readable workspace descriptor
 7. creates reserved directories for `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
-8. seeds `wiki/synthesis/claims.md`, `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/query-insights.md`, `wiki/synthesis/observations.md`, `wiki/reviews/pending.md`, and `wiki/reviews/approved.md`
-9. seeds bounded Keeper memory files under `keeper/`
+8. seeds `wiki/synthesis/claims.md`, `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/query-insights.md`, `wiki/synthesis/map.md`, `wiki/synthesis/observations.md`, `wiki/synthesis/evidence.md`, `wiki/reviews/pending.md`, and `wiki/reviews/approved.md`
+9. seeds bounded Keeper memory files under `keeper/`, including `keeper/INSIGHTS.md`
 
 ### `moon run cmd/main -- wiki enable <extension> [root]`
 
@@ -85,7 +85,8 @@ Produces a machine-readable local task batch for a town-issued goal:
 
 1. inspects current book state and review backlog
 2. derives local review, synthesis, analysis, or ingest-follow-up tasks
-3. prints a JSON task batch
+3. emits a dedicated planning task when health signals or goal wording indicate planning pressure
+4. prints a JSON task batch
 
 ### `moon run cmd/main -- wiki book context [root] <goal> [--task <task-id>]`
 
@@ -93,7 +94,7 @@ Hydrates a worker-ready context bundle:
 
 1. derives the local task batch for the goal
 2. selects the first task or the requested `--task`
-3. packages prompt, policy lines, routine lines, context pages, Keeper memory slices, and memory summary
+3. packages prompt, policy lines, routine lines, relevance-ranked context pages, Keeper memory slices, and memory summary
 4. prints a JSON worker context bundle
 
 ### `moon run cmd/main -- wiki book persist [root] <result.json>`
@@ -102,11 +103,13 @@ Persists a machine-readable worker result back into the book:
 
 1. reads a JSON `BookResult`
 2. appends it to `wiki/synthesis/observations.md`
-3. syncs non-durable memory candidates into bounded Keeper memory files
-4. promotes durable memory candidates into target pages
-5. updates `wiki/synthesis/maintenance-plan.md`
-6. optionally queues a review item
-7. appends a persist event to `wiki/log.md`
+3. records a support entry in `wiki/synthesis/evidence.md`
+4. syncs non-durable memory candidates into bounded Keeper memory files
+5. promotes immediately-safe durable memory candidates into target pages
+6. refreshes `keeper/INSIGHTS.md`
+7. updates `wiki/synthesis/maintenance-plan.md`
+8. optionally queues a review item for staged durable promotion
+9. appends a persist event to `wiki/log.md`
 
 ### `moon run cmd/main -- wiki book catalog [root]`
 
@@ -140,13 +143,15 @@ Ingests one source into an existing wiki workspace:
 6. creates or updates related `wiki/entities/*.md` pages
 7. creates or updates related `wiki/concepts/*.md` pages
 8. adds relationship entries to relevant entity pages when structured claims point at entities or concepts
-9. creates or updates `wiki/synthesis/overview.md`
-10. creates or updates `wiki/synthesis/claims.md` with structured claim entries, support counts, status, and superseded markers when claim-like statements are detected
-11. creates or updates `wiki/synthesis/maintenance-plan.md` with a multi-page follow-up entry
-12. queues contested or low-confidence claim updates in `wiki/reviews/pending.md`
-13. appends touched pages to `wiki/SUMMARY.md`
-14. updates the relevant sections in `wiki/index.md`
-15. appends an ingest event to `wiki/log.md`
+9. adds reciprocal relationship entries to related entity/concept pages
+10. creates or updates `wiki/synthesis/overview.md`
+11. creates or updates `wiki/synthesis/claims.md` with structured claim entries, ids, kinds, related pages, support counts, status, and superseded markers when claim-like statements are detected
+12. refreshes `wiki/synthesis/map.md`
+13. creates or updates `wiki/synthesis/maintenance-plan.md` with a multi-page follow-up entry
+14. queues contested or low-confidence claim updates in `wiki/reviews/pending.md`
+15. appends touched pages to `wiki/SUMMARY.md`
+16. updates the relevant sections in `wiki/index.md`
+17. appends an ingest event to `wiki/log.md`
 
 ### `moon run cmd/main -- wiki query [root] <question> [--save]`
 
@@ -157,10 +162,12 @@ Queries the maintained wiki layer instead of raw files:
 3. prints a synthesized markdown answer with page citations
 4. with `--save`, writes the result to `wiki/queries/<slug>.md`
 5. with `--save`, also updates `wiki/synthesis/query-insights.md`
-6. with `--save`, propagates `Query Signals` into cited entity/concept/source pages
-7. with `--save`, updates `wiki/synthesis/maintenance-plan.md`
-8. with `--save`, can queue a pending review item for promoting the answer into maintained wiki pages
-9. with `--save`, also updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
+6. with `--save`, also appends a condensed insight into `keeper/MEMORY.md`
+7. with `--save`, propagates `Query Signals` into cited entity/concept/source pages
+8. with `--save`, updates `wiki/synthesis/maintenance-plan.md`
+9. with `--save`, refreshes `wiki/synthesis/map.md`
+10. with `--save`, can queue a pending review item for promoting the answer into maintained wiki pages
+11. with `--save`, also updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
 
 ### `moon run cmd/main -- wiki review list [root]`
 
@@ -177,11 +184,14 @@ Approves one pending review item:
 
 1. removes it from `wiki/reviews/pending.md`
 2. appends it to `wiki/reviews/approved.md`
-3. promotes the approved result back into synthesis pages
+3. promotes the approved result back into synthesis pages or staged durable target pages
 4. for claim reviews, updates `wiki/synthesis/claims.md`
-5. for query reviews, updates `wiki/synthesis/overview.md`
-6. updates `wiki/synthesis/maintenance-plan.md`
-7. appends a review event to `wiki/log.md`
+5. for query reviews, updates `wiki/synthesis/overview.md` plus cited entity/concept/source pages
+6. updates linked evidence records when present
+7. refreshes `wiki/synthesis/map.md`
+8. refreshes `keeper/INSIGHTS.md`
+9. updates `wiki/synthesis/maintenance-plan.md`
+10. appends a review event to `wiki/log.md`
 
 ### `moon run cmd/main -- wiki review reject [root] <review-id>`
 
@@ -207,8 +217,9 @@ Runs a health check against the maintained wiki layer:
 9. detects weak synthesis coverage for sources not reflected in synthesis pages
 10. detects low-confidence claims that are not actually queued in the review system
 11. detects growing low-confidence review backlog
-12. prints a markdown lint report
-13. appends a lint event to `wiki/log.md`
+12. detects crowded Keeper memory and missing evidence capture
+13. prints a markdown lint report
+14. appends a lint event to `wiki/log.md`
 
 Current defaults:
 
@@ -344,6 +355,12 @@ Current package organization:
   optional runtime/agent extension installation
 - `bookapi.mbt`
   reusable town-facing book harness APIs for planning, context hydration, result persistence, catalog export, summary, and health
+- `keeper_memory.mbt`
+  bounded Keeper memory bootstrap, recall snapshots, and result-sync rules
+- `keeper_evidence.mbt`
+  evidence records for persisted worker results and review outcomes
+- `keeper_insights.mbt`
+  derived Keeper health signals and cleanup suggestions
 - `ingest.mbt`
   source import, entity/concept extraction, relationship updates, and claims maintenance
 - `query.mbt`
@@ -373,6 +390,8 @@ Created by `moonbook wiki init`:
   short-lived active task and observation memory
 - `keeper/POLICY.md`
   Keeper admission and promotion rules
+- `keeper/INSIGHTS.md`
+  derived Keeper health and suggested cleanups
 - `wiki/`
   maintained markdown pages for the knowledge base
 - `wiki/sources/`
@@ -391,8 +410,12 @@ Created by `moonbook wiki init`:
   queued multi-page maintenance actions produced by ingest, query, and review flows
 - `wiki/synthesis/query-insights.md`
   durable insights captured from saved queries
+- `wiki/synthesis/map.md`
+  coverage and maintenance view across entities, concepts, claims, and open loops
 - `wiki/synthesis/observations.md`
   persisted worker results and promoted observations
+- `wiki/synthesis/evidence.md`
+  evidence records linked to persisted results and review outcomes
 - `wiki/reviews/pending.md`
   queued review items for contested claims or high-value query promotions
 - `wiki/reviews/approved.md`
