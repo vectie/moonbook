@@ -230,6 +230,9 @@ pub struct WorkerContextBundle {
   policy : Array[String]
   routines : Array[String]
   context_pages : Array[String]
+  active_memory : Array[String]
+  user_memory : Array[String]
+  working_memory : Array[String]
   memory_summary : String
   output_contract : Array[String]
 }

@@ -14,6 +14,7 @@ It is designed for:
 - 🏗️ static HTML builds
 - 🌐 local serve + watch workflows
 - 🧾 durable markdown knowledge bases
+- 🧠 bounded Keeper memory for active, user, and working context
 - 🧠 wiki ingest/query/review/lint flows
 - 🔌 optional runtime integration through extension packs
 - 🏙️ optional `moontown` add-on for town-to-book orchestration without changing the core wiki contract
@@ -35,6 +36,7 @@ MoonBook is strongest when you want one local system to handle:
 - 🔁 repeatable static builds
 - 🧭 readable navigation and rendering
 - 🗂️ persistent wiki pages between sessions
+- 🧠 small rewriteable Keeper memory between worker runs
 - 🤝 agent-compatible wiki workspaces without hard-coupling to one runtime
 
 ## News
@@ -56,6 +58,7 @@ MoonBook is strongest when you want one local system to handle:
 - 🧱 HTML rendering with sidebar navigation, breadcrumbs, previous/next links, local asset copying, code-block handling, tables, footnotes, raw HTML passthrough, and GitHub-style markdown layout cues
 - 🧠 wiki workspace bootstrap with:
   - `raw/`
+  - `keeper/`
   - `wiki/`
   - `index.md`
   - `log.md`
@@ -96,6 +99,7 @@ MoonBook is strongest when you want one local system to handle:
   - review backlog growth
 - 🔌 extension-based add-ons with `moonclaw` and `moontown` packs
 - 🏙️ optional `moontown` add-on that exposes a town-facing book API over the same workspace
+- 🧠 Keeper memory bootstrap with `keeper/MEMORY.md`, `keeper/USER.md`, `keeper/WORKING.md`, and `keeper/POLICY.md`
 - 🐇 Rabbita frontend scaffolding under `ui/`
 
 ## 🧩 Main Subsystems

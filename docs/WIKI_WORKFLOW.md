@@ -27,6 +27,7 @@ moon run cmd/main -- wiki init ./research-wiki
 This creates:
 
 - `raw/`
+- `keeper/`
 - `wiki/`
 - `wiki/SUMMARY.md`
 - `wiki/index.md`
@@ -37,6 +38,10 @@ This creates:
 - `wiki/synthesis/observations.md`
 - `wiki/reviews/pending.md`
 - `wiki/reviews/approved.md`
+- `keeper/MEMORY.md`
+- `keeper/USER.md`
+- `keeper/WORKING.md`
+- `keeper/POLICY.md`
 
 ### 2. Enable Optional Runtime Pack
 
@@ -99,8 +104,9 @@ Current book-harness behavior:
 - exports a catalog record for persisted town bootstrap
 - accepts town-style goals into book-local planning
 - produces local tasks inside the book boundary
-- hydrates worker context from book policy, routines, and durable wiki pages
+- hydrates worker context from book policy, routines, Keeper memory, and durable wiki pages
 - persists worker results into `synthesis/observations.md`
+- syncs non-durable memory candidates into bounded Keeper memory files
 - promotes durable memory candidates into target pages
 - reports book-local state and health without requiring a town runtime
 
@@ -172,6 +178,12 @@ The maintained wiki currently revolves around these page families:
   persisted worker results and promoted observations
 - `wiki/reviews/`
   pending and approved operator review items
+- `keeper/MEMORY.md`
+  reusable active domain memory
+- `keeper/USER.md`
+  user preferences and collaboration habits
+- `keeper/WORKING.md`
+  short-lived task and observation memory
 
 ## Current Limits
 

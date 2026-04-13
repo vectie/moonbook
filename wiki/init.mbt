@@ -73,6 +73,21 @@ pub async fn init_workspace(
   let approved_review_path = @path.Path(reviews_dir)
     .join(@path.Path("approved.md"))
     .to_string()
+  let keeper_dir = @path.Path(normalized_root)
+    .join(@path.Path("keeper"))
+    .to_string()
+  let keeper_memory_path = @path.Path(keeper_dir)
+    .join(@path.Path("MEMORY.md"))
+    .to_string()
+  let keeper_user_path = @path.Path(keeper_dir)
+    .join(@path.Path("USER.md"))
+    .to_string()
+  let keeper_working_path = @path.Path(keeper_dir)
+    .join(@path.Path("WORKING.md"))
+    .to_string()
+  let keeper_policy_path = @path.Path(keeper_dir)
+    .join(@path.Path("POLICY.md"))
+    .to_string()
   let assets_keep_path = @path.Path(raw_assets_dir)
     .join(@path.Path(".gitkeep"))
     .to_string()
@@ -88,6 +103,7 @@ pub async fn init_workspace(
   @fsx.make_directory(queries_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(reviews_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(sources_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(keeper_dir, recursive=true, exists_ok=true)
 
   write_if_missing(book_toml_path, book_toml_text(resolved_title))
   write_if_missing(config_path, wiki_config_text())
@@ -103,6 +119,10 @@ pub async fn init_workspace(
   write_if_missing(observations_path, observations_text())
   write_if_missing(pending_review_path, pending_review_text())
   write_if_missing(approved_review_path, approved_review_text())
+  write_if_missing(keeper_memory_path, keeper_memory_text())
+  write_if_missing(keeper_user_path, keeper_user_text())
+  write_if_missing(keeper_working_path, keeper_working_text())
+  write_if_missing(keeper_policy_path, keeper_policy_text())
   write_if_missing(raw_readme_path, raw_readme_text())
   write_if_missing(assets_keep_path, "")
 
@@ -173,6 +193,7 @@ fn home_text() -> String {
   "- [Maintenance Plan](./synthesis/maintenance-plan.md): queued multi-page wiki revisions\n" +
   "- [Observations](./synthesis/observations.md): persisted worker results and promoted observations\n" +
   "- [Pending Review](./reviews/pending.md): human review queue for contested or high-value updates\n" +
+  "- `../keeper/`: bounded active memory, user memory, and working memory for Keeper\n" +
   "- `../raw/`: immutable source documents\n\n" +
   "## Usage\n\n" +
   "1. Drop a source into `raw/`\n" +
@@ -347,4 +368,14 @@ test "schema explains ingest query and lint workflows" {
   assert_true(text.contains("wiki/log.md"))
   assert_true(text.contains("agent-agnostic"))
   assert_true(text.contains("wiki/reviews/pending.md"))
+}
+
+///|
+async test "init workspace seeds keeper memory files" {
+  let root = "/tmp/moonbook-init-keeper"
+  ignore(init_workspace(root))
+  assert_true(@fsx.exists(root + "/keeper/MEMORY.md"))
+  assert_true(@fsx.exists(root + "/keeper/USER.md"))
+  assert_true(@fsx.exists(root + "/keeper/WORKING.md"))
+  assert_true(@fsx.exists(root + "/keeper/POLICY.md"))
 }

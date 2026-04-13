@@ -35,6 +35,9 @@ pub struct WorkerContextBundle {
   policy : Array[String]
   routines : Array[String]
   context_pages : Array[String]
+  active_memory : Array[String]
+  user_memory : Array[String]
+  working_memory : Array[String]
   memory_summary : String
   output_contract : Array[String]
 } derive(Show, ToJson, FromJson)
@@ -220,6 +223,7 @@ pub async fn hydrate_worker_context(
   task : BookTask,
 ) -> WorkerContextBundle {
   let workspace = workspace_paths(root)
+  let keeper = keeper_snapshot(root)
   let policy = policy_lines(root)
   let routines = routine_lines(root)
   let memory_summary = summarize_memory(root)
@@ -231,9 +235,13 @@ pub async fn hydrate_worker_context(
     policy,
     routines,
     context_pages: default_context_pages(task.target_pages),
+    active_memory: keeper.active_memory,
+    user_memory: keeper.user_memory,
+    working_memory: keeper.working_memory,
     memory_summary,
     output_contract: [
       "summary", "artifacts", "memory_candidates", "requires_review", "notify_town",
+      "observations",
     ],
   }
 }
@@ -254,6 +262,12 @@ pub async fn persist_result(
   let block = persisted_result_block(result)
   observations = append_section_block(observations, "## Results", block)
   @fsx.write_to_file(observations_path, observations, create=0o644)
+
+  for page in keeper_sync_result(root, result) {
+    if !updated_pages.contains(page) {
+      updated_pages.push(page)
+    }
+  }
 
   for candidate in result.memory_candidates {
     if !candidate.durable {
@@ -568,6 +582,7 @@ async fn routine_lines(root : String) -> Array[String] {
 ///|
 async fn summarize_memory(root : String) -> String {
   let workspace = workspace_paths(root)
+  let keeper = keeper_snapshot(root)
   let claims_path = @path.Path(workspace.wiki_dir)
     .join(@path.Path("synthesis/claims.md"))
     .to_string()
@@ -584,7 +599,7 @@ async fn summarize_memory(root : String) -> String {
   } else {
     0
   }
-  "claims=\{claims} overview_updates=\{updates}"
+  "keeper_active=\{keeper.active_memory.length()} keeper_user=\{keeper.user_memory.length()} keeper_working=\{keeper.working_memory.length()} claims=\{claims} overview_updates=\{updates}"
 }
 
 ///|
@@ -809,4 +824,47 @@ async test "catalog skills include base harness skills" {
   assert_true(skills.contains("analysis"))
   assert_true(skills.contains("memory"))
   assert_true(skills.contains("review"))
+}
+
+///|
+async test "hydrate worker context includes keeper memory slices" {
+  let root = "/tmp/moonbook-bookapi-context"
+  ignore(init_workspace(root))
+  ignore(
+    persist_result(root, {
+      task_id: "task-memory",
+      summary: "Observed that the user prefers concise status updates.",
+      artifacts: [],
+      memory_candidates: [
+        {
+          kind: "user_preference",
+          title: "Concise status",
+          detail: "The user prefers concise status updates.",
+          durable: false,
+          target_page: None,
+        },
+        {
+          kind: "environment_fact",
+          title: "Book scope",
+          detail: "This book is used for persistent wiki experiments.",
+          durable: false,
+          target_page: None,
+        },
+      ],
+      requires_review: false,
+      notify_town: false,
+    }),
+  )
+  let context = hydrate_worker_context(root, {
+    id: "goal-analysis",
+    title: "Analyze",
+    kind: "analysis",
+    prompt: "Do the work.",
+    priority: 1,
+    requires_review: false,
+    target_pages: ["index.md"],
+  })
+  assert_true(context.user_memory.length() > 0)
+  assert_true(context.active_memory.length() > 0)
+  assert_true(context.working_memory.length() > 0)
 }

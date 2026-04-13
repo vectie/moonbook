@@ -48,6 +48,7 @@ Implemented behaviors:
 - `wiki init` seeds `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
 - `wiki init` seeds claims, maintenance-plan, query-insights, pending-review, and approved-review pages
 - `wiki init` seeds an observations page for persisted book results
+- `wiki init` seeds bounded Keeper memory files under `keeper/`
 - `wiki init` outputs a workspace that can immediately be built with `moonbook build`
 - `wiki enable moonclaw` installs MoonClaw-specific runtime/config/workspace files without overwriting them
 - `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`
@@ -75,8 +76,8 @@ Implemented behaviors:
 - `wiki query --save` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
 - `wiki book accept` returns a machine-readable goal acceptance summary
 - `wiki book tasks` returns a machine-readable local task batch for a town-issued goal
-- `wiki book context` returns a machine-readable worker context bundle derived from book-local policy, routines, and durable pages
-- `wiki book persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, promotes durable memory candidates into target pages, updates the maintenance plan, and can queue review
+- `wiki book context` returns a machine-readable worker context bundle derived from book-local policy, Keeper memory, routines, and durable pages
+- `wiki book persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, syncs non-durable memory candidates into Keeper memory, promotes durable memory candidates into target pages, updates the maintenance plan, and can queue review
 - `wiki book catalog` returns a machine-readable town catalog record with id, purpose, workspace root, memory scope, tags, and skills
 - `wiki book summary` returns page/review counts and a compact state summary
 - `wiki book health` returns backlog and low-confidence claim health signals for the book

@@ -55,6 +55,7 @@ Bootstraps a wiki workspace instead of a plain mdBook:
 6. writes `wiki.toml` as a small machine-readable workspace descriptor
 7. creates reserved directories for `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
 8. seeds `wiki/synthesis/claims.md`, `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/query-insights.md`, `wiki/synthesis/observations.md`, `wiki/reviews/pending.md`, and `wiki/reviews/approved.md`
+9. seeds bounded Keeper memory files under `keeper/`
 
 ### `moon run cmd/main -- wiki enable <extension> [root]`
 
@@ -92,7 +93,7 @@ Hydrates a worker-ready context bundle:
 
 1. derives the local task batch for the goal
 2. selects the first task or the requested `--task`
-3. packages prompt, policy lines, routine lines, context pages, and memory summary
+3. packages prompt, policy lines, routine lines, context pages, Keeper memory slices, and memory summary
 4. prints a JSON worker context bundle
 
 ### `moon run cmd/main -- wiki book persist [root] <result.json>`
@@ -101,10 +102,11 @@ Persists a machine-readable worker result back into the book:
 
 1. reads a JSON `BookResult`
 2. appends it to `wiki/synthesis/observations.md`
-3. promotes durable memory candidates into target pages
-4. updates `wiki/synthesis/maintenance-plan.md`
-5. optionally queues a review item
-6. appends a persist event to `wiki/log.md`
+3. syncs non-durable memory candidates into bounded Keeper memory files
+4. promotes durable memory candidates into target pages
+5. updates `wiki/synthesis/maintenance-plan.md`
+6. optionally queues a review item
+7. appends a persist event to `wiki/log.md`
 
 ### `moon run cmd/main -- wiki book catalog [root]`
 
@@ -363,6 +365,14 @@ Created by `moonbook wiki init`:
 
 - `raw/`
   immutable source material
+- `keeper/MEMORY.md`
+  bounded reusable domain memory for Keeper
+- `keeper/USER.md`
+  stable user preferences and collaboration habits
+- `keeper/WORKING.md`
+  short-lived active task and observation memory
+- `keeper/POLICY.md`
+  Keeper admission and promotion rules
 - `wiki/`
   maintained markdown pages for the knowledge base
 - `wiki/sources/`

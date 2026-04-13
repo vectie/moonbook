@@ -57,6 +57,8 @@ The wiki path builds on the same rendering/build infrastructure, but introduces 
   review lifecycle commands
 - `wiki/bookapi.mbt`
   town-facing book harness APIs for planning, context hydration, result persistence, catalog export, summary, and health
+- `wiki/keeper_memory.mbt`
+  bounded Keeper memory bootstrap, recall snapshots, and result-sync rules
 - `wiki/lint.mbt`
   structural and wiki-health checks
 - `wiki/workspace.mbt`
@@ -69,6 +71,7 @@ The wiki path builds on the same rendering/build infrastructure, but introduces 
 This layer is responsible for:
 
 - creating `raw/` + `wiki/` workspaces
+- maintaining bounded Keeper memory under `keeper/`
 - maintaining persistent markdown pages across ingests
 - tracking lightweight claims and review queues
 - saving query results back into the wiki
@@ -82,6 +85,8 @@ Core files and directories:
 
 - `raw/`
   immutable source material
+- `keeper/`
+  bounded active, user, and working memory for Keeper
 - `wiki/`
   maintained markdown knowledge base
 - `wiki/SUMMARY.md`
@@ -97,6 +102,7 @@ Core files and directories:
 
 Important wiki subdirectories:
 
+- `keeper/`
 - `wiki/sources/`
 - `wiki/entities/`
 - `wiki/concepts/`
