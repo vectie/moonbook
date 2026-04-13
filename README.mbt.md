@@ -111,7 +111,7 @@ MoonBook is strongest when you want one local system to handle:
 - 🧾 evidence tracking in `wiki/synthesis/evidence.md` for persisted worker results and review outcomes
 - 🗺️ synthesis coverage tracking in `wiki/synthesis/map.md`
 - 📈 Keeper health snapshots in `keeper/INSIGHTS.md`
-- 🐇 Rabbita frontend scaffolding under `ui/`
+- 🐇 Rabbita frontend with a documentation-first operator dashboard under `ui/`
 
 ## 🧩 Main Subsystems
 

@@ -455,4 +455,4 @@ This pack does not change the core wiki directories or make MoonBook depend on M
 
 ### `ui/`
 
-Contains Rabbita frontend work. The shell compiles, but the UI is not yet feature-complete relative to the CLI/HTML side.
+Contains Rabbita frontend work. The current Rabbita package now renders a documentation-first operator dashboard for MoonBook, but it still uses demo fixtures rather than live workspace bindings.
