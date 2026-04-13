@@ -151,6 +151,7 @@ pub struct IngestResult {
   title : String
   imported : Bool
   related_pages : Array[String]
+  keeper_packet_path : String
 }
 pub impl Show for IngestResult
 pub impl ToJson for IngestResult

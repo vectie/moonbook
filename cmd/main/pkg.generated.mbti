@@ -8,6 +8,8 @@ package "username/moonbook/cmd/main"
 // Types and methods
 type ParsedWikiBookGoalArgs
 
+type ParsedWikiKeeperSubmitArgs
+
 type ParsedWikiQueryArgs
 
 // Type aliases

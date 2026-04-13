@@ -5,7 +5,22 @@ pub struct IngestResult {
   title : String
   imported : Bool
   related_pages : Array[String]
+  keeper_packet_path : String
 } derive(Show, ToJson)
+
+///|
+priv struct IngestKeeperProposal {
+  title : String
+  request : String
+  profile : String
+  output_contract : String
+  source_path : String
+  source_page : String
+  context_pages : Array[String]
+  related_pages : Array[String]
+  skill_paths : Array[String]
+  notes : Array[String]
+} derive(ToJson)
 
 ///|
 pub async fn ingest_source(root : String, source_path : String) -> IngestResult {
@@ -75,6 +90,9 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
   let related_pages = enrich_ingest(
     workspace, title, relative_page, stored_raw_path,
   )
+  let keeper_packet_path = emit_ingest_keeper_packet(
+    workspace, title, stored_raw_path, relative_page, related_pages,
+  )
 
   update_summary(workspace.summary_path, title, relative_page)
   update_index(
@@ -97,6 +115,7 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
     title,
     imported: !source_under_raw,
     related_pages,
+    keeper_packet_path,
   }
 }
 
@@ -405,6 +424,83 @@ async fn enrich_ingest(
     related_pages.push(synthesis_map_page)
   }
   related_pages
+}
+
+///|
+async fn emit_ingest_keeper_packet(
+  workspace : Paths,
+  source_title : String,
+  stored_raw_path : String,
+  source_relative_page : String,
+  related_pages : Array[String],
+) -> String {
+  let jobs_dir = @path.Path(workspace.root)
+    .join(@path.Path("keeper/jobs"))
+    .to_string()
+  @fsx.make_directory(jobs_dir, recursive=true, exists_ok=true)
+  let slug = file_stem(source_relative_page)
+  let packet_path = @path.Path(jobs_dir)
+    .join(@path.Path("ingest-\{slug}.json"))
+    .to_string()
+  let notes = ingest_packet_notes(stored_raw_path, source_relative_page)
+  let packet : IngestKeeperProposal = {
+    title: source_title,
+    request: "Run the skill-driven wiki ingest revision pass for \{source_title}. Read the source page, inspect the maintained wiki, and apply semantic follow-up through the seeded skill pack.",
+    profile: "wiki_ingest_controller",
+    output_contract: "keeper.plan.packet.v1",
+    source_path: relative_to_root(stored_raw_path, workspace.root),
+    source_page: "wiki/" + source_relative_page,
+    context_pages: ingest_packet_context_pages(source_relative_page),
+    related_pages: related_pages.map(page => "wiki/" + page),
+    skill_paths: ingest_packet_skill_paths(),
+    notes,
+  }
+  @fsx.write_to_file(
+    packet_path,
+    packet.to_json().stringify(indent=2),
+    create=0o644,
+  )
+  packet_path
+}
+
+///|
+async fn ingest_packet_notes(
+  stored_raw_path : String,
+  source_relative_page : String,
+) -> Array[String] {
+  if !is_text_source(stored_raw_path) {
+    return [
+      "binary-source: review raw asset directly before semantic revision", "skill-followup: source-diarize, synthesis-revise, index-maintain",
+    ]
+  }
+  let content = @fsx.read_file(stored_raw_path)
+  let entities = extract_candidate_entities(file_stem(stored_raw_path), content)
+  let concepts = extract_candidate_concepts(content)
+  let claims = extract_structured_claims(content)
+  ingest_plan_notes(source_relative_page, entities, concepts, claims)
+}
+
+///|
+fn ingest_packet_context_pages(source_relative_page : String) -> Array[String] {
+  [
+    "wiki/index.md",
+    "wiki/log.md",
+    "wiki/" + source_relative_page,
+    "wiki/synthesis/overview.md",
+    "wiki/synthesis/claims.md",
+    "wiki/synthesis/maintenance-plan.md",
+    "wiki/reviews/pending.md",
+    "RESOLVER.md",
+  ]
+}
+
+///|
+fn ingest_packet_skill_paths() -> Array[String] {
+  [
+    "skills/wiki-ingest/SKILL.md", "skills/source-diarize/SKILL.md", "skills/entity-revise/SKILL.md",
+    "skills/concept-revise/SKILL.md", "skills/synthesis-revise/SKILL.md", "skills/claim-audit/SKILL.md",
+    "skills/contradiction-review/SKILL.md", "skills/review-decision/SKILL.md", "skills/index-maintain/SKILL.md",
+  ]
 }
 
 ///|
@@ -2303,10 +2399,15 @@ async test "ingest leaves ontology revision to follow-up skills" {
   assert_true(result.related_pages.contains("synthesis/overview.md"))
   assert_true(result.related_pages.contains("synthesis/maintenance-plan.md"))
   assert_true(result.related_pages.contains("synthesis/claims.md"))
+  assert_true(result.keeper_packet_path.contains("/keeper/jobs/ingest-"))
+  assert_true(@fsx.exists(result.keeper_packet_path))
   assert_true(!@fsx.exists(root + "/wiki/entities/openclaw.md"))
   assert_true(!@fsx.exists(root + "/wiki/concepts/gateway-operations.md"))
   let plan = @fsx.read_file(root + "/wiki/synthesis/maintenance-plan.md")
   assert_true(plan.contains("skill-followup: source-diarize"))
   assert_true(plan.contains("consider-skill: entity-revise"))
   assert_true(plan.contains("consider-skill: concept-revise"))
+  let packet = @fsx.read_file(result.keeper_packet_path)
+  assert_true(packet.contains("\"profile\": \"wiki_ingest_controller\""))
+  assert_true(packet.contains("\"skills/source-diarize/SKILL.md\""))
 }
