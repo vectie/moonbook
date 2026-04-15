@@ -995,210 +995,283 @@ fn schema_text() -> String {
 
 ///|
 fn base_wiki_ingest_skill_text() -> String {
-  "---\n" +
-  "name: wiki-ingest\n" +
-  "description: Ingest one source into the wiki by reading, diarizing, revising pages, and preserving uncertainty.\n" +
-  "---\n\n" +
-  "# Wiki Ingest\n\n" +
-  "Parameters:\n\n" +
-  "- SOURCE: the raw source path\n" +
-  "- QUESTION: what matters about this source, if the user gave one\n\n" +
-  "Method:\n\n" +
-  "1. Read `RESOLVER.md`, `wiki/index.md`, and `wiki/log.md`.\n" +
-  "2. Read SOURCE directly. Build a compact diarized view: what the source says, what changed, what is uncertain, and what other pages it touches.\n" +
-  "3. Revise maintained wiki pages first. Prefer updates to entities, concepts, synthesis, claims, and review queues over one-off note creation.\n" +
-  "4. If a new page is justified, make it stable and domain-shaped, not token-shaped.\n" +
-  "5. Record contradictions, supersession hints, and weak evidence instead of flattening them.\n" +
-  "6. Update `wiki/index.md`, `wiki/log.md`, and `wiki/synthesis/maintenance-plan.md`.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: wiki-ingest\n" +
+    "description: Ingest one source into the wiki by reading, diarizing, revising pages, and preserving uncertainty.\n" +
+    "---\n\n" +
+    "# Wiki Ingest\n\n" +
+    "Parameters:\n\n" +
+    "- SOURCE: the raw source path\n" +
+    "- QUESTION: what matters about this source, if the user gave one\n\n" +
+    "Method:\n\n" +
+    "1. Read `RESOLVER.md`, `wiki/index.md`, and `wiki/log.md`.\n" +
+    "2. Read SOURCE directly. Build a compact diarized view: what the source says, what changed, what is uncertain, and what other pages it touches.\n" +
+    "3. Revise maintained wiki pages first. Prefer updates to entities, concepts, synthesis, claims, and review queues over one-off note creation.\n" +
+    "4. If a new page is justified, make it stable and domain-shaped, not token-shaped.\n" +
+    "5. Record contradictions, supersession hints, and weak evidence instead of flattening them.\n" +
+    "6. Update `wiki/index.md`, `wiki/log.md`, and `wiki/synthesis/maintenance-plan.md`.\n",
+  )
 }
 
 ///|
 fn base_wiki_query_skill_text() -> String {
-  "---\n" +
-  "name: wiki-query\n" +
-  "description: Answer a question from the maintained wiki, then decide whether the answer should become durable wiki knowledge.\n" +
-  "---\n\n" +
-  "# Wiki Query\n\n" +
-  "Parameters:\n\n" +
-  "- QUESTION: the user question\n\n" +
-  "Method:\n\n" +
-  "1. Read `wiki/index.md` first, then the highest-signal related pages.\n" +
-  "2. Prefer maintained wiki pages over raw sources unless you are checking a gap or contradiction.\n" +
-  "3. Answer with citations to page paths.\n" +
-  "4. If the answer creates durable value, add or update a maintained page instead of leaving the insight in chat only.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: wiki-query\n" +
+    "description: Answer a question from the maintained wiki, then decide whether the answer should become durable wiki knowledge.\n" +
+    "---\n\n" +
+    "# Wiki Query\n\n" +
+    "Parameters:\n\n" +
+    "- QUESTION: the user question\n\n" +
+    "Method:\n\n" +
+    "1. Read `wiki/index.md` first, then the highest-signal related pages.\n" +
+    "2. Prefer maintained wiki pages over raw sources unless you are checking a gap or contradiction.\n" +
+    "3. Answer with citations to page paths.\n" +
+    "4. If the answer creates durable value, add or update a maintained page instead of leaving the insight in chat only.\n",
+  )
 }
 
 ///|
 fn base_wiki_lint_skill_text() -> String {
-  "---\n" +
-  "name: wiki-lint\n" +
-  "description: Inspect the wiki for structural and semantic drift, then propose the next maintenance passes.\n" +
-  "---\n\n" +
-  "# Wiki Lint\n\n" +
-  "Method:\n\n" +
-  "1. Read `wiki/index.md`, `wiki/log.md`, `wiki/synthesis/map.md`, and `keeper/INSIGHTS.md`.\n" +
-  "2. Find missing pages, orphan pages, unresolved contradictions, stale synthesis, weak evidence, and noisy ontology.\n" +
-  "3. Convert findings into concrete maintenance actions in `wiki/synthesis/maintenance-plan.md`.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: wiki-lint\n" +
+    "description: Inspect the wiki for structural and semantic drift, then propose the next maintenance passes.\n" +
+    "---\n\n" +
+    "# Wiki Lint\n\n" +
+    "Method:\n\n" +
+    "1. Read `wiki/index.md`, `wiki/log.md`, `wiki/synthesis/map.md`, and `keeper/INSIGHTS.md`.\n" +
+    "2. Find missing pages, orphan pages, unresolved contradictions, stale synthesis, weak evidence, and noisy ontology.\n" +
+    "3. Convert findings into concrete maintenance actions in `wiki/synthesis/maintenance-plan.md`.\n",
+  )
 }
 
 ///|
 fn base_wiki_review_skill_text() -> String {
-  "---\n" +
-  "name: wiki-review\n" +
-  "description: Review contested or high-value changes before they become trusted durable knowledge.\n" +
-  "---\n\n" +
-  "# Wiki Review\n\n" +
-  "Method:\n\n" +
-  "1. Read `wiki/reviews/pending.md`, `wiki/reviews/approved.md`, and `wiki/synthesis/evidence.md`.\n" +
-  "2. Check support, dates, confidence, and whether the ontology is clean and stable.\n" +
-  "3. Approve, reject, or request revision with explicit reasons.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: wiki-review\n" +
+    "description: Review contested or high-value changes before they become trusted durable knowledge.\n" +
+    "---\n\n" +
+    "# Wiki Review\n\n" +
+    "Method:\n\n" +
+    "1. Read `wiki/reviews/pending.md`, `wiki/reviews/approved.md`, and `wiki/synthesis/evidence.md`.\n" +
+    "2. Check support, dates, confidence, and whether the ontology is clean and stable.\n" +
+    "3. Approve, reject, or request revision with explicit reasons.\n",
+  )
 }
 
 ///|
 fn base_wiki_memory_skill_text() -> String {
-  "---\n" +
-  "name: wiki-memory\n" +
-  "description: Maintain bounded keeper memory so durable facts survive while noisy task residue is pruned.\n" +
-  "---\n\n" +
-  "# Wiki Memory\n\n" +
-  "Method:\n\n" +
-  "1. Read `keeper/MEMORY.md`, `keeper/USER.md`, `keeper/WORKING.md`, and `keeper/INSIGHTS.md`.\n" +
-  "2. Promote durable facts and recurring patterns; demote short-lived task residue.\n" +
-  "3. Keep working memory tight and route long-lived knowledge back into maintained wiki pages when appropriate.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: wiki-memory\n" +
+    "description: Maintain bounded keeper memory so durable facts survive while noisy task residue is pruned.\n" +
+    "---\n\n" +
+    "# Wiki Memory\n\n" +
+    "Method:\n\n" +
+    "1. Read `keeper/MEMORY.md`, `keeper/USER.md`, `keeper/WORKING.md`, and `keeper/INSIGHTS.md`.\n" +
+    "2. Promote durable facts and recurring patterns; demote short-lived task residue.\n" +
+    "3. Keep working memory tight and route long-lived knowledge back into maintained wiki pages when appropriate.\n",
+  )
 }
 
 ///|
 fn base_wiki_marketing_skill_text() -> String {
-  "---\n" +
-  "name: wiki-marketing\n" +
-  "description: Maintain the marketing website projection so it presents the workspace clearly without replacing the detailed wiki.\n" +
-  "---\n\n" +
-  "# Wiki Marketing\n\n" +
-  "Method:\n\n" +
-  "1. Read `wiki/synthesis/overview.md`, `wiki/index.md`, `wiki/synthesis/map.md`, and `keeper/INSIGHTS.md` first.\n" +
-  "2. Keep `wiki/` detailed and evidence-oriented; keep `site/` compressed, audience-facing, and product-shaped.\n" +
-  "3. Present stable capabilities, operating model, and current state without leaking low-signal task residue.\n" +
-  "4. Link visitors from the marketing projection into the right maintained wiki pages for depth.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: wiki-marketing\n" +
+    "description: Maintain the marketing website projection so it presents the workspace clearly without replacing the detailed wiki.\n" +
+    "---\n\n" +
+    "# Wiki Marketing\n\n" +
+    "Method:\n\n" +
+    "1. Read `wiki/synthesis/overview.md`, `wiki/index.md`, `wiki/synthesis/map.md`, and `keeper/INSIGHTS.md` first.\n" +
+    "2. Keep `wiki/` detailed and evidence-oriented; keep `site/` compressed, audience-facing, and product-shaped.\n" +
+    "3. Present stable capabilities, operating model, and current state without leaking low-signal task residue.\n" +
+    "4. Link visitors from the marketing projection into the right maintained wiki pages for depth.\n",
+  )
 }
 
 ///|
 fn source_diarize_skill_text() -> String {
-  "---\n" +
-  "name: source-diarize\n" +
-  "description: Read one source deeply and produce a compact diarized account of claims, changes, uncertainties, and affected pages.\n" +
-  "---\n\n" +
-  "# Source Diarize\n\n" +
-  "1. Read the source directly.\n" +
-  "2. Separate navigation boilerplate from substantive content.\n" +
-  "3. Summarize what the source says, what changed, what is uncertain, and what pages should be touched.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: source-diarize\n" +
+    "description: Read one source deeply and produce a compact diarized account of claims, changes, uncertainties, and affected pages.\n" +
+    "---\n\n" +
+    "# Source Diarize\n\n" +
+    "1. Read the source directly.\n" +
+    "2. Separate navigation boilerplate from substantive content.\n" +
+    "3. Summarize what the source says, what changed, what is uncertain, and what pages should be touched.\n",
+  )
 }
 
 ///|
 fn entity_revise_skill_text() -> String {
-  "---\n" +
-  "name: entity-revise\n" +
-  "description: Revise entity pages so they accumulate durable facts, relationships, and source-backed changes over time.\n" +
-  "---\n\n" +
-  "# Entity Revise\n\n" +
-  "1. Prefer existing entity pages over creating new ones.\n" +
-  "2. Update identity, relationships, role, and operational relevance.\n" +
-  "3. Preserve uncertainty and source backing.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: entity-revise\n" +
+    "description: Revise entity pages so they accumulate durable facts, relationships, and source-backed changes over time.\n" +
+    "---\n\n" +
+    "# Entity Revise\n\n" +
+    "1. Prefer existing entity pages over creating new ones.\n" +
+    "2. Update identity, relationships, role, and operational relevance.\n" +
+    "3. Preserve uncertainty and source backing.\n",
+  )
 }
 
 ///|
 fn concept_revise_skill_text() -> String {
-  "---\n" +
-  "name: concept-revise\n" +
-  "description: Maintain concept pages that explain recurring operational ideas, workflows, and abstractions in the wiki.\n" +
-  "---\n\n" +
-  "# Concept Revise\n\n" +
-  "1. Merge low-signal duplicates into stable concept pages.\n" +
-  "2. Keep concept pages explanatory, cumulative, and cross-linked.\n" +
-  "3. Promote recurring patterns, not one-off phrasing.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: concept-revise\n" +
+    "description: Maintain concept pages that explain recurring operational ideas, workflows, and abstractions in the wiki.\n" +
+    "---\n\n" +
+    "# Concept Revise\n\n" +
+    "1. Merge low-signal duplicates into stable concept pages.\n" +
+    "2. Keep concept pages explanatory, cumulative, and cross-linked.\n" +
+    "3. Promote recurring patterns, not one-off phrasing.\n",
+  )
 }
 
 ///|
 fn synthesis_revise_skill_text() -> String {
-  "---\n" +
-  "name: synthesis-revise\n" +
-  "description: Revise synthesis pages so the wiki reflects evolving cross-source understanding rather than isolated notes.\n" +
-  "---\n\n" +
-  "# Synthesis Revise\n\n" +
-  "1. Read the most relevant source, entity, concept, and claims pages.\n" +
-  "2. Update overview and synthesis pages to reflect what changed across the corpus.\n" +
-  "3. Keep open loops and unresolved contradictions visible.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: synthesis-revise\n" +
+    "description: Revise synthesis pages so the wiki reflects evolving cross-source understanding rather than isolated notes.\n" +
+    "---\n\n" +
+    "# Synthesis Revise\n\n" +
+    "1. Read the most relevant source, entity, concept, and claims pages.\n" +
+    "2. Update overview and synthesis pages to reflect what changed across the corpus.\n" +
+    "3. Keep open loops and unresolved contradictions visible.\n",
+  )
 }
 
 ///|
 fn claim_audit_skill_text() -> String {
-  "---\n" +
-  "name: claim-audit\n" +
-  "description: Inspect claims for support, confidence, supersession, and overreach before they are treated as durable knowledge.\n" +
-  "---\n\n" +
-  "# Claim Audit\n\n" +
-  "1. Check whether each claim is supported by actual source material.\n" +
-  "2. Mark weak, superseded, or conflicting claims explicitly.\n" +
-  "3. Push contested items toward review instead of silently flattening them.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: claim-audit\n" +
+    "description: Inspect claims for support, confidence, supersession, and overreach before they are treated as durable knowledge.\n" +
+    "---\n\n" +
+    "# Claim Audit\n\n" +
+    "1. Check whether each claim is supported by actual source material.\n" +
+    "2. Mark weak, superseded, or conflicting claims explicitly.\n" +
+    "3. Push contested items toward review instead of silently flattening them.\n",
+  )
 }
 
 ///|
 fn contradiction_review_skill_text() -> String {
-  "---\n" +
-  "name: contradiction-review\n" +
-  "description: Compare wiki pages and find unresolved contradictions, stale synthesis, or incompatible narratives.\n" +
-  "---\n\n" +
-  "# Contradiction Review\n\n" +
-  "1. Compare relevant synthesis, claims, entity, and concept pages.\n" +
-  "2. Identify genuine contradictions, not just phrasing differences.\n" +
-  "3. Turn contradictions into explicit maintenance or review actions.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: contradiction-review\n" +
+    "description: Compare wiki pages and find unresolved contradictions, stale synthesis, or incompatible narratives.\n" +
+    "---\n\n" +
+    "# Contradiction Review\n\n" +
+    "1. Compare relevant synthesis, claims, entity, and concept pages.\n" +
+    "2. Identify genuine contradictions, not just phrasing differences.\n" +
+    "3. Turn contradictions into explicit maintenance or review actions.\n",
+  )
 }
 
 ///|
 fn index_maintain_skill_text() -> String {
-  "---\n" +
-  "name: index-maintain\n" +
-  "description: Keep index and navigation surfaces clean, stable, and representative of the maintained wiki.\n" +
-  "---\n\n" +
-  "# Index Maintain\n\n" +
-  "1. Add pages that matter.\n" +
-  "2. Remove or merge entries for noisy or collapsed pages.\n" +
-  "3. Prefer stable ontology and high-signal navigation labels.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: index-maintain\n" +
+    "description: Keep index and navigation surfaces clean, stable, and representative of the maintained wiki.\n" +
+    "---\n\n" +
+    "# Index Maintain\n\n" +
+    "1. Add pages that matter.\n" +
+    "2. Remove or merge entries for noisy or collapsed pages.\n" +
+    "3. Prefer stable ontology and high-signal navigation labels.\n",
+  )
 }
 
 ///|
 fn query_promote_skill_text() -> String {
-  "---\n" +
-  "name: query-promote\n" +
-  "description: Decide when a good answer should be promoted into the maintained wiki as durable knowledge.\n" +
-  "---\n\n" +
-  "# Query Promote\n\n" +
-  "1. Identify answers with lasting value.\n" +
-  "2. Decide whether they belong in synthesis, claims, concepts, entities, or review queues.\n" +
-  "3. Avoid storing disposable chat residue.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: query-promote\n" +
+    "description: Decide when a good answer should be promoted into the maintained wiki as durable knowledge.\n" +
+    "---\n\n" +
+    "# Query Promote\n\n" +
+    "1. Identify answers with lasting value.\n" +
+    "2. Decide whether they belong in synthesis, claims, concepts, entities, or review queues.\n" +
+    "3. Avoid storing disposable chat residue.\n",
+  )
 }
 
 ///|
 fn memory_prune_skill_text() -> String {
-  "---\n" +
-  "name: memory-prune\n" +
-  "description: Keep Keeper memory bounded and useful by pruning stale working residue and promoting durable signals.\n" +
-  "---\n\n" +
-  "# Memory Prune\n\n" +
-  "1. Remove repetitive or expired working memory items.\n" +
-  "2. Keep user preference and durable operational memory intact.\n" +
-  "3. Push true long-term knowledge back into the wiki when appropriate.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: memory-prune\n" +
+    "description: Keep Keeper memory bounded and useful by pruning stale working residue and promoting durable signals.\n" +
+    "---\n\n" +
+    "# Memory Prune\n\n" +
+    "1. Remove repetitive or expired working memory items.\n" +
+    "2. Keep user preference and durable operational memory intact.\n" +
+    "3. Push true long-term knowledge back into the wiki when appropriate.\n",
+  )
 }
 
 ///|
 fn review_decision_skill_text() -> String {
-  "---\n" +
-  "name: review-decision\n" +
-  "description: Convert pending review items into explicit approve, reject, or revise decisions with clear reasons.\n" +
-  "---\n\n" +
-  "# Review Decision\n\n" +
-  "1. Read the pending item and its supporting evidence.\n" +
-  "2. Decide approve, reject, or revise.\n" +
-  "3. State the reason in a way that can guide the next maintenance pass.\n"
+  with_provider_result_contract(
+    "---\n" +
+    "name: review-decision\n" +
+    "description: Convert pending review items into explicit approve, reject, or revise decisions with clear reasons.\n" +
+    "---\n\n" +
+    "# Review Decision\n\n" +
+    "1. Read the pending item and its supporting evidence.\n" +
+    "2. Decide approve, reject, or revise.\n" +
+    "3. State the reason in a way that can guide the next maintenance pass.\n",
+  )
+}
+
+///|
+fn with_provider_result_contract(text : String) -> String {
+  text +
+  "\n## Required Output\n\n" +
+  "When this skill runs through MoonClaw provider or extension execution, return exactly one JSON object.\n\n" +
+  "Required top-level keys:\n\n" +
+  "- `task_id`\n" +
+  "- `summary`\n" +
+  "- `artifacts`\n" +
+  "- `memory_candidates`\n" +
+  "- `requires_review`\n" +
+  "- `notify_town`\n\n" +
+  "Required rules:\n\n" +
+  "- Output JSON only. No prose before or after the JSON object.\n" +
+  "- Do not wrap the actual answer in markdown fences.\n" +
+  "- Always include every top-level key, even when empty.\n" +
+  "- Use `[]` for empty arrays and `null` for missing `target_page` values.\n" +
+  "- `summary` must describe the actual completed work inside the workspace.\n" +
+  "- `artifacts` should list durable changed pages or important output paths.\n" +
+  "- `memory_candidates` entries must be objects with `kind`, `title`, `detail`, `durable`, and `target_page`.\n\n" +
+  "Example shape:\n\n" +
+  "```json\n" +
+  "{\n" +
+  "  \"task_id\": \"<task id>\",\n" +
+  "  \"summary\": \"Updated wiki/synthesis/overview.md and added wiki/entities/moontown.md.\",\n" +
+  "  \"artifacts\": [\"wiki/synthesis/overview.md\", \"wiki/entities/moontown.md\"],\n" +
+  "  \"memory_candidates\": [\n" +
+  "    {\n" +
+  "      \"kind\": \"finding\",\n" +
+  "      \"title\": \"Moontown control plane\",\n" +
+  "      \"detail\": \"Moontown routes book-local work into MoonClaw runtimes.\",\n" +
+  "      \"durable\": true,\n" +
+  "      \"target_page\": \"wiki/entities/moontown.md\"\n" +
+  "    }\n" +
+  "  ],\n" +
+  "  \"requires_review\": false,\n" +
+  "  \"notify_town\": false\n" +
+  "}\n" +
+  "```\n"
 }
 
 ///|

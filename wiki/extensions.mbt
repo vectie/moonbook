@@ -616,39 +616,63 @@ fn memory_text() -> String {
 
 ///|
 fn wiki_maintainer_skill_text() -> String {
-  "---\n" +
-  "name: wiki-maintainer\n" +
-  "description: Keeper/revision skill for maintaining a MoonBook wiki workspace.\n" +
-  "---\n\n" +
-  "# Wiki Maintainer\n\n" +
-  "Operate on the maintained wiki layer, not on raw chat history. Treat this as a reusable method, not a one-off prompt.\n\n" +
-  "## Rules\n\n" +
-  "1. Read `RESOLVER.md`, then `wiki/index.md`.\n" +
-  "2. Treat `raw/` as immutable source-of-truth input.\n" +
-  "3. Treat MoonBook's workspace logic as the owner of source admissibility, durable source-page creation, and readiness signals.\n" +
-  "4. Never treat placeholder files such as `.gitkeep`, empty files, or hidden workspace scaffolding as substantive sources.\n" +
-  "5. Prefer revising existing entity, concept, source, synthesis, and query pages over creating isolated notes.\n" +
-  "6. Update `wiki/index.md` and `wiki/log.md` whenever the maintained wiki changes.\n" +
-  "7. Preserve uncertainty explicitly; do not flatten contradictions.\n" +
-  "8. Prefer stable domain pages over token-derived or low-signal pages.\n" +
-  "9. Source pages should read like durable summaries, not raw excerpt dumps.\n"
+  with_extension_provider_result_contract(
+    "---\n" +
+    "name: wiki-maintainer\n" +
+    "description: Keeper/revision skill for maintaining a MoonBook wiki workspace.\n" +
+    "---\n\n" +
+    "# Wiki Maintainer\n\n" +
+    "Operate on the maintained wiki layer, not on raw chat history. Treat this as a reusable method, not a one-off prompt.\n\n" +
+    "## Rules\n\n" +
+    "1. Read `RESOLVER.md`, then `wiki/index.md`.\n" +
+    "2. Treat `raw/` as immutable source-of-truth input.\n" +
+    "3. Treat MoonBook's workspace logic as the owner of source admissibility, durable source-page creation, and readiness signals.\n" +
+    "4. Never treat placeholder files such as `.gitkeep`, empty files, or hidden workspace scaffolding as substantive sources.\n" +
+    "5. Prefer revising existing entity, concept, source, synthesis, and query pages over creating isolated notes.\n" +
+    "6. Update `wiki/index.md` and `wiki/log.md` whenever the maintained wiki changes.\n" +
+    "7. Preserve uncertainty explicitly; do not flatten contradictions.\n" +
+    "8. Prefer stable domain pages over token-derived or low-signal pages.\n" +
+    "9. Source pages should read like durable summaries, not raw excerpt dumps.\n",
+  )
 }
 
 ///|
 fn wiki_review_skill_text() -> String {
-  "---\n" +
-  "name: wiki-review\n" +
-  "description: Review skill for consistency, support, and maintenance quality in a MoonBook wiki workspace.\n" +
-  "---\n\n" +
-  "# Wiki Review\n\n" +
-  "Review changes to the maintained wiki with findings-first discipline.\n\n" +
-  "## Checklist\n\n" +
-  "1. broken or missing links\n" +
-  "2. unsupported claims or overreach\n" +
-  "3. stale wording without clear dates\n" +
-  "4. missing backreferences or cross-links\n" +
-  "5. missing `wiki/index.md` / `wiki/log.md` maintenance\n" +
-  "6. weak ontology: token-derived, duplicate, or low-signal pages that should be merged or renamed\n"
+  with_extension_provider_result_contract(
+    "---\n" +
+    "name: wiki-review\n" +
+    "description: Review skill for consistency, support, and maintenance quality in a MoonBook wiki workspace.\n" +
+    "---\n\n" +
+    "# Wiki Review\n\n" +
+    "Review changes to the maintained wiki with findings-first discipline.\n\n" +
+    "## Checklist\n\n" +
+    "1. broken or missing links\n" +
+    "2. unsupported claims or overreach\n" +
+    "3. stale wording without clear dates\n" +
+    "4. missing backreferences or cross-links\n" +
+    "5. missing `wiki/index.md` / `wiki/log.md` maintenance\n" +
+    "6. weak ontology: token-derived, duplicate, or low-signal pages that should be merged or renamed\n",
+  )
+}
+
+///|
+fn with_extension_provider_result_contract(text : String) -> String {
+  text +
+  "\n## Required Output\n\n" +
+  "When this skill runs through MoonClaw provider or extension execution, return exactly one JSON object.\n\n" +
+  "Required top-level keys:\n\n" +
+  "- `task_id`\n" +
+  "- `summary`\n" +
+  "- `artifacts`\n" +
+  "- `memory_candidates`\n" +
+  "- `requires_review`\n" +
+  "- `notify_town`\n\n" +
+  "Required rules:\n\n" +
+  "- Output JSON only. No prose before or after the JSON object.\n" +
+  "- Do not wrap the actual answer in markdown fences.\n" +
+  "- Always include every top-level key, even when empty.\n" +
+  "- Use `[]` for empty arrays and `null` for missing `target_page` values.\n" +
+  "- `summary` must describe the actual completed work inside the workspace.\n"
 }
 
 ///|

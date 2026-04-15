@@ -304,11 +304,19 @@ pub async fn hydrate_worker_context(
     user_memory: select_memory_entries(keeper.user_memory, terms, 4),
     working_memory: select_memory_entries(keeper.working_memory, terms, 8),
     memory_summary,
-    output_contract: [
-      "summary", "artifacts", "memory_candidates", "requires_review", "notify_town",
-      "observations",
-    ],
+    output_contract: provider_result_contract_lines(),
   }
+}
+
+///|
+fn provider_result_contract_lines() -> Array[String] {
+  [
+    "Return exactly one JSON object.", "Do not output markdown fences or prose outside the JSON object.",
+    "Use keys: task_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
+    "Set task_id to the active provider task id.", "artifacts must be an array of workspace-relative output paths.",
+    "memory_candidates must be an array of objects with kind, title, detail, durable, target_page.",
+    "Use [] for empty arrays and null for missing target_page.",
+  ]
 }
 
 ///|
