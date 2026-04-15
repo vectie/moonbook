@@ -1,0 +1,8 @@
+{
+  "id": "moonclaw",
+  "kind": "agent-runtime",
+  "entry": {
+    "config": "moonclaw.json",
+    "jobs": "moonclaw.jobs.json"
+  }
+}

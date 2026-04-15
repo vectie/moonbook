@@ -1,0 +1,7 @@
+raw_dir = "raw"
+wiki_dir = "wiki"
+schema = "AGENTS.md"
+resolver = "RESOLVER.md"
+routines = "ROUTINES.md"
+index = "wiki/index.md"
+log = "wiki/log.md"

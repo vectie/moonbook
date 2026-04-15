@@ -1,0 +1,6 @@
+[book]
+title = "LLM Wiki"
+src = "wiki"
+
+[build]
+build-dir = "book"

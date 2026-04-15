@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM Wiki Demo Site</title>
+  <meta name="description" content="A polished marketing projection for the MoonBook workspace.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="backdrop"></div>
+  <header class="topbar">
+    <a class="brand" href="../index.html">
+      <span class="brand-mark">MB</span>
+      <span>LLM Wiki</span>
+    </a>
+    <nav class="nav">
+      <a href="../index.html">Book</a>
+      <a href="../Home.html">Wiki</a>
+      <a href="#layers">Layers</a>
+      <a href="#demo">Demo</a>
+    </nav>
+  </header>
+  <main class="page-shell">
+    <section class="hero reveal">
+      <div class="hero-copy">
+        <p class="eyebrow">Markdown. Wiki. Website.</p>
+        <h1>Turn a maintained knowledge workspace into something people can understand in one minute.</h1>
+        <p class="lede">MoonBook keeps authored markdown, persistent wiki memory, and a polished marketing projection in one local workspace. Build once, then serve docs, knowledge, and presentation together.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="../index.html">Open the book</a>
+          <a class="button button-secondary" href="../Home.html">Open the wiki</a>
+          <a class="button button-secondary" href="./generated/index.html">Open live projection</a>
+        </div>
+      </div>
+      <div class="hero-stage tilt" id="demo">
+        <div class="stage-card terminal-card">
+          <div class="stage-label">keeper</div>
+          <pre><code>wiki ingest raw/customer-interviews.md
+wiki query "What changed in user pain?"
+wiki review approve review-0007</code></pre>
+        </div>
+        <div class="stage-card metrics-card">
+          <div class="stage-label">workspace state</div>
+          <div class="metric-grid">
+            <article><strong>3</strong><span>content layers</span></article>
+            <article><strong>1</strong><span>build output</span></article>
+            <article><strong>∞</strong><span>iterative revisions</span></article>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="section reveal" id="layers">
+      <div class="section-heading">
+        <p class="eyebrow">Three layers</p>
+        <h2>Keep the system legible at every altitude.</h2>
+      </div>
+      <div class="card-grid">
+        <article class="module-card tilt">
+          <span class="module-kicker">01</span>
+          <h3>Markdown book</h3>
+          <p>Authored pages, navigation, and static rendering for canonical docs.</p>
+        </article>
+        <article class="module-card tilt">
+          <span class="module-kicker">02</span>
+          <h3>Maintained wiki</h3>
+          <p>Persistent entities, concepts, synthesis, claims, review queues, and keeper memory.</p>
+        </article>
+        <article class="module-card tilt">
+          <span class="module-kicker">03</span>
+          <h3>Demo website</h3>
+          <p>A marketing-oriented presentation surface for customers, teammates, and operators, copied into `book/site/` during build.</p>
+        </article>
+      </div>
+    </section>
+    <section class="section reveal">
+      <div class="section-heading narrow">
+        <p class="eyebrow">Why this shape</p>
+        <h2>One workspace, three audiences.</h2>
+      </div>
+      <div class="story-grid">
+        <article>
+          <h3>Operators</h3>
+          <p>Need the live wiki and review queues to stay cumulative instead of chat-fragmented.</p>
+        </article>
+        <article>
+          <h3>Teammates</h3>
+          <p>Need documentation and structure that still feels deterministic and local-first.</p>
+        </article>
+        <article>
+          <h3>Visitors</h3>
+          <p>Need a crisp story, not the full internals. The marketing projection gives them that surface.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>
