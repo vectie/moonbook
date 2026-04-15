@@ -672,7 +672,35 @@ fn with_extension_provider_result_contract(text : String) -> String {
   "- Do not wrap the actual answer in markdown fences.\n" +
   "- Always include every top-level key, even when empty.\n" +
   "- Use `[]` for empty arrays and `null` for missing `target_page` values.\n" +
-  "- `summary` must describe the actual completed work inside the workspace.\n"
+  "- `summary` must describe the actual completed work inside the workspace.\n\n" +
+  "## Concrete Example\n\n" +
+  "If you revised maintained wiki pages after an ingest pass, return something like this:\n\n" +
+  "```json\n" +
+  "{\n" +
+  "  \"task_id\": \"goal-coding-research-bootstrap-ingest\",\n" +
+  "  \"summary\": \"Revised wiki/synthesis/observations.md, linked the new source summary from wiki/index.md, and updated wiki/log.md with the ingest change record.\",\n" +
+  "  \"artifacts\": [\n" +
+  "    \"wiki/synthesis/observations.md\",\n" +
+  "    \"wiki/index.md\",\n" +
+  "    \"wiki/log.md\"\n" +
+  "  ],\n" +
+  "  \"memory_candidates\": [\n" +
+  "    {\n" +
+  "      \"kind\": \"finding\",\n" +
+  "      \"title\": \"Bootstrap ingest completed\",\n" +
+  "      \"detail\": \"The workspace now has maintained synthesis pages and index entries for the first research pass.\",\n" +
+  "      \"durable\": true,\n" +
+  "      \"target_page\": \"wiki/synthesis/observations.md\"\n" +
+  "    }\n" +
+  "  ],\n" +
+  "  \"requires_review\": false,\n" +
+  "  \"notify_town\": false\n" +
+  "}\n" +
+  "```\n\n" +
+  "Bad output to avoid:\n\n" +
+  "- `I’ll inspect the wiki first, then I’ll update pages.`\n" +
+  "- a JSON fragment that omits `summary`\n" +
+  "- a markdown review memo instead of the required JSON object\n"
 }
 
 ///|
@@ -739,4 +767,12 @@ test "moontown book text declares book harness apis" {
   assert_true(text.contains("\"catalog_export\""))
   assert_true(text.contains("\"accept_goal\""))
   assert_true(text.contains("\"persist_result\""))
+}
+
+///|
+test "extension skill generator includes concrete output example" {
+  let text = wiki_maintainer_skill_text()
+  assert_true(text.contains("## Concrete Example"))
+  assert_true(text.contains("\"summary\""))
+  assert_true(text.contains("Bad output to avoid"))
 }

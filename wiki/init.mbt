@@ -1253,25 +1253,41 @@ fn with_provider_result_contract(text : String) -> String {
   "- `summary` must describe the actual completed work inside the workspace.\n" +
   "- `artifacts` should list durable changed pages or important output paths.\n" +
   "- `memory_candidates` entries must be objects with `kind`, `title`, `detail`, `durable`, and `target_page`.\n\n" +
-  "Example shape:\n\n" +
+  "## Concrete Example\n\n" +
+  "If you inspected `raw/README.md`, created a maintained source page, updated the overview, and captured one durable finding, return something like this:\n\n" +
   "```json\n" +
   "{\n" +
-  "  \"task_id\": \"<task id>\",\n" +
-  "  \"summary\": \"Updated wiki/synthesis/overview.md and added wiki/entities/moontown.md.\",\n" +
-  "  \"artifacts\": [\"wiki/synthesis/overview.md\", \"wiki/entities/moontown.md\"],\n" +
+  "  \"task_id\": \"goal-research-moontown-moonbook-and-moonclaw-ingest-followup\",\n" +
+  "  \"summary\": \"Added wiki/sources/moontown-source.md, updated wiki/synthesis/observations.md with current control-plane notes, and refreshed wiki/index.md to expose the new maintained source.\",\n" +
+  "  \"artifacts\": [\n" +
+  "    \"wiki/sources/moontown-source.md\",\n" +
+  "    \"wiki/synthesis/observations.md\",\n" +
+  "    \"wiki/index.md\"\n" +
+  "  ],\n" +
   "  \"memory_candidates\": [\n" +
   "    {\n" +
   "      \"kind\": \"finding\",\n" +
-  "      \"title\": \"Moontown control plane\",\n" +
-  "      \"detail\": \"Moontown routes book-local work into MoonClaw runtimes.\",\n" +
+  "      \"title\": \"Moontown routes work through MoonBook and MoonClaw\",\n" +
+  "      \"detail\": \"The maintained source and synthesis pages now state that Moontown schedules domain work into MoonBook workspaces and MoonClaw execution runs.\",\n" +
   "      \"durable\": true,\n" +
-  "      \"target_page\": \"wiki/entities/moontown.md\"\n" +
+  "      \"target_page\": \"wiki/synthesis/observations.md\"\n" +
+  "    },\n" +
+  "    {\n" +
+  "      \"kind\": \"next_step\",\n" +
+  "      \"title\": \"Ingest more primary sources\",\n" +
+  "      \"detail\": \"The workspace still needs dedicated maintained source pages for MoonBook and MoonClaw before query answers will have strong citation coverage.\",\n" +
+  "      \"durable\": false,\n" +
+  "      \"target_page\": null\n" +
   "    }\n" +
   "  ],\n" +
   "  \"requires_review\": false,\n" +
   "  \"notify_town\": false\n" +
   "}\n" +
-  "```\n"
+  "```\n\n" +
+  "Bad output to avoid:\n\n" +
+  "- planning prose such as `I will inspect the wiki first...`\n" +
+  "- markdown wrappers such as ```json ... ``` around non-JSON commentary\n" +
+  "- partial objects missing `summary` or `memory_candidates`\n"
 }
 
 ///|
@@ -1352,4 +1368,16 @@ async test "init workspace seeds keeper memory files" {
   assert_true(@fsx.exists(root + "/site/index.html"))
   assert_true(@fsx.exists(root + "/site/styles.css"))
   assert_true(@fsx.exists(root + "/site/app.js"))
+}
+
+///|
+test "skill generator includes concrete output example" {
+  let text = base_wiki_ingest_skill_text()
+  assert_true(text.contains("## Concrete Example"))
+  assert_true(
+    text.contains(
+      "\"task_id\": \"goal-research-moontown-moonbook-and-moonclaw-ingest-followup\"",
+    ),
+  )
+  assert_true(text.contains("Bad output to avoid"))
 }
