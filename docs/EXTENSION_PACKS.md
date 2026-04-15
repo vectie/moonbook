@@ -70,6 +70,7 @@ The `moonclaw` pack is aligned to MoonClaw's current role substrate:
 - controller profiles carry explicit `role_runtime` planner envelopes
 - revision/review workers carry explicit execution envelopes
 - MoonBook owns the lead/review policy files and skill docs that make the embedded planner feel book-specific
+- MoonBook seeds `.moonclaw/providers.json` with the provider-task target name `moonbook`
 
 The exact set depends on the pack installer, but the important boundary is that these files are added by `wiki enable`, not by `wiki init`.
 

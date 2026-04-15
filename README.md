@@ -1,6 +1,6 @@
 # MoonBook
 
-> 📚 MoonBit-native rewrite of rust-lang/mdBook + 🧱 static renderer + 🌐 local server + 🧠 persistent wiki workspace
+> 📚 MoonBit-native rewrite of rust-lang/mdBook + 🧱 static renderer + 🌐 local server + 🧠 persistent wiki workspace + ✨ marketing website projection
 
 `MoonBit` `mdBook` `Wiki` `SUMMARY.md` `HTML Renderer` `Serve` `Watch` `Rabbita`
 
@@ -14,18 +14,20 @@ It is designed for:
 - 🏗️ static HTML builds
 - 🌐 local serve + watch workflows
 - 🧾 durable markdown knowledge bases
+- ✨ polished marketing websites under `site/`
 - 🧠 wiki ingest/query/review/lint flows
 - 🔌 optional runtime integration through extension packs
 
 ## ✨ What MoonBook Feels Like
 
 ```text
-markdown / summary / wiki workspace
+markdown / summary / wiki / website workspace
   -> parse and normalize structure
   -> render to static HTML
   -> serve or watch locally
   -> ingest sources into a persistent wiki
   -> revise entities, concepts, synthesis, and review queues
+  -> ship a polished marketing website from site/
 ```
 
 MoonBook is strongest when you want one local system to handle:
@@ -34,10 +36,12 @@ MoonBook is strongest when you want one local system to handle:
 - 🔁 repeatable static builds
 - 🧭 readable navigation and rendering
 - 🗂️ persistent wiki pages between sessions
+- 🌐 a marketing-oriented website projection for demos and launches
 - 🤝 agent-compatible wiki workspaces without hard-coupling to one runtime
 
 ## News
 
+- `2026-04-15`: added an optional `site/` marketing projection for wiki workspaces, plus a dedicated marketing routine/skill boundary, and taught the build pipeline to publish it into `book/site/` alongside the rendered book and wiki
 - `2026-04-05`: split wiki maintenance internals into dedicated workspace, maintenance-plan, and review-helper files; tightened summary dedupe by page path; cleaned entity/concept/claim normalization; updated the docs to reflect the refactored wiki package layout
 - `2026-04-05`: added wiki review lifecycle commands with pending/approved queues, maintenance-plan updates, query-signal propagation, stronger claim status/support/confidence handling, and review-queue lint checks
 - `2026-04-05`: deepened wiki ingest so sources now update related entity pages, concept pages, relationship sections, synthesis pages, and a structured claims register instead of only generating source summaries
@@ -52,8 +56,11 @@ MoonBook is strongest when you want one local system to handle:
 - 🏗️ end-to-end `init`, `build`, `serve`, `watch`, `load`, `test`, `clean`, and `version` commands
 - 🌐 local static HTTP serving with polling rebuilds and current CLI conveniences like `--open`, `--dest-dir`, and `--watcher poll|native`
 - 🧱 HTML rendering with sidebar navigation, breadcrumbs, previous/next links, local asset copying, code-block handling, tables, footnotes, raw HTML passthrough, and GitHub-style markdown layout cues
+- ✨ optional `site/` marketing website projection that is copied into `book/site/` during build and serve
+- ✨ generated live marketing projection emitted into `book/site/generated/` from current wiki, keeper, and review state
 - 🧠 wiki workspace bootstrap with:
   - `raw/`
+  - `site/`
   - `wiki/`
   - `index.md`
   - `log.md`
@@ -147,6 +154,8 @@ moon run cmd/main -- wiki review list ./research-wiki
 moon run cmd/main -- wiki review approve ./research-wiki <review-id>
 moon run cmd/main -- wiki lint ./research-wiki
 moon run cmd/main -- build ./research-wiki
+# optional: open ./research-wiki/book/site/index.html for the authored marketing surface
+# optional: open ./research-wiki/book/site/generated/index.html for the live generated projection
 ```
 
 Useful validation commands:

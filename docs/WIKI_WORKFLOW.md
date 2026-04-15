@@ -64,6 +64,7 @@ moon run cmd/main -- wiki ingest ./research-wiki ./raw/article.md
 
 Current ingest behavior:
 
+- rejects hidden placeholders, empty files, and `.gitkeep`-style workspace scaffolding
 - creates a source page in `wiki/sources/`
 - extracts first-pass entities and concepts
 - updates `wiki/entities/`
@@ -73,7 +74,7 @@ Current ingest behavior:
 - updates `wiki/synthesis/map.md`
 - updates `wiki/synthesis/maintenance-plan.md`
 - queues contested or low-confidence claims in `wiki/reviews/pending.md`
-- updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
+- updates `wiki/SUMMARY.md`, canonicalizes `wiki/index.md`, and appends `wiki/log.md`
 
 ### 4. Query the Maintained Wiki
 
@@ -110,6 +111,7 @@ Current book-harness behavior:
 - accepts town-style goals into book-local planning
 - produces local tasks inside the book boundary
 - hydrates worker context from book policy, routines, Keeper memory, and durable wiki pages
+- tolerates external bootstrap-style task ids by mapping them onto the closest local MoonBook task kind when possible
 - emits a dedicated planning task when health or goal wording requires it
 - persists worker results into `synthesis/observations.md`
 - records persisted-result evidence in `synthesis/evidence.md`

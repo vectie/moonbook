@@ -47,6 +47,10 @@ async fn install_moonclaw_extension(
   let jobs_path = @path.Path(root)
     .join(@path.Path("moonclaw.jobs.json"))
     .to_string()
+  let runtime_dir = @path.Path(root).join(@path.Path(".moonclaw")).to_string()
+  let providers_path = @path.Path(runtime_dir)
+    .join(@path.Path("providers.json"))
+    .to_string()
   let identity_path = @path.Path(root)
     .join(@path.Path("IDENTITY.md"))
     .to_string()
@@ -70,10 +74,12 @@ async fn install_moonclaw_extension(
     .join(@path.Path("SKILL.md"))
     .to_string()
   @fsx.make_directory(skills_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(runtime_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(maintainer_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(review_dir, recursive=true, exists_ok=true)
   write_extension_file_if_missing(config_path, moonclaw_config_text(root))
   write_extension_file_if_missing(jobs_path, moonclaw_jobs_text())
+  write_extension_file_if_missing(providers_path, moonclaw_providers_text(root))
   write_extension_file_if_missing(identity_path, identity_text(root))
   write_extension_file_if_missing(user_path, user_text())
   write_extension_file_if_missing(routines_path, routines_text())
@@ -90,8 +96,8 @@ async fn install_moonclaw_extension(
     extension: "moonclaw",
     manifest_path,
     installed_files: [
-      config_path, jobs_path, identity_path, user_path, routines_path, memory_path,
-      keeper_path, maintainer_skill_path, review_skill_path,
+      config_path, jobs_path, providers_path, identity_path, user_path, routines_path,
+      memory_path, keeper_path, maintainer_skill_path, review_skill_path,
     ],
   }
 }
@@ -215,9 +221,9 @@ fn moonclaw_jobs_text() -> String {
   "        \"steps\": [\n" +
   "          {\n" +
   "            \"id\": \"inspect_source\",\n" +
-  "            \"title\": \"Inspect raw source and current wiki state\",\n" +
+  "            \"title\": \"Inspect provider-updated wiki state\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Act as the wiki maintainer keeper for ${proposal.title}. Inspect the raw source material, wiki/index.md, wiki/log.md, and the most relevant entity, concept, synthesis, and source pages. Identify what is new, what changed, what is contradicted, and which pages must be revised.\",\n" +
+  "            \"prompt_template\": \"Act as the wiki maintainer keeper for ${proposal.title}. Treat the MoonBook workspace extension as the owner of source discovery, source admissibility, durable source-page creation, and readiness signals. Inspect `wiki/sources/`, `wiki/index.md`, `wiki/log.md`, and the most relevant entity, concept, synthesis, and query pages. Do not re-decide whether hidden placeholders, `.gitkeep`, or other workspace scaffolding count as substantive sources.\",\n" +
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
@@ -229,7 +235,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"plan_revisions\",\n" +
   "            \"title\": \"Plan durable wiki revisions\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Turn the inspected wiki state for ${proposal.title} into a concrete revision plan. Specify which pages to create or update under wiki/entities/, wiki/concepts/, wiki/synthesis/, wiki/sources/, wiki/queries/, plus the required changes to wiki/index.md and wiki/log.md. Prefer cumulative revisions over one-off chat summaries. Favor stable domain pages and synthesis pages over token-derived or low-signal pages. Merge or delete noisy pages instead of preserving weak ontology.\",\n" +
+  "            \"prompt_template\": \"Turn the inspected wiki state for ${proposal.title} into a concrete revision plan. Treat `wiki/sources/` as already materialized by the MoonBook extension/provider, then specify which maintained pages under wiki/entities/, wiki/concepts/, wiki/synthesis/, and wiki/queries/ should be created or revised, plus the required changes to wiki/index.md and wiki/log.md. Prefer cumulative revisions over one-off chat summaries. Favor stable domain pages and synthesis pages over token-derived or low-signal pages. Merge or delete noisy pages instead of preserving weak ontology.\",\n" +
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
@@ -277,6 +283,9 @@ fn moonclaw_jobs_text() -> String {
   "          }\n" +
   "        ],\n" +
   "        \"metadata\": {\n" +
+  "          \"profile_metadata\": {\n" +
+  "            \"disable_waiting_for_input\": true\n" +
+  "          },\n" +
   "          \"role_runtime\": {\n" +
   "            \"planning_layer\": \"domain\",\n" +
   "            \"runtime_mode\": \"planner_only\",\n" +
@@ -350,6 +359,9 @@ fn moonclaw_jobs_text() -> String {
   "          }\n" +
   "        ],\n" +
   "        \"metadata\": {\n" +
+  "          \"profile_metadata\": {\n" +
+  "            \"disable_waiting_for_input\": true\n" +
+  "          },\n" +
   "          \"role_runtime\": {\n" +
   "            \"planning_layer\": \"domain\",\n" +
   "            \"runtime_mode\": \"planner_only\",\n" +
@@ -423,6 +435,9 @@ fn moonclaw_jobs_text() -> String {
   "          }\n" +
   "        ],\n" +
   "        \"metadata\": {\n" +
+  "          \"profile_metadata\": {\n" +
+  "            \"disable_waiting_for_input\": true\n" +
+  "          },\n" +
   "          \"role_runtime\": {\n" +
   "            \"planning_layer\": \"domain\",\n" +
   "            \"runtime_mode\": \"planner_only\",\n" +
@@ -498,6 +513,35 @@ fn moonclaw_jobs_text() -> String {
   "    }\n" +
   "  }\n" +
   "}\n"
+}
+
+///|
+fn moonclaw_providers_text(root : String) -> String {
+  let module_root = detect_moonbook_module_root()
+  ("[\n" +
+  "  {\n" +
+  "    \"name\": \"moonbook\",\n" +
+  "    \"title\": \"MoonBook Book Harness\",\n" +
+  "    \"description\": \"MoonBook provider-task bridge for domain-local workspace logic.\",\n" +
+  "    \"kind\": \"extension\",\n" +
+  "    \"capabilities\": [\"provider.task\", \"moonbook.bookapi\"],\n" +
+  "    \"metadata\": {\n" +
+  "      \"command\": \"moon\",\n" +
+  "      \"args\": [\"run\", \"cmd/main\", \"--\"],\n" +
+  "      \"cwd\": \"__MODULE_ROOT__\",\n" +
+  "      \"workspace_root\": \"__WORKSPACE_ROOT__\"\n" +
+  "    }\n" +
+  "  }\n" +
+  "]\n")
+  .replace(old="__MODULE_ROOT__", new=escape_json_string(module_root))
+  .to_string()
+  .replace(old="__WORKSPACE_ROOT__", new=escape_json_string(root))
+  .to_string()
+}
+
+///|
+fn detect_moonbook_module_root() -> String {
+  @env.current_dir().unwrap_or(".")
 }
 
 ///|
@@ -581,11 +625,13 @@ fn wiki_maintainer_skill_text() -> String {
   "## Rules\n\n" +
   "1. Read `RESOLVER.md`, then `wiki/index.md`.\n" +
   "2. Treat `raw/` as immutable source-of-truth input.\n" +
-  "3. Prefer revising existing entity, concept, source, synthesis, and query pages over creating isolated notes.\n" +
-  "4. Update `wiki/index.md` and `wiki/log.md` whenever the maintained wiki changes.\n" +
-  "5. Preserve uncertainty explicitly; do not flatten contradictions.\n" +
-  "6. Prefer stable domain pages over token-derived or low-signal pages.\n" +
-  "7. Source pages should read like durable summaries, not raw excerpt dumps.\n"
+  "3. Treat MoonBook's workspace logic as the owner of source admissibility, durable source-page creation, and readiness signals.\n" +
+  "4. Never treat placeholder files such as `.gitkeep`, empty files, or hidden workspace scaffolding as substantive sources.\n" +
+  "5. Prefer revising existing entity, concept, source, synthesis, and query pages over creating isolated notes.\n" +
+  "6. Update `wiki/index.md` and `wiki/log.md` whenever the maintained wiki changes.\n" +
+  "7. Preserve uncertainty explicitly; do not flatten contradictions.\n" +
+  "8. Prefer stable domain pages over token-derived or low-signal pages.\n" +
+  "9. Source pages should read like durable summaries, not raw excerpt dumps.\n"
 }
 
 ///|
@@ -643,6 +689,16 @@ test "moonclaw jobs include role runtime metadata" {
   assert_true(text.contains("\"planning_layer\": \"domain\""))
   assert_true(text.contains("\"runtime_mode\": \"planner_only\""))
   assert_true(text.contains("\"output_contract\": \"keeper.plan.packet.v1\""))
+}
+
+///|
+test "moonclaw providers text seeds moonbook provider target" {
+  let text = moonclaw_providers_text("/tmp/wiki")
+  assert_true(text.contains("\"name\": \"moonbook\""))
+  assert_true(
+    text.contains("\"capabilities\": [\"provider.task\", \"moonbook.bookapi\"]"),
+  )
+  assert_true(text.contains("\"workspace_root\": \"/tmp/wiki\""))
 }
 
 ///|

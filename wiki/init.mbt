@@ -37,6 +37,18 @@ pub async fn init_workspace(
   let book_toml_path = @path.Path(normalized_root)
     .join(@path.Path("book.toml"))
     .to_string()
+  let site_dir = @path.Path(normalized_root)
+    .join(@path.Path("site"))
+    .to_string()
+  let site_index_path = @path.Path(site_dir)
+    .join(@path.Path("index.html"))
+    .to_string()
+  let site_styles_path = @path.Path(site_dir)
+    .join(@path.Path("styles.css"))
+    .to_string()
+  let site_script_path = @path.Path(site_dir)
+    .join(@path.Path("app.js"))
+    .to_string()
   let gitignore_path = @path.Path(normalized_root)
     .join(@path.Path(".gitignore"))
     .to_string()
@@ -106,6 +118,9 @@ pub async fn init_workspace(
   let memory_skill_dir = @path.Path(skills_dir)
     .join(@path.Path("wiki-memory"))
     .to_string()
+  let marketing_skill_dir = @path.Path(skills_dir)
+    .join(@path.Path("wiki-marketing"))
+    .to_string()
   let source_diarize_skill_dir = @path.Path(skills_dir)
     .join(@path.Path("source-diarize"))
     .to_string()
@@ -149,6 +164,9 @@ pub async fn init_workspace(
     .join(@path.Path("SKILL.md"))
     .to_string()
   let memory_skill_path = @path.Path(memory_skill_dir)
+    .join(@path.Path("SKILL.md"))
+    .to_string()
+  let marketing_skill_path = @path.Path(marketing_skill_dir)
     .join(@path.Path("SKILL.md"))
     .to_string()
   let source_diarize_skill_path = @path.Path(source_diarize_skill_dir)
@@ -206,6 +224,7 @@ pub async fn init_workspace(
   @fsx.make_directory(normalized_root, recursive=true, exists_ok=true)
   @fsx.make_directory(raw_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(raw_assets_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(site_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(wiki_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(entities_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(concepts_dir, recursive=true, exists_ok=true)
@@ -220,6 +239,7 @@ pub async fn init_workspace(
   @fsx.make_directory(lint_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(review_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(memory_skill_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(marketing_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(source_diarize_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(entity_revise_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(concept_revise_skill_dir, recursive=true, exists_ok=true)
@@ -244,6 +264,9 @@ pub async fn init_workspace(
   write_if_missing(schema_path, schema_text())
   write_if_missing(routines_path, base_routines_text())
   write_if_missing(resolver_path, resolver_text())
+  write_if_missing(site_index_path, site_index_text(resolved_title))
+  write_if_missing(site_styles_path, site_styles_text())
+  write_if_missing(site_script_path, site_script_text())
   write_if_missing(gitignore_path, gitignore_text())
   write_if_missing(summary_path, summary_text())
   write_if_missing(home_path, home_text())
@@ -267,6 +290,7 @@ pub async fn init_workspace(
   write_if_missing(lint_skill_path, base_wiki_lint_skill_text())
   write_if_missing(review_skill_path, base_wiki_review_skill_text())
   write_if_missing(memory_skill_path, base_wiki_memory_skill_text())
+  write_if_missing(marketing_skill_path, base_wiki_marketing_skill_text())
   write_if_missing(source_diarize_skill_path, source_diarize_skill_text())
   write_if_missing(entity_revise_skill_path, entity_revise_skill_text())
   write_if_missing(concept_revise_skill_path, concept_revise_skill_text())
@@ -348,6 +372,12 @@ fn home_text() -> String {
   "# Home\n\n" +
   "This workspace is an LLM-maintained wiki.\n\n" +
   "## Structure\n\n" +
+  "- `../site/`: marketing website projection copied to `book/site/` during build\n" +
+  "- `../raw/`: immutable source documents and attachments staged for ingest\n" +
+  "- [Sources](./sources/): durable source pages generated from raw material\n" +
+  "- [Entities](./entities/): maintained entity pages\n" +
+  "- [Concepts](./concepts/): maintained concept pages\n" +
+  "- [Queries](./queries/): durable analysis and saved query pages\n" +
   "- [Index](./index.md): content catalog of the wiki\n" +
   "- [Log](./log.md): append-only timeline of ingests, queries, and lint passes\n" +
   "- [Claims Register](./synthesis/claims.md): structured claims extracted from sources\n" +
@@ -356,11 +386,16 @@ fn home_text() -> String {
   "- [Observations](./synthesis/observations.md): persisted worker results and promoted observations\n" +
   "- [Pending Review](./reviews/pending.md): human review queue for contested or high-value updates\n" +
   "- `../keeper/`: bounded active memory, user memory, and working memory for Keeper\n" +
-  "- `../raw/`: immutable source documents\n\n" +
+  "\n## Research Bootstrap Layout\n\n" +
+  "1. `raw/` keeps immutable inputs.\n" +
+  "2. `wiki/sources/` stores durable source pages created from those inputs.\n" +
+  "3. `wiki/entities/` and `wiki/concepts/` hold maintained ontology coverage.\n" +
+  "4. `wiki/queries/` stores durable analysis pages rather than leaving answers in chat.\n" +
+  "5. `wiki/synthesis/` tracks overview, claims, maintenance, evidence, and observations.\n\n" +
   "## Usage\n\n" +
   "1. Drop a source into `raw/`\n" +
   "2. Ask the LLM to ingest it into the wiki\n" +
-  "3. Serve or build the wiki with MoonBook\n"
+  "3. Build or serve with MoonBook to publish the detailed wiki and the `site/` marketing projection together\n"
 }
 
 ///|
@@ -371,6 +406,7 @@ fn index_text() -> String {
   "- [Home](./Home.md): wiki landing page\n" +
   "- [Index](./index.md): content catalog\n" +
   "- [Log](./log.md): activity timeline\n" +
+  "- `../site/index.html`: optional marketing projection for customers, teammates, or operators\n" +
   "- [Claims Register](./synthesis/claims.md): structured claims with confidence and support markers\n" +
   "- [Maintenance Plan](./synthesis/maintenance-plan.md): multi-page synthesis and maintenance queue\n" +
   "- [Query Insights](./synthesis/query-insights.md): durable insights from saved queries\n" +
@@ -379,6 +415,13 @@ fn index_text() -> String {
   "- [Evidence](./synthesis/evidence.md): support records for persisted results and reviewed knowledge\n" +
   "- [Pending Review](./reviews/pending.md): pending human review items\n" +
   "- [Approved Review](./reviews/approved.md): accepted review decisions\n\n" +
+  "## Research Bootstrap Layout\n\n" +
+  "- `../raw/`: immutable source files waiting to be diarized or revised into the wiki\n" +
+  "- `./sources/`: durable source pages that later query and synthesis work should cite\n" +
+  "- `./entities/`: maintained entity pages\n" +
+  "- `./concepts/`: maintained concept pages\n" +
+  "- `./queries/`: durable query notes and saved answers\n" +
+  "- `./synthesis/`: overview, claims, maintenance plan, query insights, evidence, and observations\n\n" +
   "## Entities\n\n" +
   "_None yet._\n\n" +
   "## Concepts\n\n" +
@@ -400,11 +443,381 @@ fn log_text() -> String {
 fn raw_readme_text() -> String {
   "# Raw Sources\n\n" +
   "Put immutable source material here.\n\n" +
+  "Canonical bootstrap flow:\n\n" +
+  "1. Store original material in `raw/`.\n" +
+  "2. Generate durable source pages in `wiki/sources/`.\n" +
+  "3. Revise `wiki/entities/`, `wiki/concepts/`, `wiki/queries/`, and `wiki/synthesis/` from those durable pages.\n\n" +
   "Examples:\n\n" +
   "- clipped web articles\n" +
   "- papers\n" +
   "- notes exported from meetings\n" +
-  "- images and attachments under `assets/`\n"
+  "- images and attachments under `assets/`\n\n" +
+  "Keep marketing-site assets in `../site/`, not here.\n"
+}
+
+///|
+fn site_index_text(title : String) -> String {
+  "<!doctype html>\n" +
+  "<html lang=\"en\">\n" +
+  "<head>\n" +
+  "  <meta charset=\"utf-8\">\n" +
+  "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+  "  <title>\{title} Demo Site</title>\n" +
+  "  <meta name=\"description\" content=\"A polished marketing projection for the MoonBook workspace.\">\n" +
+  "  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n" +
+  "  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n" +
+  "  <link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n" +
+  "  <link rel=\"stylesheet\" href=\"./styles.css\">\n" +
+  "</head>\n" +
+  "<body>\n" +
+  "  <div class=\"backdrop\"></div>\n" +
+  "  <header class=\"topbar\">\n" +
+  "    <a class=\"brand\" href=\"../index.html\">\n" +
+  "      <span class=\"brand-mark\">MB</span>\n" +
+  "      <span>\{title}</span>\n" +
+  "    </a>\n" +
+  "    <nav class=\"nav\">\n" +
+  "      <a href=\"../index.html\">Book</a>\n" +
+  "      <a href=\"../Home.html\">Wiki</a>\n" +
+  "      <a href=\"#layers\">Layers</a>\n" +
+  "      <a href=\"#demo\">Demo</a>\n" +
+  "    </nav>\n" +
+  "  </header>\n" +
+  "  <main class=\"page-shell\">\n" +
+  "    <section class=\"hero reveal\">\n" +
+  "      <div class=\"hero-copy\">\n" +
+  "        <p class=\"eyebrow\">Markdown. Wiki. Website.</p>\n" +
+  "        <h1>Turn a maintained knowledge workspace into something people can understand in one minute.</h1>\n" +
+  "        <p class=\"lede\">MoonBook keeps authored markdown, persistent wiki memory, and a polished marketing projection in one local workspace. Build once, then serve docs, knowledge, and presentation together.</p>\n" +
+  "        <div class=\"hero-actions\">\n" +
+  "          <a class=\"button button-primary\" href=\"../index.html\">Open the book</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"../Home.html\">Open the wiki</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"./generated/index.html\">Open live projection</a>\n" +
+  "        </div>\n" +
+  "      </div>\n" +
+  "      <div class=\"hero-stage tilt\" id=\"demo\">\n" +
+  "        <div class=\"stage-card terminal-card\">\n" +
+  "          <div class=\"stage-label\">keeper</div>\n" +
+  "          <pre><code>wiki ingest raw/customer-interviews.md\nwiki query \"What changed in user pain?\"\nwiki review approve review-0007</code></pre>\n" +
+  "        </div>\n" +
+  "        <div class=\"stage-card metrics-card\">\n" +
+  "          <div class=\"stage-label\">workspace state</div>\n" +
+  "          <div class=\"metric-grid\">\n" +
+  "            <article><strong>3</strong><span>content layers</span></article>\n" +
+  "            <article><strong>1</strong><span>build output</span></article>\n" +
+  "            <article><strong>∞</strong><span>iterative revisions</span></article>\n" +
+  "          </div>\n" +
+  "        </div>\n" +
+  "      </div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\" id=\"layers\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Three layers</p>\n" +
+  "        <h2>Keep the system legible at every altitude.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"card-grid\">\n" +
+  "        <article class=\"module-card tilt\">\n" +
+  "          <span class=\"module-kicker\">01</span>\n" +
+  "          <h3>Markdown book</h3>\n" +
+  "          <p>Authored pages, navigation, and static rendering for canonical docs.</p>\n" +
+  "        </article>\n" +
+  "        <article class=\"module-card tilt\">\n" +
+  "          <span class=\"module-kicker\">02</span>\n" +
+  "          <h3>Maintained wiki</h3>\n" +
+  "          <p>Persistent entities, concepts, synthesis, claims, review queues, and keeper memory.</p>\n" +
+  "        </article>\n" +
+  "        <article class=\"module-card tilt\">\n" +
+  "          <span class=\"module-kicker\">03</span>\n" +
+  "          <h3>Demo website</h3>\n" +
+  "          <p>A marketing-oriented presentation surface for customers, teammates, and operators, copied into `book/site/` during build.</p>\n" +
+  "        </article>\n" +
+  "      </div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\">\n" +
+  "      <div class=\"section-heading narrow\">\n" +
+  "        <p class=\"eyebrow\">Why this shape</p>\n" +
+  "        <h2>One workspace, three audiences.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"story-grid\">\n" +
+  "        <article>\n" +
+  "          <h3>Operators</h3>\n" +
+  "          <p>Need the live wiki and review queues to stay cumulative instead of chat-fragmented.</p>\n" +
+  "        </article>\n" +
+  "        <article>\n" +
+  "          <h3>Teammates</h3>\n" +
+  "          <p>Need documentation and structure that still feels deterministic and local-first.</p>\n" +
+  "        </article>\n" +
+  "        <article>\n" +
+  "          <h3>Visitors</h3>\n" +
+  "          <p>Need a crisp story, not the full internals. The marketing projection gives them that surface.</p>\n" +
+  "        </article>\n" +
+  "      </div>\n" +
+  "    </section>\n" +
+  "  </main>\n" +
+  "  <script src=\"./app.js\"></script>\n" +
+  "</body>\n" +
+  "</html>\n"
+}
+
+///|
+fn site_styles_text() -> String {
+  ":root {\n" +
+  "  --paper: #fff7ea;\n" +
+  "  --paper-strong: #f5e6ce;\n" +
+  "  --ink: #13241f;\n" +
+  "  --muted: #54645d;\n" +
+  "  --forest: #173c34;\n" +
+  "  --amber: #d97706;\n" +
+  "  --coral: #e96b4c;\n" +
+  "  --line: rgba(19, 36, 31, 0.12);\n" +
+  "  --shadow: 0 24px 80px rgba(20, 34, 29, 0.14);\n" +
+  "}\n\n" +
+  "* { box-sizing: border-box; }\n" +
+  "html { scroll-behavior: smooth; }\n" +
+  "body {\n" +
+  "  margin: 0;\n" +
+  "  min-height: 100vh;\n" +
+  "  font-family: \"Space Grotesk\", \"Avenir Next\", \"Trebuchet MS\", sans-serif;\n" +
+  "  color: var(--ink);\n" +
+  "  background: radial-gradient(circle at top, rgba(233, 107, 76, 0.14), transparent 28%), linear-gradient(180deg, #fffaf2 0%, var(--paper) 54%, #f6ead8 100%);\n" +
+  "}\n" +
+  "a { color: inherit; text-decoration: none; }\n" +
+  ".backdrop {\n" +
+  "  position: fixed;\n" +
+  "  inset: 0;\n" +
+  "  pointer-events: none;\n" +
+  "  background-image: linear-gradient(rgba(19, 36, 31, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(19, 36, 31, 0.03) 1px, transparent 1px);\n" +
+  "  background-size: 32px 32px;\n" +
+  "  mask-image: linear-gradient(180deg, rgba(0,0,0,0.85), transparent 92%);\n" +
+  "}\n" +
+  ".topbar {\n" +
+  "  position: sticky;\n" +
+  "  top: 0;\n" +
+  "  z-index: 20;\n" +
+  "  display: flex;\n" +
+  "  justify-content: space-between;\n" +
+  "  align-items: center;\n" +
+  "  gap: 1rem;\n" +
+  "  padding: 1rem 1.4rem;\n" +
+  "  backdrop-filter: blur(18px);\n" +
+  "  background: rgba(255, 247, 234, 0.76);\n" +
+  "  border-bottom: 1px solid var(--line);\n" +
+  "}\n" +
+  ".brand {\n" +
+  "  display: inline-flex;\n" +
+  "  align-items: center;\n" +
+  "  gap: 0.8rem;\n" +
+  "  font-weight: 700;\n" +
+  "  letter-spacing: -0.04em;\n" +
+  "}\n" +
+  ".brand-mark {\n" +
+  "  display: grid;\n" +
+  "  place-items: center;\n" +
+  "  width: 2.4rem;\n" +
+  "  height: 2.4rem;\n" +
+  "  border-radius: 0.85rem;\n" +
+  "  color: #fff7ea;\n" +
+  "  background: linear-gradient(135deg, var(--forest), #245d50);\n" +
+  "  box-shadow: 0 16px 40px rgba(23, 60, 52, 0.28);\n" +
+  "}\n" +
+  ".nav {\n" +
+  "  display: inline-flex;\n" +
+  "  gap: 1rem;\n" +
+  "  flex-wrap: wrap;\n" +
+  "  color: var(--muted);\n" +
+  "}\n" +
+  ".nav a:hover { color: var(--ink); }\n" +
+  ".page-shell { width: min(1180px, calc(100% - 2.4rem)); margin: 0 auto; padding: 3rem 0 5rem; }\n" +
+  ".hero {\n" +
+  "  display: grid;\n" +
+  "  grid-template-columns: 1.15fr 0.95fr;\n" +
+  "  gap: 2rem;\n" +
+  "  align-items: center;\n" +
+  "  padding: 3.4rem 0 2rem;\n" +
+  "}\n" +
+  ".eyebrow {\n" +
+  "  margin: 0 0 1rem;\n" +
+  "  color: var(--amber);\n" +
+  "  font-size: 0.82rem;\n" +
+  "  font-weight: 700;\n" +
+  "  letter-spacing: 0.16em;\n" +
+  "  text-transform: uppercase;\n" +
+  "}\n" +
+  "h1, h2, h3 { margin: 0; letter-spacing: -0.05em; }\n" +
+  "h1 {\n" +
+  "  font-family: \"Instrument Serif\", Georgia, serif;\n" +
+  "  font-size: clamp(3.4rem, 7vw, 6.4rem);\n" +
+  "  line-height: 0.95;\n" +
+  "  max-width: 10ch;\n" +
+  "}\n" +
+  "h2 {\n" +
+  "  font-family: \"Instrument Serif\", Georgia, serif;\n" +
+  "  font-size: clamp(2.2rem, 5vw, 4rem);\n" +
+  "  line-height: 1;\n" +
+  "}\n" +
+  "h3 { font-size: 1.15rem; }\n" +
+  ".lede {\n" +
+  "  margin: 1.25rem 0 0;\n" +
+  "  max-width: 34rem;\n" +
+  "  font-size: 1.05rem;\n" +
+  "  line-height: 1.7;\n" +
+  "  color: var(--muted);\n" +
+  "}\n" +
+  ".hero-actions { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 1.6rem; }\n" +
+  ".button {\n" +
+  "  display: inline-flex;\n" +
+  "  align-items: center;\n" +
+  "  justify-content: center;\n" +
+  "  min-height: 3.2rem;\n" +
+  "  padding: 0.8rem 1.2rem;\n" +
+  "  border-radius: 999px;\n" +
+  "  border: 1px solid transparent;\n" +
+  "  font-weight: 700;\n" +
+  "}\n" +
+  ".button-primary {\n" +
+  "  color: #fff8ee;\n" +
+  "  background: linear-gradient(135deg, var(--forest), #245d50);\n" +
+  "  box-shadow: 0 18px 36px rgba(23, 60, 52, 0.22);\n" +
+  "}\n" +
+  ".button-secondary {\n" +
+  "  border-color: var(--line);\n" +
+  "  background: rgba(255, 255, 255, 0.56);\n" +
+  "}\n" +
+  ".hero-stage, .module-card {\n" +
+  "  border: 1px solid var(--line);\n" +
+  "  box-shadow: var(--shadow);\n" +
+  "}\n" +
+  ".hero-stage {\n" +
+  "  display: grid;\n" +
+  "  gap: 1rem;\n" +
+  "  padding: 1.2rem;\n" +
+  "  border-radius: 1.8rem;\n" +
+  "  background: rgba(255, 252, 246, 0.82);\n" +
+  "}\n" +
+  ".stage-card {\n" +
+  "  padding: 1rem;\n" +
+  "  border-radius: 1.3rem;\n" +
+  "  background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(244, 231, 209, 0.7));\n" +
+  "}\n" +
+  ".stage-label {\n" +
+  "  font-size: 0.76rem;\n" +
+  "  font-weight: 700;\n" +
+  "  letter-spacing: 0.14em;\n" +
+  "  text-transform: uppercase;\n" +
+  "  color: var(--muted);\n" +
+  "}\n" +
+  "pre {\n" +
+  "  overflow: auto;\n" +
+  "  margin: 0.9rem 0 0;\n" +
+  "  padding: 1rem;\n" +
+  "  border-radius: 1rem;\n" +
+  "  background: #10201b;\n" +
+  "  color: #edf5f0;\n" +
+  "}\n" +
+  ".metric-grid {\n" +
+  "  display: grid;\n" +
+  "  grid-template-columns: repeat(3, minmax(0, 1fr));\n" +
+  "  gap: 0.85rem;\n" +
+  "  margin-top: 0.9rem;\n" +
+  "}\n" +
+  ".metric-grid article {\n" +
+  "  padding: 1rem;\n" +
+  "  border-radius: 1rem;\n" +
+  "  background: rgba(23, 60, 52, 0.06);\n" +
+  "}\n" +
+  ".metric-grid strong {\n" +
+  "  display: block;\n" +
+  "  font-size: 1.9rem;\n" +
+  "  line-height: 1;\n" +
+  "}\n" +
+  ".metric-grid span, .story-grid p, .module-card p { color: var(--muted); line-height: 1.65; }\n" +
+  ".section { padding: 3.5rem 0 0; }\n" +
+  ".section-heading { display: flex; flex-direction: column; gap: 0.75rem; max-width: 42rem; }\n" +
+  ".section-heading.narrow { max-width: 36rem; }\n" +
+  ".card-grid {\n" +
+  "  display: grid;\n" +
+  "  grid-template-columns: repeat(3, minmax(0, 1fr));\n" +
+  "  gap: 1rem;\n" +
+  "  margin-top: 1.6rem;\n" +
+  "}\n" +
+  ".module-card {\n" +
+  "  padding: 1.35rem;\n" +
+  "  border-radius: 1.5rem;\n" +
+  "  background: rgba(255, 252, 246, 0.84);\n" +
+  "}\n" +
+  ".module-kicker {\n" +
+  "  display: inline-block;\n" +
+  "  margin-bottom: 0.9rem;\n" +
+  "  color: var(--coral);\n" +
+  "  font-size: 0.8rem;\n" +
+  "  font-weight: 700;\n" +
+  "}\n" +
+  ".story-grid {\n" +
+  "  display: grid;\n" +
+  "  grid-template-columns: repeat(3, minmax(0, 1fr));\n" +
+  "  gap: 1rem;\n" +
+  "  margin-top: 1.6rem;\n" +
+  "}\n" +
+  ".story-grid article {\n" +
+  "  padding: 1.2rem 1.25rem;\n" +
+  "  border-top: 1px solid var(--line);\n" +
+  "  background: rgba(255, 255, 255, 0.45);\n" +
+  "}\n" +
+  ".reveal {\n" +
+  "  opacity: 0;\n" +
+  "  transform: translateY(18px);\n" +
+  "  transition: opacity 560ms ease, transform 560ms ease;\n" +
+  "}\n" +
+  ".reveal.is-visible {\n" +
+  "  opacity: 1;\n" +
+  "  transform: translateY(0);\n" +
+  "}\n" +
+  "@media (max-width: 980px) {\n" +
+  "  .hero, .card-grid, .story-grid { grid-template-columns: 1fr; }\n" +
+  "  .page-shell { width: min(100% - 1.4rem, 1180px); }\n" +
+  "  .metric-grid { grid-template-columns: 1fr; }\n" +
+  "}\n" +
+  "@media (max-width: 640px) {\n" +
+  "  .topbar { align-items: flex-start; flex-direction: column; }\n" +
+  "  h1 { max-width: none; }\n" +
+  "}\n" +
+  "@media (prefers-reduced-motion: reduce) {\n" +
+  "  html { scroll-behavior: auto; }\n" +
+  "  .reveal { opacity: 1; transform: none; transition: none; }\n" +
+  "  .tilt { transform: none !important; }\n" +
+  "}\n"
+}
+
+///|
+fn site_script_text() -> String {
+  "const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;\n" +
+  "const revealNodes = document.querySelectorAll('.reveal');\n" +
+  "if (!reduceMotion && 'IntersectionObserver' in window) {\n" +
+  "  const observer = new IntersectionObserver((entries) => {\n" +
+  "    for (const entry of entries) {\n" +
+  "      if (entry.isIntersecting) {\n" +
+  "        entry.target.classList.add('is-visible');\n" +
+  "        observer.unobserve(entry.target);\n" +
+  "      }\n" +
+  "    }\n" +
+  "  }, { threshold: 0.16 });\n" +
+  "  revealNodes.forEach((node) => observer.observe(node));\n" +
+  "} else {\n" +
+  "  revealNodes.forEach((node) => node.classList.add('is-visible'));\n" +
+  "}\n" +
+  "if (!reduceMotion) {\n" +
+  "  document.querySelectorAll('.tilt').forEach((node) => {\n" +
+  "    node.addEventListener('pointermove', (event) => {\n" +
+  "      const rect = node.getBoundingClientRect();\n" +
+  "      const px = (event.clientX - rect.left) / rect.width - 0.5;\n" +
+  "      const py = (event.clientY - rect.top) / rect.height - 0.5;\n" +
+  "      node.style.transform = `perspective(1200px) rotateX(${(-py * 5).toFixed(2)}deg) rotateY(${(px * 7).toFixed(2)}deg) translateY(-2px)`;\n" +
+  "    });\n" +
+  "    node.addEventListener('pointerleave', () => {\n" +
+  "      node.style.transform = '';\n" +
+  "    });\n" +
+  "  });\n" +
+  "}\n"
 }
 
 ///|
@@ -469,7 +882,8 @@ fn base_routines_text() -> String {
   "1. Read `RESOLVER.md` to decide which skills and files matter for the task.\n" +
   "2. Load the relevant `skills/*/SKILL.md` file before planning or writing.\n" +
   "3. Keep deterministic work in MoonBook code and judgment work in skills.\n" +
-  "4. Persist durable outcomes back into `wiki/`, `keeper/`, and review queues.\n"
+  "4. Persist durable outcomes back into `wiki/`, `keeper/`, and review queues.\n" +
+  "5. Keep `wiki/` detailed and truth-oriented; keep `site/` marketing-oriented and projection-shaped.\n"
 }
 
 ///|
@@ -496,7 +910,11 @@ fn resolver_text() -> String {
   "- intent: memory\n" +
   "  skill: `skills/wiki-memory/SKILL.md`\n" +
   "  supporting_skills: `skills/memory-prune/SKILL.md`, `skills/query-promote/SKILL.md`\n" +
-  "  load_first: `keeper/MEMORY.md`, `keeper/USER.md`, `keeper/WORKING.md`, `keeper/INSIGHTS.md`\n"
+  "  load_first: `keeper/MEMORY.md`, `keeper/USER.md`, `keeper/WORKING.md`, `keeper/INSIGHTS.md`\n" +
+  "- intent: marketing\n" +
+  "  skill: `skills/wiki-marketing/SKILL.md`\n" +
+  "  supporting_skills: `skills/wiki-query/SKILL.md`, `skills/synthesis-revise/SKILL.md`, `skills/query-promote/SKILL.md`\n" +
+  "  load_first: `wiki/synthesis/overview.md`, `wiki/index.md`, `wiki/synthesis/map.md`, `keeper/INSIGHTS.md`, `site/index.html`\n"
 }
 
 ///|
@@ -523,6 +941,7 @@ fn schema_text() -> String {
   "## Layers\n\n" +
   "- `raw/`: immutable source documents. Read-only unless the user explicitly asks to organize files.\n" +
   "- `wiki/`: maintained markdown knowledge base. The LLM owns updates here.\n" +
+  "- `site/`: optional marketing website projection for presentation. Build copies it to `book/site/`.\n" +
   "- `wiki/index.md`: content catalog. Update it whenever pages are added or meaningfully changed.\n" +
   "- `wiki/log.md`: append-only activity log. Add one entry per ingest, query, or lint pass.\n\n" +
   "- `wiki/reviews/pending.md`: items that should be reviewed before being treated as trusted synthesis.\n" +
@@ -554,6 +973,12 @@ fn schema_text() -> String {
   "3. Read the relevant wiki pages\n" +
   "4. Answer from the wiki with citations to page paths\n" +
   "5. If the answer creates durable value, propose filing it back into the wiki\n\n" +
+  "### Marketing\n\n" +
+  "When updating the marketing projection:\n\n" +
+  "1. Read `RESOLVER.md` and load `skills/wiki-marketing/SKILL.md`\n" +
+  "2. Treat `wiki/` as the detailed source of truth and `site/` as the compressed presentation layer\n" +
+  "3. Keep claims accurate, but rewrite them into audience-facing product language\n" +
+  "4. Prefer stable capability framing, clear product boundaries, and links back into maintained wiki pages\n\n" +
   "### Lint\n\n" +
   "Periodically check for:\n\n" +
   "- orphan pages\n" +
@@ -640,6 +1065,20 @@ fn base_wiki_memory_skill_text() -> String {
   "1. Read `keeper/MEMORY.md`, `keeper/USER.md`, `keeper/WORKING.md`, and `keeper/INSIGHTS.md`.\n" +
   "2. Promote durable facts and recurring patterns; demote short-lived task residue.\n" +
   "3. Keep working memory tight and route long-lived knowledge back into maintained wiki pages when appropriate.\n"
+}
+
+///|
+fn base_wiki_marketing_skill_text() -> String {
+  "---\n" +
+  "name: wiki-marketing\n" +
+  "description: Maintain the marketing website projection so it presents the workspace clearly without replacing the detailed wiki.\n" +
+  "---\n\n" +
+  "# Wiki Marketing\n\n" +
+  "Method:\n\n" +
+  "1. Read `wiki/synthesis/overview.md`, `wiki/index.md`, `wiki/synthesis/map.md`, and `keeper/INSIGHTS.md` first.\n" +
+  "2. Keep `wiki/` detailed and evidence-oriented; keep `site/` compressed, audience-facing, and product-shaped.\n" +
+  "3. Present stable capabilities, operating model, and current state without leaking low-signal task residue.\n" +
+  "4. Link visitors from the marketing projection into the right maintained wiki pages for depth.\n"
 }
 
 ///|
@@ -824,6 +1263,7 @@ async test "init workspace seeds keeper memory files" {
   assert_true(@fsx.exists(root + "/skills/wiki-lint/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/wiki-review/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/wiki-memory/SKILL.md"))
+  assert_true(@fsx.exists(root + "/skills/wiki-marketing/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/source-diarize/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/entity-revise/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/concept-revise/SKILL.md"))
@@ -836,4 +1276,7 @@ async test "init workspace seeds keeper memory files" {
   assert_true(@fsx.exists(root + "/skills/review-decision/SKILL.md"))
   assert_true(@fsx.exists(root + "/wiki/synthesis/evidence.md"))
   assert_true(@fsx.exists(root + "/wiki/synthesis/map.md"))
+  assert_true(@fsx.exists(root + "/site/index.html"))
+  assert_true(@fsx.exists(root + "/site/styles.css"))
+  assert_true(@fsx.exists(root + "/site/app.js"))
 }

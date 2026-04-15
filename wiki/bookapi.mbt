@@ -77,12 +77,17 @@ pub struct BookStateSummary {
   root : String
   page_count : Int
   source_count : Int
+  source_page_count : Int
   entity_count : Int
+  entity_page_count : Int
   concept_count : Int
+  concept_page_count : Int
+  query_note_count : Int
   pending_review_count : Int
   keeper_memory_count : Int
   keeper_working_count : Int
   evidence_count : Int
+  substantive_coverage_ready : Bool
   summary : String
 } derive(Show, ToJson, FromJson)
 
@@ -90,11 +95,16 @@ pub struct BookStateSummary {
 pub struct BookHealthReport {
   level : String
   summary : String
+  source_page_count : Int
+  entity_page_count : Int
+  concept_page_count : Int
+  query_note_count : Int
   pending_review_count : Int
   low_confidence_claim_count : Int
   maintenance_entry_count : Int
   keeper_working_count : Int
   evidence_count : Int
+  substantive_coverage_ready : Bool
   issues : Array[String]
 } derive(Show, ToJson, FromJson)
 
@@ -146,6 +156,9 @@ pub async fn produce_task_batch(
   let health = report_health(root)
   let normalized_goal_id = goal_id.unwrap_or("goal-\{slugify_title(goal)}")
   let notes = goal.to_lower()
+  let weak_coverage = book_has_weak_coverage(state)
+  let query_ready = book_has_query_ready_coverage(state)
+  let ingest_priority = if weak_coverage { 100 } else { 70 }
   let tasks : Array[BookTask] = []
 
   if state.pending_review_count > 0 ||
@@ -165,6 +178,41 @@ pub async fn produce_task_batch(
     })
   }
 
+  if weak_coverage ||
+    notes.contains("research") ||
+    notes.contains("ingest") ||
+    notes.contains("source") ||
+    notes.contains("article") ||
+    notes.contains("notes") ||
+    notes.contains("discover") ||
+    notes.contains("populate") ||
+    notes.contains("bootstrap") {
+    tasks.push({
+      id: "\{normalized_goal_id}-ingest-followup",
+      title: if weak_coverage {
+        "Bootstrap ingest and population"
+      } else {
+        "Prepare ingest follow-up"
+      },
+      kind: "ingest",
+      prompt: if weak_coverage {
+        "Load `skills/wiki-ingest/SKILL.md`, inspect `raw/`, `wiki/sources/`, and `wiki/synthesis/maintenance-plan.md`, then bootstrap durable book coverage for the goal. Discover or stage high-signal sources, populate maintained source pages, and revise the wiki so later synthesis can cite durable pages: \{goal}"
+      } else {
+        "Load `skills/wiki-ingest/SKILL.md` and inspect `raw/` and `wiki/sources/` to determine whether the goal requires new source ingestion or revision of existing source summaries: \{goal}"
+      },
+      priority: ingest_priority,
+      requires_review: true,
+      target_pages: if weak_coverage {
+        [
+          "../raw/README.md", "sources/", "synthesis/overview.md", "synthesis/maintenance-plan.md",
+          "synthesis/evidence.md",
+        ]
+      } else {
+        ["sources/", "synthesis/overview.md"]
+      },
+    })
+  }
+
   let maintenance_path = @path.Path(workspace.wiki_dir)
     .join(@path.Path("synthesis/maintenance-plan.md"))
     .to_string()
@@ -178,20 +226,23 @@ pub async fn produce_task_batch(
     notes.contains("maintain") ||
     notes.contains("update") ||
     notes.contains("memory") {
-    tasks.push({
-      id: "\{normalized_goal_id}-synthesis",
-      title: "Update local synthesis and memory",
-      kind: "synthesis",
-      prompt: "Load `skills/wiki-memory/SKILL.md` and `skills/wiki-query/SKILL.md`, then use `wiki/synthesis/maintenance-plan.md`, `wiki/index.md`, and `wiki/log.md` to revise durable wiki pages for the goal: \{goal}",
-      priority: 90,
-      requires_review: true,
-      target_pages: [
-        "synthesis/overview.md", "synthesis/claims.md", "synthesis/maintenance-plan.md",
-      ],
-    })
+    if query_ready {
+      tasks.push({
+        id: "\{normalized_goal_id}-synthesis",
+        title: "Update local synthesis and memory",
+        kind: "synthesis",
+        prompt: "Load `skills/wiki-memory/SKILL.md` and `skills/wiki-query/SKILL.md`, then use `wiki/synthesis/maintenance-plan.md`, `wiki/index.md`, and `wiki/log.md` to revise durable wiki pages for the goal: \{goal}",
+        priority: 90,
+        requires_review: true,
+        target_pages: [
+          "synthesis/overview.md", "synthesis/claims.md", "synthesis/maintenance-plan.md",
+        ],
+      })
+    }
   }
 
   if health.level != "healthy" ||
+    weak_coverage ||
     notes.contains("plan") ||
     notes.contains("roadmap") ||
     notes.contains("next") {
@@ -209,28 +260,15 @@ pub async fn produce_task_batch(
     })
   }
 
-  tasks.push({
-    id: "\{normalized_goal_id}-analysis",
-    title: "Produce domain-local task result",
-    kind: "analysis",
-    prompt: "Load `skills/wiki-query/SKILL.md` and answer the goal inside this book boundary. Use the wiki pages as the durable context and do not leak into other books: \{goal}",
-    priority: 80,
-    requires_review: true,
-    target_pages: ["index.md", "log.md", "synthesis/query-insights.md"],
-  })
-
-  if notes.contains("ingest") ||
-    notes.contains("source") ||
-    notes.contains("article") ||
-    notes.contains("notes") {
+  if query_ready {
     tasks.push({
-      id: "\{normalized_goal_id}-ingest-followup",
-      title: "Prepare ingest follow-up",
-      kind: "ingest",
-      prompt: "Load `skills/wiki-ingest/SKILL.md` and inspect `raw/` and `wiki/sources/` to determine whether the goal requires new source ingestion or revision of existing source summaries: \{goal}",
-      priority: 70,
+      id: "\{normalized_goal_id}-analysis",
+      title: "Produce domain-local task result",
+      kind: "analysis",
+      prompt: "Load `skills/wiki-query/SKILL.md` and answer the goal inside this book boundary. Use the wiki pages as the durable context and do not leak into other books: \{goal}",
+      priority: 80,
       requires_review: true,
-      target_pages: ["sources/", "synthesis/overview.md"],
+      target_pages: ["index.md", "log.md", "synthesis/query-insights.md"],
     })
   }
 
@@ -271,6 +309,16 @@ pub async fn hydrate_worker_context(
       "observations",
     ],
   }
+}
+
+///|
+pub async fn resolve_task_for_goal(
+  root : String,
+  goal : String,
+  task_id? : String? = None,
+) -> BookTask? {
+  let batch = produce_task_batch(root, goal)
+  resolve_task_from_batch(batch.tasks, task_id~)
 }
 
 ///|
@@ -370,24 +418,33 @@ pub async fn summarize_state(root : String) -> BookStateSummary {
   let workspace = workspace_paths(root)
   let pages = collect_markdown_pages(workspace.wiki_dir)
   let pending = list_pending_reviews(root)
-  let source_count = count_markdown_under(workspace.wiki_dir, "sources")
-  let entity_count = count_markdown_under(workspace.wiki_dir, "entities")
-  let concept_count = count_markdown_under(workspace.wiki_dir, "concepts")
+  let source_page_count = count_markdown_under(workspace.wiki_dir, "sources")
+  let entity_page_count = count_markdown_under(workspace.wiki_dir, "entities")
+  let concept_page_count = count_markdown_under(workspace.wiki_dir, "concepts")
+  let query_note_count = count_markdown_under(workspace.wiki_dir, "queries")
   let keeper = keeper_snapshot(root)
   let evidence_count = count_evidence_entries(root)
+  let substantive_coverage_ready = has_substantive_coverage(
+    source_page_count, entity_page_count, concept_page_count, evidence_count,
+  )
   {
     book_id: book_identity(root),
     root: workspace.root,
     page_count: pages.length(),
-    source_count,
-    entity_count,
-    concept_count,
+    source_count: source_page_count,
+    source_page_count,
+    entity_count: entity_page_count,
+    entity_page_count,
+    concept_count: concept_page_count,
+    concept_page_count,
+    query_note_count,
     pending_review_count: pending.length(),
     keeper_memory_count: keeper.active_memory.length() +
     keeper.user_memory.length(),
     keeper_working_count: keeper.working_memory.length(),
     evidence_count,
-    summary: "pages=\{pages.length()} sources=\{source_count} entities=\{entity_count} concepts=\{concept_count} pending_review=\{pending.length()} keeper_working=\{keeper.working_memory.length()} evidence=\{evidence_count}",
+    substantive_coverage_ready,
+    summary: "pages=\{pages.length()} sources=\{source_page_count} entities=\{entity_page_count} concepts=\{concept_page_count} queries=\{query_note_count} pending_review=\{pending.length()} keeper_working=\{keeper.working_memory.length()} evidence=\{evidence_count} ready_for_synthesis=\{substantive_coverage_ready}",
   }
 }
 
@@ -416,8 +473,17 @@ pub async fn report_health(root : String) -> BookHealthReport {
     },
   )
   let keeper = keeper_snapshot(root)
+  let source_page_count = count_markdown_under(workspace.wiki_dir, "sources")
+  let entity_page_count = count_markdown_under(workspace.wiki_dir, "entities")
+  let concept_page_count = count_markdown_under(workspace.wiki_dir, "concepts")
+  let query_note_count = count_markdown_under(workspace.wiki_dir, "queries")
   let evidence_count = count_evidence_entries(root)
-  let issues : Array[String] = []
+  let issues = coverage_issues(
+    source_page_count, entity_page_count, concept_page_count, evidence_count,
+  )
+  let substantive_coverage_ready = has_substantive_coverage(
+    source_page_count, entity_page_count, concept_page_count, evidence_count,
+  )
   if pending.length() >= 5 {
     issues.push("pending review backlog is high")
   }
@@ -430,9 +496,6 @@ pub async fn report_health(root : String) -> BookHealthReport {
   if keeper.working_memory.length() >= 8 {
     issues.push("keeper working memory is crowded")
   }
-  if evidence_count == 0 {
-    issues.push("no evidence records have been captured yet")
-  }
   let level = if issues.length() >= 3 {
     "critical"
   } else if !issues.is_empty() {
@@ -442,12 +505,17 @@ pub async fn report_health(root : String) -> BookHealthReport {
   }
   {
     level,
-    summary: "pending_review=\{pending.length()} low_confidence_claims=\{low_confidence} maintenance_entries=\{maintenance_entries} keeper_working=\{keeper.working_memory.length()} evidence=\{evidence_count}",
+    summary: "sources=\{source_page_count} entities=\{entity_page_count} concepts=\{concept_page_count} queries=\{query_note_count} pending_review=\{pending.length()} low_confidence_claims=\{low_confidence} maintenance_entries=\{maintenance_entries} keeper_working=\{keeper.working_memory.length()} evidence=\{evidence_count} ready_for_synthesis=\{substantive_coverage_ready}",
+    source_page_count,
+    entity_page_count,
+    concept_page_count,
+    query_note_count,
     pending_review_count: pending.length(),
     low_confidence_claim_count: low_confidence,
     maintenance_entry_count: maintenance_entries,
     keeper_working_count: keeper.working_memory.length(),
     evidence_count,
+    substantive_coverage_ready,
     issues,
   }
 }
@@ -1199,6 +1267,90 @@ fn count_heading_entries(content : String) -> Int {
 }
 
 ///|
+fn coverage_issues(
+  source_page_count : Int,
+  entity_page_count : Int,
+  concept_page_count : Int,
+  evidence_count : Int,
+) -> Array[String] {
+  let issues : Array[String] = []
+  if source_page_count == 0 {
+    issues.push("no durable sources have been ingested yet")
+  }
+  if entity_page_count == 0 && concept_page_count == 0 {
+    issues.push("no maintained entity or concept coverage exists yet")
+  }
+  if evidence_count == 0 {
+    issues.push("no evidence records have been captured yet")
+  }
+  issues
+}
+
+///|
+fn has_substantive_coverage(
+  source_page_count : Int,
+  entity_page_count : Int,
+  concept_page_count : Int,
+  evidence_count : Int,
+) -> Bool {
+  source_page_count > 0 &&
+  (entity_page_count > 0 || concept_page_count > 0) &&
+  evidence_count > 0
+}
+
+///|
+fn book_has_weak_coverage(state : BookStateSummary) -> Bool {
+  !state.substantive_coverage_ready
+}
+
+///|
+fn book_has_query_ready_coverage(state : BookStateSummary) -> Bool {
+  state.substantive_coverage_ready
+}
+
+///|
+fn resolve_task_from_batch(
+  tasks : Array[BookTask],
+  task_id? : String? = None,
+) -> BookTask? {
+  match task_id {
+    Some(task_id) => {
+      let exact = tasks
+        .iter()
+        .find_first(fn(task : BookTask) { task.id == task_id })
+      match exact {
+        Some(task) => Some(task)
+        None =>
+          match infer_task_kind_from_external_id(task_id) {
+            Some(kind) =>
+              tasks.iter().find_first(fn(task : BookTask) { task.kind == kind })
+            None => None
+          }
+      }
+    }
+    None => if tasks.is_empty() { None } else { Some(tasks[0]) }
+  }
+}
+
+///|
+fn infer_task_kind_from_external_id(task_id : String) -> String? {
+  let normalized = task_id.trim().to_lower()
+  if normalized.contains("ingest") || normalized.contains("bootstrap") {
+    Some("ingest")
+  } else if normalized.contains("review") {
+    Some("review")
+  } else if normalized.contains("plan") || normalized.contains("planning") {
+    Some("planning")
+  } else if normalized.contains("synthesis") {
+    Some("synthesis")
+  } else if normalized.contains("analysis") || normalized.contains("query") {
+    Some("analysis")
+  } else {
+    None
+  }
+}
+
+///|
 fn memory_candidate_section(relative_page : String) -> String {
   if relative_page.has_prefix("entities/") {
     "Entities"
@@ -1288,4 +1440,67 @@ async test "hydrate worker context includes keeper memory slices" {
   assert_true(context.skill_paths.contains("skills/wiki-query/SKILL.md"))
   assert_true(context.skill_paths.contains("skills/query-promote/SKILL.md"))
   assert_true(context.skill_paths.contains("RESOLVER.md"))
+}
+
+///|
+async test "produce task batch bootstraps research goals on weak coverage" {
+  let root = "/tmp/moonbook-bookapi-bootstrap"
+  ignore(init_workspace(root))
+  let batch = produce_task_batch(
+    root, "research moontown, moonbook and moonclaw",
+  )
+  assert_true(batch.tasks.any(fn(task) { task.kind == "ingest" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "planning" }))
+  assert_true(
+    !batch.tasks.any(fn(task) {
+      task.kind == "analysis" || task.kind == "synthesis"
+    }),
+  )
+}
+
+///|
+async test "produce task batch allows synthesis after durable coverage exists" {
+  let root = "/tmp/moonbook-bookapi-query-ready"
+  ignore(init_workspace(root))
+  ignore(ingest_source(root, root + "/raw/README.md"))
+  ignore(
+    persist_result(root, {
+      task_id: "task-evidence",
+      summary: "Validated durable wiki support records.",
+      artifacts: [],
+      memory_candidates: [
+        {
+          kind: "fact",
+          title: "Moontown",
+          detail: "Moontown orchestrates town-level work.",
+          durable: true,
+          target_page: Some("entities/moontown.md"),
+        },
+        {
+          kind: "fact",
+          title: "Orchestration",
+          detail: "Town orchestration is a recurring concept in this book.",
+          durable: true,
+          target_page: Some("concepts/orchestration.md"),
+        },
+      ],
+      requires_review: false,
+      notify_town: false,
+    }),
+  )
+  let batch = produce_task_batch(root, "refresh synthesis for current research")
+  assert_true(batch.tasks.any(fn(task) { task.kind == "analysis" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "synthesis" }))
+}
+
+///|
+async test "resolve task for goal accepts external bootstrap task ids" {
+  let root = "/tmp/moonbook-bookapi-external-task"
+  ignore(init_workspace(root))
+  let task = resolve_task_for_goal(
+    root,
+    "research moontown, moonbook and moonclaw",
+    task_id=Some("goal-coding-research-bootstrap-ingest"),
+  ).unwrap()
+  assert_eq(task.kind, "ingest")
 }

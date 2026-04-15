@@ -42,9 +42,14 @@ Implemented behaviors:
 - `serve` accepts `--watcher poll|native`
 - `serve` serves `index.html` at `/`
 - `serve` serves `404.html` as a fallback when present
+- `build` and `serve` copy an optional root `site/` marketing projection into `book/site/`
+- `build` and `serve` generate a live marketing projection into `book/site/generated/`
 - `serve --watcher native` currently falls back to the poll backend with an explicit notice
 - `wiki init` scaffolds `raw/`, `wiki/`, `AGENTS.md`, `wiki.toml`, and a MoonBook-compatible `book.toml`
 - `wiki init` keeps the core workspace agent-agnostic
+- `wiki init` scaffolds a `site/` marketing website projection with `index.html`, `styles.css`, and `app.js`
+- `wiki init` seeds a dedicated `skills/wiki-marketing/SKILL.md` routine for maintaining `site/` as a presentation layer distinct from `wiki/`
+- generated marketing projection includes current status, workflow, review pressure, keeper memory, depth links, and synthesis preview from live workspace state
 - `wiki init` seeds `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
 - `wiki init` seeds claims, maintenance-plan, query-insights, pending-review, and approved-review pages
 - `wiki init` seeds an observations page for persisted book results
@@ -55,9 +60,11 @@ Implemented behaviors:
 - `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`
 - `wiki enable moonclaw` seeds `KEEPER.md` plus `skills/wiki-maintainer/SKILL.md` and `skills/wiki-review/SKILL.md`
 - `wiki enable moonclaw` seeds role-aware controller/worker profiles with explicit `role_runtime` envelopes aligned to MoonClaw's planner substrate
+- `wiki enable moonclaw` seeds `.moonclaw/providers.json` with the provider-task target name `moonbook`
 - `wiki enable moontown` installs an optional town-facing book API manifest and guide without changing the core wiki contract
 - `wiki enable moontown` records an extension manifest under `.moonbook/extensions/moontown.json`
 - `wiki ingest` imports sources into `raw/imported/` when needed
+- `wiki ingest` rejects hidden placeholders, empty files, and `.gitkeep`-style scaffolding as non-substantive sources
 - `wiki ingest` generates `wiki/sources/<slug>.md`
 - `wiki ingest` generates or updates related `wiki/entities/*.md` pages for lightweight extracted entities
 - `wiki ingest` generates or updates related `wiki/concepts/*.md` pages for lightweight extracted concepts
@@ -70,6 +77,7 @@ Implemented behaviors:
 - `wiki ingest` updates `wiki/synthesis/maintenance-plan.md` with a multi-page follow-up entry
 - `wiki ingest` queues contested or low-confidence updates in `wiki/reviews/pending.md`
 - `wiki ingest` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
+- `wiki ingest` canonicalizes `wiki/index.md` sections to avoid duplicate source headings
 - `wiki query` searches markdown pages under `wiki/`
 - `wiki query` returns a synthesized markdown answer with citations to wiki pages
 - `wiki query --save` writes `wiki/queries/<slug>.md`

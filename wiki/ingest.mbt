@@ -65,6 +65,7 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
   if !@fsx.exists(resolved_source) {
     fail("source does not exist: \{resolved_source}")
   }
+  validate_ingestable_source(resolved_source)
 
   let source_under_raw = is_under_root(resolved_source, workspace.raw_dir)
   let stored_raw_path = if source_under_raw {
@@ -264,6 +265,38 @@ async fn detect_source_title(path : String) -> String {
 }
 
 ///|
+async fn validate_ingestable_source(path : String) -> Unit {
+  match source_rejection_reason(path) {
+    Some(reason) =>
+      fail("source is not substantive enough for ingest: \{reason}: \{path}")
+    None => ()
+  }
+}
+
+///|
+async fn source_rejection_reason(path : String) -> String? {
+  let basename = @path.Path(path).basename().to_string()
+  let lowered = basename.to_lower()
+  if basename.is_blank() {
+    return Some("missing file name")
+  }
+  if basename.has_prefix(".") {
+    return Some("hidden or placeholder files are not ingestable sources")
+  }
+  if [".gitkeep", ".keep", ".ds_store", "thumbs.db"].contains(lowered) {
+    return Some("workspace placeholder files are not ingestable sources")
+  }
+  if is_text_source(path) {
+    if @fsx.read_file(path).trim().to_string().is_blank() {
+      return Some("empty text files are not ingestable sources")
+    }
+  } else if @fsx.read_bytes(path).length() == 0 {
+    return Some("empty binary files are not ingestable sources")
+  }
+  None
+}
+
+///|
 async fn source_page_text(
   title : String,
   relative_raw : String,
@@ -326,23 +359,13 @@ async fn update_index(
   relative_page : String,
   stored_raw_path : String,
 ) -> Unit {
-  let current = @fsx.read_file(index_path)
-  let bullet = "- [\{title}](./\{relative_page}): source page for `\{@path.Path(stored_raw_path).basename()}`"
-  if current.contains(bullet) {
-    return
-  }
-  let next = if current.contains("## Sources\n\n_None yet._") {
-    current
-    .replace(old="## Sources\n\n_None yet._", new="## Sources\n\n\{bullet}")
-    .to_string()
-  } else if current.contains("## Sources\n") {
-    current
-    .replace(old="## Sources\n", new="## Sources\n\{bullet}\n")
-    .to_string()
-  } else {
-    current + "\n## Sources\n\n" + bullet + "\n"
-  }
-  @fsx.write_to_file(index_path, next, create=0o644)
+  update_index_section(
+    index_path,
+    "Sources",
+    escape_link_label(title),
+    relative_page,
+    "source page for `\{@path.Path(stored_raw_path).basename()}`",
+  )
 }
 
 ///|
@@ -807,9 +830,6 @@ async fn update_index_section(
 ) -> Unit {
   let bullet = "- [\{title}](./\{relative_page}): \{description}"
   let original = @fsx.read_file(index_path)
-  if original.contains(bullet) {
-    return
-  }
   let current = remove_index_entry(original, relative_page)
   let next = normalize_markdown_spacing(
     insert_index_entry(current, section_title, bullet),
@@ -836,50 +856,91 @@ fn insert_index_entry(
   section_title : String,
   bullet : String,
 ) -> String {
+  let entries = collect_index_section_entries(content, section_title)
+  let merged = if entries.contains(bullet) {
+    entries
+  } else {
+    [bullet, ..entries]
+  }
+  rewrite_index_section(content, section_title, merged)
+}
+
+///|
+fn collect_index_section_entries(
+  content : String,
+  section_title : String,
+) -> Array[String] {
+  let target_header = "## \{section_title}"
+  let entries : Array[String] = []
+  let mut in_target = false
+  for raw in content.split("\n") {
+    let line = raw.to_string()
+    if line == target_header {
+      in_target = true
+      continue
+    }
+    if in_target && line.has_prefix("## ") {
+      in_target = false
+    }
+    if in_target && line.has_prefix("- ") && !entries.contains(line) {
+      entries.push(line)
+    }
+  }
+  entries
+}
+
+///|
+fn rewrite_index_section(
+  content : String,
+  section_title : String,
+  entries : Array[String],
+) -> String {
   let target_header = "## \{section_title}"
   let lines = content.split("\n")
   let rebuilt : Array[String] = []
-  let mut in_target = false
+  let mut skipping_target = false
   let mut inserted = false
   for raw in lines {
     let line = raw.to_string()
     if line == target_header {
-      in_target = true
-      rebuilt.push(line)
-      continue
-    }
-    if in_target && line.has_prefix("## ") {
       if !inserted {
-        if !rebuilt.is_empty() &&
-          rebuilt[rebuilt.length() - 1] != "" &&
-          rebuilt[rebuilt.length() - 1] != target_header {
-          rebuilt.push("")
-        }
-        rebuilt.push(bullet)
+        insert_index_section_block(rebuilt, target_header, entries)
         inserted = true
       }
-      in_target = false
+      skipping_target = true
+      continue
     }
-    if in_target && line == "_None yet._" {
-      rebuilt.push(bullet)
-      inserted = true
+    if skipping_target && line.has_prefix("## ") {
+      skipping_target = false
+    }
+    if skipping_target {
       continue
     }
     rebuilt.push(line)
   }
-  if in_target && !inserted {
-    if !rebuilt.is_empty() &&
-      rebuilt[rebuilt.length() - 1] != "" &&
-      rebuilt[rebuilt.length() - 1] != target_header {
+  if !inserted {
+    if !rebuilt.is_empty() && rebuilt[rebuilt.length() - 1] != "" {
       rebuilt.push("")
     }
-    rebuilt.push(bullet)
-    inserted = true
+    insert_index_section_block(rebuilt, target_header, entries)
   }
-  if inserted {
-    rebuilt.join("\n")
+  rebuilt.join("\n")
+}
+
+///|
+fn insert_index_section_block(
+  rebuilt : Array[String],
+  target_header : String,
+  entries : Array[String],
+) -> Unit {
+  rebuilt.push(target_header)
+  rebuilt.push("")
+  if entries.is_empty() {
+    rebuilt.push("_None yet._")
   } else {
-    content + "\n## \{section_title}\n\n" + bullet + "\n"
+    for entry in entries {
+      rebuilt.push(entry)
+    }
   }
 }
 
@@ -1324,29 +1385,20 @@ fn append_list_entry(
   section_header : String,
   entry : String,
 ) -> String {
-  let cleaned = content.replace(old="_None yet._\n", new="").to_string()
-  if content.contains(entry) {
-    return cleaned
-  }
-  if cleaned.contains(section_header + "\n\n") {
-    cleaned
-    .replace(
-      old=section_header + "\n\n",
-      new=section_header + "\n\n" + entry + "\n",
-    )
+  let section_title = section_header
+    .strip_prefix("## ")
+    .unwrap_or(section_header)
+    .trim()
     .to_string()
-  } else if cleaned.contains(section_header + "\n") {
-    cleaned
-    .replace(
-      old=section_header + "\n",
-      new=section_header + "\n" + entry + "\n",
-    )
-    .to_string()
-  } else if cleaned.has_suffix("\n") {
-    cleaned + "\n" + section_header + "\n\n" + entry + "\n"
+  let entries = collect_index_section_entries(content, section_title)
+  let merged = if entries.contains(entry) {
+    entries
   } else {
-    cleaned + "\n\n" + section_header + "\n\n" + entry + "\n"
+    [entry, ..entries]
   }
+  normalize_markdown_spacing(
+    rewrite_index_section(content, section_title, merged),
+  )
 }
 
 ///|
@@ -2382,7 +2434,42 @@ test "upsert claim block accumulates support" {
 test "append list entry avoids duplicates" {
   let content = "# Demo\n\n## Sources\n\n- [One](./one.md)\n"
   let updated = append_list_entry(content, "## Sources", "- [One](./one.md)")
-  assert_eq(updated, content)
+  assert_eq(updated, normalize_markdown_spacing(content))
+}
+
+///|
+test "rewrite index section collapses duplicate source headings" {
+  let content = "# Index\n\n## Sources\n\n- [One](./sources/one.md): first\n\n## Queries\n\n_None yet._\n\n## Sources\n\n- [Two](./sources/two.md): second\n"
+  let rewritten = normalize_markdown_spacing(
+    rewrite_index_section(
+      content,
+      "Sources",
+      collect_index_section_entries(content, "Sources"),
+    ),
+  )
+  let mut count = 0
+  for _ in rewritten.split("## Sources") {
+    count += 1
+  }
+  assert_eq(count, 2)
+  assert_true(rewritten.contains("[One](./sources/one.md)"))
+  assert_true(rewritten.contains("[Two](./sources/two.md)"))
+}
+
+///|
+async test "ingest rejects placeholder raw artifacts" {
+  let root = "/tmp/moonbook-ingest-reject-dotfile"
+  ignore(init_workspace(root))
+  let placeholder = @path.Path(root)
+    .join(@path.Path("raw/assets/.gitkeep"))
+    .to_string()
+  @fsx.write_to_file(placeholder, "", create=0o644)
+  let mut message = ""
+  ignore(ingest_source(root, placeholder)) catch {
+    error => message = "\{error}"
+  }
+  assert_true(message.contains("not substantive enough for ingest"))
+  assert_true(message.contains(".gitkeep"))
 }
 
 ///|

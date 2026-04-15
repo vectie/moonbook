@@ -27,7 +27,9 @@ Build pipeline:
 3. load chapter files
 4. preprocess README chapter paths into `index.*`
 5. render HTML output
-6. write `book/book.json`
+6. copy the optional root `site/` marketing projection into `book/site/` when present
+7. generate a live marketing projection into `book/site/generated/` from wiki, keeper, and review state when the workspace is a wiki
+8. write `book/book.json`
 
 ### `moon run cmd/main -- serve <root> [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]`
 
@@ -56,6 +58,7 @@ Bootstraps a wiki workspace instead of a plain mdBook:
 7. creates reserved directories for `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
 8. seeds `wiki/synthesis/claims.md`, `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/query-insights.md`, `wiki/synthesis/map.md`, `wiki/synthesis/observations.md`, `wiki/synthesis/evidence.md`, `wiki/reviews/pending.md`, and `wiki/reviews/approved.md`
 9. seeds bounded Keeper memory files under `keeper/`, including `keeper/INSIGHTS.md`
+10. seeds an optional `site/` marketing website projection with `index.html`, `styles.css`, and `app.js`
 
 ### `moon run cmd/main -- wiki enable <extension> [root]`
 
@@ -94,8 +97,9 @@ Hydrates a worker-ready context bundle:
 
 1. derives the local task batch for the goal
 2. selects the first task or the requested `--task`
-3. packages prompt, policy lines, routine lines, relevance-ranked context pages, Keeper memory slices, and memory summary
-4. prints a JSON worker context bundle
+3. if the requested `--task` is an external bootstrap-style id, resolves it onto the nearest local MoonBook task kind when possible
+4. packages prompt, policy lines, routine lines, relevance-ranked context pages, Keeper memory slices, and memory summary
+5. prints a JSON worker context bundle
 
 ### `moon run cmd/main -- wiki book persist [root] <result.json>`
 
@@ -136,22 +140,23 @@ Prints a JSON health report for the book.
 Ingests one source into an existing wiki workspace:
 
 1. resolves the source path
-2. copies it into `raw/imported/` when it is outside the workspace raw tree
-3. derives a source title from the first heading or first non-empty line
-4. writes a source page to `wiki/sources/<slug>.md`
-5. extracts lightweight candidate entities and concepts from text sources
-6. creates or updates related `wiki/entities/*.md` pages
-7. creates or updates related `wiki/concepts/*.md` pages
-8. adds relationship entries to relevant entity pages when structured claims point at entities or concepts
-9. adds reciprocal relationship entries to related entity/concept pages
-10. creates or updates `wiki/synthesis/overview.md`
-11. creates or updates `wiki/synthesis/claims.md` with structured claim entries, ids, kinds, related pages, support counts, status, and superseded markers when claim-like statements are detected
-12. refreshes `wiki/synthesis/map.md`
-13. creates or updates `wiki/synthesis/maintenance-plan.md` with a multi-page follow-up entry
-14. queues contested or low-confidence claim updates in `wiki/reviews/pending.md`
-15. appends touched pages to `wiki/SUMMARY.md`
-16. updates the relevant sections in `wiki/index.md`
-17. appends an ingest event to `wiki/log.md`
+2. rejects hidden placeholders, empty files, and workspace scaffolding such as `.gitkeep`
+3. copies it into `raw/imported/` when it is outside the workspace raw tree
+4. derives a source title from the first heading or first non-empty line
+5. writes a source page to `wiki/sources/<slug>.md`
+6. extracts lightweight candidate entities and concepts from text sources
+7. creates or updates related `wiki/entities/*.md` pages
+8. creates or updates related `wiki/concepts/*.md` pages
+9. adds relationship entries to relevant entity pages when structured claims point at entities or concepts
+10. adds reciprocal relationship entries to related entity/concept pages
+11. creates or updates `wiki/synthesis/overview.md`
+12. creates or updates `wiki/synthesis/claims.md` with structured claim entries, ids, kinds, related pages, support counts, status, and superseded markers when claim-like statements are detected
+13. refreshes `wiki/synthesis/map.md`
+14. creates or updates `wiki/synthesis/maintenance-plan.md` with a multi-page follow-up entry
+15. queues contested or low-confidence claim updates in `wiki/reviews/pending.md`
+16. appends touched pages to `wiki/SUMMARY.md`
+17. canonicalizes the relevant sections in `wiki/index.md`
+18. appends an ingest event to `wiki/log.md`
 
 ### `moon run cmd/main -- wiki query [root] <question> [--save]`
 
@@ -382,6 +387,19 @@ Created by `moonbook wiki init`:
 
 - `raw/`
   immutable source material
+- `site/`
+  optional static marketing website projection copied to `book/site/` during build and serve
+- `site/index.html`
+  landing page scaffold for marketing storytelling
+- `site/styles.css`
+  expressive visual system for the marketing projection
+- `site/app.js`
+  lightweight reveal and interaction behavior for the marketing projection
+- `book/site/generated/index.html`
+  live generated marketing projection built from current workspace state
+- `book/site/generated/marketing-state.json`
+  machine-readable snapshot used by the generated marketing projection
+  includes explicit readiness signals such as source, entity, concept, and query counts plus `substantive_coverage_ready`
 - `keeper/MEMORY.md`
   bounded reusable domain memory for Keeper
 - `keeper/USER.md`
@@ -395,15 +413,15 @@ Created by `moonbook wiki init`:
 - `wiki/`
   maintained markdown pages for the knowledge base
 - `wiki/sources/`
-  source summary pages
+  durable source summary pages generated from raw material
 - `wiki/queries/`
-  saved query pages
+  saved query pages and durable analysis notes
 - `wiki/entities/`
-  reserved directory for entity pages
+  maintained entity pages
 - `wiki/concepts/`
-  reserved directory for concept pages
+  maintained concept pages
 - `wiki/synthesis/`
-  reserved directory for synthesis pages
+  maintained synthesis pages and research readiness signals
 - `wiki/synthesis/claims.md`
   lightweight structured claims with confidence/support/status/superseded markers when present
 - `wiki/synthesis/maintenance-plan.md`
@@ -435,6 +453,9 @@ Installed by `moonbook wiki enable moonclaw [root]`:
   points MoonClaw at the same workspace root
 - `moonclaw.jobs.json`
   seeds role-aware wiki controller/worker profiles aligned with MoonClaw's role substrate
+- `.moonclaw/providers.json`
+  seeds the provider-task target named `moonbook` so MoonClaw can resolve provider-backed `wiki book tasks/context/persist`
+  the provider metadata points back at `moon run cmd/main -- wiki book ...` from the MoonBook module cwd
 - `IDENTITY.md`, `USER.md`, `ROUTINES.md`, `MEMORY.md`, `KEEPER.md`
   MoonClaw-managed workspace context files
 - `skills/wiki-maintainer/SKILL.md`

@@ -306,18 +306,15 @@ async fn run_wiki_book_context(args : Array[String]) -> Unit {
       return
     }
   }
-  let batch = @wiki.produce_task_batch(parsed.root, parsed.goal) catch {
+  let task = @wiki.resolve_task_for_goal(
+    parsed.root,
+    parsed.goal,
+    task_id=parsed.task_id,
+  ) catch {
     error => {
       println("moonbook wiki book context failed: \{error}")
       return
     }
-  }
-  let task = match parsed.task_id {
-    Some(task_id) =>
-      batch.tasks
-      .iter()
-      .find_first(fn(task : @wiki.BookTask) { task.id == task_id })
-    None => if batch.tasks.is_empty() { None } else { Some(batch.tasks[0]) }
   }
   match task {
     Some(task) => {

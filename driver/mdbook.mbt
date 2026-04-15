@@ -136,6 +136,7 @@ pub async fn MDBook::build(self : MDBook) -> Unit {
       preprocessed_book,
     ),
   )
+  copy_demo_site_layer(self.root, build_dir)
   let manifest_path = @path.Path(build_dir)
     .join(@path.Path("book.json"))
     .to_string()
@@ -146,6 +147,10 @@ pub async fn MDBook::build(self : MDBook) -> Unit {
       .join(@path.Path("moonbook-ui-state.json"))
       .to_string()
     ignore(@wiki.write_ui_state(self.root, ui_state_path))
+    let marketing_site_root = @path.Path(build_dir)
+      .join(@path.Path("site"))
+      .to_string()
+    ignore(@wiki.write_marketing_projection(self.root, marketing_site_root))
     let ui_config_path = @path.Path(build_dir)
       .join(@path.Path("moonbook-ui-config.json"))
       .to_string()
@@ -179,6 +184,40 @@ pub fn resolved_build_dir(root : String, config : @core.Config) -> String {
 fn is_wiki_workspace(root : String, config : @core.Config) -> Bool {
   config.book.src == "wiki" &&
   @fs.path_exists(@path.Path(root).join(@path.Path("wiki.toml")).to_string())
+}
+
+///|
+async fn copy_demo_site_layer(book_root : String, build_dir : String) -> Unit {
+  let source_root = @path.Path(book_root).join(@path.Path("site")).to_string()
+  if !@fsx.exists(source_root) {
+    return
+  }
+  let destination_root = @path.Path(build_dir)
+    .join(@path.Path("site"))
+    .to_string()
+  copy_directory_tree(source_root, destination_root)
+}
+
+///|
+async fn copy_directory_tree(
+  source_dir : String,
+  destination_dir : String,
+) -> Unit {
+  ensure_dir(destination_dir)
+  for entry in @fsx.list_directory(source_dir) {
+    let basename = @path.Path(entry).basename().to_string()
+    let destination = @path.Path(destination_dir)
+      .join(@path.Path(basename))
+      .to_string()
+    match @afs.kind(entry, follow_symlink=false) {
+      @afs.FileKind::Directory => copy_directory_tree(entry, destination)
+      @afs.FileKind::Regular => {
+        ensure_parent_dir(destination)
+        @fsx.write_bytes(destination, @fsx.read_bytes(entry), create=0o666)
+      }
+      _ => ()
+    }
+  }
 }
 
 ///|

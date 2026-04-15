@@ -1,6 +1,6 @@
 # MoonBook
 
-> 📚 MoonBit-native rewrite of rust-lang/mdBook + 🧱 static renderer + 🌐 local server + 🧠 persistent wiki workspace
+> 📚 MoonBit-native rewrite of rust-lang/mdBook + 🧱 static renderer + 🌐 local server + 🧠 persistent wiki workspace + ✨ marketing website projection
 
 `MoonBit` `mdBook` `Wiki` `SUMMARY.md` `HTML Renderer` `Serve` `Watch` `Rabbita`
 
@@ -14,6 +14,7 @@ It is designed for:
 - 🏗️ static HTML builds
 - 🌐 local serve + watch workflows
 - 🧾 durable markdown knowledge bases
+- ✨ polished marketing websites under `site/`
 - 🧠 bounded Keeper memory for active, user, and working context
 - 🧠 wiki ingest/query/review/lint flows
 - 🔌 optional runtime integration through extension packs
@@ -22,12 +23,13 @@ It is designed for:
 ## ✨ What MoonBook Feels Like
 
 ```text
-markdown / summary / wiki workspace
+markdown / summary / wiki / website workspace
   -> parse and normalize structure
   -> render to static HTML
   -> serve or watch locally
   -> ingest sources into a persistent wiki
   -> revise entities, concepts, synthesis, and review queues
+  -> ship a polished marketing website from site/
 ```
 
 MoonBook is strongest when you want one local system to handle:
@@ -36,12 +38,14 @@ MoonBook is strongest when you want one local system to handle:
 - 🔁 repeatable static builds
 - 🧭 readable navigation and rendering
 - 🗂️ persistent wiki pages between sessions
+- 🌐 a marketing-oriented website projection for demos and launches
 - 🧠 small rewriteable Keeper memory between worker runs
 - 🤝 agent-compatible wiki workspaces without hard-coupling to one runtime
 
 ## News
 
 - `2026-04-13`: added Keeper evidence and insight maintenance so persisted worker results now append support records, stage durable promotions for review, refresh keeper health pages, maintain a synthesis map, and hydrate workers with better memory/page recall
+- `2026-04-15`: added an optional `site/` marketing projection for wiki workspaces, plus a dedicated marketing routine/skill boundary, and taught the build pipeline to publish it into `book/site/` alongside the rendered book and wiki
 - `2026-04-05`: split wiki maintenance internals into dedicated workspace, maintenance-plan, and review-helper files; tightened summary dedupe by page path; cleaned entity/concept/claim normalization; updated the docs to reflect the refactored wiki package layout
 - `2026-04-08`: added a book-harness API surface for `accept_goal`, `produce_task_batch`, `hydrate_worker_context`, `persist_result`, `summarize_state`, and `report_health`, plus an optional `moontown` extension pack so MoonBook can act as a per-domain harness without losing its standalone wiki behavior
 - `2026-04-05`: added wiki review lifecycle commands with pending/approved queues, maintenance-plan updates, query-signal propagation, stronger claim status/support/confidence handling, and review-queue lint checks
@@ -57,9 +61,12 @@ MoonBook is strongest when you want one local system to handle:
 - 🏗️ end-to-end `init`, `build`, `serve`, `watch`, `load`, `test`, `clean`, and `version` commands
 - 🌐 local static HTTP serving with polling rebuilds and current CLI conveniences like `--open`, `--dest-dir`, and `--watcher poll|native`
 - 🧱 HTML rendering with sidebar navigation, breadcrumbs, previous/next links, local asset copying, code-block handling, tables, footnotes, raw HTML passthrough, and GitHub-style markdown layout cues
+- ✨ optional `site/` marketing website projection that is copied into `book/site/` during build and serve
+- ✨ generated live marketing projection emitted into `book/site/generated/` from current wiki, keeper, and review state
 - 🧠 wiki workspace bootstrap with:
   - `raw/`
   - `keeper/`
+  - `site/`
   - `wiki/`
   - `index.md`
   - `log.md`
@@ -106,6 +113,7 @@ MoonBook is strongest when you want one local system to handle:
   - review backlog growth
   - crowded Keeper memory and missing evidence capture
 - 🔌 extension-based add-ons with `moonclaw` and `moontown` packs
+- 🧱 workspace-owned source semantics so placeholder files like `.gitkeep` do not become durable source pages
 - 🏙️ optional `moontown` add-on that exposes a town-facing book API over the same workspace
 - 🧠 Keeper memory bootstrap with `keeper/MEMORY.md`, `keeper/USER.md`, `keeper/WORKING.md`, and `keeper/POLICY.md`
 - 🧾 evidence tracking in `wiki/synthesis/evidence.md` for persisted worker results and review outcomes
@@ -168,6 +176,8 @@ moon run cmd/main -- wiki review list ./research-wiki
 moon run cmd/main -- wiki review approve ./research-wiki <review-id>
 moon run cmd/main -- wiki lint ./research-wiki
 moon run cmd/main -- build ./research-wiki
+# optional: open ./research-wiki/book/site/index.html for the authored marketing surface
+# optional: open ./research-wiki/book/site/generated/index.html for the live generated projection
 ```
 
 Useful validation commands:
@@ -201,5 +211,10 @@ MoonBook is not full upstream mdBook parity yet. It already handles a large loca
 On the wiki side, MoonBook now has a real persistent workspace loop with init+enable+ingest+query+review+lint+serve, bounded Keeper memory, evidence capture for persisted results, a maintained synthesis map, staged durable promotion through review, and a book-local planning task surface. It still stops short of a full domain-tuned wiki-maintainer brain: claim handling is still heuristic, synthesis planning is still lighter than a full claim graph, and the deeper MoonClaw workflow pack still needs to become the preferred operational path rather than just an optional extension.
 
 MoonBook also now exposes a book-harness surface intended for town-level orchestrators like `moontown`, including a machine-readable catalog export for the persisted town bootstrap path. That integration stays optional and file-based. A plain MoonBook workspace still builds, serves, and behaves as a standalone wiki without requiring any external control plane.
+
+That book-harness surface now also smooths over two integration details:
+
+- `wiki book context` can resolve external bootstrap-style task ids onto the nearest local MoonBook task kind instead of requiring an exact task id from the latest task batch
+- `wiki enable moonclaw` seeds `.moonclaw/providers.json` with the provider-task target name `moonbook`, so MoonClaw has a workspace-local manifest for `wiki book tasks/context/persist`
 
 The `moonclaw` add-on is also aligned with MoonClaw's current role substrate: MoonBook seeds a host-owned `Keeper` policy, wiki-maintainer/review skills, and role-aware controller/worker profiles so the embedded planner feels book-specific without hard-coding MoonClaw product policy into MoonBook core.
