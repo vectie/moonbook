@@ -45,11 +45,14 @@ Implemented behaviors:
 - `build` and `serve` copy an optional root `site/` marketing projection into `book/site/`
 - `build` and `serve` generate a live marketing projection into `book/site/generated/`
 - generated site also includes a dedicated journal view at `book/site/generated/journal.html`
+- generated site also includes a `ctc`-inspired educational course view at `book/site/generated/course.html`
 - `serve --watcher native` currently falls back to the poll backend with an explicit notice
 - `wiki init` scaffolds `raw/`, `wiki/`, `AGENTS.md`, `wiki.toml`, and a MoonBook-compatible `book.toml`
+- `wiki init` scaffolds `raw/bootstrap/` for raw-first bootstrap source packets
 - `wiki init` keeps the core workspace agent-agnostic
 - `wiki init` scaffolds a `site/` marketing website projection with `index.html`, `styles.css`, and `app.js`
 - `wiki init` seeds a dedicated `skills/wiki-marketing/SKILL.md` routine for maintaining `site/` as a presentation layer distinct from `wiki/`
+- `wiki init` copies repo-owned static `SKILL.md` templates from `seed/wiki/skills/` instead of generating them in code
 - generated marketing projection includes current status, workflow, review pressure, keeper memory, depth links, and synthesis preview from live workspace state
 - `wiki init` seeds `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
 - `wiki init` seeds claims, maintenance-plan, query-insights, pending-review, and approved-review pages
@@ -57,12 +60,15 @@ Implemented behaviors:
 - `wiki init` seeds bounded Keeper memory files under `keeper/`
 - `wiki init` seeds `wiki/synthesis/evidence.md`, `wiki/synthesis/map.md`, and `keeper/INSIGHTS.md`
 - `wiki init` seeds `wiki/history/journey.md` for compact run history
+- `wiki init` seeds `wiki/history/debug-journal.md` for detailed run-by-run debug notes
 - `wiki init` outputs a workspace that can immediately be built with `moonbook build`
 - `wiki enable moonclaw` installs MoonClaw-specific runtime/config/workspace files without overwriting them
 - `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`
-- `wiki enable moonclaw` seeds `KEEPER.md` plus `skills/wiki-maintainer/SKILL.md` and `skills/wiki-review/SKILL.md`
+- `wiki enable moonclaw` seeds `KEEPER.md` plus `skills/wiki-maintainer/SKILL.md` and `skills/wiki-review/SKILL.md` from static repo templates
 - `wiki enable moonclaw` seeds role-aware controller/worker profiles with explicit `role_runtime` envelopes aligned to MoonClaw's planner substrate
 - `wiki enable moonclaw` seeds `.moonclaw/providers.json` with the provider-task target name `moonbook`
+- `wiki enable moonclaw` now decomposes ingest work into gather, material-prep, inspect, plan, revise, review, and finalize stages instead of jumping straight into a monolithic inspect step
+- `wiki enable moonclaw` now uses a raw-first bootstrap flow where gather workers stage packets under `raw/bootstrap/` before keeper revision
 - `wiki enable moontown` installs an optional town-facing book API manifest and guide without changing the core wiki contract
 - `wiki enable moontown` records an extension manifest under `.moonbook/extensions/moontown.json`
 - `wiki ingest` imports sources into `raw/imported/` when needed
@@ -95,6 +101,7 @@ Implemented behaviors:
 - `wiki book tasks` emits a dedicated planning task when health or goal wording indicates planning pressure
 - `wiki book context` returns a machine-readable worker context bundle derived from book-local policy, Keeper memory, routines, and relevance-ranked durable pages
 - `wiki book persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, records evidence in `wiki/synthesis/evidence.md`, syncs non-durable memory candidates into Keeper memory, promotes immediately-safe durable candidates into target pages, stages review-gated durable candidates, refreshes `keeper/INSIGHTS.md`, updates the maintenance plan, and can queue review
+- `wiki book persist` also appends a detailed classification entry to `wiki/history/debug-journal.md`, including artifacts, memory candidates, and explicit notes when a result was only administrative
 - `wiki book catalog` returns a machine-readable town catalog record with id, purpose, workspace root, memory scope, tags, and skills
 - `wiki book summary` returns page/review counts plus Keeper/evidence counts and a compact state summary
 - `wiki book health` returns backlog, low-confidence claim, crowded-working-memory, and missing-evidence health signals for the book

@@ -1,12 +1,18 @@
 # MoonBook
 
-> 📚 MoonBit-native rewrite of rust-lang/mdBook + 🧱 static renderer + 🌐 local server + 🧠 persistent wiki workspace + ✨ marketing website projection + 🧭 generated journal timeline
+> 📚 MoonBit-native rewrite of rust-lang/mdBook + 🧱 static renderer + 🌐 local server + 🧠 persistent wiki workspace + ✨ marketing website projection + 🧭 generated journal timeline + 🎓 generated course projection
 
 `MoonBit` `mdBook` `Wiki` `SUMMARY.md` `HTML Renderer` `Serve` `Watch` `Rabbita`
 
 MoonBook is a MoonBit rewrite of [rust-lang/mdBook](https://github.com/rust-lang/mdBook), extended into a local wiki-maintainer workspace instead of stopping at static book generation.
 
 The project is also motivated by [karpathy/llm-wiki.md](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f): the idea that raw sources should accumulate into a persistent, maintained markdown wiki rather than being rediscovered from scratch at query time.
+
+Current wiki workspaces use a raw-first bootstrap flow:
+
+- workers stage discovered source packets under `raw/bootstrap/`
+- Keeper ingests those packets into durable wiki pages
+- `SKILL.md` files are repo-owned static templates copied from `seed/`, not generated at runtime
 
 It is designed for:
 
@@ -41,12 +47,13 @@ MoonBook is strongest when you want one local system to handle:
 - 🗂️ persistent wiki pages between sessions
 - 🌐 a marketing-oriented website projection for demos and launches
 - 🧭 a journey layer that turns noisy runs into a readable operator timeline
+- 🎓 a course layer that teaches the workspace in plain language
 - 🧠 small rewriteable Keeper memory between worker runs
 - 🤝 agent-compatible wiki workspaces without hard-coupling to one runtime
 
 ## News
 
-- `2026-04-16`: added `wiki/history/journey.md` as a compact run timeline, taught persisted book results to maintain it, and split the generated site into a horizontal marketing projection plus a dedicated journal view
+- `2026-04-16`: added `wiki/history/journey.md` as a compact run timeline, split the generated site into marketing and journal views, and embedded a `ctc`-inspired course projection plus `wiki-course` skill route
 - `2026-04-13`: added Keeper evidence and insight maintenance so persisted worker results now append support records, stage durable promotions for review, refresh keeper health pages, maintain a synthesis map, and hydrate workers with better memory/page recall
 - `2026-04-15`: added an optional `site/` marketing projection for wiki workspaces, plus a dedicated marketing routine/skill boundary, and taught the build pipeline to publish it into `book/site/` alongside the rendered book and wiki
 - `2026-04-05`: split wiki maintenance internals into dedicated workspace, maintenance-plan, and review-helper files; tightened summary dedupe by page path; cleaned entity/concept/claim normalization; updated the docs to reflect the refactored wiki package layout
@@ -67,6 +74,7 @@ MoonBook is strongest when you want one local system to handle:
 - ✨ optional `site/` marketing website projection that is copied into `book/site/` during build and serve
 - ✨ generated live marketing projection emitted into `book/site/generated/` from current wiki, keeper, and review state
 - 🧭 generated journal view emitted into `book/site/generated/journal.html` from live journey and workspace state
+- 🎓 generated course view emitted into `book/site/generated/course.html` from live workspace and journey state
 - 🧠 wiki workspace bootstrap with:
   - `raw/`
   - `keeper/`
@@ -185,6 +193,7 @@ moon run cmd/main -- build ./research-wiki
 # optional: open ./research-wiki/book/site/index.html for the authored marketing surface
 # optional: open ./research-wiki/book/site/generated/index.html for the live generated projection
 # optional: open ./research-wiki/book/site/generated/journal.html for the generated journal view
+# optional: open ./research-wiki/book/site/generated/course.html for the generated course view
 ```
 
 Useful validation commands:

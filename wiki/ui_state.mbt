@@ -174,6 +174,12 @@ pub async fn write_marketing_projection(
   let journal_state_path = @path.Path(generated_dir)
     .join(@path.Path("journal-state.json"))
     .to_string()
+  let course_index_path = @path.Path(generated_dir)
+    .join(@path.Path("course.html"))
+    .to_string()
+  let course_state_path = @path.Path(generated_dir)
+    .join(@path.Path("course-state.json"))
+    .to_string()
   @fsx.write_to_file(
     state_path,
     state.to_json().stringify(indent=2),
@@ -192,6 +198,16 @@ pub async fn write_marketing_projection(
   @fsx.write_to_file(
     journal_index_path,
     journal_projection_html(state, updated_note),
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    course_state_path,
+    state.to_json().stringify(indent=2),
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    course_index_path,
+    course_projection_html(state, updated_note),
     create=0o644,
   )
   @fsx.write_to_file(styles_path, marketing_projection_styles(), create=0o644)
@@ -904,6 +920,196 @@ fn journal_projection_html(state : UiState, updated_note : String) -> String {
 }
 
 ///|
+fn course_projection_html(state : UiState, updated_note : String) -> String {
+  let book_prefix = "../../"
+  let module_cards = state.workflow
+    .map(fn(item) {
+      "<article class=\"module-card\">" +
+      "<span class=\"module-kicker\">\{escape_html(item.status)}</span>" +
+      "<h3>\{escape_html(item.title)}</h3>" +
+      "<p>\{escape_html(item.detail)}</p>" +
+      "</article>"
+    })
+    .join("")
+  let journey = state.journey
+    .map(fn(item) { marketing_journey_item(item) })
+    .join("")
+  let checkpoints = course_checkpoint_cards().join("")
+  let glossary = course_glossary_cards().join("")
+  let metrics = state.metrics
+    .map(fn(metric) {
+      "<article class=\"metric-card metric-\{metric.tone}\">" +
+      "<span class=\"metric-label\">\{escape_html(metric.label)}</span>" +
+      "<strong>\{escape_html(metric.value)}</strong>" +
+      "<p>\{escape_html(metric.note)}</p>" +
+      "</article>"
+    })
+    .join("")
+  let code_translation = course_translation_block(state, updated_note)
+  "<!doctype html>\n" +
+  "<html lang=\"en\">\n" +
+  "<head>\n" +
+  "  <meta charset=\"utf-8\">\n" +
+  "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+  "  <title>\{escape_html(state.title)} Course</title>\n" +
+  "  <meta name=\"description\" content=\"Educational course projection generated from MoonBook workspace state.\">\n" +
+  "  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n" +
+  "  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n" +
+  "  <link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n" +
+  "  <link rel=\"stylesheet\" href=\"./styles.css\">\n" +
+  "</head>\n" +
+  "<body>\n" +
+  "  <div class=\"backdrop\"></div>\n" +
+  "  <header class=\"topbar\">\n" +
+  "    <a class=\"brand\" href=\"./index.html\"><span class=\"brand-mark\">MB</span><span>\{escape_html(state.title)}</span></a>\n" +
+  "    <nav class=\"nav\">\n" +
+  "      <a href=\"./index.html\">Marketing</a>\n" +
+  "      <a href=\"./journal.html\">Journal</a>\n" +
+  "      <a href=\"\{book_prefix}Home.html\">Wiki</a>\n" +
+  "      <a href=\"#modules\">Modules</a>\n" +
+  "      <a href=\"#checkpoints\">Checkpoints</a>\n" +
+  "    </nav>\n" +
+  "  </header>\n" +
+  "  <main class=\"page-shell journal-shell\">\n" +
+  "    <section class=\"hero reveal\">\n" +
+  "      <div class=\"hero-copy\">\n" +
+  "        <p class=\"eyebrow\">Course view</p>\n" +
+  "        <h1>Learn how this workspace works without reading the whole codebase.</h1>\n" +
+  "        <p class=\"lede\">\{escape_html(state.summary)}</p>\n" +
+  "        <div class=\"hero-actions\">\n" +
+  "          <a class=\"button button-primary\" href=\"\{book_prefix}Home.html\">Open maintained wiki</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"./index.html\">Back to marketing</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"./journal.html\">Open journal</a>\n" +
+  "        </div>\n" +
+  "      </div>\n" +
+  "      <div class=\"hero-stage\">\n" +
+  "        <div class=\"panel-block\">\n" +
+  "          <span class=\"panel-label\">teaching frame</span>\n" +
+  "          <p>This surface explains the system in plain language. It teaches the actors, flow, and operational reasoning without replacing the detailed wiki.</p>\n" +
+  "        </div>\n" +
+  "        <div class=\"panel-block panel-block-dark\">\n" +
+  "          <span class=\"panel-label\">latest change</span>\n" +
+  "          <pre><code>\{escape_html(updated_note)}</code></pre>\n" +
+  "        </div>\n" +
+  "      </div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\" id=\"modules\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Module 1</p>\n" +
+  "        <h2>Meet the operating stages.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"workflow-grid\">\{module_cards}</div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Module 2</p>\n" +
+  "        <h2>Translate system language into plain English.</h2>\n" +
+  "      </div>\n" +
+  "      \{code_translation}\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Module 3</p>\n" +
+  "        <h2>See the timeline and the state together.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"journey-grid\">\{journey}</div>\n" +
+  "      <div class=\"metric-grid\">\{metrics}</div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\">\n" +
+  "      <div class=\"section-heading narrow\">\n" +
+  "        <p class=\"eyebrow\">Module 4</p>\n" +
+  "        <h2>Vocabulary you can use to steer the system better.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"journey-grid quiz-grid\">\{glossary}</div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\" id=\"checkpoints\">\n" +
+  "      <div class=\"section-heading narrow\">\n" +
+  "        <p class=\"eyebrow\">Checkpoints</p>\n" +
+  "        <h2>Test whether the explanation is actually usable.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"journey-grid quiz-grid\">\{checkpoints}</div>\n" +
+  "    </section>\n" +
+  "  </main>\n" +
+  "  <script src=\"./app.js\"></script>\n" +
+  "</body>\n" +
+  "</html>\n"
+}
+
+///|
+fn course_translation_block(state : UiState, updated_note : String) -> String {
+  let left = "workspace.health = \{state.status_chips.length()} visible signals\\n" +
+    "workspace.metrics = \{state.metrics.length()} live counters\\n" +
+    "workspace.journey = \{state.journey.length()} timeline entries\\n" +
+    "latest_update = \{updated_note}"
+  let right = [
+      "The workspace exposes a small set of visible health signals.", "It keeps a few live counters so you can tell whether coverage is real.",
+      "It maintains a compact timeline instead of forcing you to read raw logs.",
+      "The latest update is surfaced as the current narrative anchor.",
+    ]
+    .map(fn(line) { "<li>\{escape_html(line)}</li>" })
+    .join("")
+  "<div class=\"depth-grid\">" +
+  "<div class=\"depth-card\"><h3>System language</h3><pre class=\"preview-block\"><code>\{escape_html(left)}</code></pre></div>" +
+  "<div class=\"depth-card\"><h3>Plain English</h3><ul class=\"translation-list\">\{right}</ul></div>" +
+  "</div>"
+}
+
+///|
+fn course_glossary_cards() -> Array[String] {
+  [
+    course_glossary_card(
+      "Coverage readiness", "Whether the workspace has enough durable sources, ontology pages, and evidence to support synthesis reliably.",
+    ),
+    course_glossary_card(
+      "Journey", "A compact timeline page that records major runs, decisions, failures, and open loops from past to now.",
+    ),
+    course_glossary_card(
+      "Projection", "A derived website surface built from maintained wiki state, not a separate source of truth.",
+    ),
+    course_glossary_card(
+      "Keeper memory", "Bounded working, user, and active memory used to hydrate future worker runs without bloating the core wiki.",
+    ),
+  ]
+}
+
+///|
+fn course_glossary_card(term : String, explanation : String) -> String {
+  "<article class=\"journey-card quiz-card\">" +
+  "<div class=\"journey-meta\"><span>glossary</span><span class=\"journey-status status-active\">term</span></div>" +
+  "<h3>\{escape_html(term)}</h3>" +
+  "<p>\{escape_html(explanation)}</p>" +
+  "</article>"
+}
+
+///|
+fn course_checkpoint_cards() -> Array[String] {
+  [
+    course_checkpoint_card(
+      "Why is the course surface separate from marketing?", "Because the course teaches how the system works, while marketing emphasizes the horizontal product advantage.",
+    ),
+    course_checkpoint_card(
+      "Why is the journal surface separate from the course?", "Because the journal follows time from past to now to next, while the course organizes explanation into reusable teaching modules.",
+    ),
+    course_checkpoint_card(
+      "What page should you inspect if you want the durable run timeline?", "Start with `wiki/history/journey.md`, not the marketing or course surfaces.",
+    ),
+    course_checkpoint_card(
+      "What makes this course safe to generate automatically?", "It is derived from maintained wiki state and teaches that state, instead of inventing an independent narrative.",
+    ),
+  ]
+}
+
+///|
+fn course_checkpoint_card(question : String, answer : String) -> String {
+  "<article class=\"journey-card quiz-card\">" +
+  "<div class=\"journey-meta\"><span>checkpoint</span><span class=\"journey-status status-active\">interactive</span></div>" +
+  "<h3>\{escape_html(question)}</h3>" +
+  "<button class=\"quiz-toggle\" type=\"button\">Reveal answer</button>" +
+  "<p class=\"quiz-answer\" hidden>\{escape_html(answer)}</p>" +
+  "</article>"
+}
+
+///|
 fn marketing_projection_styles() -> String {
   ":root {\n" +
   "  --paper: #fbf5ea;\n" +
@@ -995,6 +1201,7 @@ fn marketing_projection_styles() -> String {
   ".panel-item { padding: 1rem; margin-top: 0.9rem; border: 1px solid rgba(16, 33, 29, 0.08); }\n" +
   ".journey-card { padding: 1.2rem; border-radius: 1.35rem; border: 1px solid rgba(16, 33, 29, 0.08); background: rgba(255,255,255,0.62); box-shadow: var(--shadow); }\n" +
   ".journey-card ul { margin: 0.9rem 0 0; padding-left: 1.1rem; color: var(--muted); }\n" +
+  ".translation-list { margin: 0; padding-left: 1.1rem; color: var(--muted); line-height: 1.7; }\n" +
   ".journey-meta { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 0.7rem; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }\n" +
   ".journey-status { color: var(--muted); }\n" +
   ".journal-shell .hero h1 { max-width: 11ch; }\n" +
@@ -1127,6 +1334,18 @@ async test "write marketing projection emits generated site bundle" {
     @fsx.exists(
       @path.Path(generated_dir)
       .join(@path.Path("journal-state.json"))
+      .to_string(),
+    ),
+  )
+  assert_true(
+    @fsx.exists(
+      @path.Path(generated_dir).join(@path.Path("course.html")).to_string(),
+    ),
+  )
+  assert_true(
+    @fsx.exists(
+      @path.Path(generated_dir)
+      .join(@path.Path("course-state.json"))
       .to_string(),
     ),
   )

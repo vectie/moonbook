@@ -50,15 +50,17 @@ Runs a local static HTTP server for the built book:
 Bootstraps a wiki workspace instead of a plain mdBook:
 
 1. creates `raw/` for immutable source material
-2. creates `wiki/` as the rendered markdown knowledge base
-3. writes `wiki/SUMMARY.md`, `wiki/Home.md`, `wiki/index.md`, and `wiki/log.md`
-4. writes a root `AGENTS.md` schema file for future ingest/query/lint workflows
-5. writes `book.toml` with `src = "wiki"` so the workspace can already be built and served by MoonBook
-6. writes `wiki.toml` as a small machine-readable workspace descriptor
-7. creates reserved directories for `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
-8. seeds `wiki/synthesis/claims.md`, `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/query-insights.md`, `wiki/synthesis/map.md`, `wiki/synthesis/observations.md`, `wiki/synthesis/evidence.md`, `wiki/reviews/pending.md`, and `wiki/reviews/approved.md`
-9. seeds bounded Keeper memory files under `keeper/`, including `keeper/INSIGHTS.md`
-10. seeds an optional `site/` marketing website projection with `index.html`, `styles.css`, and `app.js`
+2. creates `raw/bootstrap/` for generated source packets used during bootstrap discovery
+3. creates `wiki/` as the rendered markdown knowledge base
+4. writes `wiki/SUMMARY.md`, `wiki/Home.md`, `wiki/index.md`, and `wiki/log.md`
+5. writes a root `AGENTS.md` schema file for future ingest/query/lint workflows
+6. writes `book.toml` with `src = "wiki"` so the workspace can already be built and served by MoonBook
+7. writes `wiki.toml` as a small machine-readable workspace descriptor
+8. creates reserved directories for `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
+9. seeds repo-owned static `SKILL.md` templates into `skills/`
+10. seeds `wiki/synthesis/claims.md`, `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/query-insights.md`, `wiki/synthesis/map.md`, `wiki/synthesis/observations.md`, `wiki/synthesis/evidence.md`, `wiki/reviews/pending.md`, and `wiki/reviews/approved.md`
+11. seeds bounded Keeper memory files under `keeper/`, including `keeper/INSIGHTS.md`
+12. seeds an optional `site/` marketing website projection with `index.html`, `styles.css`, and `app.js`
 
 ### `moon run cmd/main -- wiki enable <extension> [root]`
 
@@ -67,7 +69,8 @@ Installs an optional runtime/agent extension pack into an existing wiki workspac
 1. creates `.moonbook/extensions/`
 2. writes an extension manifest for the selected pack
 3. writes any extension-owned runtime/config/workspace files
-4. preserves existing files instead of overwriting them
+4. copies extension-owned static `SKILL.md` templates from the repo seed directory
+5. preserves existing files instead of overwriting them
 
 Current supported extensions:
 
@@ -401,8 +404,12 @@ Created by `moonbook wiki init`:
   machine-readable snapshot used by the generated marketing projection
 - `book/site/generated/journal.html`
   generated journal view built from live workspace and journey state
+- `book/site/generated/course.html`
+  generated educational course view built from live workspace and journey state
 - `wiki/history/journey.md`
   compact operator timeline distilled from persisted book results
+- `wiki/history/debug-journal.md`
+  detailed debug trail for intermediate material preparation and result quality
   includes explicit readiness signals such as source, entity, concept, and query counts plus `substantive_coverage_ready`
 - `keeper/MEMORY.md`
   bounded reusable domain memory for Keeper

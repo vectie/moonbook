@@ -85,11 +85,12 @@ async fn install_moonclaw_extension(
   write_extension_file_if_missing(routines_path, routines_text())
   write_extension_file_if_missing(memory_path, memory_text())
   write_extension_file_if_missing(keeper_path, keeper_text())
-  write_extension_file_if_missing(
-    maintainer_skill_path,
-    wiki_maintainer_skill_text(),
+  copy_extension_seed_tree_if_missing(
+    maintainer_dir, "seed/extensions/moonclaw/skills/wiki-maintainer",
   )
-  write_extension_file_if_missing(review_skill_path, wiki_review_skill_text())
+  copy_extension_seed_tree_if_missing(
+    review_dir, "seed/extensions/moonclaw/skills/wiki-review",
+  )
   write_extension_file_if_missing(manifest_path, moonclaw_manifest_text())
   {
     root,
@@ -132,6 +133,47 @@ async fn write_extension_file_if_missing(
 ) -> Unit {
   if !@fsx.exists(path) {
     @fsx.write_to_file(path, content, create=0o644)
+  }
+}
+
+///|
+async fn copy_extension_seed_tree_if_missing(
+  destination_path : String,
+  seed_relative_path : String,
+) -> Unit {
+  let source_path = @path.Path(detect_moonbook_module_root())
+    .join(@path.Path(seed_relative_path))
+    .to_string()
+  if !@fsx.exists(source_path) {
+    fail("missing extension seed file: \{source_path}")
+  }
+  copy_extension_seed_tree(source_path, destination_path)
+}
+
+///|
+async fn copy_extension_seed_tree(
+  source_path : String,
+  destination_path : String,
+) -> Unit {
+  match @fs.kind(source_path, follow_symlink=false) {
+    @fs.FileKind::Directory => {
+      @fsx.make_directory(destination_path, recursive=true, exists_ok=true)
+      for child in @fsx.list_directory(source_path) {
+        let child_name = @path.Path(child).basename().to_string()
+        copy_extension_seed_tree(
+          child,
+          @path.Path(destination_path).join(@path.Path(child_name)).to_string(),
+        )
+      }
+    }
+    _ =>
+      if !@fsx.exists(destination_path) {
+        @fsx.write_to_file(
+          destination_path,
+          @fsx.read_file(source_path),
+          create=0o644,
+        )
+      }
   }
 }
 
@@ -220,40 +262,66 @@ fn moonclaw_jobs_text() -> String {
   "        },\n" +
   "        \"steps\": [\n" +
   "          {\n" +
+  "            \"id\": \"discover_sources\",\n" +
+  "            \"title\": \"Discover substantive source material\",\n" +
+  "            \"kind\": \"job.delegate\",\n" +
+  "            \"request_template\": \"Act as the wiki gather worker for ${proposal.title}. Gather high-signal material from the current workspace and any explicitly allowed local sources. Focus on substantive source files, repo docs, specs, and implementation files that can support durable wiki pages. Write one or more source packets under raw/bootstrap/ with provenance, evidence bullets, and source-path notes before claiming progress. Return structured findings with concrete raw packet paths, source paths, entity candidates, concept candidates, open questions, and a readiness judgment. Do not claim success with only generic completion text.\",\n" +
+  "            \"child_profile\": \"wiki_gather_worker\",\n" +
+  "            \"include_parent_outputs\": true,\n" +
+  "            \"max_depth\": 3,\n" +
+  "            \"metadata\": {\n" +
+  "              \"board_lane\": \"Discover\",\n" +
+  "              \"board_order\": 0\n" +
+  "            }\n" +
+  "          },\n" +
+  "          {\n" +
+  "            \"id\": \"prepare_materials\",\n" +
+  "            \"title\": \"Prepare ingestable materials\",\n" +
+  "            \"kind\": \"job.delegate\",\n" +
+  "            \"request_template\": \"Act as the wiki gather worker for ${proposal.title}. Transform discovered source material into ingestable raw packets under raw/bootstrap/: source summaries, evidence bullets, candidate pages to update, and explicit blockers when material is still too weak. Return the raw/bootstrap paths in artifacts. If the gathered material is not enough for MoonBook ingestion, say so explicitly and explain what is missing.\",\n" +
+  "            \"child_profile\": \"wiki_gather_worker\",\n" +
+  "            \"include_parent_outputs\": true,\n" +
+  "            \"max_depth\": 3,\n" +
+  "            \"metadata\": {\n" +
+  "              \"board_lane\": \"Prepare\",\n" +
+  "              \"board_order\": 1\n" +
+  "            }\n" +
+  "          },\n" +
+  "          {\n" +
   "            \"id\": \"inspect_source\",\n" +
   "            \"title\": \"Inspect provider-updated wiki state\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Act as the wiki maintainer keeper for ${proposal.title}. Treat the MoonBook workspace extension as the owner of source discovery, source admissibility, durable source-page creation, and readiness signals. Inspect `wiki/sources/`, `wiki/index.md`, `wiki/log.md`, and the most relevant entity, concept, synthesis, and query pages. Do not re-decide whether hidden placeholders, `.gitkeep`, or other workspace scaffolding count as substantive sources.\",\n" +
+  "            \"prompt_template\": \"Act as the wiki maintainer keeper for ${proposal.title}. Review the gathered raw/bootstrap packets and provider-updated wiki state. Treat MoonBook as the owner of durable wiki writes, but verify whether the gathered material is actually strong enough for ingestion. Inspect `raw/bootstrap/`, `wiki/sources/`, `wiki/index.md`, `wiki/log.md`, the gather-worker outputs, and the most relevant entity, concept, synthesis, and query pages. Do not re-decide whether hidden placeholders, `.gitkeep`, or other workspace scaffolding count as substantive sources.\",\n" +
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
   "              \"board_lane\": \"Inspect\",\n" +
-  "              \"board_order\": 0\n" +
+  "              \"board_order\": 2\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
   "            \"id\": \"plan_revisions\",\n" +
   "            \"title\": \"Plan durable wiki revisions\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Turn the inspected wiki state for ${proposal.title} into a concrete revision plan. Treat `wiki/sources/` as already materialized by the MoonBook extension/provider, then specify which maintained pages under wiki/entities/, wiki/concepts/, wiki/synthesis/, and wiki/queries/ should be created or revised, plus the required changes to wiki/index.md and wiki/log.md. Prefer cumulative revisions over one-off chat summaries. Favor stable domain pages and synthesis pages over token-derived or low-signal pages. Merge or delete noisy pages instead of preserving weak ontology.\",\n" +
+  "            \"prompt_template\": \"Turn the gathered raw/bootstrap materials and inspected wiki state for ${proposal.title} into a concrete revision plan. Separate: raw packets to ingest, substantive pages to create, substantive pages to revise, and blockers caused by weak materials. Treat generic completion text as failure, not success. Prefer cumulative revisions over one-off chat summaries. Favor stable domain pages and synthesis pages over token-derived or low-signal pages. Merge or delete noisy pages instead of preserving weak ontology.\",\n" +
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
   "              \"board_lane\": \"Plan\",\n" +
-  "              \"board_order\": 1\n" +
+  "              \"board_order\": 3\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
   "            \"id\": \"apply_revisions\",\n" +
   "            \"title\": \"Apply wiki revisions\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Apply the approved wiki revision plan for ${proposal.title}. Edit the wiki markdown directly, keep raw/ immutable, update cross-links, and make sure wiki/index.md and wiki/log.md reflect the changes. Prefer high-signal source summaries, stable entity/concept naming, and synthesis-first organization over token extraction.\",\n" +
+  "            \"request_template\": \"Apply the approved wiki revision plan for ${proposal.title}. Read the prepared raw/bootstrap packets, edit the wiki markdown directly, keep raw packet provenance intact, update cross-links, and make sure wiki/index.md and wiki/log.md reflect the changes. Do not claim success unless at least one substantive durable page under wiki/sources/, wiki/entities/, wiki/concepts/, or wiki/queries/ is created or revised, or you return an explicit structured blocker.\",\n" +
   "            \"child_profile\": \"wiki_revision_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
   "              \"board_lane\": \"Revise\",\n" +
-  "              \"board_order\": 2\n" +
+  "              \"board_order\": 4\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
@@ -266,19 +334,19 @@ fn moonclaw_jobs_text() -> String {
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
   "              \"board_lane\": \"Review\",\n" +
-  "              \"board_order\": 3\n" +
+  "              \"board_order\": 5\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
   "            \"id\": \"finalize_ingest\",\n" +
   "            \"title\": \"Finalize ingest brief\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Summarize the wiki ingest result for ${proposal.title}. Explain what pages changed, what claims were strengthened or challenged, what remains uncertain, and which next sources or follow-up questions would most improve the wiki.\",\n" +
+  "            \"prompt_template\": \"Summarize the wiki ingest result for ${proposal.title}. Explain which raw/bootstrap packets were written, what substantive pages changed, what claims were strengthened or challenged, what remains uncertain, and which next sources or follow-up questions would most improve the wiki. If no substantive pages changed, say that explicitly and classify the run as administrative rather than knowledge-producing.\",\n" +
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
   "              \"board_lane\": \"Finalize\",\n" +
-  "              \"board_order\": 4\n" +
+  "              \"board_order\": 6\n" +
   "            }\n" +
   "          }\n" +
   "        ],\n" +
@@ -450,6 +518,36 @@ fn moonclaw_jobs_text() -> String {
   "          }\n" +
   "        }\n" +
   "      },\n" +
+  "      \"wiki_gather_worker\": {\n" +
+  "        \"family\": \"wiki_gather_worker\",\n" +
+  "        \"priority\": 25,\n" +
+  "        \"tags\": [\"wiki\", \"maintainer\", \"worker\", \"gather\"],\n" +
+  "        \"steps\": [\n" +
+  "          {\n" +
+  "            \"id\": \"gather_materials\",\n" +
+  "            \"title\": \"Gather source materials\",\n" +
+  "            \"kind\": \"job.analysis\",\n" +
+  "            \"prompt_template\": \"Act as the wiki gather worker for ${request}. Read the workspace, collect substantive evidence, identify concrete source paths, write ingestable source packets under raw/bootstrap/, extract entity and concept candidates, and prepare materials that MoonBook can ingest. Return structured gather output, not generic completion prose.\",\n" +
+  "            \"metadata\": {\n" +
+  "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"role_runtime\": {\n" +
+  "                \"planning_layer\": \"execution\",\n" +
+  "                \"runtime_mode\": \"executor\",\n" +
+  "                \"tool_access\": \"full\",\n" +
+  "                \"memory_scope\": \"workspace\",\n" +
+  "                \"allow_delegate\": false,\n" +
+  "                \"allow_workspace_write\": true,\n" +
+  "                \"allow_execution_tools\": true,\n" +
+  "                \"output_contract\": \"wiki.gather.result.v1\"\n" +
+  "              }\n" +
+  "            }\n" +
+  "          }\n" +
+  "        ],\n" +
+  "        \"metadata\": {\n" +
+  "          \"worker_role\": \"wiki_gather\"\n" +
+  "        }\n" +
+  "      },\n" +
   "      \"wiki_revision_worker\": {\n" +
   "        \"family\": \"wiki_revision_worker\",\n" +
   "        \"priority\": 20,\n" +
@@ -595,13 +693,15 @@ fn keeper_text() -> String {
   "- primary job: produce revision plans, context slices, and persistence decisions for this book\n\n" +
   "## Responsibilities\n\n" +
   "1. decompose town or user goals into book-local tasks\n" +
-  "2. read `RESOLVER.md` and load the relevant `skills/*/SKILL.md` before broad planning\n" +
-  "3. read `wiki/index.md` and `wiki/log.md` before broad revisions\n" +
-  "4. preserve `raw/` as immutable source material\n" +
-  "5. prefer cumulative wiki revisions over chat-only summaries\n" +
-  "6. queue uncertain or contested changes for review instead of silently promoting them\n" +
-  "7. prefer stable domain ontology and synthesis pages over token-derived pages\n" +
-  "8. collapse noisy low-signal pages into stronger maintained pages when necessary\n"
+  "2. fan out research/bootstrap work into separate gather, material-prep, revision, and review tasks instead of trying to do discovery monolithically inside one step\n" +
+  "3. read `RESOLVER.md` and load the relevant `skills/*/SKILL.md` before broad planning\n" +
+  "4. read `wiki/index.md` and `wiki/log.md` before broad revisions\n" +
+  "5. preserve `raw/` as immutable source material\n" +
+  "6. prefer cumulative wiki revisions over chat-only summaries\n" +
+  "7. queue uncertain or contested changes for review instead of silently promoting them\n" +
+  "8. prefer stable domain ontology and synthesis pages over token-derived pages\n" +
+  "9. collapse noisy low-signal pages into stronger maintained pages when necessary\n" +
+  "10. do not treat generic task-completion prose as successful knowledge gathering; require concrete materials or an explicit blocker\n"
 }
 
 ///|
@@ -615,101 +715,31 @@ fn memory_text() -> String {
 }
 
 ///|
-fn wiki_maintainer_skill_text() -> String {
-  with_extension_provider_result_contract(
-    "---\n" +
-    "name: wiki-maintainer\n" +
-    "description: Keeper/revision skill for maintaining a MoonBook wiki workspace.\n" +
-    "---\n\n" +
-    "# Wiki Maintainer\n\n" +
-    "Operate on the maintained wiki layer, not on raw chat history. Treat this as a reusable method, not a one-off prompt.\n\n" +
-    "## Rules\n\n" +
-    "1. Read `RESOLVER.md`, then `wiki/index.md`.\n" +
-    "2. Treat `raw/` as immutable source-of-truth input.\n" +
-    "3. Treat MoonBook's workspace logic as the owner of source admissibility, durable source-page creation, and readiness signals.\n" +
-    "4. Never treat placeholder files such as `.gitkeep`, empty files, or hidden workspace scaffolding as substantive sources.\n" +
-    "5. Prefer revising existing entity, concept, source, synthesis, and query pages over creating isolated notes.\n" +
-    "6. Update `wiki/index.md` and `wiki/log.md` whenever the maintained wiki changes.\n" +
-    "7. Preserve uncertainty explicitly; do not flatten contradictions.\n" +
-    "8. Prefer stable domain pages over token-derived or low-signal pages.\n" +
-    "9. Source pages should read like durable summaries, not raw excerpt dumps.\n",
-  )
-}
-
-///|
-fn wiki_review_skill_text() -> String {
-  with_extension_provider_result_contract(
-    "---\n" +
-    "name: wiki-review\n" +
-    "description: Review skill for consistency, support, and maintenance quality in a MoonBook wiki workspace.\n" +
-    "---\n\n" +
-    "# Wiki Review\n\n" +
-    "Review changes to the maintained wiki with findings-first discipline.\n\n" +
-    "## Checklist\n\n" +
-    "1. broken or missing links\n" +
-    "2. unsupported claims or overreach\n" +
-    "3. stale wording without clear dates\n" +
-    "4. missing backreferences or cross-links\n" +
-    "5. missing `wiki/index.md` / `wiki/log.md` maintenance\n" +
-    "6. weak ontology: token-derived, duplicate, or low-signal pages that should be merged or renamed\n",
-  )
-}
-
-///|
-fn with_extension_provider_result_contract(text : String) -> String {
-  text +
-  "\n## Required Output\n\n" +
-  "When this skill runs through MoonClaw provider or extension execution, return exactly one JSON object.\n\n" +
-  "Required top-level keys:\n\n" +
-  "- `task_id`\n" +
-  "- `summary`\n" +
-  "- `artifacts`\n" +
-  "- `memory_candidates`\n" +
-  "- `requires_review`\n" +
-  "- `notify_town`\n\n" +
-  "Required rules:\n\n" +
-  "- Output JSON only. No prose before or after the JSON object.\n" +
-  "- Do not wrap the actual answer in markdown fences.\n" +
-  "- Always include every top-level key, even when empty.\n" +
-  "- Use `[]` for empty arrays and `null` for missing `target_page` values.\n" +
-  "- `summary` must describe the actual completed work inside the workspace.\n\n" +
-  "## Concrete Example\n\n" +
-  "If you revised maintained wiki pages after an ingest pass, return something like this:\n\n" +
-  "```json\n" +
-  "{\n" +
-  "  \"task_id\": \"goal-coding-research-bootstrap-ingest\",\n" +
-  "  \"summary\": \"Revised wiki/synthesis/observations.md, linked the new source summary from wiki/index.md, and updated wiki/log.md with the ingest change record.\",\n" +
-  "  \"artifacts\": [\n" +
-  "    \"wiki/synthesis/observations.md\",\n" +
-  "    \"wiki/index.md\",\n" +
-  "    \"wiki/log.md\"\n" +
-  "  ],\n" +
-  "  \"memory_candidates\": [\n" +
-  "    {\n" +
-  "      \"kind\": \"finding\",\n" +
-  "      \"title\": \"Bootstrap ingest completed\",\n" +
-  "      \"detail\": \"The workspace now has maintained synthesis pages and index entries for the first research pass.\",\n" +
-  "      \"durable\": true,\n" +
-  "      \"target_page\": \"wiki/synthesis/observations.md\"\n" +
-  "    }\n" +
-  "  ],\n" +
-  "  \"requires_review\": false,\n" +
-  "  \"notify_town\": false\n" +
-  "}\n" +
-  "```\n\n" +
-  "Bad output to avoid:\n\n" +
-  "- `I’ll inspect the wiki first, then I’ll update pages.`\n" +
-  "- a JSON fragment that omits `summary`\n" +
-  "- a markdown review memo instead of the required JSON object\n"
-}
-
-///|
 fn escape_json_string(text : String) -> String {
   text
   .replace(old="\\", new="\\\\")
   .to_string()
   .replace(old="\"", new="\\\"")
   .to_string()
+}
+
+///|
+async fn unique_extension_test_root(base : String) -> String {
+  unique_extension_test_root_with_attempt(base, 0)
+}
+
+///|
+async fn unique_extension_test_root_with_attempt(
+  base : String,
+  attempt : Int,
+) -> String {
+  let suffix = if attempt == 0 { "" } else { "-" + attempt.to_string() }
+  let candidate = base + suffix
+  if @fsx.exists(candidate) {
+    unique_extension_test_root_with_attempt(base, attempt + 1)
+  } else {
+    candidate
+  }
 }
 
 ///|
@@ -728,6 +758,7 @@ test "moonclaw manifest declares config and jobs entrypoints" {
 test "moonclaw jobs seed wiki profiles" {
   let text = moonclaw_jobs_text()
   assert_true(text.contains("\"wiki_ingest_controller\""))
+  assert_true(text.contains("\"wiki_gather_worker\""))
   assert_true(text.contains("\"wiki_query_controller\""))
   assert_true(text.contains("\"wiki_lint_controller\""))
   assert_true(text.contains("\"wiki_revision_worker\""))
@@ -741,6 +772,20 @@ test "moonclaw jobs include role runtime metadata" {
   assert_true(text.contains("\"planning_layer\": \"domain\""))
   assert_true(text.contains("\"runtime_mode\": \"planner_only\""))
   assert_true(text.contains("\"output_contract\": \"keeper.plan.packet.v1\""))
+  assert_true(text.contains("\"output_contract\": \"wiki.gather.result.v1\""))
+}
+
+///|
+test "moonclaw ingest controller decomposes gather before revision" {
+  let text = moonclaw_jobs_text()
+  assert_true(text.contains("\"id\": \"discover_sources\""))
+  assert_true(text.contains("\"id\": \"prepare_materials\""))
+  assert_true(text.contains("\"child_profile\": \"wiki_gather_worker\""))
+  assert_true(
+    text.contains(
+      "Do not claim success unless at least one substantive durable page",
+    ),
+  )
 }
 
 ///|
@@ -770,9 +815,16 @@ test "moontown book text declares book harness apis" {
 }
 
 ///|
-test "extension skill generator includes concrete output example" {
-  let text = wiki_maintainer_skill_text()
-  assert_true(text.contains("## Concrete Example"))
-  assert_true(text.contains("\"summary\""))
+async test "extension maintainer skill is copied from repo templates" {
+  let root = unique_extension_test_root("/tmp/moonbook-extension-skill-copy")
+  ignore(init_workspace(root))
+  ignore(enable_extension(root, "moonclaw"))
+  let text = @fsx.read_file(root + "/skills/wiki-maintainer/SKILL.md")
+  let reference = @fsx.read_file(
+    root + "/skills/wiki-maintainer/references/moonclaw-raw-first.md",
+  )
+  assert_true(text.contains("write new source packets into `raw/bootstrap/`"))
+  assert_true(text.contains("references/moonclaw-raw-first.md"))
   assert_true(text.contains("Bad output to avoid"))
+  assert_true(reference.contains("## Worker split"))
 }

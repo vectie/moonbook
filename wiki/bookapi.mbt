@@ -196,16 +196,16 @@ pub async fn produce_task_batch(
       },
       kind: "ingest",
       prompt: if weak_coverage {
-        "Load `skills/wiki-ingest/SKILL.md`, inspect `raw/`, `wiki/sources/`, and `wiki/synthesis/maintenance-plan.md`, then bootstrap durable book coverage for the goal. Discover or stage high-signal sources, populate maintained source pages, and revise the wiki so later synthesis can cite durable pages: \{goal}"
+        "Load `skills/wiki-ingest/SKILL.md`, inspect `raw/`, `raw/bootstrap/`, `wiki/sources/`, and `wiki/synthesis/maintenance-plan.md`, then bootstrap durable book coverage for the goal. Discover or stage high-signal sources, write source packets into raw/bootstrap/, populate maintained source pages from those packets, and revise the wiki so later synthesis can cite durable pages: \{goal}"
       } else {
-        "Load `skills/wiki-ingest/SKILL.md` and inspect `raw/` and `wiki/sources/` to determine whether the goal requires new source ingestion or revision of existing source summaries: \{goal}"
+        "Load `skills/wiki-ingest/SKILL.md` and inspect `raw/`, `raw/bootstrap/`, and `wiki/sources/` to determine whether the goal requires new source ingestion or revision of existing source summaries: \{goal}"
       },
       priority: ingest_priority,
       requires_review: true,
       target_pages: if weak_coverage {
         [
-          "../raw/README.md", "sources/", "synthesis/overview.md", "synthesis/maintenance-plan.md",
-          "synthesis/evidence.md",
+          "../raw/README.md", "../raw/bootstrap/", "sources/", "synthesis/overview.md",
+          "synthesis/maintenance-plan.md", "synthesis/evidence.md",
         ]
       } else {
         ["sources/", "synthesis/overview.md"]
@@ -295,7 +295,7 @@ pub async fn hydrate_worker_context(
     book_id: book_identity(root),
     workspace_root: workspace.root,
     task_id: task.id,
-    prompt: task.prompt,
+    prompt: task_prompt_with_material_hints(root, task, terms),
     policy,
     routines,
     skill_paths: resolve_skill_paths(root, task),
@@ -315,8 +315,119 @@ fn provider_result_contract_lines() -> Array[String] {
     "Use keys: task_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
     "Set task_id to the active provider task id.", "artifacts must be an array of workspace-relative output paths.",
     "memory_candidates must be an array of objects with kind, title, detail, durable, target_page.",
-    "Use [] for empty arrays and null for missing target_page.",
+    "For bootstrap ingest, artifacts should include one or more raw/bootstrap/* packets before wiki revision claims.",
+    "Use [] for empty arrays and null for missing target_page.", "For ingest or bootstrap work, generic completion text without substantive artifacts or durable candidates is a blocker, not success.",
+    "If ingest work does not produce durable source/entity/concept/query updates, say what material is missing and set requires_review to true.",
   ]
+}
+
+///|
+async fn task_prompt_with_material_hints(
+  root : String,
+  task : BookTask,
+  terms : Array[String],
+) -> String {
+  if task.kind != "ingest" {
+    return task.prompt
+  }
+  let hints = bootstrap_source_hint_lines(
+    root,
+    terms,
+    task.title + " " + task.prompt,
+  )
+  if hints.is_empty() {
+    return task.prompt
+  }
+  task.prompt +
+  "\n\nLocal source hints for this bootstrap pass:\n" +
+  hints.join("\n") +
+  "\n\nUse these paths as candidate primary materials before concluding that the book has no substantive sources."
+}
+
+///|
+async fn bootstrap_source_hint_lines(
+  root : String,
+  terms : Array[String],
+  raw_text : String,
+) -> Array[String] {
+  let normalized_text = raw_text.to_lower()
+  let selected_terms : Array[String] = []
+  for repo in ["moontown", "moonbook", "moonclaw"] {
+    if (terms.contains(repo) || normalized_text.contains(repo)) &&
+      !selected_terms.contains(repo) {
+      selected_terms.push(repo)
+    }
+  }
+  if selected_terms.is_empty() {
+    return []
+  }
+  let base = bootstrap_source_search_root(root)
+  let hints : Array[String] = []
+  for repo in selected_terms {
+    let repo_dir = @path.Path(base).join(@path.Path(repo)).to_string()
+    if !@fsx.exists(repo_dir) {
+      continue
+    }
+    hints.push("- local repo `\{repo}`: `\{repo_dir}`")
+    for candidate in bootstrap_repo_candidate_files(repo_dir) {
+      hints.push("  - candidate source: `\{candidate}`")
+    }
+  }
+  hints
+}
+
+///|
+async fn bootstrap_source_search_root(root : String) -> String {
+  for relative in ["..", "../..", "../../..", "../../../..", "../../../../.."] {
+    let candidate = @path.Path(root)
+      .join(@path.Path(relative))
+      .normalize()
+      .to_string()
+    if @fsx.exists(
+        @path.Path(candidate).join(@path.Path("moontown")).to_string(),
+      ) ||
+      @fsx.exists(
+        @path.Path(candidate).join(@path.Path("moonclaw")).to_string(),
+      ) ||
+      @fsx.exists(
+        @path.Path(candidate).join(@path.Path("moonbook")).to_string(),
+      ) {
+      return candidate
+    }
+  }
+  let current = @env.current_dir().unwrap_or(root)
+  let current_parent = @path.Path(current)
+    .join(@path.Path(".."))
+    .normalize()
+    .to_string()
+  if @fsx.exists(
+      @path.Path(current_parent).join(@path.Path("moontown")).to_string(),
+    ) ||
+    @fsx.exists(
+      @path.Path(current_parent).join(@path.Path("moonclaw")).to_string(),
+    ) ||
+    @fsx.exists(
+      @path.Path(current_parent).join(@path.Path("moonbook")).to_string(),
+    ) {
+    current_parent
+  } else {
+    @path.Path(root).join(@path.Path("..")).normalize().to_string()
+  }
+}
+
+///|
+async fn bootstrap_repo_candidate_files(repo_dir : String) -> Array[String] {
+  let files : Array[String] = []
+  for
+    relative in [
+      "README.md", "README.mbt.md", "AGENTS.md", "moon.mod.json", "cmd/main/main.mbt",
+    ] {
+    let absolute = @path.Path(repo_dir).join(@path.Path(relative)).to_string()
+    if @fsx.exists(absolute) {
+      files.push(absolute)
+    }
+  }
+  files
 }
 
 ///|
@@ -334,6 +445,7 @@ pub async fn persist_result(
   root : String,
   result : BookResult,
 ) -> PersistResultOutcome {
+  let normalized_result = normalize_provider_result(result)
   let workspace = workspace_paths(root)
   let updated_pages : Array[String] = []
   let observations_relative = ensure_observations_page(workspace)
@@ -342,16 +454,16 @@ pub async fn persist_result(
     .join(@path.Path(observations_relative))
     .to_string()
   let mut observations = @fsx.read_file(observations_path)
-  let block = persisted_result_block(result)
+  let block = persisted_result_block(normalized_result)
   observations = append_section_block(observations, "## Results", block)
   @fsx.write_to_file(observations_path, observations, create=0o644)
-  let evidence_id = append_result_evidence(workspace, result)
+  let evidence_id = append_result_evidence(workspace, normalized_result)
   let evidence_relative = evidence_relative_page()
   if !updated_pages.contains(evidence_relative) {
     updated_pages.push(evidence_relative)
   }
 
-  for page in keeper_sync_result(root, result) {
+  for page in keeper_sync_result(root, normalized_result) {
     if !updated_pages.contains(page) {
       updated_pages.push(page)
     }
@@ -360,7 +472,7 @@ pub async fn persist_result(
   for
     page in promote_durable_candidates(
       workspace,
-      immediate_durable_candidates(result),
+      immediate_durable_candidates(normalized_result),
     ) {
     if !updated_pages.contains(page) {
       updated_pages.push(page)
@@ -369,14 +481,14 @@ pub async fn persist_result(
 
   let plan_relative = ensure_maintenance_plan_entry(
     workspace,
-    "Persist result: \{result.task_id}",
+    "Persist result: \{normalized_result.task_id}",
     "persist-result",
     "wiki/" + observations_relative,
     updated_pages,
     [
-      "notify_town: \{result.notify_town}",
-      "requires_review: \{result.requires_review}",
-      "artifacts: \{result.artifacts.length()}",
+      "notify_town: \{normalized_result.notify_town}",
+      "requires_review: \{normalized_result.requires_review}",
+      "artifacts: \{normalized_result.artifacts.length()}",
       "evidence: \{evidence_id}",
     ],
   )
@@ -388,10 +500,10 @@ pub async fn persist_result(
     updated_pages.push(synthesis_map_relative)
   }
 
-  let staged = staged_durable_candidates(result)
-  let review_queued = if result.requires_review || !staged.is_empty() {
+  let staged = staged_durable_candidates(normalized_result)
+  let review_queued = if normalized_result.requires_review || !staged.is_empty() {
     queue_result_review(
-      workspace, result, observations_relative, evidence_id, staged,
+      workspace, normalized_result, observations_relative, evidence_id, staged,
     )
   } else {
     false
@@ -400,10 +512,16 @@ pub async fn persist_result(
     updated_pages.push("reviews/pending.md")
   }
   let journey_relative = append_journey_entry(
-    workspace, result, evidence_id, review_queued, updated_pages,
+    workspace, normalized_result, evidence_id, review_queued, updated_pages,
   )
   if !updated_pages.contains(journey_relative) {
     updated_pages.push(journey_relative)
+  }
+  let debug_journal_relative = append_debug_journal_entry(
+    workspace, normalized_result, evidence_id, review_queued, updated_pages,
+  )
+  if !updated_pages.contains(debug_journal_relative) {
+    updated_pages.push(debug_journal_relative)
   }
 
   let insights_relative = refresh_keeper_insights(root)
@@ -413,7 +531,7 @@ pub async fn persist_result(
 
   append_result_log(
     @path.Path(workspace.wiki_dir).join(@path.Path("log.md")).to_string(),
-    result,
+    normalized_result,
     updated_pages,
   )
   {
@@ -422,9 +540,54 @@ pub async fn persist_result(
     .to_string(),
     updated_pages,
     review_queued,
-    notify_town: result.notify_town,
+    notify_town: normalized_result.notify_town,
     evidence_id,
   }
+}
+
+///|
+fn normalize_provider_result(result : BookResult) -> BookResult {
+  if !result_is_empty_ingest_blocker(result) {
+    return result
+  }
+  {
+    task_id: result.task_id,
+    summary: "Blocked ingest: provider returned generic completion text without durable artifacts or memory candidates.",
+    artifacts: [],
+    memory_candidates: [
+      {
+        kind: "blocker",
+        title: "Ingest provider returned an empty result",
+        detail: "The provider payload for this ingest run contained no durable artifacts and no memory candidates. The next MoonClaw pass must either materialize wiki/sources, wiki/entities, wiki/concepts, or wiki/queries pages, or return an explicit blocker with the missing materials.",
+        durable: false,
+        target_page: None,
+      },
+      {
+        kind: "next_step",
+        title: "Review gather and revision worker outputs",
+        detail: "Inspect the gather, material-prep, and revision outputs in the MoonClaw run workspace to see whether the workers produced usable materials that were lost before provider-result emission.",
+        durable: false,
+        target_page: None,
+      },
+    ],
+    requires_review: true,
+    notify_town: result.notify_town,
+  }
+}
+
+///|
+fn result_is_empty_ingest_blocker(result : BookResult) -> Bool {
+  let summary = result.summary.trim().to_lower()
+  let stage = infer_task_kind_from_external_id(result.task_id).unwrap_or("")
+  stage == "ingest" &&
+  result.artifacts.is_empty() &&
+  result.memory_candidates.is_empty() &&
+  (
+    summary == "completed provider task bootstrap ingest and population." ||
+    summary == "completed provider task." ||
+    summary == "completed extension task." ||
+    summary.contains("completed provider task")
+  )
 }
 
 ///|
@@ -802,6 +965,11 @@ fn task_skill_names(task : BookTask) -> Array[String] {
         names.push("wiki-query")
         names.push("query-promote")
         names.push("claim-audit")
+        if task.prompt.to_lower().contains("course") ||
+          task.prompt.to_lower().contains("teach") ||
+          task.prompt.to_lower().contains("walkthrough") {
+          names.push("wiki-course")
+        }
       }
     }
   }
@@ -854,6 +1022,8 @@ fn skill_name_from_path(path : String) -> String {
     "wiki-review"
   } else if normalized.contains("/skills/wiki-memory/") {
     "wiki-memory"
+  } else if normalized.contains("/skills/wiki-course/") {
+    "wiki-course"
   } else if normalized.contains("/skills/source-diarize/") {
     "source-diarize"
   } else if normalized.contains("/skills/entity-revise/") {
@@ -883,7 +1053,7 @@ fn skill_name_from_path(path : String) -> String {
 fn default_context_pages(target_pages : Array[String]) -> Array[String] {
   let pages : Array[String] = [
     "index.md", "log.md", "synthesis/overview.md", "synthesis/claims.md", "synthesis/map.md",
-    "synthesis/evidence.md", "history/journey.md",
+    "synthesis/evidence.md", "history/journey.md", "history/debug-journal.md",
   ]
   for page in target_pages {
     if !pages.contains(page) {
@@ -1389,6 +1559,46 @@ test "memory candidate section maps known page groups" {
 }
 
 ///|
+async test "bootstrap repo candidate files prefers primary repo documents" {
+  let root = "/tmp/moonbook-bootstrap-candidates"
+  ignore(@fsx.make_directory(root, recursive=true, exists_ok=true))
+  let readme = root + "/README.md"
+  let mod = root + "/moon.mod.json"
+  ignore(@fsx.write_to_file(readme, "# Demo\n", create=0o644))
+  ignore(@fsx.write_to_file(mod, "{ }\n", create=0o644))
+  let files = bootstrap_repo_candidate_files(root)
+  assert_true(files.contains(readme))
+  assert_true(files.contains(mod))
+}
+
+///|
+async test "task prompt adds local source hints for ingest work" {
+  let workspace_parent = "/tmp/moonbook-prompt-hints"
+  let book_root = workspace_parent + "/book"
+  let moontown = workspace_parent + "/moontown"
+  ignore(@fsx.make_directory(book_root, recursive=true, exists_ok=true))
+  ignore(@fsx.make_directory(moontown, recursive=true, exists_ok=true))
+  ignore(
+    @fsx.write_to_file(moontown + "/README.md", "# Moontown\n", create=0o644),
+  )
+  let task : BookTask = {
+    id: "goal-research-ingest",
+    title: "Bootstrap ingest and population",
+    kind: "ingest",
+    prompt: "Inspect sources.",
+    priority: 100,
+    requires_review: true,
+    target_pages: [],
+  }
+  let prompt = task_prompt_with_material_hints(book_root, task, [
+    "research", "moontown",
+  ])
+  assert_true(prompt.contains("Local source hints for this bootstrap pass"))
+  assert_true(prompt.contains("/tmp/moonbook-prompt-hints/moontown"))
+  assert_true(prompt.contains("README.md"))
+}
+
+///|
 async test "catalog record defaults to book private memory scope" {
   let root = "/tmp/moonbook-bookapi-catalog"
   ignore(init_workspace(root))
@@ -1474,6 +1684,46 @@ async test "persist result appends compact journey entry" {
   assert_true(journey.contains("### goal-research-moontown-ingest-followup"))
   assert_true(journey.contains("- Stage: `ingest`"))
   assert_true(journey.contains("- Status: `pending-review`"))
+}
+
+///|
+async test "persist result appends detailed debug journal entry" {
+  let root = "/tmp/moonbook-bookapi-debug-journal"
+  ignore(init_workspace(root))
+  ignore(
+    persist_result(root, {
+      task_id: "goal-research-moontown-ingest-followup",
+      summary: "Completed provider task Bootstrap ingest and population.",
+      artifacts: [],
+      memory_candidates: [],
+      requires_review: false,
+      notify_town: false,
+    }),
+  )
+  let journal = @fsx.read_file(root + "/wiki/history/debug-journal.md")
+  assert_true(journal.contains("### goal-research-moontown-ingest-followup"))
+  assert_true(journal.contains("- Result class: `administrative`"))
+  assert_true(journal.contains("no durable artifact paths were reported"))
+  assert_true(journal.contains("Ingest provider returned an empty result"))
+}
+
+///|
+test "normalize provider result converts empty ingest completion into blocker" {
+  let normalized = normalize_provider_result({
+    task_id: "goal-research-moontown-moonbook-and-moonclaw-ingest-followup",
+    summary: "Completed provider task Bootstrap ingest and population.",
+    artifacts: [],
+    memory_candidates: [],
+    requires_review: false,
+    notify_town: false,
+  })
+  assert_eq(
+    normalized.summary,
+    "Blocked ingest: provider returned generic completion text without durable artifacts or memory candidates.",
+  )
+  assert_true(normalized.requires_review)
+  assert_eq(normalized.memory_candidates.length(), 2)
+  assert_eq(normalized.memory_candidates[0].kind, "blocker")
 }
 
 ///|

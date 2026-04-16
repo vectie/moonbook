@@ -19,6 +19,9 @@ pub async fn init_workspace(
   let raw_assets_dir = @path.Path(raw_dir)
     .join(@path.Path("assets"))
     .to_string()
+  let raw_bootstrap_dir = @path.Path(raw_dir)
+    .join(@path.Path("bootstrap"))
+    .to_string()
   let wiki_dir = @path.Path(normalized_root)
     .join(@path.Path("wiki"))
     .to_string()
@@ -95,6 +98,9 @@ pub async fn init_workspace(
   let journey_path = @path.Path(history_dir)
     .join(@path.Path("journey.md"))
     .to_string()
+  let debug_journal_path = @path.Path(history_dir)
+    .join(@path.Path("debug-journal.md"))
+    .to_string()
   let pending_review_path = @path.Path(reviews_dir)
     .join(@path.Path("pending.md"))
     .to_string()
@@ -124,6 +130,9 @@ pub async fn init_workspace(
     .to_string()
   let marketing_skill_dir = @path.Path(skills_dir)
     .join(@path.Path("wiki-marketing"))
+    .to_string()
+  let course_skill_dir = @path.Path(skills_dir)
+    .join(@path.Path("wiki-course"))
     .to_string()
   let source_diarize_skill_dir = @path.Path(skills_dir)
     .join(@path.Path("source-diarize"))
@@ -155,56 +164,6 @@ pub async fn init_workspace(
   let review_decision_skill_dir = @path.Path(skills_dir)
     .join(@path.Path("review-decision"))
     .to_string()
-  let ingest_skill_path = @path.Path(ingest_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let query_skill_path = @path.Path(query_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let lint_skill_path = @path.Path(lint_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let review_skill_path = @path.Path(review_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let memory_skill_path = @path.Path(memory_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let marketing_skill_path = @path.Path(marketing_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let source_diarize_skill_path = @path.Path(source_diarize_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let entity_revise_skill_path = @path.Path(entity_revise_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let concept_revise_skill_path = @path.Path(concept_revise_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let synthesis_revise_skill_path = @path.Path(synthesis_revise_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let claim_audit_skill_path = @path.Path(claim_audit_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let contradiction_review_skill_path = @path.Path(
-      contradiction_review_skill_dir,
-    )
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let index_maintain_skill_path = @path.Path(index_maintain_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let query_promote_skill_path = @path.Path(query_promote_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let memory_prune_skill_path = @path.Path(memory_prune_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
-  let review_decision_skill_path = @path.Path(review_decision_skill_dir)
-    .join(@path.Path("SKILL.md"))
-    .to_string()
   let keeper_memory_path = @path.Path(keeper_dir)
     .join(@path.Path("MEMORY.md"))
     .to_string()
@@ -223,11 +182,15 @@ pub async fn init_workspace(
   let assets_keep_path = @path.Path(raw_assets_dir)
     .join(@path.Path(".gitkeep"))
     .to_string()
+  let bootstrap_keep_path = @path.Path(raw_bootstrap_dir)
+    .join(@path.Path(".gitkeep"))
+    .to_string()
   let resolved_title = title.unwrap_or("LLM Wiki")
 
   @fsx.make_directory(normalized_root, recursive=true, exists_ok=true)
   @fsx.make_directory(raw_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(raw_assets_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(raw_bootstrap_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(site_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(wiki_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(entities_dir, recursive=true, exists_ok=true)
@@ -245,6 +208,7 @@ pub async fn init_workspace(
   @fsx.make_directory(review_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(memory_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(marketing_skill_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(course_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(source_diarize_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(entity_revise_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(concept_revise_skill_dir, recursive=true, exists_ok=true)
@@ -284,6 +248,7 @@ pub async fn init_workspace(
   write_if_missing(observations_path, observations_text())
   write_if_missing(evidence_path, evidence_text())
   write_if_missing(journey_path, journey_text())
+  write_if_missing(debug_journal_path, debug_journal_text())
   write_if_missing(pending_review_path, pending_review_text())
   write_if_missing(approved_review_path, approved_review_text())
   write_if_missing(keeper_memory_path, keeper_memory_text())
@@ -291,27 +256,48 @@ pub async fn init_workspace(
   write_if_missing(keeper_working_path, keeper_working_text())
   write_if_missing(keeper_policy_path, keeper_policy_text())
   write_if_missing(keeper_insights_path, keeper_insights_text())
-  write_if_missing(ingest_skill_path, base_wiki_ingest_skill_text())
-  write_if_missing(query_skill_path, base_wiki_query_skill_text())
-  write_if_missing(lint_skill_path, base_wiki_lint_skill_text())
-  write_if_missing(review_skill_path, base_wiki_review_skill_text())
-  write_if_missing(memory_skill_path, base_wiki_memory_skill_text())
-  write_if_missing(marketing_skill_path, base_wiki_marketing_skill_text())
-  write_if_missing(source_diarize_skill_path, source_diarize_skill_text())
-  write_if_missing(entity_revise_skill_path, entity_revise_skill_text())
-  write_if_missing(concept_revise_skill_path, concept_revise_skill_text())
-  write_if_missing(synthesis_revise_skill_path, synthesis_revise_skill_text())
-  write_if_missing(claim_audit_skill_path, claim_audit_skill_text())
-  write_if_missing(
-    contradiction_review_skill_path,
-    contradiction_review_skill_text(),
+  copy_seed_tree_if_missing(ingest_skill_dir, "seed/wiki/skills/wiki-ingest")
+  copy_seed_tree_if_missing(query_skill_dir, "seed/wiki/skills/wiki-query")
+  copy_seed_tree_if_missing(lint_skill_dir, "seed/wiki/skills/wiki-lint")
+  copy_seed_tree_if_missing(review_skill_dir, "seed/wiki/skills/wiki-review")
+  copy_seed_tree_if_missing(memory_skill_dir, "seed/wiki/skills/wiki-memory")
+  copy_seed_tree_if_missing(
+    marketing_skill_dir, "seed/wiki/skills/wiki-marketing",
   )
-  write_if_missing(index_maintain_skill_path, index_maintain_skill_text())
-  write_if_missing(query_promote_skill_path, query_promote_skill_text())
-  write_if_missing(memory_prune_skill_path, memory_prune_skill_text())
-  write_if_missing(review_decision_skill_path, review_decision_skill_text())
+  copy_seed_tree_if_missing(course_skill_dir, "seed/wiki/skills/wiki-course")
+  copy_seed_tree_if_missing(
+    source_diarize_skill_dir, "seed/wiki/skills/source-diarize",
+  )
+  copy_seed_tree_if_missing(
+    entity_revise_skill_dir, "seed/wiki/skills/entity-revise",
+  )
+  copy_seed_tree_if_missing(
+    concept_revise_skill_dir, "seed/wiki/skills/concept-revise",
+  )
+  copy_seed_tree_if_missing(
+    synthesis_revise_skill_dir, "seed/wiki/skills/synthesis-revise",
+  )
+  copy_seed_tree_if_missing(
+    claim_audit_skill_dir, "seed/wiki/skills/claim-audit",
+  )
+  copy_seed_tree_if_missing(
+    contradiction_review_skill_dir, "seed/wiki/skills/contradiction-review",
+  )
+  copy_seed_tree_if_missing(
+    index_maintain_skill_dir, "seed/wiki/skills/index-maintain",
+  )
+  copy_seed_tree_if_missing(
+    query_promote_skill_dir, "seed/wiki/skills/query-promote",
+  )
+  copy_seed_tree_if_missing(
+    memory_prune_skill_dir, "seed/wiki/skills/memory-prune",
+  )
+  copy_seed_tree_if_missing(
+    review_decision_skill_dir, "seed/wiki/skills/review-decision",
+  )
   write_if_missing(raw_readme_path, raw_readme_text())
   write_if_missing(assets_keep_path, "")
+  write_if_missing(bootstrap_keep_path, "")
 
   {
     root: normalized_root,
@@ -329,6 +315,52 @@ async fn write_if_missing(path : String, content : String) -> Unit {
   if !@fsx.exists(path) {
     @fsx.write_to_file(path, content, create=0o644)
   }
+}
+
+///|
+async fn copy_seed_tree_if_missing(
+  destination_path : String,
+  seed_relative_path : String,
+) -> Unit {
+  let source_path = @path.Path(seed_module_root())
+    .join(@path.Path(seed_relative_path))
+    .to_string()
+  if !@fsx.exists(source_path) {
+    fail("missing seed file: \{source_path}")
+  }
+  copy_seed_tree(source_path, destination_path)
+}
+
+///|
+async fn copy_seed_tree(
+  source_path : String,
+  destination_path : String,
+) -> Unit {
+  match @fs.kind(source_path, follow_symlink=false) {
+    @fs.FileKind::Directory => {
+      @fsx.make_directory(destination_path, recursive=true, exists_ok=true)
+      for child in @fsx.list_directory(source_path) {
+        let child_name = @path.Path(child).basename().to_string()
+        copy_seed_tree(
+          child,
+          @path.Path(destination_path).join(@path.Path(child_name)).to_string(),
+        )
+      }
+    }
+    _ =>
+      if !@fsx.exists(destination_path) {
+        @fsx.write_to_file(
+          destination_path,
+          @fsx.read_file(source_path),
+          create=0o644,
+        )
+      }
+  }
+}
+
+///|
+fn seed_module_root() -> String {
+  @env.current_dir().unwrap_or(".")
 }
 
 ///|
@@ -370,6 +402,7 @@ fn summary_text() -> String {
   "- [Observations](./synthesis/observations.md)\n" +
   "- [Evidence](./synthesis/evidence.md)\n" +
   "- [Journey](./history/journey.md)\n" +
+  "- [Debug Journal](./history/debug-journal.md)\n" +
   "- [Pending Review](./reviews/pending.md)\n" +
   "- [Approved Review](./reviews/approved.md)\n"
 }
@@ -392,6 +425,7 @@ fn home_text() -> String {
   "- [Synthesis Map](./synthesis/map.md): coverage and hub view across the wiki\n" +
   "- [Observations](./synthesis/observations.md): persisted worker results and promoted observations\n" +
   "- [Journey](./history/journey.md): compact history of major runs, decisions, and open loops\n" +
+  "- [Debug Journal](./history/debug-journal.md): detailed run-by-run material prep and debug notes\n" +
   "- [Pending Review](./reviews/pending.md): human review queue for contested or high-value updates\n" +
   "- `../keeper/`: bounded active memory, user memory, and working memory for Keeper\n" +
   "\n## Research Bootstrap Layout\n\n" +
@@ -422,6 +456,7 @@ fn index_text() -> String {
   "- [Observations](./synthesis/observations.md): persisted task results and promoted book observations\n" +
   "- [Evidence](./synthesis/evidence.md): support records for persisted results and reviewed knowledge\n" +
   "- [Journey](./history/journey.md): compact operator-facing journey from earlier runs to the current book state\n" +
+  "- [Debug Journal](./history/debug-journal.md): detailed keeper and worker debug trail for intermediate preparation quality\n" +
   "- [Pending Review](./reviews/pending.md): pending human review items\n" +
   "- [Approved Review](./reviews/approved.md): accepted review decisions\n\n" +
   "## Research Bootstrap Layout\n\n" +
@@ -431,7 +466,7 @@ fn index_text() -> String {
   "- `./concepts/`: maintained concept pages\n" +
   "- `./queries/`: durable query notes and saved answers\n" +
   "- `./synthesis/`: overview, claims, maintenance plan, query insights, evidence, and observations\n" +
-  "- `./history/`: compact journey and timeline pages generated from persisted work\n\n" +
+  "- `./history/`: compact journey plus detailed debug-journal pages generated from persisted work\n\n" +
   "## Entities\n\n" +
   "_None yet._\n\n" +
   "## Concepts\n\n" +
@@ -453,10 +488,12 @@ fn log_text() -> String {
 fn raw_readme_text() -> String {
   "# Raw Sources\n\n" +
   "Put immutable source material here.\n\n" +
+  "MoonClaw bootstrap runs may also write generated source packets into `bootstrap/` before Keeper ingests them into durable wiki pages.\n\n" +
   "Canonical bootstrap flow:\n\n" +
   "1. Store original material in `raw/`.\n" +
-  "2. Generate durable source pages in `wiki/sources/`.\n" +
-  "3. Revise `wiki/entities/`, `wiki/concepts/`, `wiki/queries/`, and `wiki/synthesis/` from those durable pages.\n\n" +
+  "2. Write generated source packets into `raw/bootstrap/` when bootstrap discovery needs to stage local repo material.\n" +
+  "3. Generate durable source pages in `wiki/sources/`.\n" +
+  "4. Revise `wiki/entities/`, `wiki/concepts/`, `wiki/queries/`, and `wiki/synthesis/` from those durable pages.\n\n" +
   "Examples:\n\n" +
   "- clipped web articles\n" +
   "- papers\n" +
@@ -894,7 +931,7 @@ fn base_routines_text() -> String {
   "2. Load the relevant `skills/*/SKILL.md` file before planning or writing.\n" +
   "3. Keep deterministic work in MoonBook code and judgment work in skills.\n" +
   "4. Persist durable outcomes back into `wiki/`, `keeper/`, and review queues.\n" +
-  "5. Keep `wiki/` detailed and truth-oriented; keep `site/` marketing-oriented and projection-shaped.\n"
+  "5. Keep `wiki/` detailed and truth-oriented; keep `site/` projection-oriented with distinct marketing, journal, and course surfaces.\n"
 }
 
 ///|
@@ -925,7 +962,11 @@ fn resolver_text() -> String {
   "- intent: marketing\n" +
   "  skill: `skills/wiki-marketing/SKILL.md`\n" +
   "  supporting_skills: `skills/wiki-query/SKILL.md`, `skills/synthesis-revise/SKILL.md`, `skills/query-promote/SKILL.md`\n" +
-  "  load_first: `wiki/synthesis/overview.md`, `wiki/index.md`, `wiki/synthesis/map.md`, `wiki/history/journey.md`, `keeper/INSIGHTS.md`, `site/index.html`\n"
+  "  load_first: `wiki/synthesis/overview.md`, `wiki/index.md`, `wiki/synthesis/map.md`, `keeper/INSIGHTS.md`, `site/index.html`\n" +
+  "- intent: course\n" +
+  "  skill: `skills/wiki-course/SKILL.md`\n" +
+  "  supporting_skills: `skills/wiki-query/SKILL.md`, `skills/wiki-marketing/SKILL.md`, `skills/query-promote/SKILL.md`\n" +
+  "  load_first: `wiki/index.md`, `wiki/history/journey.md`, `wiki/synthesis/map.md`, `wiki/synthesis/evidence.md`, `site/index.html`\n"
 }
 
 ///|
@@ -990,6 +1031,12 @@ fn schema_text() -> String {
   "2. Treat `wiki/` as the detailed source of truth and `site/` as the compressed presentation layer\n" +
   "3. Keep claims accurate, but rewrite them into audience-facing product language\n" +
   "4. Prefer stable capability framing, clear product boundaries, and links back into maintained wiki pages\n\n" +
+  "### Course\n\n" +
+  "When updating the educational course projection:\n\n" +
+  "1. Read `RESOLVER.md` and load `skills/wiki-course/SKILL.md`\n" +
+  "2. Treat the course as a teaching surface, not as the canonical source of truth\n" +
+  "3. Use module-based explanation, plain language, and interactive checkpoints to explain how the workspace works\n" +
+  "4. Keep the course educational and procedural; do not collapse it into marketing or operator journaling\n\n" +
   "### Lint\n\n" +
   "Periodically check for:\n\n" +
   "- orphan pages\n" +
@@ -1005,309 +1052,28 @@ fn schema_text() -> String {
 }
 
 ///|
-fn base_wiki_ingest_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: wiki-ingest\n" +
-    "description: Ingest one source into the wiki by reading, diarizing, revising pages, and preserving uncertainty.\n" +
-    "---\n\n" +
-    "# Wiki Ingest\n\n" +
-    "Parameters:\n\n" +
-    "- SOURCE: the raw source path\n" +
-    "- QUESTION: what matters about this source, if the user gave one\n\n" +
-    "Method:\n\n" +
-    "1. Read `RESOLVER.md`, `wiki/index.md`, and `wiki/log.md`.\n" +
-    "2. Read SOURCE directly. Build a compact diarized view: what the source says, what changed, what is uncertain, and what other pages it touches.\n" +
-    "3. Revise maintained wiki pages first. Prefer updates to entities, concepts, synthesis, claims, and review queues over one-off note creation.\n" +
-    "4. If a new page is justified, make it stable and domain-shaped, not token-shaped.\n" +
-    "5. Record contradictions, supersession hints, and weak evidence instead of flattening them.\n" +
-    "6. Update `wiki/index.md`, `wiki/log.md`, and `wiki/synthesis/maintenance-plan.md`.\n",
-  )
-}
-
-///|
-fn base_wiki_query_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: wiki-query\n" +
-    "description: Answer a question from the maintained wiki, then decide whether the answer should become durable wiki knowledge.\n" +
-    "---\n\n" +
-    "# Wiki Query\n\n" +
-    "Parameters:\n\n" +
-    "- QUESTION: the user question\n\n" +
-    "Method:\n\n" +
-    "1. Read `wiki/index.md` first, then the highest-signal related pages.\n" +
-    "2. Prefer maintained wiki pages over raw sources unless you are checking a gap or contradiction.\n" +
-    "3. Answer with citations to page paths.\n" +
-    "4. If the answer creates durable value, add or update a maintained page instead of leaving the insight in chat only.\n",
-  )
-}
-
-///|
-fn base_wiki_lint_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: wiki-lint\n" +
-    "description: Inspect the wiki for structural and semantic drift, then propose the next maintenance passes.\n" +
-    "---\n\n" +
-    "# Wiki Lint\n\n" +
-    "Method:\n\n" +
-    "1. Read `wiki/index.md`, `wiki/log.md`, `wiki/synthesis/map.md`, and `keeper/INSIGHTS.md`.\n" +
-    "2. Find missing pages, orphan pages, unresolved contradictions, stale synthesis, weak evidence, and noisy ontology.\n" +
-    "3. Convert findings into concrete maintenance actions in `wiki/synthesis/maintenance-plan.md`.\n",
-  )
-}
-
-///|
-fn base_wiki_review_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: wiki-review\n" +
-    "description: Review contested or high-value changes before they become trusted durable knowledge.\n" +
-    "---\n\n" +
-    "# Wiki Review\n\n" +
-    "Method:\n\n" +
-    "1. Read `wiki/reviews/pending.md`, `wiki/reviews/approved.md`, and `wiki/synthesis/evidence.md`.\n" +
-    "2. Check support, dates, confidence, and whether the ontology is clean and stable.\n" +
-    "3. Approve, reject, or request revision with explicit reasons.\n",
-  )
-}
-
-///|
-fn base_wiki_memory_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: wiki-memory\n" +
-    "description: Maintain bounded keeper memory so durable facts survive while noisy task residue is pruned.\n" +
-    "---\n\n" +
-    "# Wiki Memory\n\n" +
-    "Method:\n\n" +
-    "1. Read `keeper/MEMORY.md`, `keeper/USER.md`, `keeper/WORKING.md`, and `keeper/INSIGHTS.md`.\n" +
-    "2. Promote durable facts and recurring patterns; demote short-lived task residue.\n" +
-    "3. Keep working memory tight and route long-lived knowledge back into maintained wiki pages when appropriate.\n",
-  )
-}
-
-///|
-fn base_wiki_marketing_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: wiki-marketing\n" +
-    "description: Maintain the marketing website projection so it presents the workspace clearly without replacing the detailed wiki.\n" +
-    "---\n\n" +
-    "# Wiki Marketing\n\n" +
-    "Method:\n\n" +
-    "1. Read `wiki/synthesis/overview.md`, `wiki/index.md`, `wiki/synthesis/map.md`, and `keeper/INSIGHTS.md` first.\n" +
-    "2. Keep `wiki/` detailed and evidence-oriented; keep `site/` compressed, audience-facing, and product-shaped.\n" +
-    "3. Present stable capabilities, operating model, and current state without leaking low-signal task residue.\n" +
-    "4. Link visitors from the marketing projection into the right maintained wiki pages for depth.\n",
-  )
-}
-
-///|
-fn source_diarize_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: source-diarize\n" +
-    "description: Read one source deeply and produce a compact diarized account of claims, changes, uncertainties, and affected pages.\n" +
-    "---\n\n" +
-    "# Source Diarize\n\n" +
-    "1. Read the source directly.\n" +
-    "2. Separate navigation boilerplate from substantive content.\n" +
-    "3. Summarize what the source says, what changed, what is uncertain, and what pages should be touched.\n",
-  )
-}
-
-///|
-fn entity_revise_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: entity-revise\n" +
-    "description: Revise entity pages so they accumulate durable facts, relationships, and source-backed changes over time.\n" +
-    "---\n\n" +
-    "# Entity Revise\n\n" +
-    "1. Prefer existing entity pages over creating new ones.\n" +
-    "2. Update identity, relationships, role, and operational relevance.\n" +
-    "3. Preserve uncertainty and source backing.\n",
-  )
-}
-
-///|
-fn concept_revise_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: concept-revise\n" +
-    "description: Maintain concept pages that explain recurring operational ideas, workflows, and abstractions in the wiki.\n" +
-    "---\n\n" +
-    "# Concept Revise\n\n" +
-    "1. Merge low-signal duplicates into stable concept pages.\n" +
-    "2. Keep concept pages explanatory, cumulative, and cross-linked.\n" +
-    "3. Promote recurring patterns, not one-off phrasing.\n",
-  )
-}
-
-///|
-fn synthesis_revise_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: synthesis-revise\n" +
-    "description: Revise synthesis pages so the wiki reflects evolving cross-source understanding rather than isolated notes.\n" +
-    "---\n\n" +
-    "# Synthesis Revise\n\n" +
-    "1. Read the most relevant source, entity, concept, and claims pages.\n" +
-    "2. Update overview and synthesis pages to reflect what changed across the corpus.\n" +
-    "3. Keep open loops and unresolved contradictions visible.\n",
-  )
-}
-
-///|
-fn claim_audit_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: claim-audit\n" +
-    "description: Inspect claims for support, confidence, supersession, and overreach before they are treated as durable knowledge.\n" +
-    "---\n\n" +
-    "# Claim Audit\n\n" +
-    "1. Check whether each claim is supported by actual source material.\n" +
-    "2. Mark weak, superseded, or conflicting claims explicitly.\n" +
-    "3. Push contested items toward review instead of silently flattening them.\n",
-  )
-}
-
-///|
-fn contradiction_review_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: contradiction-review\n" +
-    "description: Compare wiki pages and find unresolved contradictions, stale synthesis, or incompatible narratives.\n" +
-    "---\n\n" +
-    "# Contradiction Review\n\n" +
-    "1. Compare relevant synthesis, claims, entity, and concept pages.\n" +
-    "2. Identify genuine contradictions, not just phrasing differences.\n" +
-    "3. Turn contradictions into explicit maintenance or review actions.\n",
-  )
-}
-
-///|
-fn index_maintain_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: index-maintain\n" +
-    "description: Keep index and navigation surfaces clean, stable, and representative of the maintained wiki.\n" +
-    "---\n\n" +
-    "# Index Maintain\n\n" +
-    "1. Add pages that matter.\n" +
-    "2. Remove or merge entries for noisy or collapsed pages.\n" +
-    "3. Prefer stable ontology and high-signal navigation labels.\n",
-  )
-}
-
-///|
-fn query_promote_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: query-promote\n" +
-    "description: Decide when a good answer should be promoted into the maintained wiki as durable knowledge.\n" +
-    "---\n\n" +
-    "# Query Promote\n\n" +
-    "1. Identify answers with lasting value.\n" +
-    "2. Decide whether they belong in synthesis, claims, concepts, entities, or review queues.\n" +
-    "3. Avoid storing disposable chat residue.\n",
-  )
-}
-
-///|
-fn memory_prune_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: memory-prune\n" +
-    "description: Keep Keeper memory bounded and useful by pruning stale working residue and promoting durable signals.\n" +
-    "---\n\n" +
-    "# Memory Prune\n\n" +
-    "1. Remove repetitive or expired working memory items.\n" +
-    "2. Keep user preference and durable operational memory intact.\n" +
-    "3. Push true long-term knowledge back into the wiki when appropriate.\n",
-  )
-}
-
-///|
-fn review_decision_skill_text() -> String {
-  with_provider_result_contract(
-    "---\n" +
-    "name: review-decision\n" +
-    "description: Convert pending review items into explicit approve, reject, or revise decisions with clear reasons.\n" +
-    "---\n\n" +
-    "# Review Decision\n\n" +
-    "1. Read the pending item and its supporting evidence.\n" +
-    "2. Decide approve, reject, or revise.\n" +
-    "3. State the reason in a way that can guide the next maintenance pass.\n",
-  )
-}
-
-///|
-fn with_provider_result_contract(text : String) -> String {
-  text +
-  "\n## Required Output\n\n" +
-  "When this skill runs through MoonClaw provider or extension execution, return exactly one JSON object.\n\n" +
-  "Required top-level keys:\n\n" +
-  "- `task_id`\n" +
-  "- `summary`\n" +
-  "- `artifacts`\n" +
-  "- `memory_candidates`\n" +
-  "- `requires_review`\n" +
-  "- `notify_town`\n\n" +
-  "Required rules:\n\n" +
-  "- Output JSON only. No prose before or after the JSON object.\n" +
-  "- Do not wrap the actual answer in markdown fences.\n" +
-  "- Always include every top-level key, even when empty.\n" +
-  "- Use `[]` for empty arrays and `null` for missing `target_page` values.\n" +
-  "- `summary` must describe the actual completed work inside the workspace.\n" +
-  "- `artifacts` should list durable changed pages or important output paths.\n" +
-  "- `memory_candidates` entries must be objects with `kind`, `title`, `detail`, `durable`, and `target_page`.\n\n" +
-  "## Concrete Example\n\n" +
-  "If you inspected `raw/README.md`, created a maintained source page, updated the overview, and captured one durable finding, return something like this:\n\n" +
-  "```json\n" +
-  "{\n" +
-  "  \"task_id\": \"goal-research-moontown-moonbook-and-moonclaw-ingest-followup\",\n" +
-  "  \"summary\": \"Added wiki/sources/moontown-source.md, updated wiki/synthesis/observations.md with current control-plane notes, and refreshed wiki/index.md to expose the new maintained source.\",\n" +
-  "  \"artifacts\": [\n" +
-  "    \"wiki/sources/moontown-source.md\",\n" +
-  "    \"wiki/synthesis/observations.md\",\n" +
-  "    \"wiki/index.md\"\n" +
-  "  ],\n" +
-  "  \"memory_candidates\": [\n" +
-  "    {\n" +
-  "      \"kind\": \"finding\",\n" +
-  "      \"title\": \"Moontown routes work through MoonBook and MoonClaw\",\n" +
-  "      \"detail\": \"The maintained source and synthesis pages now state that Moontown schedules domain work into MoonBook workspaces and MoonClaw execution runs.\",\n" +
-  "      \"durable\": true,\n" +
-  "      \"target_page\": \"wiki/synthesis/observations.md\"\n" +
-  "    },\n" +
-  "    {\n" +
-  "      \"kind\": \"next_step\",\n" +
-  "      \"title\": \"Ingest more primary sources\",\n" +
-  "      \"detail\": \"The workspace still needs dedicated maintained source pages for MoonBook and MoonClaw before query answers will have strong citation coverage.\",\n" +
-  "      \"durable\": false,\n" +
-  "      \"target_page\": null\n" +
-  "    }\n" +
-  "  ],\n" +
-  "  \"requires_review\": false,\n" +
-  "  \"notify_town\": false\n" +
-  "}\n" +
-  "```\n\n" +
-  "Bad output to avoid:\n\n" +
-  "- planning prose such as `I will inspect the wiki first...`\n" +
-  "- markdown wrappers such as ```json ... ``` around non-JSON commentary\n" +
-  "- partial objects missing `summary` or `memory_candidates`\n"
-}
-
-///|
 fn escape_toml_string(text : String) -> String {
   text
   .replace(old="\\", new="\\\\")
   .to_string()
   .replace(old="\"", new="\\\"")
   .to_string()
+}
+
+///|
+async fn unique_test_root(base : String) -> String {
+  unique_test_root_with_attempt(base, 0)
+}
+
+///|
+async fn unique_test_root_with_attempt(base : String, attempt : Int) -> String {
+  let suffix = if attempt == 0 { "" } else { "-" + attempt.to_string() }
+  let candidate = base + suffix
+  if @fsx.exists(candidate) {
+    unique_test_root_with_attempt(base, attempt + 1)
+  } else {
+    candidate
+  }
 }
 
 ///|
@@ -1327,6 +1093,7 @@ test "summary seeds wiki navigation pages" {
   assert_true(text.contains("[Observations](./synthesis/observations.md)"))
   assert_true(text.contains("[Evidence](./synthesis/evidence.md)"))
   assert_true(text.contains("[Journey](./history/journey.md)"))
+  assert_true(text.contains("[Debug Journal](./history/debug-journal.md)"))
   assert_true(text.contains("[Synthesis Map](./synthesis/map.md)"))
   assert_true(text.contains("[Pending Review](./reviews/pending.md)"))
   assert_true(
@@ -1350,7 +1117,7 @@ test "schema explains ingest query and lint workflows" {
 
 ///|
 async test "init workspace seeds keeper memory files" {
-  let root = "/tmp/moonbook-init-keeper"
+  let root = unique_test_root("/tmp/moonbook-init-keeper")
   ignore(init_workspace(root))
   assert_true(@fsx.exists(root + "/keeper/MEMORY.md"))
   assert_true(@fsx.exists(root + "/keeper/USER.md"))
@@ -1360,10 +1127,22 @@ async test "init workspace seeds keeper memory files" {
   assert_true(@fsx.exists(root + "/RESOLVER.md"))
   assert_true(@fsx.exists(root + "/ROUTINES.md"))
   assert_true(@fsx.exists(root + "/skills/wiki-ingest/SKILL.md"))
+  assert_true(
+    @fsx.exists(root + "/skills/wiki-ingest/references/raw-first-contract.md"),
+  )
   assert_true(@fsx.exists(root + "/skills/wiki-query/SKILL.md"))
+  assert_true(
+    @fsx.exists(root + "/skills/wiki-query/references/promotion-contract.md"),
+  )
   assert_true(@fsx.exists(root + "/skills/wiki-lint/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/wiki-review/SKILL.md"))
+  assert_true(
+    @fsx.exists(root + "/skills/wiki-review/references/review-gates.md"),
+  )
   assert_true(@fsx.exists(root + "/skills/wiki-memory/SKILL.md"))
+  assert_true(
+    @fsx.exists(root + "/skills/wiki-memory/references/memory-boundaries.md"),
+  )
   assert_true(@fsx.exists(root + "/skills/wiki-marketing/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/source-diarize/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/entity-revise/SKILL.md"))
@@ -1378,19 +1157,25 @@ async test "init workspace seeds keeper memory files" {
   assert_true(@fsx.exists(root + "/wiki/synthesis/evidence.md"))
   assert_true(@fsx.exists(root + "/wiki/synthesis/map.md"))
   assert_true(@fsx.exists(root + "/wiki/history/journey.md"))
+  assert_true(@fsx.exists(root + "/wiki/history/debug-journal.md"))
   assert_true(@fsx.exists(root + "/site/index.html"))
   assert_true(@fsx.exists(root + "/site/styles.css"))
   assert_true(@fsx.exists(root + "/site/app.js"))
+  assert_true(@fsx.exists(root + "/raw/bootstrap/.gitkeep"))
 }
 
 ///|
-test "skill generator includes concrete output example" {
-  let text = base_wiki_ingest_skill_text()
-  assert_true(text.contains("## Concrete Example"))
-  assert_true(
-    text.contains(
-      "\"task_id\": \"goal-research-moontown-moonbook-and-moonclaw-ingest-followup\"",
-    ),
+async test "seeded wiki ingest skill is copied from repo templates" {
+  let root = unique_test_root("/tmp/moonbook-skill-copy")
+  ignore(init_workspace(root))
+  let text = @fsx.read_file(root + "/skills/wiki-ingest/SKILL.md")
+  let reference = @fsx.read_file(
+    root + "/skills/wiki-ingest/references/raw-first-contract.md",
   )
+  assert_true(
+    text.contains("generated bootstrap packets live under `raw/bootstrap/`"),
+  )
+  assert_true(text.contains("references/raw-first-contract.md"))
   assert_true(text.contains("Bad output to avoid"))
+  assert_true(reference.contains("## Non-negotiable sequence"))
 }

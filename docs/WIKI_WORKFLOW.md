@@ -27,6 +27,7 @@ moon run cmd/main -- wiki init ./research-wiki
 This creates:
 
 - `raw/`
+- `raw/bootstrap/`
 - `keeper/`
 - `wiki/`
 - `wiki/SUMMARY.md`
@@ -39,6 +40,7 @@ This creates:
 - `wiki/synthesis/observations.md`
 - `wiki/synthesis/evidence.md`
 - `wiki/history/journey.md`
+- `wiki/history/debug-journal.md`
 - `wiki/reviews/pending.md`
 - `wiki/reviews/approved.md`
 - `keeper/MEMORY.md`
@@ -65,6 +67,7 @@ moon run cmd/main -- wiki ingest ./research-wiki ./raw/article.md
 
 Current ingest behavior:
 
+- for bootstrap discovery, stages generated source packets under `raw/bootstrap/` before keeper revision
 - rejects hidden placeholders, empty files, and `.gitkeep`-style workspace scaffolding
 - creates a source page in `wiki/sources/`
 - extracts first-pass entities and concepts
@@ -112,11 +115,13 @@ Current book-harness behavior:
 - accepts town-style goals into book-local planning
 - produces local tasks inside the book boundary
 - hydrates worker context from book policy, routines, Keeper memory, and durable wiki pages
+- hydrates bootstrap ingest with explicit local repo source hints and `raw/bootstrap/` staging expectations
 - tolerates external bootstrap-style task ids by mapping them onto the closest local MoonBook task kind when possible
 - emits a dedicated planning task when health or goal wording requires it
 - persists worker results into `synthesis/observations.md`
 - records persisted-result evidence in `synthesis/evidence.md`
 - compresses persisted book work into `history/journey.md` for a readable run timeline
+- records detailed run-by-run debug notes in `history/debug-journal.md`
 - syncs non-durable memory candidates into bounded Keeper memory files
 - promotes immediately-safe durable memory candidates into target pages
 - stages review-gated durable candidates in `reviews/pending.md`
@@ -202,8 +207,12 @@ The maintained wiki currently revolves around these page families:
   support records for persisted worker results and review outcomes
 - `wiki/history/journey.md`
   compact timeline of major runs, promoted findings, failures, and open loops
+- `wiki/history/debug-journal.md`
+  detailed debug record of materials prepared, result class, artifacts, and blockers
 - `wiki/reviews/`
   pending and approved operator review items
+- `raw/bootstrap/`
+  generated source packets written during bootstrap discovery before Keeper ingest
 - `keeper/MEMORY.md`
   reusable active domain memory
 - `keeper/USER.md`
@@ -212,6 +221,8 @@ The maintained wiki currently revolves around these page families:
   short-lived task and observation memory
 - `keeper/INSIGHTS.md`
   Keeper-generated memory/evidence health signals
+- `skills/*/SKILL.md`
+  repo-owned static skill files copied from `seed/`
 
 ## Current Limits
 
