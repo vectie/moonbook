@@ -414,10 +414,10 @@ fn home_text() -> String {
   "## Structure\n\n" +
   "- `../site/`: marketing website projection copied to `book/site/` during build\n" +
   "- `../raw/`: immutable source documents and attachments staged for ingest\n" +
-  "- [Sources](./sources/): durable source pages generated from raw material\n" +
-  "- [Entities](./entities/): maintained entity pages\n" +
-  "- [Concepts](./concepts/): maintained concept pages\n" +
-  "- [Queries](./queries/): durable analysis and saved query pages\n" +
+  "- `./sources/`: durable source pages generated from raw material\n" +
+  "- `./entities/`: maintained entity pages\n" +
+  "- `./concepts/`: maintained concept pages\n" +
+  "- `./queries/`: durable analysis and saved query pages\n" +
   "- [Index](./index.md): content catalog of the wiki\n" +
   "- [Log](./log.md): append-only timeline of ingests, queries, and lint passes\n" +
   "- [Claims Register](./synthesis/claims.md): structured claims extracted from sources\n" +

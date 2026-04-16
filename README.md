@@ -14,6 +14,14 @@ Current wiki workspaces use a raw-first bootstrap flow:
 - Keeper ingests those packets into durable wiki pages
 - `SKILL.md` files are repo-owned static templates copied from `seed/`, not generated at runtime
 
+The CLI is now split more cleanly:
+
+- `moonbook book ...` for workspace/book lifecycle
+- `moonbook pack ...` for add-on installation
+- `moonbook skill ...` for skill inventory and diagnostics
+- `moonbook doctor ...` for top-level health checks
+- `moonbook wiki ...` for wiki-specific operations
+
 It is designed for:
 
 - 📖 mdBook-style markdown books
@@ -50,6 +58,7 @@ MoonBook is strongest when you want one local system to handle:
 
 ## News
 
+- `2026-04-16`: refactored the CLI around top-level `book`, `pack`, `skill`, and `doctor` surfaces, and added a first skill manager with inventory, show, compare, install, scaffold, and doctor commands over workspace plus seeded skills
 - `2026-04-16`: added `wiki/history/journey.md` as a compact run timeline, split the generated site into marketing and journal views, and embedded a `ctc`-inspired course projection plus `wiki-course` skill route
 - `2026-04-15`: added an optional `site/` marketing projection for wiki workspaces, plus a dedicated marketing routine/skill boundary, and taught the build pipeline to publish it into `book/site/` alongside the rendered book and wiki
 - `2026-04-05`: split wiki maintenance internals into dedicated workspace, maintenance-plan, and review-helper files; tightened summary dedupe by page path; cleaned entity/concept/claim normalization; updated the docs to reflect the refactored wiki package layout
@@ -62,14 +71,17 @@ MoonBook is strongest when you want one local system to handle:
 ## 🚀 Current Capabilities
 
 - 📚 native MoonBit book/config model
+- 🧭 top-level CLI split into `book`, `pack`, `skill`, `doctor`, and `wiki`
 - 🧭 `SUMMARY.md` parsing with numbering, nesting, parts, separators, draft chapters, duplicate detection, and README-to-index normalization
 - 🏗️ end-to-end `init`, `build`, `serve`, `watch`, `load`, `test`, `clean`, and `version` commands
+- 🧰 `skill list`, `skill show`, `skill compare`, `skill install`, `skill scaffold`, and `skill doctor` for workspace plus seeded skill inventory
 - 🌐 local static HTTP serving with polling rebuilds and current CLI conveniences like `--open`, `--dest-dir`, and `--watcher poll|native`
 - 🧱 HTML rendering with sidebar navigation, breadcrumbs, previous/next links, local asset copying, code-block handling, tables, footnotes, raw HTML passthrough, and GitHub-style markdown layout cues
 - ✨ optional `site/` marketing website projection that is copied into `book/site/` during build and serve
 - ✨ generated live marketing projection emitted into `book/site/generated/` from current wiki, keeper, and review state
 - 🧭 generated journal view emitted into `book/site/generated/journal.html` from live journey and workspace state
 - 🎓 generated course view emitted into `book/site/generated/course.html` from live workspace and journey state
+- 🛠️ generated skill manager emitted into `book/site/generated/skills.html` with inventory, duplicate detection, bundled-reference diagnostics, copyable lifecycle commands, and override drift comparison against seeded baselines
 - 🧠 wiki workspace bootstrap with:
   - `raw/`
   - `site/`
@@ -172,6 +184,7 @@ moon run cmd/main -- build ./research-wiki
 # optional: open ./research-wiki/book/site/generated/index.html for the live generated projection
 # optional: open ./research-wiki/book/site/generated/journal.html for the generated journal view
 # optional: open ./research-wiki/book/site/generated/course.html for the generated course view
+# optional: open ./research-wiki/book/site/generated/skills.html for the generated skill manager
 ```
 
 Useful validation commands:

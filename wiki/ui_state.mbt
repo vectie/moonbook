@@ -44,7 +44,50 @@ pub struct UiChapterLink {
 } derive(Show, ToJson, FromJson)
 
 ///|
+pub struct UiSkillDiagnostics {
+  total_count : Int
+  workspace_count : Int
+  seed_core_count : Int
+  seed_extension_count : Int
+  duplicate_count : Int
+  missing_reference_count : Int
+  warning_count : Int
+  duplicate_names : Array[String]
+  missing_reference_paths : Array[String]
+  warnings : Array[String]
+} derive(Show, ToJson, FromJson)
+
+///|
+pub struct UiSkillItem {
+  key : String
+  name : String
+  scope : String
+  origin : String
+  extension : String
+  description : String
+  path : String
+  references : Array[String]
+  missing_references : Array[String]
+  overrides : Array[String]
+  shadowed_by : Array[String]
+  line_count : Int
+  duplicate : Bool
+  compare_status : String
+  compare_summary : String
+  compare_baseline_path : String
+  compare_baseline_scope : String
+  compare_changed_line_count : Int
+  compare_selected_only_line_count : Int
+  compare_baseline_only_line_count : Int
+  compare_first_change_line : String
+  compare_selected_excerpt : Array[String]
+  compare_baseline_excerpt : Array[String]
+  content : String
+} derive(Show, ToJson, FromJson)
+
+///|
 pub struct UiState {
+  root : String
   title : String
   summary : String
   status_chips : Array[UiStatusChip]
@@ -56,6 +99,8 @@ pub struct UiState {
   page_families : Array[UiPanelItem]
   journey : Array[UiJourneyItem]
   chapters : Array[UiChapterLink]
+  skill_diagnostics : UiSkillDiagnostics
+  skills : Array[UiSkillItem]
   synthesis_preview : String
 } derive(Show, ToJson, FromJson)
 
@@ -80,6 +125,8 @@ pub async fn generate_ui_state(root : String) -> UiState {
   let readiness = ui_readiness_items(state, health)
   let review_queue = ui_review_queue(root, pending)
   let journey = ui_journey_items(root)
+  let skill_records = list_skills(root)
+  let skill_report = doctor_skills(root)
   let keeper_items = [
     {
       title: "Active Memory",
@@ -119,6 +166,7 @@ pub async fn generate_ui_state(root : String) -> UiState {
     },
   ]
   {
+    root: @pathx.normalize(root),
     title: catalog_name(root),
     summary: catalog_purpose(root),
     status_chips,
@@ -130,6 +178,8 @@ pub async fn generate_ui_state(root : String) -> UiState {
     page_families,
     journey,
     chapters: ui_chapter_links(root),
+    skill_diagnostics: ui_skill_diagnostics(skill_report),
+    skills: ui_skill_items(root, skill_records),
     synthesis_preview: ui_synthesis_preview(root),
   }
 }
@@ -180,6 +230,12 @@ pub async fn write_marketing_projection(
   let course_state_path = @path.Path(generated_dir)
     .join(@path.Path("course-state.json"))
     .to_string()
+  let skills_index_path = @path.Path(generated_dir)
+    .join(@path.Path("skills.html"))
+    .to_string()
+  let skills_state_path = @path.Path(generated_dir)
+    .join(@path.Path("skills-state.json"))
+    .to_string()
   @fsx.write_to_file(
     state_path,
     state.to_json().stringify(indent=2),
@@ -208,6 +264,16 @@ pub async fn write_marketing_projection(
   @fsx.write_to_file(
     course_index_path,
     course_projection_html(state, updated_note),
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    skills_state_path,
+    state.to_json().stringify(indent=2),
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    skills_index_path,
+    skills_projection_html(state, updated_note),
     create=0o644,
   )
   @fsx.write_to_file(styles_path, marketing_projection_styles(), create=0o644)
@@ -538,6 +604,93 @@ async fn ui_journey_items(root : String) -> Array[UiJourneyItem] {
 }
 
 ///|
+fn ui_skill_diagnostics(report : SkillDoctorReport) -> UiSkillDiagnostics {
+  {
+    total_count: report.total_count,
+    workspace_count: report.workspace_count,
+    seed_core_count: report.seed_core_count,
+    seed_extension_count: report.seed_extension_count,
+    duplicate_count: report.duplicate_names.length(),
+    missing_reference_count: report.missing_reference_paths.length(),
+    warning_count: report.warnings.length(),
+    duplicate_names: report.duplicate_names,
+    missing_reference_paths: report.missing_reference_paths,
+    warnings: report.warnings,
+  }
+}
+
+///|
+async fn ui_skill_items(
+  root : String,
+  records : Array[SkillRecord],
+) -> Array[UiSkillItem] {
+  let items : Array[UiSkillItem] = []
+  for record in records {
+    let compare = compare_skill(root, record.name) catch {
+      _ =>
+        {
+          root: ".",
+          name: record.name,
+          selected_path: record.path,
+          selected_scope: record.scope,
+          baseline_path: None,
+          baseline_scope: None,
+          status: "unknown",
+          summary: "Comparison unavailable.",
+          compared_line_count: record.line_count,
+          changed_line_count: 0,
+          selected_only_line_count: 0,
+          baseline_only_line_count: 0,
+          first_change_line: None,
+          selected_excerpt: [],
+          baseline_excerpt: [],
+        }
+    }
+    let content = if @fsx.exists(record.path) {
+      @fsx.read_file(record.path)
+    } else {
+      ""
+    }
+    let missing_references : Array[String] = []
+    for reference in record.references {
+      if !@fsx.exists(reference) {
+        missing_references.push(reference)
+      }
+    }
+    items.push({
+      key: record.scope + "|" + record.origin + "|" + record.path,
+      name: record.name,
+      scope: record.scope,
+      origin: record.origin,
+      extension: record.extension.unwrap_or("-"),
+      description: record.description,
+      path: record.path,
+      references: record.references,
+      missing_references,
+      overrides: record.overrides,
+      shadowed_by: record.shadowed_by,
+      line_count: record.line_count,
+      duplicate: !record.overrides.is_empty() || !record.shadowed_by.is_empty(),
+      compare_status: compare.status,
+      compare_summary: compare.summary,
+      compare_baseline_path: compare.baseline_path.unwrap_or("-"),
+      compare_baseline_scope: compare.baseline_scope.unwrap_or("-"),
+      compare_changed_line_count: compare.changed_line_count,
+      compare_selected_only_line_count: compare.selected_only_line_count,
+      compare_baseline_only_line_count: compare.baseline_only_line_count,
+      compare_first_change_line: match compare.first_change_line {
+        Some(line) => line.to_string()
+        None => "-"
+      },
+      compare_selected_excerpt: compare.selected_excerpt,
+      compare_baseline_excerpt: compare.baseline_excerpt,
+      content,
+    })
+  }
+  items
+}
+
+///|
 fn summary_link_parts(line : String) -> (String, String)? {
   match line.find("](") {
     Some(split) =>
@@ -644,13 +797,14 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   "  <link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n" +
   "  <link rel=\"stylesheet\" href=\"./styles.css\">\n" +
   "</head>\n" +
-  "<body>\n" +
+  "<body data-page=\"marketing\">\n" +
   "  <div class=\"backdrop\"></div>\n" +
   "  <header class=\"topbar\">\n" +
   "    <a class=\"brand\" href=\"\{book_prefix}index.html\"><span class=\"brand-mark\">MB</span><span>\{project_title}</span></a>\n" +
   "    <nav class=\"nav\">\n" +
   "      <a href=\"\{book_prefix}Home.html\">Wiki</a>\n" +
   "      <a href=\"\{book_prefix}index.html\">Book</a>\n" +
+  "      <a href=\"./skills.html\">Skills</a>\n" +
   "      <a href=\"#state\">State</a>\n" +
   "      <a href=\"#depth\">Depth</a>\n" +
   "    </nav>\n" +
@@ -665,6 +819,7 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   "          <a class=\"button button-primary\" href=\"\{book_prefix}Home.html\">Open detailed wiki</a>\n" +
   "          <a class=\"button button-secondary\" href=\"\{book_prefix}index.html\">Open book</a>\n" +
   "          <a class=\"button button-secondary\" href=\"./journal.html\">Open journal view</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"./skills.html\">Open skills view</a>\n" +
   "        </div>\n" +
   "        <div class=\"chip-row\">\{status_chips}</div>\n" +
   "      </div>\n" +
@@ -852,12 +1007,13 @@ fn journal_projection_html(state : UiState, updated_note : String) -> String {
   "  <link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n" +
   "  <link rel=\"stylesheet\" href=\"./styles.css\">\n" +
   "</head>\n" +
-  "<body>\n" +
+  "<body data-page=\"journal\">\n" +
   "  <div class=\"backdrop\"></div>\n" +
   "  <header class=\"topbar\">\n" +
   "    <a class=\"brand\" href=\"./index.html\"><span class=\"brand-mark\">MB</span><span>\{escape_html(state.title)}</span></a>\n" +
   "    <nav class=\"nav\">\n" +
   "      <a href=\"./index.html\">Marketing</a>\n" +
+  "      <a href=\"./skills.html\">Skills</a>\n" +
   "      <a href=\"\{book_prefix}Home.html\">Wiki</a>\n" +
   "      <a href=\"#timeline\">Timeline</a>\n" +
   "      <a href=\"#next\">Next</a>\n" +
@@ -958,13 +1114,14 @@ fn course_projection_html(state : UiState, updated_note : String) -> String {
   "  <link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n" +
   "  <link rel=\"stylesheet\" href=\"./styles.css\">\n" +
   "</head>\n" +
-  "<body>\n" +
+  "<body data-page=\"course\">\n" +
   "  <div class=\"backdrop\"></div>\n" +
   "  <header class=\"topbar\">\n" +
   "    <a class=\"brand\" href=\"./index.html\"><span class=\"brand-mark\">MB</span><span>\{escape_html(state.title)}</span></a>\n" +
   "    <nav class=\"nav\">\n" +
   "      <a href=\"./index.html\">Marketing</a>\n" +
   "      <a href=\"./journal.html\">Journal</a>\n" +
+  "      <a href=\"./skills.html\">Skills</a>\n" +
   "      <a href=\"\{book_prefix}Home.html\">Wiki</a>\n" +
   "      <a href=\"#modules\">Modules</a>\n" +
   "      <a href=\"#checkpoints\">Checkpoints</a>\n" +
@@ -1033,6 +1190,322 @@ fn course_projection_html(state : UiState, updated_note : String) -> String {
   "  <script src=\"./app.js\"></script>\n" +
   "</body>\n" +
   "</html>\n"
+}
+
+///|
+fn skills_projection_html(state : UiState, updated_note : String) -> String {
+  let book_prefix = "../../"
+  let diagnostics = state.skill_diagnostics
+  let metric_cards = [
+      {
+        label: "Tracked Skills",
+        value: diagnostics.total_count.to_string(),
+        note: "Workspace plus seeded core and extension skills visible in one surface.",
+        tone: "healthy",
+      },
+      {
+        label: "Workspace Overrides",
+        value: diagnostics.workspace_count.to_string(),
+        note: "Skills living under the active workspace `skills/` directory.",
+        tone: if diagnostics.workspace_count > 0 {
+          "review"
+        } else {
+          "info"
+        },
+      },
+      {
+        label: "Duplicate Names",
+        value: diagnostics.duplicate_count.to_string(),
+        note: "Name collisions across scopes that can confuse selection and override behavior.",
+        tone: if diagnostics.duplicate_count > 0 {
+          "alert"
+        } else {
+          "healthy"
+        },
+      },
+      {
+        label: "Missing References",
+        value: diagnostics.missing_reference_count.to_string(),
+        note: "Bundled `references/` paths mentioned by skills but missing on disk.",
+        tone: if diagnostics.missing_reference_count > 0 {
+          "alert"
+        } else {
+          "healthy"
+        },
+      },
+    ]
+    .map(fn(metric) {
+      "<article class=\"metric-card metric-\{metric.tone}\">" +
+      "<span class=\"metric-label\">\{escape_html(metric.label)}</span>" +
+      "<strong>\{escape_html(metric.value)}</strong>" +
+      "<p>\{escape_html(metric.note)}</p>" +
+      "</article>"
+    })
+    .join("")
+  let first_skill = if state.skills.is_empty() {
+    empty_ui_skill_item()
+  } else {
+    state.skills[0]
+  }
+  let duplicate_items = if diagnostics.duplicate_names.is_empty() {
+    "<article class=\"panel-item\"><strong>No duplicate names</strong><p>The current inventory does not collide on skill names.</p><small>healthy</small></article>"
+  } else {
+    diagnostics.duplicate_names
+    .map(fn(name) {
+      "<article class=\"panel-item\"><strong>\{escape_html(name)}</strong><p>This skill name exists in more than one scope. Check the detail panel to see override and shadow relationships.</p><small>duplicate</small></article>"
+    })
+    .join("")
+  }
+  let warning_items = if diagnostics.warnings.is_empty() {
+    "<article class=\"panel-item\"><strong>No doctor warnings</strong><p>The skill inventory has no extra warnings beyond duplicates or missing references.</p><small>clean</small></article>"
+  } else {
+    diagnostics.warnings
+    .map(fn(warning) {
+      "<article class=\"panel-item\"><strong>Doctor warning</strong><p>\{escape_html(warning)}</p><small>attention</small></article>"
+    })
+    .join("")
+  }
+  let first_skill_references = join_lines(first_skill.references)
+  let first_skill_overrides = join_lines_or_default(
+    first_skill.overrides,
+    "None",
+  )
+  let first_skill_shadowed = join_lines_or_default(
+    first_skill.shadowed_by,
+    "Not shadowed",
+  )
+  let first_skill_selected_excerpt = join_lines_or_default(
+    first_skill.compare_selected_excerpt,
+    "No selected excerpt.",
+  )
+  let first_skill_baseline_excerpt = join_lines_or_default(
+    first_skill.compare_baseline_excerpt,
+    "No baseline excerpt.",
+  )
+  let root_json = escape_html(state.root)
+  let skill_rows = state.skills
+    .map(fn(skill) {
+      let extension_attr = if skill.extension == "-" {
+        ""
+      } else {
+        " data-extension=\"\{escape_html(skill.extension)}\""
+      }
+      let duplicate = if skill.duplicate { "true" } else { "false" }
+      let scope_tone = if skill.scope == "workspace" {
+        "review"
+      } else if skill.scope == "seed-extension" {
+        "alert"
+      } else {
+        "healthy"
+      }
+      let duplicate_badge = if skill.duplicate {
+        "<span class=\"chip chip-alert\">duplicate</span>"
+      } else {
+        ""
+      }
+      let description = if skill.description.is_empty() {
+        "No description."
+      } else {
+        skill.description
+      }
+      "<button class=\"skill-row\" type=\"button\" data-skill-key=\"\{escape_html(skill.key)}\" data-skill-name=\"\{escape_html(skill.name)}\" data-scope=\"\{escape_html(skill.scope)}\" data-origin=\"\{escape_html(skill.origin)}\" data-duplicate=\"\{duplicate}\"\{extension_attr}>" +
+      "<span class=\"skill-row-head\"><strong>\{escape_html(skill.name)}</strong><span class=\"skill-badges\"><span class=\"chip chip-\{scope_tone}\">\{escape_html(skill.scope)}</span>\{duplicate_badge}</span></span>" +
+      "<span class=\"skill-row-body\">\{escape_html(description)}</span>" +
+      "<span class=\"skill-row-meta\">\{escape_html(skill.extension)} · \{escape_html(skill.path)}</span>" +
+      "</button>"
+    })
+    .join("")
+  let skills_json = escape_html(state.to_json().stringify(indent=2))
+  "<!doctype html>\n" +
+  "<html lang=\"en\">\n" +
+  "<head>\n" +
+  "  <meta charset=\"utf-8\">\n" +
+  "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+  "  <title>\{escape_html(state.title)} Skills</title>\n" +
+  "  <meta name=\"description\" content=\"Skill manager view generated from MoonBook skill inventory and diagnostics.\">\n" +
+  "  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n" +
+  "  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n" +
+  "  <link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n" +
+  "  <link rel=\"stylesheet\" href=\"./styles.css\">\n" +
+  "</head>\n" +
+  "<body data-page=\"skills\">\n" +
+  "  <div class=\"backdrop\"></div>\n" +
+  "  <header class=\"topbar\">\n" +
+  "    <a class=\"brand\" href=\"./index.html\"><span class=\"brand-mark\">MB</span><span>\{escape_html(state.title)}</span></a>\n" +
+  "    <nav class=\"nav\">\n" +
+  "      <a href=\"./index.html\">Marketing</a>\n" +
+  "      <a href=\"./journal.html\">Journal</a>\n" +
+  "      <a href=\"./course.html\">Course</a>\n" +
+  "      <a href=\"\{book_prefix}Home.html\">Wiki</a>\n" +
+  "      <a href=\"#explorer\">Explorer</a>\n" +
+  "    </nav>\n" +
+  "  </header>\n" +
+  "  <main class=\"page-shell journal-shell\">\n" +
+  "    <section class=\"hero reveal\">\n" +
+  "      <div class=\"hero-copy\">\n" +
+  "        <p class=\"eyebrow\">Skill manager</p>\n" +
+  "        <h1>Scan, compare, and inspect the skills that actually steer this workspace.</h1>\n" +
+  "        <p class=\"lede\">This surface pulls together workspace overrides, core seeded skills, extension skill packs, duplicate names, bundled references, and doctor warnings in one browser view.</p>\n" +
+  "        <div class=\"hero-actions\">\n" +
+  "          <a class=\"button button-primary\" href=\"#explorer\">Open explorer</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"\{book_prefix}Home.html\">Open wiki</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"./index.html\">Back to marketing</a>\n" +
+  "        </div>\n" +
+  "      </div>\n" +
+  "      <div class=\"hero-stage tilt\">\n" +
+  "        <div class=\"panel-block\">\n" +
+  "          <span class=\"panel-label\">what changed</span>\n" +
+  "          <pre><code>\{escape_html(updated_note)}</code></pre>\n" +
+  "        </div>\n" +
+  "        <div class=\"panel-block panel-block-dark\">\n" +
+  "          <span class=\"panel-label\">first resolved skill</span>\n" +
+  "          <p><strong>\{escape_html(first_skill.name)}</strong></p>\n" +
+  "          <p>\{escape_html(first_skill.description)}</p>\n" +
+  "        </div>\n" +
+  "      </div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Inventory</p>\n" +
+  "        <h2>Browser-first visibility over the skill substrate.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"metric-grid\">\{metric_cards}</div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Pressure points</p>\n" +
+  "        <h2>Duplicate names and doctor warnings stay visible.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"triple-grid skill-diagnostics-grid\">\n" +
+  "        <div class=\"panel-shell\"><h3>Duplicate names</h3>\{duplicate_items}</div>\n" +
+  "        <div class=\"panel-shell\"><h3>Doctor warnings</h3>\{warning_items}</div>\n" +
+  "      </div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\" id=\"explorer\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Explorer</p>\n" +
+  "        <h2>Filter the inventory, then inspect one skill in detail.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"skill-explorer\">\n" +
+  "        <aside class=\"skill-sidebar panel-shell\">\n" +
+  "          <div class=\"skill-toolbar\">\n" +
+  "            <input id=\"skill-search\" class=\"skill-search\" type=\"search\" placeholder=\"Search skills, scopes, or origins\">\n" +
+  "            <div class=\"skill-filters\">\n" +
+  "              <button class=\"filter-pill is-active\" type=\"button\" data-skill-filter=\"all\">All</button>\n" +
+  "              <button class=\"filter-pill\" type=\"button\" data-skill-filter=\"workspace\">Workspace</button>\n" +
+  "              <button class=\"filter-pill\" type=\"button\" data-skill-filter=\"seed-core\">Seed Core</button>\n" +
+  "              <button class=\"filter-pill\" type=\"button\" data-skill-filter=\"seed-extension\">Seed Extension</button>\n" +
+  "              <button class=\"filter-pill\" type=\"button\" data-skill-filter=\"duplicate\">Duplicates</button>\n" +
+  "            </div>\n" +
+  "          </div>\n" +
+  "          <div id=\"skill-list\" class=\"skill-list\">\{skill_rows}</div>\n" +
+  "          <p id=\"skill-empty\" class=\"skill-empty\" hidden>No skills match the current filter.</p>\n" +
+  "        </aside>\n" +
+  "        <section class=\"skill-detail panel-shell\">\n" +
+  "          <div class=\"skill-detail-head\">\n" +
+  "            <div>\n" +
+  "              <p class=\"eyebrow\">Selected skill</p>\n" +
+  "              <h3 id=\"skill-detail-name\">\{escape_html(first_skill.name)}</h3>\n" +
+  "            </div>\n" +
+  "            <div id=\"skill-detail-badges\" class=\"chip-row\"></div>\n" +
+  "          </div>\n" +
+  "          <p id=\"skill-detail-description\" class=\"lede skill-detail-description\">\{escape_html(first_skill.description)}</p>\n" +
+  "          <div class=\"skill-detail-grid\">\n" +
+  "            <article class=\"panel-item\"><strong>Path</strong><p id=\"skill-detail-path\">\{escape_html(first_skill.path)}</p><small>resolved source</small></article>\n" +
+  "            <article class=\"panel-item\"><strong>Origin</strong><p id=\"skill-detail-origin\">\{escape_html(first_skill.origin)}</p><small id=\"skill-detail-extension\">\{escape_html(first_skill.extension)}</small></article>\n" +
+  "            <article class=\"panel-item\"><strong>References</strong><p id=\"skill-detail-references\">\{escape_html(first_skill_references)}</p><small>bundled detail files</small></article>\n" +
+  "            <article class=\"panel-item\"><strong>Overrides / Shadowing</strong><p id=\"skill-detail-overrides\">\{escape_html(first_skill_overrides)}</p><small id=\"skill-detail-shadowed\">\{escape_html(first_skill_shadowed)}</small></article>\n" +
+  "          </div>\n" +
+  "          <div class=\"panel-shell skill-compare-shell\">\n" +
+  "            <div class=\"section-heading compact-heading\">\n" +
+  "              <p class=\"eyebrow\">Override drift</p>\n" +
+  "              <h3>Compare the selected skill against its nearest baseline.</h3>\n" +
+  "            </div>\n" +
+  "            <div class=\"skill-compare-grid\">\n" +
+  "              <article class=\"panel-item\"><strong>Status</strong><p id=\"skill-compare-status\">\{escape_html(first_skill.compare_status)}</p><small id=\"skill-compare-summary\">\{escape_html(first_skill.compare_summary)}</small></article>\n" +
+  "              <article class=\"panel-item\"><strong>Baseline</strong><p id=\"skill-compare-baseline-path\">\{escape_html(first_skill.compare_baseline_path)}</p><small id=\"skill-compare-baseline-scope\">\{escape_html(first_skill.compare_baseline_scope)}</small></article>\n" +
+  "              <article class=\"panel-item\"><strong>Change counts</strong><p id=\"skill-compare-counts\">changed=\{first_skill.compare_changed_line_count.to_string()} | selected-only=\{first_skill.compare_selected_only_line_count.to_string()} | baseline-only=\{first_skill.compare_baseline_only_line_count.to_string()}</p><small id=\"skill-compare-anchor\">first change line: \{escape_html(first_skill.compare_first_change_line)}</small></article>\n" +
+  "            </div>\n" +
+  "            <div class=\"skill-compare-excerpts\">\n" +
+  "              <div class=\"skill-code-shell\"><div class=\"skill-code-head\"><span class=\"panel-label\">Selected excerpt</span></div><pre class=\"preview-block skill-code-block skill-diff-block\"><code id=\"skill-compare-selected\">\{escape_html(first_skill_selected_excerpt)}</code></pre></div>\n" +
+  "              <div class=\"skill-code-shell\"><div class=\"skill-code-head\"><span class=\"panel-label\">Baseline excerpt</span></div><pre class=\"preview-block skill-code-block skill-diff-block\"><code id=\"skill-compare-baseline\">\{escape_html(first_skill_baseline_excerpt)}</code></pre></div>\n" +
+  "            </div>\n" +
+  "          </div>\n" +
+  "          <div class=\"panel-shell skill-actions-shell\">\n" +
+  "            <div class=\"section-heading compact-heading\">\n" +
+  "              <p class=\"eyebrow\">Actions</p>\n" +
+  "              <h3>Manage the selected skill through MoonBook CLI.</h3>\n" +
+  "            </div>\n" +
+  "            <div class=\"skill-action-grid\">\n" +
+  "              <article class=\"panel-item skill-command-card\"><strong>Show metadata</strong><p>Inspect the resolved machine-readable record for the selected skill.</p><pre class=\"preview-block\"><code id=\"skill-command-show\"></code></pre><button class=\"button button-secondary skill-copy-command\" type=\"button\" data-skill-command=\"show\">Copy command</button></article>\n" +
+  "              <article class=\"panel-item skill-command-card\"><strong>Compare against baseline</strong><p>Print the machine-readable drift report for the selected skill and its nearest baseline.</p><pre class=\"preview-block\"><code id=\"skill-command-compare\"></code></pre><button class=\"button button-secondary skill-copy-command\" type=\"button\" data-skill-command=\"compare\">Copy command</button></article>\n" +
+  "              <article class=\"panel-item skill-command-card\"><strong>Install into workspace</strong><p>Copy a seeded skill into `skills/` so it becomes editable inside this workspace.</p><pre class=\"preview-block\"><code id=\"skill-command-install\"></code></pre><button class=\"button button-secondary skill-copy-command\" type=\"button\" data-skill-command=\"install\">Copy command</button></article>\n" +
+  "              <article class=\"panel-item skill-command-card\"><strong>Scaffold workspace skill</strong><p>Create a new workspace-owned skill template with the same slug as the selected capability.</p><pre class=\"preview-block\"><code id=\"skill-command-scaffold\"></code></pre><button class=\"button button-secondary skill-copy-command\" type=\"button\" data-skill-command=\"scaffold\">Copy command</button></article>\n" +
+  "              <article class=\"panel-item skill-command-card\"><strong>Doctor inventory</strong><p>Re-run duplicate and bundled-reference diagnostics for the whole workspace.</p><pre class=\"preview-block\"><code id=\"skill-command-doctor\"></code></pre><button class=\"button button-secondary skill-copy-command\" type=\"button\" data-skill-command=\"doctor\">Copy command</button></article>\n" +
+  "            </div>\n" +
+  "            <p id=\"skill-command-note\" class=\"skill-command-note\">The generated site stays static. Real writes still go through MoonBook CLI so management remains explicit and auditable.</p>\n" +
+  "          </div>\n" +
+  "          <div class=\"skill-code-shell\">\n" +
+  "            <div class=\"skill-code-head\"><span class=\"panel-label\">SKILL.md</span><span id=\"skill-detail-lines\">\{first_skill.line_count.to_string()} lines</span></div>\n" +
+  "            <pre class=\"preview-block skill-code-block\"><code id=\"skill-detail-content\">\{escape_html(first_skill.content)}</code></pre>\n" +
+  "          </div>\n" +
+  "        </section>\n" +
+  "      </div>\n" +
+  "    </section>\n" +
+  "  </main>\n" +
+  "  <script id=\"skills-state-inline\" type=\"application/json\">\{skills_json}</script>\n" +
+  "  <script id=\"skills-root-inline\" type=\"application/json\">\{root_json}</script>\n" +
+  "  <script src=\"./app.js\"></script>\n" +
+  "</body>\n" +
+  "</html>\n"
+}
+
+///|
+fn empty_ui_skill_item() -> UiSkillItem {
+  {
+    key: "empty",
+    name: "No skills found",
+    scope: "empty",
+    origin: "none",
+    extension: "-",
+    description: "The inventory is empty.",
+    path: "",
+    references: [],
+    missing_references: [],
+    overrides: [],
+    shadowed_by: [],
+    line_count: 0,
+    duplicate: false,
+    compare_status: "empty",
+    compare_summary: "No comparison available.",
+    compare_baseline_path: "-",
+    compare_baseline_scope: "-",
+    compare_changed_line_count: 0,
+    compare_selected_only_line_count: 0,
+    compare_baseline_only_line_count: 0,
+    compare_first_change_line: "-",
+    compare_selected_excerpt: [],
+    compare_baseline_excerpt: [],
+    content: "",
+  }
+}
+
+///|
+fn join_lines(values : Array[String]) -> String {
+  if values.is_empty() {
+    "None"
+  } else {
+    values.join("\n")
+  }
+}
+
+///|
+fn join_lines_or_default(values : Array[String], fallback : String) -> String {
+  if values.is_empty() {
+    fallback
+  } else {
+    values.join("\n")
+  }
 }
 
 ///|
@@ -1214,10 +1687,43 @@ fn marketing_projection_styles() -> String {
   ".chapter-copy { display: grid; gap: 0.2rem; }\n" +
   ".chapter-copy small { color: var(--muted); }\n" +
   ".preview-block { min-height: 18rem; background: rgba(16, 33, 29, 0.95); }\n" +
+  ".skill-diagnostics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n" +
+  ".skill-explorer { display: grid; grid-template-columns: minmax(18rem, 25rem) minmax(0, 1fr); gap: 1rem; margin-top: 1.7rem; align-items: start; }\n" +
+  ".skill-sidebar, .skill-detail { padding: 1.3rem; }\n" +
+  ".skill-toolbar { display: grid; gap: 0.9rem; }\n" +
+  ".skill-search { width: 100%; min-height: 3rem; padding: 0.8rem 1rem; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,0.76); font: inherit; color: var(--ink); }\n" +
+  ".skill-filters { display: flex; flex-wrap: wrap; gap: 0.6rem; }\n" +
+  ".filter-pill { min-height: 2.45rem; padding: 0.6rem 0.9rem; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,0.62); font: inherit; font-weight: 700; color: var(--muted); cursor: pointer; }\n" +
+  ".filter-pill.is-active { color: #fff8ef; background: linear-gradient(135deg, var(--forest), #245b4d); border-color: transparent; }\n" +
+  ".skill-list { display: grid; gap: 0.75rem; margin-top: 1rem; max-height: 58rem; overflow: auto; padding-right: 0.2rem; }\n" +
+  ".skill-row { display: grid; gap: 0.55rem; width: 100%; text-align: left; padding: 1rem; border-radius: 1.1rem; border: 1px solid rgba(16, 33, 29, 0.1); background: rgba(255,255,255,0.64); color: inherit; cursor: pointer; transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }\n" +
+  ".skill-row:hover, .skill-row.is-selected { transform: translateY(-1px); border-color: rgba(23, 60, 52, 0.24); box-shadow: 0 16px 30px rgba(23, 60, 52, 0.12); }\n" +
+  ".skill-row-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }\n" +
+  ".skill-row-body, .skill-row-meta, .skill-empty, .skill-detail-description { color: var(--muted); }\n" +
+  ".skill-row-meta { font-size: 0.82rem; line-height: 1.5; word-break: break-word; }\n" +
+  ".skill-badges { display: inline-flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end; }\n" +
+  ".skill-detail-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }\n" +
+  ".skill-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.2rem; }\n" +
+  ".skill-detail-grid .panel-item p, .skill-detail-grid .panel-item small { white-space: pre-wrap; word-break: break-word; }\n" +
+  ".compact-heading { margin-bottom: 0.95rem; }\n" +
+  ".skill-compare-shell { margin-top: 1.2rem; }\n" +
+  ".skill-compare-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }\n" +
+  ".skill-compare-excerpts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }\n" +
+  ".skill-diff-block { min-height: 18rem; max-height: 26rem; }\n" +
+  ".skill-actions-shell { margin-top: 1.2rem; }\n" +
+  ".skill-action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }\n" +
+  ".skill-command-card { display: grid; gap: 0.85rem; align-content: start; }\n" +
+  ".skill-command-card .preview-block { min-height: 5rem; margin: 0; }\n" +
+  ".skill-copy-command { justify-self: start; }\n" +
+  ".skill-command-note { margin: 0.2rem 0 0; color: var(--muted); }\n" +
+  ".skill-code-shell { margin-top: 1.2rem; }\n" +
+  ".skill-code-head { display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-bottom: 0.75rem; }\n" +
+  ".skill-code-block { min-height: 32rem; max-height: 52rem; }\n" +
+  "#skill-detail-content { white-space: pre-wrap; word-break: break-word; }\n" +
   ".reveal { opacity: 0; transform: translateY(18px); transition: opacity 560ms ease, transform 560ms ease; }\n" +
   ".reveal.is-visible { opacity: 1; transform: translateY(0); }\n" +
   "@media (max-width: 980px) {\n" +
-  "  .hero, .metric-grid, .workflow-grid, .journey-grid, .readiness-grid, .triple-grid, .depth-grid { grid-template-columns: 1fr; }\n" +
+  "  .hero, .metric-grid, .workflow-grid, .journey-grid, .readiness-grid, .triple-grid, .depth-grid, .skill-explorer, .skill-detail-grid, .skill-diagnostics-grid, .skill-action-grid, .skill-compare-grid, .skill-compare-excerpts { grid-template-columns: 1fr; }\n" +
   "  .page-shell { width: min(100% - 1.4rem, 1200px); }\n" +
   "}\n" +
   "@media (max-width: 640px) {\n" +
@@ -1274,7 +1780,206 @@ fn marketing_projection_script() -> String {
   "      button.textContent = 'Reveal answer';\n" +
   "    }\n" +
   "  });\n" +
-  "});\n"
+  "});\n" +
+  "const bodyPage = document.body && document.body.dataset ? document.body.dataset.page : '';\n" +
+  "if (bodyPage === 'skills') {\n" +
+  "  const inlineState = document.getElementById('skills-state-inline');\n" +
+  "  const inlineRoot = document.getElementById('skills-root-inline');\n" +
+  "  let parsed = null;\n" +
+  "  let root = '.';\n" +
+  "  if (inlineState && inlineState.textContent) {\n" +
+  "    try {\n" +
+  "      parsed = JSON.parse(inlineState.textContent);\n" +
+  "    } catch (_) {\n" +
+  "      parsed = null;\n" +
+  "    }\n" +
+  "  }\n" +
+  "  if (inlineRoot && inlineRoot.textContent) {\n" +
+  "    try {\n" +
+  "      root = JSON.parse(inlineRoot.textContent);\n" +
+  "    } catch (_) {\n" +
+  "      root = '.';\n" +
+  "    }\n" +
+  "  }\n" +
+  "  const statePromise = parsed ? Promise.resolve(parsed) : fetch('./skills-state.json').then((response) => response.json()).catch(() => null);\n" +
+  "  statePromise.then((state) => {\n" +
+  "    if (!state || !Array.isArray(state.skills)) return;\n" +
+  "    const list = document.getElementById('skill-list');\n" +
+  "    const empty = document.getElementById('skill-empty');\n" +
+  "    const search = document.getElementById('skill-search');\n" +
+  "    const filters = Array.from(document.querySelectorAll('[data-skill-filter]'));\n" +
+  "    const detailName = document.getElementById('skill-detail-name');\n" +
+  "    const detailDescription = document.getElementById('skill-detail-description');\n" +
+  "    const detailPath = document.getElementById('skill-detail-path');\n" +
+  "    const detailOrigin = document.getElementById('skill-detail-origin');\n" +
+  "    const detailExtension = document.getElementById('skill-detail-extension');\n" +
+  "    const detailReferences = document.getElementById('skill-detail-references');\n" +
+  "    const detailOverrides = document.getElementById('skill-detail-overrides');\n" +
+  "    const detailShadowed = document.getElementById('skill-detail-shadowed');\n" +
+  "    const detailLines = document.getElementById('skill-detail-lines');\n" +
+  "    const detailContent = document.getElementById('skill-detail-content');\n" +
+  "    const detailBadges = document.getElementById('skill-detail-badges');\n" +
+  "    const compareStatus = document.getElementById('skill-compare-status');\n" +
+  "    const compareSummary = document.getElementById('skill-compare-summary');\n" +
+  "    const compareBaselinePath = document.getElementById('skill-compare-baseline-path');\n" +
+  "    const compareBaselineScope = document.getElementById('skill-compare-baseline-scope');\n" +
+  "    const compareCounts = document.getElementById('skill-compare-counts');\n" +
+  "    const compareAnchor = document.getElementById('skill-compare-anchor');\n" +
+  "    const compareSelected = document.getElementById('skill-compare-selected');\n" +
+  "    const compareBaseline = document.getElementById('skill-compare-baseline');\n" +
+  "    const commandShow = document.getElementById('skill-command-show');\n" +
+  "    const commandCompare = document.getElementById('skill-command-compare');\n" +
+  "    const commandInstall = document.getElementById('skill-command-install');\n" +
+  "    const commandScaffold = document.getElementById('skill-command-scaffold');\n" +
+  "    const commandDoctor = document.getElementById('skill-command-doctor');\n" +
+  "    const commandNote = document.getElementById('skill-command-note');\n" +
+  "    const commandButtons = Array.from(document.querySelectorAll('.skill-copy-command'));\n" +
+  "    let activeFilter = 'all';\n" +
+  "    let selectedKey = state.skills[0] ? state.skills[0].key : '';\n" +
+  "    const shellQuote = (value) => {\n" +
+  "      const text = String(value == null ? '' : value);\n" +
+  "      return `'${text.replace(/'/g, `'\"'\"'`)}'`;\n" +
+  "    };\n" +
+  "    const skillSlug = (value) => {\n" +
+  "      const slug = String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');\n" +
+  "      return slug || 'new-skill';\n" +
+  "    };\n" +
+  "    const skillSelector = (skill) => {\n" +
+  "      if (skill && skill.scope === 'seed-extension' && skill.extension && skill.extension !== '-') {\n" +
+  "        return `${skill.name}@${skill.extension}`;\n" +
+  "      }\n" +
+  "      return skill && skill.name ? skill.name : '';\n" +
+  "    };\n" +
+  "    const commandText = (skill, kind) => {\n" +
+  "      const quotedRoot = shellQuote(root || '.');\n" +
+  "      const quotedName = shellQuote(skillSelector(skill));\n" +
+  "      if (kind === 'show') return `moonbook skill show ${quotedName} ${quotedRoot}`;\n" +
+  "      if (kind === 'compare') return `moonbook skill compare ${quotedName} ${quotedRoot}`;\n" +
+  "      if (kind === 'doctor') return `moonbook skill doctor ${quotedRoot}`;\n" +
+  "      if (kind === 'scaffold') return `moonbook skill scaffold ${shellQuote(skillSlug(skill && skill.name ? skill.name : 'new-skill'))} ${quotedRoot}`;\n" +
+  "      if (kind === 'install') {\n" +
+  "        return skill && (skill.scope === 'workspace' || (Array.isArray(skill.shadowed_by) && skill.shadowed_by.length > 0))\n" +
+  "          ? '# already installed in workspace'\n" +
+  "          : `moonbook skill install ${quotedName} ${quotedRoot}`;\n" +
+  "      }\n" +
+  "      return '';\n" +
+  "    };\n" +
+  "    const copyText = async (value) => {\n" +
+  "      if (navigator.clipboard && window.isSecureContext) {\n" +
+  "        await navigator.clipboard.writeText(value);\n" +
+  "        return;\n" +
+  "      }\n" +
+  "      const node = document.createElement('textarea');\n" +
+  "      node.value = value;\n" +
+  "      node.setAttribute('readonly', '');\n" +
+  "      node.style.position = 'fixed';\n" +
+  "      node.style.top = '-9999px';\n" +
+  "      document.body.appendChild(node);\n" +
+  "      node.focus();\n" +
+  "      node.select();\n" +
+  "      document.execCommand('copy');\n" +
+  "      document.body.removeChild(node);\n" +
+  "    };\n" +
+  "    const renderDetail = (skill) => {\n" +
+  "      if (!skill) return;\n" +
+  "      detailName.textContent = skill.name;\n" +
+  "      detailDescription.textContent = skill.description || 'No description.';\n" +
+  "      detailPath.textContent = skill.path || '-';\n" +
+  "      detailOrigin.textContent = skill.origin || '-';\n" +
+  "      detailExtension.textContent = skill.extension || '-';\n" +
+  "      detailReferences.textContent = (skill.references && skill.references.length ? skill.references : ['None']).join('\\n');\n" +
+  "      detailOverrides.textContent = (skill.overrides && skill.overrides.length ? skill.overrides : ['None']).join('\\n');\n" +
+  "      detailShadowed.textContent = (skill.shadowed_by && skill.shadowed_by.length ? skill.shadowed_by : ['Not shadowed']).join('\\n');\n" +
+  "      detailLines.textContent = `${skill.line_count || 0} lines`;\n" +
+  "      detailContent.textContent = skill.content || '';\n" +
+  "      if (compareStatus) compareStatus.textContent = skill.compare_status || '-';\n" +
+  "      if (compareSummary) compareSummary.textContent = skill.compare_summary || 'No comparison summary.';\n" +
+  "      if (compareBaselinePath) compareBaselinePath.textContent = skill.compare_baseline_path || '-';\n" +
+  "      if (compareBaselineScope) compareBaselineScope.textContent = skill.compare_baseline_scope || '-';\n" +
+  "      if (compareCounts) compareCounts.textContent = `changed=${skill.compare_changed_line_count || 0} | selected-only=${skill.compare_selected_only_line_count || 0} | baseline-only=${skill.compare_baseline_only_line_count || 0}`;\n" +
+  "      if (compareAnchor) compareAnchor.textContent = `first change line: ${skill.compare_first_change_line || '-'}`;\n" +
+  "      if (compareSelected) compareSelected.textContent = (skill.compare_selected_excerpt && skill.compare_selected_excerpt.length ? skill.compare_selected_excerpt : ['No selected excerpt.']).join('\\n');\n" +
+  "      if (compareBaseline) compareBaseline.textContent = (skill.compare_baseline_excerpt && skill.compare_baseline_excerpt.length ? skill.compare_baseline_excerpt : ['No baseline excerpt.']).join('\\n');\n" +
+  "      if (commandShow) commandShow.textContent = commandText(skill, 'show');\n" +
+  "      if (commandCompare) commandCompare.textContent = commandText(skill, 'compare');\n" +
+  "      if (commandInstall) commandInstall.textContent = commandText(skill, 'install');\n" +
+  "      if (commandScaffold) commandScaffold.textContent = commandText(skill, 'scaffold');\n" +
+  "      if (commandDoctor) commandDoctor.textContent = commandText(skill, 'doctor');\n" +
+  "      if (commandNote) {\n" +
+  "        commandNote.textContent = skill.scope === 'workspace' || (Array.isArray(skill.shadowed_by) && skill.shadowed_by.length > 0)\n" +
+  "          ? 'This skill is already workspace-owned. Edit the path above directly or scaffold a sibling variant if you want a clean branch.'\n" +
+  "          : 'This skill currently resolves from a seeded pack. Install it into the workspace if you want local ownership and edits.';\n" +
+  "      }\n" +
+  "      detailBadges.innerHTML = '';\n" +
+  "      const badges = [skill.scope, skill.origin];\n" +
+  "      if (skill.extension && skill.extension !== '-') badges.push(skill.extension);\n" +
+  "      if (skill.duplicate) badges.push('duplicate');\n" +
+  "      if (Array.isArray(skill.missing_references) && skill.missing_references.length) badges.push('missing references');\n" +
+  "      badges.forEach((label) => {\n" +
+  "        const span = document.createElement('span');\n" +
+  "        span.className = `chip ${label === 'duplicate' || label === 'missing references' ? 'chip-alert' : label === 'workspace' ? 'chip-review' : 'chip-healthy'}`;\n" +
+  "        span.textContent = label;\n" +
+  "        detailBadges.appendChild(span);\n" +
+  "      });\n" +
+  "    };\n" +
+  "    const visibleSkills = () => {\n" +
+  "      const query = search && search.value ? search.value.trim().toLowerCase() : '';\n" +
+  "      return state.skills.filter((skill) => {\n" +
+  "        const matchesFilter = activeFilter === 'all' ? true : activeFilter === 'duplicate' ? !!skill.duplicate : skill.scope === activeFilter;\n" +
+  "        const haystack = [skill.name, skill.scope, skill.origin, skill.extension, skill.description, skill.path].join(' ').toLowerCase();\n" +
+  "        return matchesFilter && (!query || haystack.includes(query));\n" +
+  "      });\n" +
+  "    };\n" +
+  "    const renderList = () => {\n" +
+  "      const filtered = visibleSkills();\n" +
+  "      Array.from(list.querySelectorAll('.skill-row')).forEach((node) => {\n" +
+  "        const skill = state.skills.find((item) => item.key === node.dataset.skillKey);\n" +
+  "        const show = filtered.includes(skill);\n" +
+  "        node.hidden = !show;\n" +
+  "        node.classList.toggle('is-selected', show && skill && skill.key === selectedKey);\n" +
+  "      });\n" +
+  "      if (empty) empty.hidden = filtered.length > 0;\n" +
+  "      if (!filtered.find((item) => item.key === selectedKey) && filtered[0]) {\n" +
+  "        selectedKey = filtered[0].key;\n" +
+  "        renderDetail(filtered[0]);\n" +
+  "      }\n" +
+  "    };\n" +
+  "    list.addEventListener('click', (event) => {\n" +
+  "      const button = event.target && event.target.closest ? event.target.closest('.skill-row') : null;\n" +
+  "      if (!button) return;\n" +
+  "      const skill = state.skills.find((item) => item.key === button.dataset.skillKey);\n" +
+  "      if (!skill) return;\n" +
+  "      selectedKey = skill.key;\n" +
+  "      renderDetail(skill);\n" +
+  "      renderList();\n" +
+  "    });\n" +
+  "    commandButtons.forEach((button) => {\n" +
+  "      button.addEventListener('click', async () => {\n" +
+  "        const skill = state.skills.find((item) => item.key === selectedKey);\n" +
+  "        if (!skill) return;\n" +
+  "        const kind = button.dataset.skillCommand || 'show';\n" +
+  "        const text = commandText(skill, kind);\n" +
+  "        if (!text) return;\n" +
+  "        await copyText(text);\n" +
+  "        const original = button.textContent;\n" +
+  "        button.textContent = 'Copied';\n" +
+  "        window.setTimeout(() => {\n" +
+  "          button.textContent = original;\n" +
+  "        }, 1400);\n" +
+  "      });\n" +
+  "    });\n" +
+  "    filters.forEach((button) => {\n" +
+  "      button.addEventListener('click', () => {\n" +
+  "        activeFilter = button.dataset.skillFilter || 'all';\n" +
+  "        filters.forEach((item) => item.classList.toggle('is-active', item === button));\n" +
+  "        renderList();\n" +
+  "      });\n" +
+  "    });\n" +
+  "    if (search) search.addEventListener('input', renderList);\n" +
+  "    renderDetail(state.skills[0]);\n" +
+  "    renderList();\n" +
+  "  });\n" +
+  "}\n"
 }
 
 ///|
@@ -1302,6 +2007,12 @@ async test "write marketing projection emits generated site bundle" {
   let index_path = write_marketing_projection(root, site_root)
   let generated_dir = @path.Path(site_root)
     .join(@path.Path("generated"))
+    .to_string()
+  let skills_index_path = @path.Path(generated_dir)
+    .join(@path.Path("skills.html"))
+    .to_string()
+  let skills_state_path = @path.Path(generated_dir)
+    .join(@path.Path("skills-state.json"))
     .to_string()
   assert_eq(
     index_path,
@@ -1349,7 +2060,23 @@ async test "write marketing projection emits generated site bundle" {
       .to_string(),
     ),
   )
+  assert_true(
+    @fsx.exists(
+      @path.Path(generated_dir).join(@path.Path("skills.html")).to_string(),
+    ),
+  )
+  assert_true(
+    @fsx.exists(
+      @path.Path(generated_dir)
+      .join(@path.Path("skills-state.json"))
+      .to_string(),
+    ),
+  )
   assert_true(@fsx.read_file(index_path).contains("Live marketing projection"))
+  assert_true(@fsx.read_file(skills_index_path).contains("Skill manager"))
+  assert_true(
+    @fsx.read_file(skills_state_path).contains("\"skill_diagnostics\""),
+  )
 }
 
 ///|
@@ -1372,4 +2099,14 @@ async test "ui state exposes readiness and query counts" {
   assert_true(state.metrics.any(fn(metric) { metric.label == "Query Notes" }))
   assert_true(state.readiness.length() > 0)
   assert_true(state.journey.length() > 0)
+}
+
+///|
+async test "ui state includes skill inventory diagnostics" {
+  let root = "/tmp/moonbook-ui-state-skills"
+  ignore(init_workspace(root))
+  let state = generate_ui_state(root)
+  assert_true(state.skill_diagnostics.total_count >= 17)
+  assert_true(state.skills.length() >= 17)
+  assert_true(state.skills[0].content.contains("---"))
 }

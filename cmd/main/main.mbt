@@ -2,6 +2,10 @@
 async fn main {
   let args = @env.args()
   match args[1:] {
+    ["book", .. book_args] => run_book(book_args.to_array())
+    ["pack", .. pack_args] => run_pack(pack_args.to_array())
+    ["skill", .. skill_args] => run_skill(skill_args.to_array())
+    ["doctor", .. doctor_args] => run_doctor(doctor_args.to_array())
     ["wiki", .. wiki_args] => run_wiki(wiki_args.to_array())
     ["build", root] => run_build(root)
     ["build"] => run_build(".")
@@ -17,6 +21,218 @@ async fn main {
     ["test"] => run_test(".")
     ["version"] => println(@core.mdbook_version)
     _ => print_usage()
+  }
+}
+
+///|
+async fn run_book(args : Array[String]) -> Unit {
+  match args {
+    ["init", root] => run_init(root)
+    ["init"] => run_init(".")
+    ["clean", root] => run_clean(root)
+    ["clean"] => run_clean(".")
+    ["load", root] => run_load(root)
+    ["load"] => run_load(".")
+    ["test", root] => run_test(root)
+    ["test"] => run_test(".")
+    _ =>
+      println(
+        "moonbook book usage: moonbook book init [root]\nmoonbook book clean [root]\nmoonbook book load [root]\nmoonbook book test [root]",
+      )
+  }
+}
+
+///|
+async fn run_pack(args : Array[String]) -> Unit {
+  match args {
+    ["list"] => run_pack_list()
+    ["enable", extension, root] => run_wiki_enable(root, extension)
+    ["enable", extension] => run_wiki_enable(".", extension)
+    _ =>
+      println(
+        "moonbook pack usage: moonbook pack list\nmoonbook pack enable <extension> [root]",
+      )
+  }
+}
+
+///|
+fn run_pack_list() -> Unit {
+  for extension in @wiki.supported_extensions() {
+    println(extension)
+  }
+}
+
+///|
+async fn run_skill(args : Array[String]) -> Unit {
+  match args {
+    ["list", root] => run_skill_list(root)
+    ["list"] => run_skill_list(".")
+    ["show", name, root] => run_skill_show(root, name)
+    ["show", name] => run_skill_show(".", name)
+    ["compare", name, root] => run_skill_compare(root, name)
+    ["compare", name] => run_skill_compare(".", name)
+    ["install", name, root] => run_skill_install(root, name)
+    ["install", name] => run_skill_install(".", name)
+    ["scaffold", name, root] => run_skill_scaffold(root, name)
+    ["scaffold", name] => run_skill_scaffold(".", name)
+    ["doctor", root] => run_skill_doctor(root)
+    ["doctor"] => run_skill_doctor(".")
+    _ =>
+      println(
+        "moonbook skill usage: moonbook skill list [root]\nmoonbook skill show <name> [root]\nmoonbook skill compare <name[@extension]> [root]\nmoonbook skill install <name[@extension]> [root]\nmoonbook skill scaffold <name> [root]\nmoonbook skill doctor [root]",
+      )
+  }
+}
+
+///|
+async fn run_skill_list(root : String) -> Unit {
+  let records = @wiki.list_skills(root) catch {
+    error => {
+      println("moonbook skill list failed: \{error}")
+      return
+    }
+  }
+  if records.is_empty() {
+    println("no skills found")
+    return
+  }
+  for record in records {
+    let extension = match record.extension {
+      Some(extension) => extension
+      None => "-"
+    }
+    println("\{record.name}\t\{record.scope}\t\{extension}\t\{record.path}")
+  }
+}
+
+///|
+async fn run_skill_show(root : String, name : String) -> Unit {
+  let maybe_record = @wiki.find_skill(root, name) catch {
+    error => {
+      println("moonbook skill show failed: \{error}")
+      return
+    }
+  }
+  match maybe_record {
+    Some(record) => println(record.to_json().stringify(indent=2))
+    None => println("moonbook skill show failed: no skill found for \{name}")
+  }
+}
+
+///|
+async fn run_skill_install(root : String, name : String) -> Unit {
+  let result = @wiki.install_skill(root, name) catch {
+    error => {
+      println("moonbook skill install failed: \{error}")
+      return
+    }
+  }
+  println("installed skill \{result.name}")
+  println("workspace path: \{result.destination_path}")
+  match result.source_path {
+    Some(path) => println("seed source: \{path}")
+    None => ()
+  }
+}
+
+///|
+async fn run_skill_compare(root : String, name : String) -> Unit {
+  let result = @wiki.compare_skill(root, name) catch {
+    error => {
+      println("moonbook skill compare failed: \{error}")
+      return
+    }
+  }
+  println(result.to_json().stringify(indent=2))
+}
+
+///|
+async fn run_skill_scaffold(root : String, name : String) -> Unit {
+  let result = @wiki.scaffold_skill(root, name) catch {
+    error => {
+      println("moonbook skill scaffold failed: \{error}")
+      return
+    }
+  }
+  println("scaffolded skill \{result.name}")
+  println("workspace path: \{result.destination_path}")
+}
+
+///|
+async fn run_skill_doctor(root : String) -> Unit {
+  let report = @wiki.doctor_skills(root) catch {
+    error => {
+      println("moonbook skill doctor failed: \{error}")
+      return
+    }
+  }
+  println("skill count: \{report.total_count}")
+  println("workspace skills: \{report.workspace_count}")
+  println("seed core skills: \{report.seed_core_count}")
+  println("seed extension skills: \{report.seed_extension_count}")
+  if report.duplicate_names.is_empty() &&
+    report.missing_reference_paths.is_empty() &&
+    report.warnings.is_empty() {
+    println("skill doctor: clean")
+    return
+  }
+  if !report.duplicate_names.is_empty() {
+    let duplicate_names = report.duplicate_names.join(", ")
+    println("duplicate names: \{duplicate_names}")
+  }
+  if !report.missing_reference_paths.is_empty() {
+    println("missing references:")
+    for path in report.missing_reference_paths {
+      println("- \{path}")
+    }
+  }
+  if !report.warnings.is_empty() {
+    println("warnings:")
+    for warning in report.warnings {
+      println("- \{warning}")
+    }
+  }
+}
+
+///|
+async fn run_doctor(args : Array[String]) -> Unit {
+  let root = match args {
+    [root] => root
+    [] => "."
+    _ => {
+      println("moonbook doctor usage: moonbook doctor [root]")
+      return
+    }
+  }
+  let skill_report = @wiki.doctor_skills(root) catch {
+    error => {
+      println("moonbook doctor failed: \{error}")
+      return
+    }
+  }
+  println("MoonBook doctor for \{root}")
+  println("skills: \{skill_report.total_count}")
+  if skill_report.warnings.is_empty() &&
+    skill_report.duplicate_names.is_empty() &&
+    skill_report.missing_reference_paths.is_empty() {
+    println("skill status: clean")
+  } else {
+    println("skill status: attention needed")
+  }
+  if @fsx.exists(@path.Path(root).join(@path.Path("wiki")).to_string()) {
+    let health = @wiki.report_health(root) catch {
+      error => {
+        println("wiki health failed: \{error}")
+        return
+      }
+    }
+    println("wiki health: \{health.level}")
+    println("summary: \{health.summary}")
+    println(
+      "coverage: sources=\{health.source_page_count} entities=\{health.entity_page_count} concepts=\{health.concept_page_count} queries=\{health.query_note_count}",
+    )
+  } else {
+    println("wiki health: skipped (no wiki workspace detected)")
   }
 }
 
@@ -870,6 +1086,16 @@ async fn run_watch(args : Array[String]) -> Unit {
 
 ///|
 fn print_usage() -> Unit {
+  println("moonbook book init [root]")
+  println("moonbook book clean [root]")
+  println("moonbook book load [root]")
+  println("moonbook book test [root]")
+  println("moonbook pack list")
+  println("moonbook pack enable <extension> [root]")
+  println("moonbook skill list [root]")
+  println("moonbook skill show <name> [root]")
+  println("moonbook skill doctor [root]")
+  println("moonbook doctor [root]")
   println("moonbook wiki init [root]")
   println("moonbook wiki enable <extension> [root]")
   println("moonbook wiki ingest [root] <source>")
@@ -887,10 +1113,18 @@ fn print_usage() -> Unit {
     "moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]",
   )
   println("moonbook watch [root] [-d dest-dir] [-o] [--watcher poll|native]")
-  println("moonbook init [root]")
-  println("moonbook clean [root]")
-  println("moonbook load [root]")
-  println("moonbook test [root]")
+  println(
+    "moonbook init [root]                  # compatibility alias for `moonbook book init`",
+  )
+  println(
+    "moonbook clean [root]                 # compatibility alias for `moonbook book clean`",
+  )
+  println(
+    "moonbook load [root]                  # compatibility alias for `moonbook book load`",
+  )
+  println(
+    "moonbook test [root]                  # compatibility alias for `moonbook book test`",
+  )
   println("moonbook version")
 }
 

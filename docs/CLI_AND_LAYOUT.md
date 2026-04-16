@@ -2,6 +2,26 @@
 
 ## Commands
 
+### `moon run cmd/main -- book init [root]`
+
+Compatibility-preserving top-level alias for plain book initialization.
+Equivalent to `moon run cmd/main -- init [root]`.
+
+### `moon run cmd/main -- book clean [root]`
+
+Compatibility-preserving top-level alias for build cleanup.
+Equivalent to `moon run cmd/main -- clean [root]`.
+
+### `moon run cmd/main -- book load [root]`
+
+Compatibility-preserving top-level alias for printing loaded book config/state.
+Equivalent to `moon run cmd/main -- load [root]`.
+
+### `moon run cmd/main -- book test [root]`
+
+Compatibility-preserving top-level alias for the current lightweight book inspection test.
+Equivalent to `moon run cmd/main -- test [root]`.
+
 ### `moon run cmd/main -- init <root>`
 
 Creates a minimal book project:
@@ -76,6 +96,84 @@ Current supported extensions:
 
 - `moonclaw`
 - `moontown`
+
+### `moon run cmd/main -- pack list`
+
+Prints the currently supported extension pack ids.
+
+### `moon run cmd/main -- pack enable <extension> [root]`
+
+Top-level pack installer.
+Equivalent to `moon run cmd/main -- wiki enable <extension> [root]`.
+
+### `moon run cmd/main -- skill list [root]`
+
+Prints a tabular inventory of:
+
+- workspace `skills/`
+- repo-seeded core skills under `seed/wiki/skills/`
+- repo-seeded extension skills under `seed/extensions/*/skills/`
+
+Each line includes skill name, scope, extension, and resolved `SKILL.md` path.
+
+### `moon run cmd/main -- skill show <name> [root]`
+
+Prints one resolved skill record as JSON.
+Current metadata includes:
+
+- name
+- scope
+- origin
+- extension
+- path
+- bundled references
+- override/shadow relationships
+- line count
+
+### `moon run cmd/main -- skill compare <name[@extension]> [root]`
+
+Prints a machine-readable drift report for the selected skill against its nearest baseline.
+Current behavior:
+
+- prefers a workspace-owned skill when the same name exists in multiple scopes
+- compares a workspace override against its seeded baseline
+- compares a seeded skill against its workspace shadow when one exists
+- reports changed shared lines, selected-only lines, baseline-only lines, first change line, and short excerpts from both sides
+
+### `moon run cmd/main -- skill install <name[@extension]> [root]`
+
+Copies one seeded skill into workspace `skills/` so it becomes locally owned and editable.
+Current behavior:
+
+- resolves the named skill from repo-seeded core or extension packs
+- prefers the core-seeded variant when the same name also exists in extension packs
+- accepts `name@extension` when you want the extension-specific variant explicitly
+- preserves bundled `references/` and other skill files by copying the whole skill directory
+
+### `moon run cmd/main -- skill scaffold <name> [root]`
+
+Creates a new workspace-owned skill template under `skills/<slug>/`.
+The scaffold includes:
+
+- a substantial `SKILL.md` skeleton with boundary, inputs, outputs, workflow, and quality-bar sections
+- empty `references/` and `agents/` directories for later expansion
+
+### `moon run cmd/main -- skill doctor [root]`
+
+Runs skill inventory diagnostics:
+
+- duplicate skill names across scopes
+- missing bundled `references/` files
+- workspace overrides of seeded skills
+- missing descriptions
+
+### `moon run cmd/main -- doctor [root]`
+
+Runs a top-level MoonBook health check:
+
+1. runs `skill doctor`
+2. if the root looks like a wiki workspace, also prints wiki health and coverage summary
+3. otherwise reports that wiki health was skipped
 
 ### `moon run cmd/main -- wiki book accept [root] <goal>`
 
@@ -406,6 +504,10 @@ Created by `moonbook wiki init`:
   generated journal view built from live workspace and journey state
 - `book/site/generated/course.html`
   generated educational course view built from live workspace and journey state
+- `book/site/generated/skills.html`
+  generated skill manager view built from workspace, core-seed, and extension-seed skill inventory
+- `book/site/generated/skills-state.json`
+  machine-readable skill inventory and diagnostics snapshot used by the generated skill manager
 - `wiki/history/journey.md`
   compact operator timeline distilled from persisted book results
 - `wiki/history/debug-journal.md`

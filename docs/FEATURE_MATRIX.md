@@ -6,6 +6,19 @@ This document tracks the currently implemented moonbook behavior. It is intentio
 
 Implemented commands:
 
+- `moonbook book init [root]`
+- `moonbook book clean [root]`
+- `moonbook book load [root]`
+- `moonbook book test [root]`
+- `moonbook pack list`
+- `moonbook pack enable <extension> [root]`
+- `moonbook skill list [root]`
+- `moonbook skill show <name> [root]`
+- `moonbook skill compare <name[@extension]> [root]`
+- `moonbook skill install <name[@extension]> [root]`
+- `moonbook skill scaffold <name> [root]`
+- `moonbook skill doctor [root]`
+- `moonbook doctor [root]`
 - `moonbook init [root]`
 - `moonbook build [root]`
 - `moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]`
@@ -46,6 +59,10 @@ Implemented behaviors:
 - `build` and `serve` generate a live marketing projection into `book/site/generated/`
 - generated site also includes a dedicated journal view at `book/site/generated/journal.html`
 - generated site also includes a `ctc`-inspired educational course view at `book/site/generated/course.html`
+- generated site also includes a dedicated skill manager at `book/site/generated/skills.html`
+- generated skill manager aggregates workspace, core-seed, and extension-seed skills with duplicate and missing-reference diagnostics
+- generated skill manager also exposes copyable `skill show`, `skill compare`, `skill install`, `skill scaffold`, and `skill doctor` lifecycle commands for the selected skill
+- generated skill manager renders override drift summaries and side-by-side excerpts against the nearest baseline
 - `serve --watcher native` currently falls back to the poll backend with an explicit notice
 - `wiki init` scaffolds `raw/`, `wiki/`, `AGENTS.md`, `wiki.toml`, and a MoonBook-compatible `book.toml`
 - `wiki init` scaffolds `raw/bootstrap/` for raw-first bootstrap source packets
@@ -53,6 +70,13 @@ Implemented behaviors:
 - `wiki init` scaffolds a `site/` marketing website projection with `index.html`, `styles.css`, and `app.js`
 - `wiki init` seeds a dedicated `skills/wiki-marketing/SKILL.md` routine for maintaining `site/` as a presentation layer distinct from `wiki/`
 - `wiki init` copies repo-owned static `SKILL.md` templates from `seed/wiki/skills/` instead of generating them in code
+- `skill list` inventories workspace skills plus repo-seeded core and extension skills
+- `skill show` prints machine-readable metadata for one resolved skill
+- `skill compare` reports drift between a selected skill and its nearest baseline
+- `skill install` copies a seeded skill into workspace ownership under `skills/`
+- `skill scaffold` creates a new workspace-owned skill template with a substantial `SKILL.md`
+- `skill doctor` reports duplicate names, missing bundled references, and workspace overrides
+- `pack list` reports currently supported extension packs
 - generated marketing projection includes current status, workflow, review pressure, keeper memory, depth links, and synthesis preview from live workspace state
 - `wiki init` seeds `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
 - `wiki init` seeds claims, maintenance-plan, query-insights, pending-review, and approved-review pages

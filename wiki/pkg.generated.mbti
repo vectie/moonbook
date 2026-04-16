@@ -12,7 +12,13 @@ pub async fn approve_review(String, String) -> ReviewActionResult
 
 pub async fn catalog_record(String) -> BookCatalogRecord
 
+pub async fn compare_skill(String, String) -> SkillCompareResult
+
+pub async fn doctor_skills(String) -> SkillDoctorReport
+
 pub async fn enable_extension(String, String) -> ExtensionInstallResult
+
+pub async fn find_skill(String, String) -> SkillRecord?
 
 pub async fn generate_ui_state(String) -> UiState
 
@@ -22,9 +28,13 @@ pub async fn ingest_source(String, String) -> IngestResult
 
 pub async fn init_workspace(String, title? : String?) -> WikiWorkspace
 
+pub async fn install_skill(String, String) -> SkillInstallResult
+
 pub async fn lint_wiki(String) -> LintResult
 
 pub async fn list_pending_reviews(String) -> Array[ReviewItem]
+
+pub async fn list_skills(String) -> Array[SkillRecord]
 
 pub async fn persist_result(String, BookResult) -> PersistResultOutcome
 
@@ -37,6 +47,8 @@ pub async fn reject_review(String, String) -> ReviewActionResult
 pub async fn report_health(String) -> BookHealthReport
 
 pub async fn resolve_task_for_goal(String, String, task_id? : String?) -> BookTask?
+
+pub async fn scaffold_skill(String, String) -> SkillInstallResult
 
 pub async fn summarize_state(String) -> BookStateSummary
 
@@ -239,6 +251,66 @@ pub struct ReviewItem {
 pub impl Show for ReviewItem
 pub impl ToJson for ReviewItem
 
+pub struct SkillCompareResult {
+  root : String
+  name : String
+  selected_path : String
+  selected_scope : String
+  baseline_path : String?
+  baseline_scope : String?
+  status : String
+  summary : String
+  compared_line_count : Int
+  changed_line_count : Int
+  selected_only_line_count : Int
+  baseline_only_line_count : Int
+  first_change_line : Int?
+  selected_excerpt : Array[String]
+  baseline_excerpt : Array[String]
+}
+pub impl Show for SkillCompareResult
+pub impl ToJson for SkillCompareResult
+
+pub struct SkillDoctorReport {
+  root : String
+  total_count : Int
+  workspace_count : Int
+  seed_core_count : Int
+  seed_extension_count : Int
+  duplicate_names : Array[String]
+  missing_reference_paths : Array[String]
+  warnings : Array[String]
+}
+pub impl Show for SkillDoctorReport
+pub impl ToJson for SkillDoctorReport
+
+pub struct SkillInstallResult {
+  root : String
+  name : String
+  destination_path : String
+  source_path : String?
+  action : String
+}
+pub impl Show for SkillInstallResult
+pub impl ToJson for SkillInstallResult
+
+pub struct SkillRecord {
+  id : String
+  name : String
+  path : String
+  scope : String
+  origin : String
+  source_kind : String
+  extension : String?
+  description : String
+  references : Array[String]
+  overrides : Array[String]
+  shadowed_by : Array[String]
+  line_count : Int
+}
+pub impl Show for SkillRecord
+pub impl ToJson for SkillRecord
+
 pub struct UiChapterLink {
   title : String
   href : String
@@ -279,7 +351,54 @@ pub impl Show for UiPanelItem
 pub impl ToJson for UiPanelItem
 pub impl @json.FromJson for UiPanelItem
 
+pub struct UiSkillDiagnostics {
+  total_count : Int
+  workspace_count : Int
+  seed_core_count : Int
+  seed_extension_count : Int
+  duplicate_count : Int
+  missing_reference_count : Int
+  warning_count : Int
+  duplicate_names : Array[String]
+  missing_reference_paths : Array[String]
+  warnings : Array[String]
+}
+pub impl Show for UiSkillDiagnostics
+pub impl ToJson for UiSkillDiagnostics
+pub impl @json.FromJson for UiSkillDiagnostics
+
+pub struct UiSkillItem {
+  key : String
+  name : String
+  scope : String
+  origin : String
+  extension : String
+  description : String
+  path : String
+  references : Array[String]
+  missing_references : Array[String]
+  overrides : Array[String]
+  shadowed_by : Array[String]
+  line_count : Int
+  duplicate : Bool
+  compare_status : String
+  compare_summary : String
+  compare_baseline_path : String
+  compare_baseline_scope : String
+  compare_changed_line_count : Int
+  compare_selected_only_line_count : Int
+  compare_baseline_only_line_count : Int
+  compare_first_change_line : String
+  compare_selected_excerpt : Array[String]
+  compare_baseline_excerpt : Array[String]
+  content : String
+}
+pub impl Show for UiSkillItem
+pub impl ToJson for UiSkillItem
+pub impl @json.FromJson for UiSkillItem
+
 pub struct UiState {
+  root : String
   title : String
   summary : String
   status_chips : Array[UiStatusChip]
@@ -291,6 +410,8 @@ pub struct UiState {
   page_families : Array[UiPanelItem]
   journey : Array[UiJourneyItem]
   chapters : Array[UiChapterLink]
+  skill_diagnostics : UiSkillDiagnostics
+  skills : Array[UiSkillItem]
   synthesis_preview : String
 }
 pub impl Show for UiState
