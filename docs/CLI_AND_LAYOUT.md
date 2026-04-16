@@ -28,7 +28,7 @@ Build pipeline:
 4. preprocess README chapter paths into `index.*`
 5. render HTML output
 6. copy the optional root `site/` marketing projection into `book/site/` when present
-7. generate a live marketing projection into `book/site/generated/` from wiki, keeper, and review state when the workspace is a wiki
+7. generate a live marketing projection into `book/site/generated/` from wiki, keeper, review, and journey state when the workspace is a wiki
 8. write `book/book.json`
 
 ### `moon run cmd/main -- serve <root> [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]`
@@ -399,6 +399,10 @@ Created by `moonbook wiki init`:
   live generated marketing projection built from current workspace state
 - `book/site/generated/marketing-state.json`
   machine-readable snapshot used by the generated marketing projection
+- `book/site/generated/journal.html`
+  generated journal view built from live workspace and journey state
+- `wiki/history/journey.md`
+  compact operator timeline distilled from persisted book results
   includes explicit readiness signals such as source, entity, concept, and query counts plus `substantive_coverage_ready`
 - `keeper/MEMORY.md`
   bounded reusable domain memory for Keeper

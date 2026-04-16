@@ -170,6 +170,10 @@ pub struct IngestResult {
 pub impl Show for IngestResult
 pub impl ToJson for IngestResult
 
+type JourneyEntry
+pub impl Eq for JourneyEntry
+pub impl Show for JourneyEntry
+
 pub struct LintFinding {
   kind : String
   path : String?
@@ -245,6 +249,17 @@ pub impl Show for UiChapterLink
 pub impl ToJson for UiChapterLink
 pub impl @json.FromJson for UiChapterLink
 
+pub struct UiJourneyItem {
+  title : String
+  stage : String
+  status : String
+  summary : String
+  highlights : Array[String]
+}
+pub impl Show for UiJourneyItem
+pub impl ToJson for UiJourneyItem
+pub impl @json.FromJson for UiJourneyItem
+
 pub struct UiMetric {
   label : String
   value : String
@@ -274,6 +289,7 @@ pub struct UiState {
   review_queue : Array[UiPanelItem]
   keeper_items : Array[UiPanelItem]
   page_families : Array[UiPanelItem]
+  journey : Array[UiJourneyItem]
   chapters : Array[UiChapterLink]
   synthesis_preview : String
 }

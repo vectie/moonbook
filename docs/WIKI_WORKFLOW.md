@@ -38,6 +38,7 @@ This creates:
 - `wiki/synthesis/map.md`
 - `wiki/synthesis/observations.md`
 - `wiki/synthesis/evidence.md`
+- `wiki/history/journey.md`
 - `wiki/reviews/pending.md`
 - `wiki/reviews/approved.md`
 - `keeper/MEMORY.md`
@@ -115,6 +116,7 @@ Current book-harness behavior:
 - emits a dedicated planning task when health or goal wording requires it
 - persists worker results into `synthesis/observations.md`
 - records persisted-result evidence in `synthesis/evidence.md`
+- compresses persisted book work into `history/journey.md` for a readable run timeline
 - syncs non-durable memory candidates into bounded Keeper memory files
 - promotes immediately-safe durable memory candidates into target pages
 - stages review-gated durable candidates in `reviews/pending.md`
@@ -198,6 +200,8 @@ The maintained wiki currently revolves around these page families:
   coverage and maintenance view across entities, concepts, claims, and open loops
 - `wiki/synthesis/evidence.md`
   support records for persisted worker results and review outcomes
+- `wiki/history/journey.md`
+  compact timeline of major runs, promoted findings, failures, and open loops
 - `wiki/reviews/`
   pending and approved operator review items
 - `keeper/MEMORY.md`
@@ -223,6 +227,7 @@ What it does well now:
 - bounded Keeper memory with lightweight self-maintenance signals
 - persisted-result evidence capture
 - synthesis-map maintenance for coverage and planning pressure
+- compact journey maintenance for operator-readable run history
 - static build/serve of the resulting wiki
 
 What is still missing:

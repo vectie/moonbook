@@ -70,6 +70,7 @@ pub async fn init_workspace(
   let synthesis_dir = @path.Path(wiki_dir)
     .join(@path.Path("synthesis"))
     .to_string()
+  let history_dir = @path.Path(wiki_dir).join(@path.Path("history")).to_string()
   let queries_dir = @path.Path(wiki_dir).join(@path.Path("queries")).to_string()
   let reviews_dir = @path.Path(wiki_dir).join(@path.Path("reviews")).to_string()
   let sources_dir = @path.Path(wiki_dir).join(@path.Path("sources")).to_string()
@@ -90,6 +91,9 @@ pub async fn init_workspace(
     .to_string()
   let evidence_path = @path.Path(synthesis_dir)
     .join(@path.Path("evidence.md"))
+    .to_string()
+  let journey_path = @path.Path(history_dir)
+    .join(@path.Path("journey.md"))
     .to_string()
   let pending_review_path = @path.Path(reviews_dir)
     .join(@path.Path("pending.md"))
@@ -229,6 +233,7 @@ pub async fn init_workspace(
   @fsx.make_directory(entities_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(concepts_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(synthesis_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(history_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(queries_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(reviews_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(sources_dir, recursive=true, exists_ok=true)
@@ -278,6 +283,7 @@ pub async fn init_workspace(
   write_if_missing(synthesis_map_path, synthesis_map_text())
   write_if_missing(observations_path, observations_text())
   write_if_missing(evidence_path, evidence_text())
+  write_if_missing(journey_path, journey_text())
   write_if_missing(pending_review_path, pending_review_text())
   write_if_missing(approved_review_path, approved_review_text())
   write_if_missing(keeper_memory_path, keeper_memory_text())
@@ -363,6 +369,7 @@ fn summary_text() -> String {
   "- [Synthesis Map](./synthesis/map.md)\n" +
   "- [Observations](./synthesis/observations.md)\n" +
   "- [Evidence](./synthesis/evidence.md)\n" +
+  "- [Journey](./history/journey.md)\n" +
   "- [Pending Review](./reviews/pending.md)\n" +
   "- [Approved Review](./reviews/approved.md)\n"
 }
@@ -384,6 +391,7 @@ fn home_text() -> String {
   "- [Maintenance Plan](./synthesis/maintenance-plan.md): queued multi-page wiki revisions\n" +
   "- [Synthesis Map](./synthesis/map.md): coverage and hub view across the wiki\n" +
   "- [Observations](./synthesis/observations.md): persisted worker results and promoted observations\n" +
+  "- [Journey](./history/journey.md): compact history of major runs, decisions, and open loops\n" +
   "- [Pending Review](./reviews/pending.md): human review queue for contested or high-value updates\n" +
   "- `../keeper/`: bounded active memory, user memory, and working memory for Keeper\n" +
   "\n## Research Bootstrap Layout\n\n" +
@@ -413,6 +421,7 @@ fn index_text() -> String {
   "- [Synthesis Map](./synthesis/map.md): coverage and maintenance view across the maintained wiki\n" +
   "- [Observations](./synthesis/observations.md): persisted task results and promoted book observations\n" +
   "- [Evidence](./synthesis/evidence.md): support records for persisted results and reviewed knowledge\n" +
+  "- [Journey](./history/journey.md): compact operator-facing journey from earlier runs to the current book state\n" +
   "- [Pending Review](./reviews/pending.md): pending human review items\n" +
   "- [Approved Review](./reviews/approved.md): accepted review decisions\n\n" +
   "## Research Bootstrap Layout\n\n" +
@@ -421,7 +430,8 @@ fn index_text() -> String {
   "- `./entities/`: maintained entity pages\n" +
   "- `./concepts/`: maintained concept pages\n" +
   "- `./queries/`: durable query notes and saved answers\n" +
-  "- `./synthesis/`: overview, claims, maintenance plan, query insights, evidence, and observations\n\n" +
+  "- `./synthesis/`: overview, claims, maintenance plan, query insights, evidence, and observations\n" +
+  "- `./history/`: compact journey and timeline pages generated from persisted work\n\n" +
   "## Entities\n\n" +
   "_None yet._\n\n" +
   "## Concepts\n\n" +
@@ -493,6 +503,7 @@ fn site_index_text(title : String) -> String {
   "          <a class=\"button button-primary\" href=\"../index.html\">Open the book</a>\n" +
   "          <a class=\"button button-secondary\" href=\"../Home.html\">Open the wiki</a>\n" +
   "          <a class=\"button button-secondary\" href=\"./generated/index.html\">Open live projection</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"./generated/reader.html\">Open reader walkthrough</a>\n" +
   "        </div>\n" +
   "      </div>\n" +
   "      <div class=\"hero-stage tilt\" id=\"demo\">\n" +
@@ -898,11 +909,11 @@ fn resolver_text() -> String {
   "- intent: query\n" +
   "  skill: `skills/wiki-query/SKILL.md`\n" +
   "  supporting_skills: `skills/query-promote/SKILL.md`, `skills/claim-audit/SKILL.md`\n" +
-  "  load_first: `wiki/index.md`, `wiki/synthesis/overview.md`, `wiki/synthesis/claims.md`\n" +
+  "  load_first: `wiki/index.md`, `wiki/synthesis/overview.md`, `wiki/synthesis/claims.md`, `wiki/history/journey.md`\n" +
   "- intent: lint\n" +
   "  skill: `skills/wiki-lint/SKILL.md`\n" +
   "  supporting_skills: `skills/contradiction-review/SKILL.md`, `skills/index-maintain/SKILL.md`, `skills/memory-prune/SKILL.md`\n" +
-  "  load_first: `wiki/index.md`, `wiki/log.md`, `wiki/synthesis/map.md`, `keeper/INSIGHTS.md`\n" +
+  "  load_first: `wiki/index.md`, `wiki/log.md`, `wiki/synthesis/map.md`, `wiki/history/journey.md`, `keeper/INSIGHTS.md`\n" +
   "- intent: review\n" +
   "  skill: `skills/wiki-review/SKILL.md`\n" +
   "  supporting_skills: `skills/review-decision/SKILL.md`, `skills/contradiction-review/SKILL.md`, `skills/claim-audit/SKILL.md`\n" +
@@ -914,7 +925,7 @@ fn resolver_text() -> String {
   "- intent: marketing\n" +
   "  skill: `skills/wiki-marketing/SKILL.md`\n" +
   "  supporting_skills: `skills/wiki-query/SKILL.md`, `skills/synthesis-revise/SKILL.md`, `skills/query-promote/SKILL.md`\n" +
-  "  load_first: `wiki/synthesis/overview.md`, `wiki/index.md`, `wiki/synthesis/map.md`, `keeper/INSIGHTS.md`, `site/index.html`\n"
+  "  load_first: `wiki/synthesis/overview.md`, `wiki/index.md`, `wiki/synthesis/map.md`, `wiki/history/journey.md`, `keeper/INSIGHTS.md`, `site/index.html`\n"
 }
 
 ///|
@@ -1315,6 +1326,7 @@ test "summary seeds wiki navigation pages" {
   assert_true(text.contains("[Log](./log.md)"))
   assert_true(text.contains("[Observations](./synthesis/observations.md)"))
   assert_true(text.contains("[Evidence](./synthesis/evidence.md)"))
+  assert_true(text.contains("[Journey](./history/journey.md)"))
   assert_true(text.contains("[Synthesis Map](./synthesis/map.md)"))
   assert_true(text.contains("[Pending Review](./reviews/pending.md)"))
   assert_true(
@@ -1365,6 +1377,7 @@ async test "init workspace seeds keeper memory files" {
   assert_true(@fsx.exists(root + "/skills/review-decision/SKILL.md"))
   assert_true(@fsx.exists(root + "/wiki/synthesis/evidence.md"))
   assert_true(@fsx.exists(root + "/wiki/synthesis/map.md"))
+  assert_true(@fsx.exists(root + "/wiki/history/journey.md"))
   assert_true(@fsx.exists(root + "/site/index.html"))
   assert_true(@fsx.exists(root + "/site/styles.css"))
   assert_true(@fsx.exists(root + "/site/app.js"))

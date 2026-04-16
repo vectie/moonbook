@@ -399,6 +399,12 @@ pub async fn persist_result(
   if review_queued && !updated_pages.contains("reviews/pending.md") {
     updated_pages.push("reviews/pending.md")
   }
+  let journey_relative = append_journey_entry(
+    workspace, result, evidence_id, review_queued, updated_pages,
+  )
+  if !updated_pages.contains(journey_relative) {
+    updated_pages.push(journey_relative)
+  }
 
   let insights_relative = refresh_keeper_insights(root)
   if !updated_pages.contains(insights_relative) {
@@ -877,7 +883,7 @@ fn skill_name_from_path(path : String) -> String {
 fn default_context_pages(target_pages : Array[String]) -> Array[String] {
   let pages : Array[String] = [
     "index.md", "log.md", "synthesis/overview.md", "synthesis/claims.md", "synthesis/map.md",
-    "synthesis/evidence.md",
+    "synthesis/evidence.md", "history/journey.md",
   ]
   for page in target_pages {
     if !pages.contains(page) {
@@ -1448,6 +1454,26 @@ async test "hydrate worker context includes keeper memory slices" {
   assert_true(context.skill_paths.contains("skills/wiki-query/SKILL.md"))
   assert_true(context.skill_paths.contains("skills/query-promote/SKILL.md"))
   assert_true(context.skill_paths.contains("RESOLVER.md"))
+}
+
+///|
+async test "persist result appends compact journey entry" {
+  let root = "/tmp/moonbook-bookapi-journey"
+  ignore(init_workspace(root))
+  ignore(
+    persist_result(root, {
+      task_id: "goal-research-moontown-ingest-followup",
+      summary: "Populated durable source coverage and staged review for one promoted finding.",
+      artifacts: ["wiki/sources/moontown.md"],
+      memory_candidates: [],
+      requires_review: true,
+      notify_town: false,
+    }),
+  )
+  let journey = @fsx.read_file(root + "/wiki/history/journey.md")
+  assert_true(journey.contains("### goal-research-moontown-ingest-followup"))
+  assert_true(journey.contains("- Stage: `ingest`"))
+  assert_true(journey.contains("- Status: `pending-review`"))
 }
 
 ///|

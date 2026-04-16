@@ -44,6 +44,7 @@ Implemented behaviors:
 - `serve` serves `404.html` as a fallback when present
 - `build` and `serve` copy an optional root `site/` marketing projection into `book/site/`
 - `build` and `serve` generate a live marketing projection into `book/site/generated/`
+- generated site also includes a dedicated journal view at `book/site/generated/journal.html`
 - `serve --watcher native` currently falls back to the poll backend with an explicit notice
 - `wiki init` scaffolds `raw/`, `wiki/`, `AGENTS.md`, `wiki.toml`, and a MoonBook-compatible `book.toml`
 - `wiki init` keeps the core workspace agent-agnostic
@@ -55,6 +56,7 @@ Implemented behaviors:
 - `wiki init` seeds an observations page for persisted book results
 - `wiki init` seeds bounded Keeper memory files under `keeper/`
 - `wiki init` seeds `wiki/synthesis/evidence.md`, `wiki/synthesis/map.md`, and `keeper/INSIGHTS.md`
+- `wiki init` seeds `wiki/history/journey.md` for compact run history
 - `wiki init` outputs a workspace that can immediately be built with `moonbook build`
 - `wiki enable moonclaw` installs MoonClaw-specific runtime/config/workspace files without overwriting them
 - `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`

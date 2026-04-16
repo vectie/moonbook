@@ -27,6 +27,15 @@ pub struct UiPanelItem {
 } derive(Show, ToJson, FromJson)
 
 ///|
+pub struct UiJourneyItem {
+  title : String
+  stage : String
+  status : String
+  summary : String
+  highlights : Array[String]
+} derive(Show, ToJson, FromJson)
+
+///|
 pub struct UiChapterLink {
   title : String
   href : String
@@ -45,6 +54,7 @@ pub struct UiState {
   review_queue : Array[UiPanelItem]
   keeper_items : Array[UiPanelItem]
   page_families : Array[UiPanelItem]
+  journey : Array[UiJourneyItem]
   chapters : Array[UiChapterLink]
   synthesis_preview : String
 } derive(Show, ToJson, FromJson)
@@ -69,6 +79,7 @@ pub async fn generate_ui_state(root : String) -> UiState {
   let workflow = ui_workflow_items(state, health)
   let readiness = ui_readiness_items(state, health)
   let review_queue = ui_review_queue(root, pending)
+  let journey = ui_journey_items(root)
   let keeper_items = [
     {
       title: "Active Memory",
@@ -117,6 +128,7 @@ pub async fn generate_ui_state(root : String) -> UiState {
     review_queue,
     keeper_items,
     page_families,
+    journey,
     chapters: ui_chapter_links(root),
     synthesis_preview: ui_synthesis_preview(root),
   }
@@ -156,6 +168,12 @@ pub async fn write_marketing_projection(
   let script_path = @path.Path(generated_dir)
     .join(@path.Path("app.js"))
     .to_string()
+  let journal_index_path = @path.Path(generated_dir)
+    .join(@path.Path("journal.html"))
+    .to_string()
+  let journal_state_path = @path.Path(generated_dir)
+    .join(@path.Path("journal-state.json"))
+    .to_string()
   @fsx.write_to_file(
     state_path,
     state.to_json().stringify(indent=2),
@@ -164,6 +182,16 @@ pub async fn write_marketing_projection(
   @fsx.write_to_file(
     index_path,
     marketing_projection_html(state, updated_note),
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    journal_state_path,
+    state.to_json().stringify(indent=2),
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    journal_index_path,
+    journal_projection_html(state, updated_note),
     create=0o644,
   )
   @fsx.write_to_file(styles_path, marketing_projection_styles(), create=0o644)
@@ -465,6 +493,35 @@ async fn ui_chapter_links(root : String) -> Array[UiChapterLink] {
 }
 
 ///|
+async fn ui_journey_items(root : String) -> Array[UiJourneyItem] {
+  let entries = recent_journey_entries(root, limit=4)
+  if entries.is_empty() {
+    return [
+      {
+        title: "Journey not started",
+        stage: "bootstrap",
+        status: "waiting",
+        summary: "Persisted book results will start populating `wiki/history/journey.md` once the book begins ingest, review, or synthesis work.",
+        highlights: ["keep the timeline compact and decision-focused"],
+      },
+    ]
+  }
+  entries.map(fn(entry) {
+    {
+      title: entry.task_id,
+      stage: entry.stage,
+      status: entry.status,
+      summary: entry.summary,
+      highlights: if entry.highlights.is_empty() {
+        ["evidence: \{entry.evidence_id}"]
+      } else {
+        entry.highlights
+      },
+    }
+  })
+}
+
+///|
 fn summary_link_parts(line : String) -> (String, String)? {
   match line.find("](") {
     Some(split) =>
@@ -534,15 +591,7 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
       "</article>"
     })
     .join("")
-  let workflow = state.workflow
-    .map(fn(item) {
-      "<article class=\"workflow-card\">" +
-      "<span class=\"workflow-status status-\{escape_html(item.status)}\">\{escape_html(item.status)}</span>" +
-      "<h3>\{escape_html(item.title)}</h3>" +
-      "<p>\{escape_html(item.detail)}</p>" +
-      "</article>"
-    })
-    .join("")
+  let advantages = marketing_advantage_cards()
   let readiness = state.readiness
     .map(fn(item) { marketing_panel_item(item) })
     .join("")
@@ -573,7 +622,7 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   "  <meta charset=\"utf-8\">\n" +
   "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
   "  <title>\{project_title} Marketing Projection</title>\n" +
-  "  <meta name=\"description\" content=\"Live marketing projection generated from the MoonBook workspace state.\">\n" +
+  "  <meta name=\"description\" content=\"Marketing projection generated from MoonBook workspace state and product advantages.\">\n" +
   "  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n" +
   "  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n" +
   "  <link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n" +
@@ -599,13 +648,14 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   "        <div class=\"hero-actions\">\n" +
   "          <a class=\"button button-primary\" href=\"\{book_prefix}Home.html\">Open detailed wiki</a>\n" +
   "          <a class=\"button button-secondary\" href=\"\{book_prefix}index.html\">Open book</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"./journal.html\">Open journal view</a>\n" +
   "        </div>\n" +
   "        <div class=\"chip-row\">\{status_chips}</div>\n" +
   "      </div>\n" +
   "      <div class=\"hero-stage tilt\">\n" +
   "        <div class=\"panel-block\">\n" +
-  "          <span class=\"panel-label\">projection note</span>\n" +
-  "          <p>This page is generated from MoonBook state. The wiki stays detailed and evidence-oriented. This projection compresses that state into an audience-facing story.</p>\n" +
+  "          <span class=\"panel-label\">positioning</span>\n" +
+  "          <p>The wiki stays detailed and evidence-oriented. This surface stays horizontal: it explains the structural advantage of durable knowledge, multiple projections, and extension-friendly boundaries.</p>\n" +
   "        </div>\n" +
   "        <div class=\"panel-block panel-block-dark\">\n" +
   "          <span class=\"panel-label\">last update</span>\n" +
@@ -615,17 +665,17 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   "    </section>\n" +
   "    <section class=\"section reveal\" id=\"state\">\n" +
   "      <div class=\"section-heading\">\n" +
-  "        <p class=\"eyebrow\">Current state</p>\n" +
-  "        <h2>Market the system from reality, not from placeholders.</h2>\n" +
+  "        <p class=\"eyebrow\">Product edge</p>\n" +
+  "        <h2>Anchor the pitch in the current workspace state.</h2>\n" +
   "      </div>\n" +
   "      <div class=\"metric-grid\">\{metrics}</div>\n" +
   "    </section>\n" +
   "    <section class=\"section reveal\">\n" +
   "      <div class=\"section-heading narrow\">\n" +
-  "        <p class=\"eyebrow\">Operational loop</p>\n" +
-  "        <h2>The workspace already knows how work compounds.</h2>\n" +
+  "        <p class=\"eyebrow\">Advantages</p>\n" +
+  "        <h2>Explain why this shape is stronger than shallow or tightly coupled alternatives.</h2>\n" +
   "      </div>\n" +
-  "      <div class=\"workflow-grid\">\{workflow}</div>\n" +
+  "      <div class=\"workflow-grid\">\{advantages}</div>\n" +
   "    </section>\n" +
   "    <section class=\"section reveal\">\n" +
   "      <div class=\"section-heading\">\n" +
@@ -671,6 +721,54 @@ fn marketing_panel_item(item : UiPanelItem) -> String {
 }
 
 ///|
+fn marketing_journey_item(item : UiJourneyItem) -> String {
+  let highlights = item.highlights
+    .map(fn(highlight) { "<li>\{escape_html(highlight)}</li>" })
+    .join("")
+  "<article class=\"journey-card\">" +
+  "<div class=\"journey-meta\"><span>\{escape_html(item.stage)}</span><span class=\"journey-status status-\{escape_html(item.status)}\">\{escape_html(item.status)}</span></div>" +
+  "<h3>\{escape_html(item.title)}</h3>" +
+  "<p>\{escape_html(item.summary)}</p>" +
+  "<ul>\{highlights}</ul>" +
+  "</article>"
+}
+
+///|
+fn marketing_advantage_cards() -> String {
+  [
+    marketing_workflow_card(
+      "Durable knowledge instead of disposable answers", "The system accumulates maintained pages, so each new task starts from revised state rather than rediscovering raw fragments.",
+      "durable",
+    ),
+    marketing_workflow_card(
+      "One workspace, multiple surfaces", "Detailed wiki, static book, marketing site, and journal view all derive from the same local workspace instead of drifting apart.",
+      "multi-surface",
+    ),
+    marketing_workflow_card(
+      "Extension-friendly, not runtime-locked", "MoonBook remains a useful standalone wiki while still exposing clear seams for worker and town runtimes to plug in.",
+      "open-boundary",
+    ),
+    marketing_workflow_card(
+      "Operational truth stays visible", "Coverage readiness, review pressure, evidence, and Keeper memory remain inspectable, so the product story stays grounded.",
+      "observable",
+    ),
+  ].join("")
+}
+
+///|
+fn marketing_workflow_card(
+  title : String,
+  detail : String,
+  status : String,
+) -> String {
+  "<article class=\"workflow-card\">" +
+  "<span class=\"workflow-status status-\{escape_html(status)}\">\{escape_html(status)}</span>" +
+  "<h3>\{escape_html(title)}</h3>" +
+  "<p>\{escape_html(detail)}</p>" +
+  "</article>"
+}
+
+///|
 async fn marketing_update_note(root : String) -> String {
   let workspace = workspace_paths(root)
   let log_path = @path.Path(workspace.wiki_dir)
@@ -687,6 +785,122 @@ async fn marketing_update_note(root : String) -> String {
     }
   }
   "Workspace log present."
+}
+
+///|
+fn journal_projection_html(state : UiState, updated_note : String) -> String {
+  let book_prefix = "../../"
+  let timeline = state.journey
+    .map(fn(item) { marketing_journey_item(item) })
+    .join("")
+  let stages = state.workflow
+    .map(fn(item) {
+      "<article class=\"module-card\">" +
+      "<span class=\"module-kicker\">\{escape_html(item.status)}</span>" +
+      "<h3>\{escape_html(item.title)}</h3>" +
+      "<p>\{escape_html(item.detail)}</p>" +
+      "</article>"
+    })
+    .join("")
+  let metrics = state.metrics
+    .map(fn(metric) {
+      "<article class=\"metric-card metric-\{metric.tone}\">" +
+      "<span class=\"metric-label\">\{escape_html(metric.label)}</span>" +
+      "<strong>\{escape_html(metric.value)}</strong>" +
+      "<p>\{escape_html(metric.note)}</p>" +
+      "</article>"
+    })
+    .join("")
+  let chapters = state.chapters
+    .map(fn(item) {
+      "<a class=\"chapter-link\" href=\"\{book_prefix}\{escape_html(item.href)}\">" +
+      "<span class=\"chapter-number\">\{escape_html(item.number)}</span>" +
+      "<span class=\"chapter-copy\"><strong>\{escape_html(item.title)}</strong><small>\{escape_html(item.source_path)}</small></span>" +
+      "</a>"
+    })
+    .join("")
+  let next_actions = state.readiness
+    .map(fn(item) { marketing_panel_item(item) })
+    .join("")
+  let synthesis_preview = escape_html(state.synthesis_preview)
+  let update_note_html = escape_html(updated_note)
+  "<!doctype html>\n" +
+  "<html lang=\"en\">\n" +
+  "<head>\n" +
+  "  <meta charset=\"utf-8\">\n" +
+  "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+  "  <title>\{escape_html(state.title)} Journal</title>\n" +
+  "  <meta name=\"description\" content=\"Journal view generated from MoonBook journey and wiki state.\">\n" +
+  "  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n" +
+  "  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n" +
+  "  <link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n" +
+  "  <link rel=\"stylesheet\" href=\"./styles.css\">\n" +
+  "</head>\n" +
+  "<body>\n" +
+  "  <div class=\"backdrop\"></div>\n" +
+  "  <header class=\"topbar\">\n" +
+  "    <a class=\"brand\" href=\"./index.html\"><span class=\"brand-mark\">MB</span><span>\{escape_html(state.title)}</span></a>\n" +
+  "    <nav class=\"nav\">\n" +
+  "      <a href=\"./index.html\">Marketing</a>\n" +
+  "      <a href=\"\{book_prefix}Home.html\">Wiki</a>\n" +
+  "      <a href=\"#timeline\">Timeline</a>\n" +
+  "      <a href=\"#next\">Next</a>\n" +
+  "    </nav>\n" +
+  "  </header>\n" +
+  "  <main class=\"page-shell journal-shell\">\n" +
+  "    <section class=\"hero reveal\">\n" +
+  "      <div class=\"hero-copy\">\n" +
+  "        <p class=\"eyebrow\">Journal view</p>\n" +
+  "        <h1>Follow the book from earlier runs through the current state and the next pressure points.</h1>\n" +
+  "        <p class=\"lede\">\{escape_html(state.summary)}</p>\n" +
+  "        <div class=\"hero-actions\">\n" +
+  "          <a class=\"button button-primary\" href=\"\{book_prefix}Home.html\">Open maintained wiki</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"./index.html\">Back to marketing</a>\n" +
+  "        </div>\n" +
+  "      </div>\n" +
+  "      <div class=\"hero-stage\">\n" +
+  "        <div class=\"panel-block\">\n" +
+  "          <span class=\"panel-label\">What changed recently</span>\n" +
+  "          <pre><code>\{update_note_html}</code></pre>\n" +
+  "        </div>\n" +
+  "      </div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Current operating shape</p>\n" +
+  "        <h2>What phases define the book right now.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"workflow-grid\">\{stages}</div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\" id=\"timeline\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Past to now</p>\n" +
+  "        <h2>Timeline of major runs, decisions, and open loops.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"journey-grid\">\{timeline}</div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Now</p>\n" +
+  "        <h2>The current state that the timeline has produced.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"metric-grid\">\{metrics}</div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\" id=\"next\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Future</p>\n" +
+  "        <h2>What still needs attention next.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"triple-grid\">\n" +
+  "        <div class=\"panel-shell\"><h3>Next actions</h3>\{next_actions}</div>\n" +
+  "        <div class=\"depth-card\"><h3>Chapter links</h3><div class=\"chapter-stack\">\{chapters}</div></div>\n" +
+  "        <div class=\"depth-card\"><h3>Synthesis preview</h3><pre class=\"preview-block\"><code>\{synthesis_preview}</code></pre></div>\n" +
+  "      </div>\n" +
+  "    </section>\n" +
+  "  </main>\n" +
+  "  <script src=\"./app.js\"></script>\n" +
+  "</body>\n" +
+  "</html>\n"
 }
 
 ///|
@@ -768,16 +982,25 @@ fn marketing_projection_styles() -> String {
   ".metric-grid, .workflow-grid, .triple-grid, .depth-grid { display: grid; gap: 1rem; margin-top: 1.7rem; }\n" +
   ".metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }\n" +
   ".workflow-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }\n" +
+  ".journey-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.7rem; }\n" +
   ".readiness-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1.7rem; }\n" +
   ".triple-grid, .depth-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n" +
   ".metric-card, .workflow-card, .panel-shell, .depth-card { padding: 1.3rem; }\n" +
   ".metric-card strong { display: block; margin-top: 0.4rem; font-size: 2rem; line-height: 1; }\n" +
   ".metric-label, .workflow-status { display: inline-block; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }\n" +
   ".workflow-status { margin-bottom: 0.7rem; }\n" +
-  ".status-active, .status-stable { color: #1b6b4f; }\n" +
+  ".status-active, .status-stable, .status-durable, .status-multi-surface, .status-open-boundary, .status-observable { color: #1b6b4f; }\n" +
   ".status-expanded, .status-crowded, .status-needed, .status-blocked { color: #9a3e1f; }\n" +
   ".metric-card p, .workflow-card p, .panel-item p, .panel-item small, .panel-block p { color: var(--muted); line-height: 1.66; }\n" +
   ".panel-item { padding: 1rem; margin-top: 0.9rem; border: 1px solid rgba(16, 33, 29, 0.08); }\n" +
+  ".journey-card { padding: 1.2rem; border-radius: 1.35rem; border: 1px solid rgba(16, 33, 29, 0.08); background: rgba(255,255,255,0.62); box-shadow: var(--shadow); }\n" +
+  ".journey-card ul { margin: 0.9rem 0 0; padding-left: 1.1rem; color: var(--muted); }\n" +
+  ".journey-meta { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 0.7rem; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }\n" +
+  ".journey-status { color: var(--muted); }\n" +
+  ".journal-shell .hero h1 { max-width: 11ch; }\n" +
+  ".quiz-grid { align-items: start; }\n" +
+  ".quiz-toggle { margin-top: 1rem; min-height: 2.75rem; padding: 0.7rem 1rem; border-radius: 999px; border: 1px solid var(--line); background: rgba(23, 60, 52, 0.06); font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; }\n" +
+  ".quiz-answer { margin-top: 0.9rem; }\n" +
   ".chapter-stack { display: grid; gap: 0.8rem; margin-top: 1rem; }\n" +
   ".chapter-link { display: grid; grid-template-columns: auto 1fr; gap: 0.8rem; align-items: start; padding: 0.9rem 1rem; border-radius: 1rem; background: rgba(255,255,255,0.66); border: 1px solid rgba(16, 33, 29, 0.08); }\n" +
   ".chapter-number { display: inline-grid; place-items: center; min-width: 2rem; height: 2rem; border-radius: 999px; background: rgba(23, 60, 52, 0.08); font-weight: 700; }\n" +
@@ -787,7 +1010,7 @@ fn marketing_projection_styles() -> String {
   ".reveal { opacity: 0; transform: translateY(18px); transition: opacity 560ms ease, transform 560ms ease; }\n" +
   ".reveal.is-visible { opacity: 1; transform: translateY(0); }\n" +
   "@media (max-width: 980px) {\n" +
-  "  .hero, .metric-grid, .workflow-grid, .readiness-grid, .triple-grid, .depth-grid { grid-template-columns: 1fr; }\n" +
+  "  .hero, .metric-grid, .workflow-grid, .journey-grid, .readiness-grid, .triple-grid, .depth-grid { grid-template-columns: 1fr; }\n" +
   "  .page-shell { width: min(100% - 1.4rem, 1200px); }\n" +
   "}\n" +
   "@media (max-width: 640px) {\n" +
@@ -830,7 +1053,21 @@ fn marketing_projection_script() -> String {
   "      node.style.transform = '';\n" +
   "    });\n" +
   "  });\n" +
-  "}\n"
+  "}\n" +
+  "document.querySelectorAll('.quiz-toggle').forEach((button) => {\n" +
+  "  button.addEventListener('click', () => {\n" +
+  "    const answer = button.parentElement && button.parentElement.querySelector('.quiz-answer');\n" +
+  "    if (!answer) return;\n" +
+  "    const hidden = answer.hasAttribute('hidden');\n" +
+  "    if (hidden) {\n" +
+  "      answer.removeAttribute('hidden');\n" +
+  "      button.textContent = 'Hide answer';\n" +
+  "    } else {\n" +
+  "      answer.setAttribute('hidden', 'hidden');\n" +
+  "      button.textContent = 'Reveal answer';\n" +
+  "    }\n" +
+  "  });\n" +
+  "});\n"
 }
 
 ///|
@@ -881,6 +1118,18 @@ async test "write marketing projection emits generated site bundle" {
       @path.Path(generated_dir).join(@path.Path("app.js")).to_string(),
     ),
   )
+  assert_true(
+    @fsx.exists(
+      @path.Path(generated_dir).join(@path.Path("journal.html")).to_string(),
+    ),
+  )
+  assert_true(
+    @fsx.exists(
+      @path.Path(generated_dir)
+      .join(@path.Path("journal-state.json"))
+      .to_string(),
+    ),
+  )
   assert_true(@fsx.read_file(index_path).contains("Live marketing projection"))
 }
 
@@ -903,4 +1152,5 @@ async test "ui state exposes readiness and query counts" {
   )
   assert_true(state.metrics.any(fn(metric) { metric.label == "Query Notes" }))
   assert_true(state.readiness.length() > 0)
+  assert_true(state.journey.length() > 0)
 }
