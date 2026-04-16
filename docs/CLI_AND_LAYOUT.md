@@ -140,6 +140,17 @@ Current behavior:
 - compares a seeded skill against its workspace shadow when one exists
 - reports changed shared lines, selected-only lines, baseline-only lines, first change line, and short excerpts from both sides
 
+### `moon run cmd/main -- skill sync <name[@extension]> [root]`
+
+Stages a reviewable candidate bundle for a workspace-owned skill override.
+Current behavior:
+
+- requires a workspace-owned skill plus a seeded baseline
+- copies the workspace skill tree into `skill-candidates/<slug>/workspace/`
+- copies the seeded baseline tree into `skill-candidates/<slug>/baseline/`
+- writes `skill-candidates/<slug>/SYNC.json` with the latest compare summary and source paths
+- does not mutate repo `seed/` directories directly
+
 ### `moon run cmd/main -- skill install <name[@extension]> [root]`
 
 Copies one seeded skill into workspace `skills/` so it becomes locally owned and editable.

@@ -15,6 +15,7 @@ Implemented commands:
 - `moonbook skill list [root]`
 - `moonbook skill show <name> [root]`
 - `moonbook skill compare <name[@extension]> [root]`
+- `moonbook skill sync <name[@extension]> [root]`
 - `moonbook skill install <name[@extension]> [root]`
 - `moonbook skill scaffold <name> [root]`
 - `moonbook skill doctor [root]`
@@ -61,8 +62,9 @@ Implemented behaviors:
 - generated site also includes a `ctc`-inspired educational course view at `book/site/generated/course.html`
 - generated site also includes a dedicated skill manager at `book/site/generated/skills.html`
 - generated skill manager aggregates workspace, core-seed, and extension-seed skills with duplicate and missing-reference diagnostics
-- generated skill manager also exposes copyable `skill show`, `skill compare`, `skill install`, `skill scaffold`, and `skill doctor` lifecycle commands for the selected skill
+- generated skill manager also exposes copyable `skill show`, `skill compare`, `skill sync`, `skill install`, `skill scaffold`, and `skill doctor` lifecycle commands for the selected skill
 - generated skill manager renders override drift summaries and side-by-side excerpts against the nearest baseline
+- generated skill manager can stage workspace overrides into `skill-candidates/` for review without mutating repo seeds
 - `serve --watcher native` currently falls back to the poll backend with an explicit notice
 - `wiki init` scaffolds `raw/`, `wiki/`, `AGENTS.md`, `wiki.toml`, and a MoonBook-compatible `book.toml`
 - `wiki init` scaffolds `raw/bootstrap/` for raw-first bootstrap source packets
@@ -73,6 +75,7 @@ Implemented behaviors:
 - `skill list` inventories workspace skills plus repo-seeded core and extension skills
 - `skill show` prints machine-readable metadata for one resolved skill
 - `skill compare` reports drift between a selected skill and its nearest baseline
+- `skill sync` stages a workspace override and its baseline into `skill-candidates/<slug>/` plus `SYNC.json`
 - `skill install` copies a seeded skill into workspace ownership under `skills/`
 - `skill scaffold` creates a new workspace-owned skill template with a substantial `SKILL.md`
 - `skill doctor` reports duplicate names, missing bundled references, and workspace overrides

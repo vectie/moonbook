@@ -55,6 +55,33 @@ pub struct SkillCompareResult {
 } derive(Show, ToJson)
 
 ///|
+pub struct SkillSyncResult {
+  root : String
+  name : String
+  candidate_dir : String
+  manifest_path : String
+  selected_path : String
+  baseline_path : String
+  summary : String
+} derive(Show, ToJson)
+
+///|
+struct SkillSyncManifest {
+  name : String
+  selected_path : String
+  baseline_path : String
+  selected_scope : String
+  baseline_scope : String
+  summary : String
+  status : String
+  changed_line_count : Int
+  selected_only_line_count : Int
+  baseline_only_line_count : Int
+  first_change_line : Int?
+  generated_at : Int
+} derive(ToJson)
+
+///|
 pub async fn list_skills(root : String) -> Array[SkillRecord] {
   let normalized_root = @pathx.normalize(root)
   let records = collect_skill_records(normalized_root)
@@ -295,6 +322,70 @@ pub async fn compare_skill(root : String, name : String) -> SkillCompareResult {
         baseline_excerpt: [],
       }
     }
+  }
+}
+
+///|
+pub async fn sync_skill(root : String, name : String) -> SkillSyncResult {
+  let normalized_root = @pathx.normalize(root)
+  let records = list_skills(normalized_root)
+  let selected = resolve_skill_selector(records, name) catch {
+    error => fail("no skill found for sync: \{name}; \{error}")
+  }
+  guard selected.scope == "workspace" else {
+    fail("skill sync requires a workspace-owned skill")
+  }
+  let baseline = resolve_skill_baseline(records, selected).unwrap_or_else(() => {
+    fail("skill sync requires a seeded baseline for \{selected.name}")
+  })
+  let compare = compare_skill(normalized_root, name)
+  let candidate_dir = skill_candidate_dir(normalized_root, selected.name)
+  let selected_dir = @path.Path(candidate_dir)
+    .join(@path.Path("workspace"))
+    .to_string()
+  let baseline_dir = @path.Path(candidate_dir)
+    .join(@path.Path("baseline"))
+    .to_string()
+  let manifest_path = @path.Path(candidate_dir)
+    .join(@path.Path("SYNC.json"))
+    .to_string()
+  @fsx.make_directory(candidate_dir, recursive=true, exists_ok=true)
+  copy_skill_tree_replace(
+    @pathx.dirname(selected.path).to_string(),
+    selected_dir,
+  )
+  copy_skill_tree_replace(
+    @pathx.dirname(baseline.path).to_string(),
+    baseline_dir,
+  )
+  @fsx.write_to_file(
+    manifest_path,
+    {
+      name: selected.name,
+      selected_path: selected.path,
+      baseline_path: baseline.path,
+      selected_scope: selected.scope,
+      baseline_scope: baseline.scope,
+      summary: compare.summary,
+      status: compare.status,
+      changed_line_count: compare.changed_line_count,
+      selected_only_line_count: compare.selected_only_line_count,
+      baseline_only_line_count: compare.baseline_only_line_count,
+      first_change_line: compare.first_change_line,
+      generated_at: @async.now().to_int(),
+    }
+    .to_json()
+    .stringify(indent=2),
+    create=0o644,
+  )
+  {
+    root: normalized_root,
+    name: selected.name,
+    candidate_dir,
+    manifest_path,
+    selected_path: selected.path,
+    baseline_path: baseline.path,
+    summary: compare.summary,
   }
 }
 
@@ -597,6 +688,14 @@ fn workspace_skill_dir(root : String, name : String) -> String {
 }
 
 ///|
+fn skill_candidate_dir(root : String, name : String) -> String {
+  @path.Path(root)
+  .join(@path.Path("skill-candidates"))
+  .join(@path.Path(skill_slug(name)))
+  .to_string()
+}
+
+///|
 fn resolve_skill_selector(
   records : Array[SkillRecord],
   name : String,
@@ -818,6 +917,31 @@ async fn copy_skill_tree(
 }
 
 ///|
+async fn copy_skill_tree_replace(
+  source_path : String,
+  destination_path : String,
+) -> Unit {
+  match @fs.kind(source_path, follow_symlink=false) {
+    @fs.FileKind::Directory => {
+      @fsx.make_directory(destination_path, recursive=true, exists_ok=true)
+      for child in @fsx.list_directory(source_path) {
+        let child_name = @path.Path(child).basename().to_string()
+        copy_skill_tree_replace(
+          child,
+          @path.Path(destination_path).join(@path.Path(child_name)).to_string(),
+        )
+      }
+    }
+    _ =>
+      @fsx.write_to_file(
+        destination_path,
+        @fsx.read_file(source_path),
+        create=0o644,
+      )
+  }
+}
+
+///|
 fn skill_slug(name : String) -> String {
   let builder = StringBuilder::new()
   let mut wrote_dash = false
@@ -1001,4 +1125,23 @@ async test "compare skill reports missing baseline for scaffold-only skill" {
   ignore(scaffold_skill(root, "custom research lane"))
   let result = compare_skill(root, "custom-research-lane")
   assert_eq(result.status, "no-baseline")
+}
+
+///|
+async test "sync skill stages workspace and baseline candidate bundle" {
+  let root = "/tmp/moonbook-skill-sync-\{@async.now().to_int()}"
+  ignore(init_workspace(root))
+  let path = root + "/skills/wiki-ingest/SKILL.md"
+  let original = @fsx.read_file(path)
+  @fsx.write_to_file(
+    path,
+    original + "\n## Candidate Override\n\nSync me.\n",
+    create=0o644,
+  )
+  let result = sync_skill(root, "wiki-ingest")
+  assert_true(@fsx.exists(result.candidate_dir + "/workspace/SKILL.md"))
+  assert_true(@fsx.exists(result.candidate_dir + "/baseline/SKILL.md"))
+  assert_true(@fsx.exists(result.manifest_path))
+  let manifest = @fsx.read_file(result.manifest_path)
+  assert_true(manifest.contains("\"status\": \"drifted\""))
 }

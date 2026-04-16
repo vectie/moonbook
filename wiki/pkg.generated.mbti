@@ -54,6 +54,8 @@ pub async fn summarize_state(String) -> BookStateSummary
 
 pub fn supported_extensions() -> Array[String]
 
+pub async fn sync_skill(String, String) -> SkillSyncResult
+
 pub async fn write_marketing_projection(String, String) -> String
 
 pub async fn write_ui_state(String, String) -> String
@@ -310,6 +312,21 @@ pub struct SkillRecord {
 }
 pub impl Show for SkillRecord
 pub impl ToJson for SkillRecord
+
+type SkillSyncManifest
+pub impl ToJson for SkillSyncManifest
+
+pub struct SkillSyncResult {
+  root : String
+  name : String
+  candidate_dir : String
+  manifest_path : String
+  selected_path : String
+  baseline_path : String
+  summary : String
+}
+pub impl Show for SkillSyncResult
+pub impl ToJson for SkillSyncResult
 
 pub struct UiChapterLink {
   title : String

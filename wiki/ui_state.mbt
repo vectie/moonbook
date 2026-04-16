@@ -1439,6 +1439,7 @@ fn skills_projection_html(state : UiState, updated_note : String) -> String {
   "            <div class=\"skill-action-grid\">\n" +
   "              <article class=\"panel-item skill-command-card\"><strong>Show metadata</strong><p>Inspect the resolved machine-readable record for the selected skill.</p><pre class=\"preview-block\"><code id=\"skill-command-show\"></code></pre><button class=\"button button-secondary skill-copy-command\" type=\"button\" data-skill-command=\"show\">Copy command</button></article>\n" +
   "              <article class=\"panel-item skill-command-card\"><strong>Compare against baseline</strong><p>Print the machine-readable drift report for the selected skill and its nearest baseline.</p><pre class=\"preview-block\"><code id=\"skill-command-compare\"></code></pre><button class=\"button button-secondary skill-copy-command\" type=\"button\" data-skill-command=\"compare\">Copy command</button></article>\n" +
+  "              <article class=\"panel-item skill-command-card\"><strong>Sync candidate bundle</strong><p>Stage the workspace skill and its baseline into `skill-candidates/` for review without mutating repo seeds.</p><pre class=\"preview-block\"><code id=\"skill-command-sync\"></code></pre><button class=\"button button-secondary skill-copy-command\" type=\"button\" data-skill-command=\"sync\">Copy command</button></article>\n" +
   "              <article class=\"panel-item skill-command-card\"><strong>Install into workspace</strong><p>Copy a seeded skill into `skills/` so it becomes editable inside this workspace.</p><pre class=\"preview-block\"><code id=\"skill-command-install\"></code></pre><button class=\"button button-secondary skill-copy-command\" type=\"button\" data-skill-command=\"install\">Copy command</button></article>\n" +
   "              <article class=\"panel-item skill-command-card\"><strong>Scaffold workspace skill</strong><p>Create a new workspace-owned skill template with the same slug as the selected capability.</p><pre class=\"preview-block\"><code id=\"skill-command-scaffold\"></code></pre><button class=\"button button-secondary skill-copy-command\" type=\"button\" data-skill-command=\"scaffold\">Copy command</button></article>\n" +
   "              <article class=\"panel-item skill-command-card\"><strong>Doctor inventory</strong><p>Re-run duplicate and bundled-reference diagnostics for the whole workspace.</p><pre class=\"preview-block\"><code id=\"skill-command-doctor\"></code></pre><button class=\"button button-secondary skill-copy-command\" type=\"button\" data-skill-command=\"doctor\">Copy command</button></article>\n" +
@@ -1829,6 +1830,7 @@ fn marketing_projection_script() -> String {
   "    const compareBaseline = document.getElementById('skill-compare-baseline');\n" +
   "    const commandShow = document.getElementById('skill-command-show');\n" +
   "    const commandCompare = document.getElementById('skill-command-compare');\n" +
+  "    const commandSync = document.getElementById('skill-command-sync');\n" +
   "    const commandInstall = document.getElementById('skill-command-install');\n" +
   "    const commandScaffold = document.getElementById('skill-command-scaffold');\n" +
   "    const commandDoctor = document.getElementById('skill-command-doctor');\n" +
@@ -1855,6 +1857,11 @@ fn marketing_projection_script() -> String {
   "      const quotedName = shellQuote(skillSelector(skill));\n" +
   "      if (kind === 'show') return `moonbook skill show ${quotedName} ${quotedRoot}`;\n" +
   "      if (kind === 'compare') return `moonbook skill compare ${quotedName} ${quotedRoot}`;\n" +
+  "      if (kind === 'sync') {\n" +
+  "        return skill && skill.scope === 'workspace'\n" +
+  "          ? `moonbook skill sync ${quotedName} ${quotedRoot}`\n" +
+  "          : '# sync requires a workspace-owned override';\n" +
+  "      }\n" +
   "      if (kind === 'doctor') return `moonbook skill doctor ${quotedRoot}`;\n" +
   "      if (kind === 'scaffold') return `moonbook skill scaffold ${shellQuote(skillSlug(skill && skill.name ? skill.name : 'new-skill'))} ${quotedRoot}`;\n" +
   "      if (kind === 'install') {\n" +
@@ -1902,6 +1909,7 @@ fn marketing_projection_script() -> String {
   "      if (compareBaseline) compareBaseline.textContent = (skill.compare_baseline_excerpt && skill.compare_baseline_excerpt.length ? skill.compare_baseline_excerpt : ['No baseline excerpt.']).join('\\n');\n" +
   "      if (commandShow) commandShow.textContent = commandText(skill, 'show');\n" +
   "      if (commandCompare) commandCompare.textContent = commandText(skill, 'compare');\n" +
+  "      if (commandSync) commandSync.textContent = commandText(skill, 'sync');\n" +
   "      if (commandInstall) commandInstall.textContent = commandText(skill, 'install');\n" +
   "      if (commandScaffold) commandScaffold.textContent = commandText(skill, 'scaffold');\n" +
   "      if (commandDoctor) commandDoctor.textContent = commandText(skill, 'doctor');\n" +

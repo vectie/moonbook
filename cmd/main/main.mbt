@@ -71,6 +71,8 @@ async fn run_skill(args : Array[String]) -> Unit {
     ["show", name] => run_skill_show(".", name)
     ["compare", name, root] => run_skill_compare(root, name)
     ["compare", name] => run_skill_compare(".", name)
+    ["sync", name, root] => run_skill_sync(root, name)
+    ["sync", name] => run_skill_sync(".", name)
     ["install", name, root] => run_skill_install(root, name)
     ["install", name] => run_skill_install(".", name)
     ["scaffold", name, root] => run_skill_scaffold(root, name)
@@ -79,7 +81,7 @@ async fn run_skill(args : Array[String]) -> Unit {
     ["doctor"] => run_skill_doctor(".")
     _ =>
       println(
-        "moonbook skill usage: moonbook skill list [root]\nmoonbook skill show <name> [root]\nmoonbook skill compare <name[@extension]> [root]\nmoonbook skill install <name[@extension]> [root]\nmoonbook skill scaffold <name> [root]\nmoonbook skill doctor [root]",
+        "moonbook skill usage: moonbook skill list [root]\nmoonbook skill show <name> [root]\nmoonbook skill compare <name[@extension]> [root]\nmoonbook skill sync <name[@extension]> [root]\nmoonbook skill install <name[@extension]> [root]\nmoonbook skill scaffold <name> [root]\nmoonbook skill doctor [root]",
       )
   }
 }
@@ -144,6 +146,21 @@ async fn run_skill_compare(root : String, name : String) -> Unit {
     }
   }
   println(result.to_json().stringify(indent=2))
+}
+
+///|
+async fn run_skill_sync(root : String, name : String) -> Unit {
+  let result = @wiki.sync_skill(root, name) catch {
+    error => {
+      println("moonbook skill sync failed: \{error}")
+      return
+    }
+  }
+  println("synced skill \{result.name}")
+  println("candidate dir: \{result.candidate_dir}")
+  println("manifest: \{result.manifest_path}")
+  println("workspace source: \{result.selected_path}")
+  println("baseline source: \{result.baseline_path}")
 }
 
 ///|
