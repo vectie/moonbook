@@ -13,6 +13,7 @@ Implemented commands:
 - `moonbook pack list`
 - `moonbook pack enable <extension> [root]`
 - `moonbook skill list [root]`
+- `moonbook skill hub [root] [-n hostname] [-p port] [-o]`
 - `moonbook skill show <name> [root]`
 - `moonbook skill compare <name[@extension]> [root]`
 - `moonbook skill sync <name[@extension]> [root]`
@@ -65,6 +66,13 @@ Implemented behaviors:
 - generated skill manager also exposes copyable `skill show`, `skill compare`, `skill sync`, `skill install`, `skill scaffold`, and `skill doctor` lifecycle commands for the selected skill
 - generated skill manager renders override drift summaries and side-by-side excerpts against the nearest baseline
 - generated skill manager can stage workspace overrides into `skill-candidates/` for review without mutating repo seeds
+- `skill hub` starts a dedicated live backend specialized for skill operations instead of reusing the static book server
+- `skill hub` scans workspace skills plus broader machine roots such as repo seeds, Claude skill locations, current working ancestors, and common development folders
+- `skill hub` provides direct in-browser editing for discovered `SKILL.md` files
+- `skill hub` snapshots each save into `.moonbook-skill-hub/snapshots/` and supports rollback from those snapshots
+- `skill hub` writes machine-readable state and diagnostics into `.moonbook-skill-hub/state.json`, `.moonbook-skill-hub/debug.json`, and `.moonbook-skill-hub/version`
+- `skill hub` exposes `GET /api/state`, `GET /api/debug`, `GET /api/snapshots`, `POST /api/save`, `POST /api/rollback`, and `GET /api/events`
+- `skill hub` pushes live refresh notifications over SSE when watched skill files change
 - `serve --watcher native` currently falls back to the poll backend with an explicit notice
 - `wiki init` scaffolds `raw/`, `wiki/`, `AGENTS.md`, `wiki.toml`, and a MoonBook-compatible `book.toml`
 - `wiki init` scaffolds `raw/bootstrap/` for raw-first bootstrap source packets
@@ -79,6 +87,7 @@ Implemented behaviors:
 - `skill install` copies a seeded skill into workspace ownership under `skills/`
 - `skill scaffold` creates a new workspace-owned skill template with a substantial `SKILL.md`
 - `skill doctor` reports duplicate names, missing bundled references, and workspace overrides
+- `skill hub` is positioned as “manage skills across this machine” rather than only “inspect skills in this workspace”
 - `pack list` reports currently supported extension packs
 - generated marketing projection includes current status, workflow, review pressure, keeper memory, depth links, and synthesis preview from live workspace state
 - `wiki init` seeds `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`

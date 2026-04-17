@@ -116,6 +116,33 @@ Prints a tabular inventory of:
 
 Each line includes skill name, scope, extension, and resolved `SKILL.md` path.
 
+### `moon run cmd/main -- skill hub [root] [-n hostname] [-p port] [-o]`
+
+Runs a dedicated live backend for machine-wide skill operations:
+
+1. scans workspace `skills/`
+2. scans repo-seeded `seed/wiki/skills/`
+3. scans broader machine roots such as `$HOME/.claude/skills`, `$HOME/.claude/plugins`, `$HOME/.claude/projects`, current-working-directory ancestor skill folders, optional extra paths from `MOONBOOK_SKILL_HUB_EXTRA_PATHS` / `SKILL_HUB_EXTRA_PATHS`, and common development folders
+4. writes live state under `<root>/.moonbook-skill-hub/`
+5. serves a browser UI specialized for skill inventory, editing, snapshots, rollback, and debug
+6. keeps the UI fresh through SSE events from `GET /api/events`
+
+Current API surface:
+
+- `GET /api/state`
+- `GET /api/debug`
+- `GET /api/snapshots?path=<skill-path>`
+- `POST /api/save`
+- `POST /api/rollback`
+- `GET /api/events`
+
+Current persistence layout:
+
+- `<root>/.moonbook-skill-hub/state.json`
+- `<root>/.moonbook-skill-hub/debug.json`
+- `<root>/.moonbook-skill-hub/version`
+- `<root>/.moonbook-skill-hub/snapshots/<skill-slug>/<timestamp>/`
+
 ### `moon run cmd/main -- skill show <name> [root]`
 
 Prints one resolved skill record as JSON.

@@ -36,6 +36,8 @@ pub async fn list_pending_reviews(String) -> Array[ReviewItem]
 
 pub async fn list_skills(String) -> Array[SkillRecord]
 
+pub fn make_skill_hub_serve_options(String, String, Int, Bool) -> SkillHubServeOptions
+
 pub async fn persist_result(String, BookResult) -> PersistResultOutcome
 
 pub async fn produce_task_batch(String, String, goal_id? : String?) -> BookTaskBatch
@@ -49,6 +51,8 @@ pub async fn report_health(String) -> BookHealthReport
 pub async fn resolve_task_for_goal(String, String, task_id? : String?) -> BookTask?
 
 pub async fn scaffold_skill(String, String) -> SkillInstallResult
+
+pub async fn serve_skill_hub(SkillHubServeOptions) -> Unit
 
 pub async fn summarize_state(String) -> BookStateSummary
 
@@ -286,6 +290,41 @@ pub struct SkillDoctorReport {
 pub impl Show for SkillDoctorReport
 pub impl ToJson for SkillDoctorReport
 
+type SkillHubDebug
+pub impl Show for SkillHubDebug
+pub impl ToJson for SkillHubDebug
+pub impl @json.FromJson for SkillHubDebug
+
+type SkillHubRecord
+pub impl Show for SkillHubRecord
+pub impl ToJson for SkillHubRecord
+pub impl @json.FromJson for SkillHubRecord
+
+type SkillHubRollbackRequest
+pub impl @json.FromJson for SkillHubRollbackRequest
+
+type SkillHubRootStatus
+pub impl Show for SkillHubRootStatus
+pub impl ToJson for SkillHubRootStatus
+pub impl @json.FromJson for SkillHubRootStatus
+
+type SkillHubSaveRequest
+pub impl @json.FromJson for SkillHubSaveRequest
+
+pub struct SkillHubServeOptions {
+  root : String
+  hostname : String
+  port : Int
+  open_browser : Bool
+}
+pub impl Show for SkillHubServeOptions
+pub impl ToJson for SkillHubServeOptions
+
+type SkillHubState
+pub impl Show for SkillHubState
+pub impl ToJson for SkillHubState
+pub impl @json.FromJson for SkillHubState
+
 pub struct SkillInstallResult {
   root : String
   name : String
@@ -312,6 +351,11 @@ pub struct SkillRecord {
 }
 pub impl Show for SkillRecord
 pub impl ToJson for SkillRecord
+
+type SkillSnapshotRecord
+pub impl Show for SkillSnapshotRecord
+pub impl ToJson for SkillSnapshotRecord
+pub impl @json.FromJson for SkillSnapshotRecord
 
 type SkillSyncManifest
 pub impl ToJson for SkillSyncManifest

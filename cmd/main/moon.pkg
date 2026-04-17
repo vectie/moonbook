@@ -3,6 +3,7 @@ import {
   "moonbitlang/async/process",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
+  "moonbitlang/core/strconv",
   "vectie/moonbook/internal/fsx",
   "vectie/moonbook/internal/httpserve",
   "vectie/moonbook/internal/watcher",

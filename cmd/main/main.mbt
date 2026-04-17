@@ -65,6 +65,7 @@ fn run_pack_list() -> Unit {
 ///|
 async fn run_skill(args : Array[String]) -> Unit {
   match args {
+    ["hub", .. hub_args] => run_skill_hub(hub_args.to_array())
     ["list", root] => run_skill_list(root)
     ["list"] => run_skill_list(".")
     ["show", name, root] => run_skill_show(root, name)
@@ -81,8 +82,69 @@ async fn run_skill(args : Array[String]) -> Unit {
     ["doctor"] => run_skill_doctor(".")
     _ =>
       println(
-        "moonbook skill usage: moonbook skill list [root]\nmoonbook skill show <name> [root]\nmoonbook skill compare <name[@extension]> [root]\nmoonbook skill sync <name[@extension]> [root]\nmoonbook skill install <name[@extension]> [root]\nmoonbook skill scaffold <name> [root]\nmoonbook skill doctor [root]",
+        "moonbook skill usage: moonbook skill hub [root] [-n hostname] [-p port] [-o]\nmoonbook skill list [root]\nmoonbook skill show <name> [root]\nmoonbook skill compare <name[@extension]> [root]\nmoonbook skill sync <name[@extension]> [root]\nmoonbook skill install <name[@extension]> [root]\nmoonbook skill scaffold <name> [root]\nmoonbook skill doctor [root]",
       )
+  }
+}
+
+///|
+async fn run_skill_hub(args : Array[String]) -> Unit {
+  let mut root = "."
+  let mut hostname = "localhost"
+  let mut port = 3456
+  let mut open_browser = false
+  let mut index = 0
+  let mut seen_root = false
+  while index < args.length() {
+    match args[index] {
+      "-o" | "--open" => {
+        open_browser = true
+        index += 1
+      }
+      "-n" | "--hostname" =>
+        if index + 1 < args.length() {
+          hostname = args[index + 1]
+          index += 2
+        } else {
+          println(
+            "moonbook skill hub usage: moonbook skill hub [root] [-n hostname] [-p port] [-o]",
+          )
+          return
+        }
+      "-p" | "--port" =>
+        if index + 1 < args.length() {
+          port = @strconv.parse_int(args[index + 1]) catch {
+            _ => {
+              println(
+                "moonbook skill hub usage: moonbook skill hub [root] [-n hostname] [-p port] [-o]",
+              )
+              return
+            }
+          }
+          index += 2
+        } else {
+          println(
+            "moonbook skill hub usage: moonbook skill hub [root] [-n hostname] [-p port] [-o]",
+          )
+          return
+        }
+      value =>
+        if !seen_root && !value.has_prefix("-") {
+          root = value
+          seen_root = true
+          index += 1
+        } else {
+          println(
+            "moonbook skill hub usage: moonbook skill hub [root] [-n hostname] [-p port] [-o]",
+          )
+          return
+        }
+    }
+  }
+  @wiki.serve_skill_hub(
+    @wiki.make_skill_hub_serve_options(root, hostname, port, open_browser),
+  ) catch {
+    error => println("moonbook skill hub failed: \{error}")
   }
 }
 

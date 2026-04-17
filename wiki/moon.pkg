@@ -1,12 +1,18 @@
 import {
   "moonbitlang/async",
   "moonbitlang/async/fs",
+  "moonbitlang/async/http",
+  "moonbitlang/async/io",
+  "moonbitlang/async/process",
+  "moonbitlang/async/socket",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
   "vectie/moonbook/core",
   "vectie/moonbook/internal/fsx",
+  "vectie/moonbook/internal/watcher",
   "vectie/moonbook/internal/pathx",
   "moonbitlang/x/path",
+  "moonbitlang/x/sys",
 }
 
 import {
