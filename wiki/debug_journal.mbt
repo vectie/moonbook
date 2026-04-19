@@ -38,6 +38,7 @@ async fn append_debug_journal_entry(
   evidence_id : String,
   review_queued : Bool,
   updated_pages : Array[String],
+  bootstrap_cluster_complete : Bool,
 ) -> String {
   let relative = ensure_debug_journal_page(workspace)
   let absolute = @path.Path(workspace.wiki_dir)
@@ -45,9 +46,13 @@ async fn append_debug_journal_entry(
     .to_string()
   let current = @fsx.read_file(absolute)
   let block = debug_journal_entry_block(
-    result, evidence_id, review_queued, updated_pages,
+    result, evidence_id, review_queued, updated_pages, bootstrap_cluster_complete,
   )
-  let next = upsert_debug_journal_block(current, result.task_id, block)
+  let next = upsert_debug_journal_block(
+    current,
+    debug_journal_entry_id(result),
+    block,
+  )
   @fsx.write_to_file(absolute, next, create=0o644)
   relative
 }
@@ -58,17 +63,30 @@ fn debug_journal_entry_block(
   evidence_id : String,
   review_queued : Bool,
   updated_pages : Array[String],
+  bootstrap_cluster_complete : Bool,
 ) -> String {
   let builder = StringBuilder::new()
-  let stage = infer_task_kind_from_external_id(result.task_id).unwrap_or("run")
-  builder.write_string("### \{result.task_id}\n\n")
+  let stage = debug_journal_stage_label(result)
+  let entry_id = debug_journal_entry_id(result)
+  builder.write_string("### \{entry_id}\n\n")
   builder.write_string("- Stage: `\{stage}`\n")
+  if entry_id != result.task_id {
+    builder.write_string("- Latest task: `\{result.task_id}`\n")
+  }
   builder.write_string("- Summary: \{result.summary}\n")
   builder.write_string("- Evidence: `\{evidence_id}`\n")
   builder.write_string("- Review queued: `\{review_queued}`\n")
   builder.write_string("- Notify town: `\{result.notify_town}`\n")
+  if result_stage_is_bootstrap_like(result) {
+    builder.write_string(
+      "- Bootstrap cluster: `\{bootstrap_cluster_key(result.task_id)}`\n",
+    )
+    builder.write_string(
+      "- Bootstrap outcome: `\{bootstrap_cluster_label(bootstrap_cluster_complete)}`\n",
+    )
+  }
   builder.write_string(
-    "- Result class: `\{debug_result_class(result, updated_pages)}`\n",
+    "- Result class: `\{debug_result_class(result, updated_pages, bootstrap_cluster_complete)}`\n",
   )
   if !updated_pages.is_empty() {
     builder.write_string("- Updated pages:\n")
@@ -91,7 +109,9 @@ fn debug_journal_entry_block(
       )
     }
   }
-  let debug_notes = debug_open_loops(result, updated_pages)
+  let debug_notes = debug_open_loops(
+    result, updated_pages, bootstrap_cluster_complete,
+  )
   if !debug_notes.is_empty() {
     builder.write_string("- Debug notes:\n")
     for note in debug_notes {
@@ -115,18 +135,17 @@ fn debug_workspace_relative_path(path : String) -> String {
 fn debug_result_class(
   result : BookResult,
   updated_pages : Array[String],
+  bootstrap_cluster_complete : Bool,
 ) -> String {
-  if updated_pages.any(fn(page) {
-      page.has_prefix("sources/") ||
-      page.has_prefix("entities/") ||
-      page.has_prefix("concepts/") ||
-      page.has_prefix("queries/")
-    }) ||
+  if bootstrap_cluster_complete ||
+    result_has_substantive_pages(updated_pages) ||
     result.artifacts.any(fn(path) {
       path.contains("wiki/sources/") ||
       path.contains("wiki/entities/") ||
       path.contains("wiki/concepts/") ||
-      path.contains("wiki/queries/")
+      path.contains("wiki/queries/") ||
+      path.contains("wiki/synthesis/overview.md") ||
+      path.contains("wiki/synthesis/claims.md")
     }) {
     "substantive"
   } else {
@@ -138,23 +157,47 @@ fn debug_result_class(
 fn debug_open_loops(
   result : BookResult,
   updated_pages : Array[String],
+  bootstrap_cluster_complete : Bool,
 ) -> Array[String] {
   let notes : Array[String] = []
-  if result.artifacts.is_empty() {
+  if result.artifacts.is_empty() &&
+    !result_has_substantive_pages(updated_pages) &&
+    !bootstrap_cluster_complete {
     notes.push("no durable artifact paths were reported")
   }
-  if !updated_pages.any(fn(page) {
-      page.has_prefix("sources/") ||
-      page.has_prefix("entities/") ||
-      page.has_prefix("concepts/") ||
-      page.has_prefix("queries/")
-    }) {
-    notes.push("no substantive source/entity/concept/query pages were updated")
+  if !result_has_substantive_pages(updated_pages) {
+    if result_stage_is_bootstrap_like(result) && bootstrap_cluster_complete {
+      notes.push(
+        "this subrun did not directly report substantive pages, but the workspace now contains durable bootstrap pages from the same cluster",
+      )
+    } else {
+      notes.push(
+        "no substantive source/entity/concept/query pages were updated",
+      )
+    }
   }
   if result.memory_candidates.is_empty() {
     notes.push("no structured memory candidates were returned")
   }
   notes
+}
+
+///|
+fn debug_journal_entry_id(result : BookResult) -> String {
+  if result_stage_is_bootstrap_like(result) {
+    bootstrap_cluster_key(result.task_id)
+  } else {
+    result.task_id
+  }
+}
+
+///|
+fn debug_journal_stage_label(result : BookResult) -> String {
+  if result_stage_is_bootstrap_like(result) {
+    "bootstrap"
+  } else {
+    infer_task_kind_from_external_id(result.task_id).unwrap_or("run")
+  }
 }
 
 ///|
@@ -208,7 +251,10 @@ test "debug result class marks substantive outputs" {
     requires_review: false,
     notify_town: false,
   }
-  assert_eq(debug_result_class(result, ["sources/demo.md"]), "substantive")
+  assert_eq(
+    debug_result_class(result, ["sources/demo.md"], true),
+    "substantive",
+  )
 }
 
 ///|
@@ -222,7 +268,7 @@ test "debug result class marks administrative outputs" {
     notify_town: false,
   }
   assert_eq(
-    debug_result_class(result, ["history/journey.md"]),
+    debug_result_class(result, ["history/journey.md"], false),
     "administrative",
   )
 }

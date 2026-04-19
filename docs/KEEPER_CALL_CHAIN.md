@@ -40,7 +40,16 @@ The current runtime split is:
 7. Analysis steps produce `keeper.plan.packet.v1` outputs.
 8. Delegate steps spawn child runs that edit or review the wiki.
 
-The current ingest workflow profile is seeded by MoonBook under `moonclaw.jobs.json` and looks like:
+MoonBook now owns the semantic ingest graph for the domain. For ingest, the intended phase graph is:
+
+1. `bootstrap_gather`
+2. `source_materialize`
+3. `knowledge_revise`
+4. `review_finalize`
+
+MoonClaw still compiles the packet into the current executable workflow profile.
+
+The current ingest workflow profile is seeded by MoonBook under `moonclaw.jobs.json` and still compiles into controller steps that look like:
 
 1. `inspect_source`
 2. `plan_revisions`
@@ -66,7 +75,7 @@ The keeper submit command is registered under:
 - `moonbook wiki keeper submit [root] <packet.json> ...`
 - `moonbook wiki keeper submit [root] --latest ...`
 
-## Phase 2: MoonBook Ingest Writes the Initial Wiki State
+## Phase 2: MoonBook Defines the Semantic Ingest Phases
 
 Source:
 
@@ -82,10 +91,15 @@ What it does:
 2. Ensures `raw/`, `wiki/sources/`, `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/reviews/` exist.
 3. Resolves and optionally imports the source into `raw/` or `raw/imported/`.
 4. Detects a source title.
-5. Creates a source page under `wiki/sources/<slug>.md`.
-6. Runs `enrich_ingest(...)` to update maintained wiki pages.
-7. Emits a keeper packet with `emit_ingest_keeper_packet(...)`.
-8. Updates:
+5. Decides the semantic phase graph for the domain:
+   - `bootstrap_gather`
+   - `source_materialize`
+   - `knowledge_revise`
+   - `review_finalize`
+6. Creates the source page under `wiki/sources/<slug>.md`.
+7. Runs `enrich_ingest(...)` to update maintained wiki pages.
+8. Emits a keeper packet with `emit_ingest_keeper_packet(...)`.
+9. Updates:
    - `wiki/SUMMARY.md`
    - `wiki/index.md`
    - `wiki/log.md`
@@ -98,7 +112,7 @@ The ingest result contains:
 - `related_pages`
 - `keeper_packet_path`
 
-## Phase 3: MoonBook Emits the Keeper Packet
+## Phase 3: MoonBook Emits the Keeper Packet With Phase Intent
 
 Source:
 
@@ -122,6 +136,10 @@ Packet fields currently written by MoonBook:
 - `request`
 - `profile`
 - `output_contract`
+- `semantic_phases`
+- `execution_mode`
+- `max_parallel_workers`
+- `gather_lanes`
 - `source_path`
 - `source_page`
 - `context_pages`
@@ -135,6 +153,30 @@ Example packet semantics:
 - `output_contract: "keeper.plan.packet.v1"`
 - `source_path: "raw/demo.md"`
 - `source_page: "wiki/sources/confirm-demo-three.md"`
+
+MoonBook's semantic intent for the packet is now:
+
+- `bootstrap_gather`
+  - gather high-signal source material and write `raw/bootstrap/*`
+- `source_materialize`
+  - turn raw packets into durable `wiki/sources/*`
+- `knowledge_revise`
+  - revise `wiki/entities/*`, `wiki/concepts/*`, and synthesis pages
+- `review_finalize`
+  - verify artifacts, blockers, and final promotion status
+
+MoonBook's execution intent is now also explicit in the packet:
+
+- `execution_mode: "parallel-lane-bootstrap"`
+- `max_parallel_workers: 4`
+- `gather_lanes`
+  - docs
+  - implementation
+  - architecture
+
+The keeper is expected to preserve these lane specs and ask MoonClaw to execute them as separate bounded workers when the source surface is broad.
+
+MoonClaw may still compile these semantics into the current runtime steps, but the semantic owner is MoonBook.
 
 Current packet context pages:
 

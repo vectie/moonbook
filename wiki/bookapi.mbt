@@ -160,6 +160,7 @@ pub async fn produce_task_batch(
   let query_ready = book_has_query_ready_coverage(state)
   let ingest_priority = if weak_coverage { 100 } else { 70 }
   let tasks : Array[BookTask] = []
+  let bootstrap_research_goal = weak_coverage && research_bootstrap_goal(goal)
 
   if state.pending_review_count > 0 ||
     notes.contains("review") ||
@@ -178,7 +179,11 @@ pub async fn produce_task_batch(
     })
   }
 
-  if weak_coverage ||
+  if bootstrap_research_goal {
+    for task in bootstrap_semantic_tasks(normalized_goal_id, goal) {
+      tasks.push(task)
+    }
+  } else if weak_coverage ||
     notes.contains("research") ||
     notes.contains("ingest") ||
     notes.contains("source") ||
@@ -275,8 +280,100 @@ pub async fn produce_task_batch(
   {
     goal_id: normalized_goal_id,
     goal,
-    summary: "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level}",
+    summary: if bootstrap_research_goal {
+      "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level} bootstrap_phases=\{tasks.length()}"
+    } else {
+      "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level}"
+    },
     tasks: dedupe_tasks(tasks),
+  }
+}
+
+///|
+fn research_bootstrap_goal(goal : String) -> Bool {
+  let notes = goal.to_lower()
+  notes.contains("research") ||
+  notes.contains("ingest") ||
+  notes.contains("source") ||
+  notes.contains("article") ||
+  notes.contains("notes") ||
+  notes.contains("discover") ||
+  notes.contains("populate") ||
+  notes.contains("bootstrap")
+}
+
+///|
+fn bootstrap_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] {
+  [
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "bootstrap_gather",
+      "Gather bootstrap materials",
+      100,
+      "Load `skills/wiki-ingest/SKILL.md` and `skills/source-diarize/SKILL.md`. Treat bootstrap_gather as a fan-out phase, not a single sweep. Split the work into 2 to 4 bounded gather lanes such as repo-doc discovery, implementation evidence, architecture/topology notes, and cross-project linkage. Each lane must inspect only a small high-signal slice, write or contribute to concrete raw/bootstrap packets with provenance, evidence bullets, and source-path notes, and report explicit blockers when its lane is weak. Success means at least one substantive source candidate, at least one bootstrap packet, and enough gathered material for source materialization. Blockers are only scaffolding, placeholders, missing substantive source paths, or gather outputs that are still too weak to hand off.",
+      [
+        "../raw/README.md", "../raw/bootstrap/", "synthesis/map.md", "synthesis/maintenance-plan.md",
+      ],
+      true,
+    ),
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "source_materialize",
+      "Materialize durable source pages",
+      90,
+      "Load `skills/wiki-ingest/SKILL.md`. Use the gathered bootstrap packets to create or revise durable `wiki/sources/*.md` pages and refresh index/log coverage. Success means at least one durable source page and matching index/log updates. Blockers are weak packets, placeholder sources, or no durable source material.",
+      ["sources/", "index.md", "log.md"],
+      true,
+    ),
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "knowledge_revise",
+      "Revise knowledge surfaces",
+      80,
+      "Load `skills/entity-revise/SKILL.md`, `skills/concept-revise/SKILL.md`, `skills/synthesis-revise/SKILL.md`, and `skills/claim-audit/SKILL.md`. Revise entity, concept, claim, and synthesis pages using the durable source pages created in the prior phase. Success means visible ontology or synthesis updates with claims or cross-links. Blockers are missing source pages, unsupported claims, or no durable revision target.",
+      [
+        "entities/", "concepts/", "synthesis/overview.md", "synthesis/claims.md",
+        "synthesis/map.md", "synthesis/maintenance-plan.md",
+      ],
+      true,
+    ),
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "review_finalize",
+      "Finalize bootstrap review",
+      70,
+      "Load `skills/wiki-review/SKILL.md`, `skills/review-decision/SKILL.md`, and `skills/contradiction-review/SKILL.md`. Review the revised pages, classify blockers, and decide whether the bootstrap pass is ready for durable use. Success means an explicit review-ready conclusion or a structured blocker with missing material. Generic completion prose is not success.",
+      [
+        "reviews/pending.md", "reviews/approved.md", "history/journey.md", "history/debug-journal.md",
+      ],
+      true,
+    ),
+  ]
+}
+
+///|
+fn bootstrap_phase_task(
+  goal_id : String,
+  goal : String,
+  kind : String,
+  title : String,
+  priority : Int,
+  prompt : String,
+  target_pages : Array[String],
+  requires_review : Bool,
+) -> BookTask {
+  {
+    id: "\{goal_id}-\{kind}",
+    title,
+    kind,
+    prompt: "\{prompt}\n\nGoal: \{goal}",
+    priority,
+    requires_review,
+    target_pages,
   }
 }
 
@@ -315,6 +412,7 @@ fn provider_result_contract_lines() -> Array[String] {
     "Use keys: task_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
     "Set task_id to the active provider task id.", "artifacts must be an array of workspace-relative output paths.",
     "memory_candidates must be an array of objects with kind, title, detail, durable, target_page.",
+    "For weak-coverage research goals, follow the MoonBook phases in order: bootstrap_gather, source_materialize, knowledge_revise, review_finalize.",
     "For bootstrap ingest, artifacts should include one or more raw/bootstrap/* packets before wiki revision claims.",
     "Use [] for empty arrays and null for missing target_page.", "For ingest or bootstrap work, generic completion text without substantive artifacts or durable candidates is a blocker, not success.",
     "If ingest work does not produce durable source/entity/concept/query updates, say what material is missing and set requires_review to true.",
@@ -327,7 +425,7 @@ async fn task_prompt_with_material_hints(
   task : BookTask,
   terms : Array[String],
 ) -> String {
-  if task.kind != "ingest" {
+  if !bootstrap_material_task_kind(task.kind) {
     return task.prompt
   }
   let hints = bootstrap_source_hint_lines(
@@ -342,6 +440,14 @@ async fn task_prompt_with_material_hints(
   "\n\nLocal source hints for this bootstrap pass:\n" +
   hints.join("\n") +
   "\n\nUse these paths as candidate primary materials before concluding that the book has no substantive sources."
+}
+
+///|
+fn bootstrap_material_task_kind(kind : String) -> Bool {
+  kind == "ingest" ||
+  kind == "bootstrap_gather" ||
+  kind == "source_materialize" ||
+  kind == "knowledge_revise"
 }
 
 ///|
@@ -437,7 +543,31 @@ pub async fn resolve_task_for_goal(
   task_id? : String? = None,
 ) -> BookTask? {
   let batch = produce_task_batch(root, goal)
-  resolve_task_from_batch(batch.tasks, task_id~)
+  match resolve_task_from_batch(batch.tasks, task_id~) {
+    Some(task) => Some(task)
+    None => fallback_bootstrap_task_for_goal(goal, batch.goal_id, task_id~)
+  }
+}
+
+///|
+fn fallback_bootstrap_task_for_goal(
+  goal : String,
+  goal_id : String,
+  task_id? : String? = None,
+) -> BookTask? {
+  guard research_bootstrap_goal(goal) else { return None }
+  let kind = match task_id {
+    Some(task_id) => resolve_task_kind_from_external_id(task_id)
+    None => None
+  }
+  let bootstrap_tasks = bootstrap_semantic_tasks(goal_id, goal)
+  match kind {
+    Some(kind) =>
+      bootstrap_tasks
+      .iter()
+      .find_first(fn(task : BookTask) { task.kind == kind })
+    None => None
+  }
 }
 
 ///|
@@ -445,8 +575,8 @@ pub async fn persist_result(
   root : String,
   result : BookResult,
 ) -> PersistResultOutcome {
-  let normalized_result = normalize_provider_result(result)
   let workspace = workspace_paths(root)
+  let normalized_result = reconcile_provider_result(root, workspace, result)
   let updated_pages : Array[String] = []
   let observations_relative = ensure_observations_page(workspace)
   updated_pages.push(observations_relative)
@@ -495,11 +625,6 @@ pub async fn persist_result(
   if !updated_pages.contains(plan_relative) {
     updated_pages.push(plan_relative)
   }
-  let synthesis_map_relative = refresh_synthesis_map(root)
-  if !updated_pages.contains(synthesis_map_relative) {
-    updated_pages.push(synthesis_map_relative)
-  }
-
   let staged = staged_durable_candidates(normalized_result)
   let review_queued = if normalized_result.requires_review || !staged.is_empty() {
     queue_result_review(
@@ -511,34 +636,47 @@ pub async fn persist_result(
   if review_queued && !updated_pages.contains("reviews/pending.md") {
     updated_pages.push("reviews/pending.md")
   }
-  let journey_relative = append_journey_entry(
-    workspace, normalized_result, evidence_id, review_queued, updated_pages,
+  let reconciled_pages = reconcile_result_pages(
+    root, workspace, normalized_result, updated_pages,
   )
-  if !updated_pages.contains(journey_relative) {
-    updated_pages.push(journey_relative)
+  let bootstrap_cluster_complete = has_bootstrap_materialization(
+    count_markdown_under(workspace.wiki_dir, "sources"),
+    count_markdown_under(workspace.wiki_dir, "entities"),
+    count_markdown_under(workspace.wiki_dir, "concepts"),
+    count_markdown_under(workspace.wiki_dir, "queries"),
+  )
+  let journey_relative = append_journey_entry(
+    workspace, normalized_result, evidence_id, review_queued, reconciled_pages, bootstrap_cluster_complete,
+  )
+  if !reconciled_pages.contains(journey_relative) {
+    reconciled_pages.push(journey_relative)
   }
   let debug_journal_relative = append_debug_journal_entry(
-    workspace, normalized_result, evidence_id, review_queued, updated_pages,
+    workspace, normalized_result, evidence_id, review_queued, reconciled_pages, bootstrap_cluster_complete,
   )
-  if !updated_pages.contains(debug_journal_relative) {
-    updated_pages.push(debug_journal_relative)
+  if !reconciled_pages.contains(debug_journal_relative) {
+    reconciled_pages.push(debug_journal_relative)
   }
 
   let insights_relative = refresh_keeper_insights(root)
-  if !updated_pages.contains(insights_relative) {
-    updated_pages.push(insights_relative)
+  if !reconciled_pages.contains(insights_relative) {
+    reconciled_pages.push(insights_relative)
+  }
+  let synthesis_map_relative = refresh_synthesis_map(root)
+  if !reconciled_pages.contains(synthesis_map_relative) {
+    reconciled_pages.push(synthesis_map_relative)
   }
 
   append_result_log(
     @path.Path(workspace.wiki_dir).join(@path.Path("log.md")).to_string(),
     normalized_result,
-    updated_pages,
+    reconciled_pages,
   )
   {
     log_path: @path.Path(workspace.wiki_dir)
     .join(@path.Path("log.md"))
     .to_string(),
-    updated_pages,
+    updated_pages: reconciled_pages,
     review_queued,
     notify_town: normalized_result.notify_town,
     evidence_id,
@@ -546,9 +684,32 @@ pub async fn persist_result(
 }
 
 ///|
-fn normalize_provider_result(result : BookResult) -> BookResult {
+async fn reconcile_provider_result(
+  root : String,
+  workspace : Paths,
+  result : BookResult,
+) -> BookResult {
   if !result_is_empty_ingest_blocker(result) {
     return result
+  }
+  let source_page_count = count_markdown_under(workspace.wiki_dir, "sources")
+  let entity_page_count = count_markdown_under(workspace.wiki_dir, "entities")
+  let concept_page_count = count_markdown_under(workspace.wiki_dir, "concepts")
+  let query_note_count = count_markdown_under(workspace.wiki_dir, "queries")
+  if has_bootstrap_materialization(
+      source_page_count, entity_page_count, concept_page_count, query_note_count,
+    ) {
+    let artifacts = recent_substantive_pages(root, limit=8).map(fn(page) {
+      "wiki/\{page}"
+    })
+    return {
+      task_id: result.task_id,
+      summary: "Recovered bootstrap completion from durable workspace pages despite weak provider completion text.",
+      artifacts,
+      memory_candidates: [],
+      requires_review: false,
+      notify_town: result.notify_town,
+    }
   }
   {
     task_id: result.task_id,
@@ -591,7 +752,145 @@ fn result_is_empty_ingest_blocker(result : BookResult) -> Bool {
 }
 
 ///|
+async fn reconcile_result_pages(
+  root : String,
+  workspace : Paths,
+  result : BookResult,
+  updated_pages : Array[String],
+) -> Array[String] {
+  let reconciled : Array[String] = []
+  for page in updated_pages {
+    if !reconciled.contains(page) {
+      reconciled.push(page)
+    }
+  }
+  for artifact in result.artifacts {
+    let relative = normalize_result_workspace_path(artifact)
+    if !relative.is_empty() &&
+      @fsx.exists(
+        @path.Path(workspace.root).join(@path.Path(relative)).to_string(),
+      ) &&
+      !reconciled.contains(relative) {
+      reconciled.push(relative)
+    }
+  }
+  for candidate in result.memory_candidates {
+    match candidate.target_page {
+      Some(page) =>
+        if !page.is_empty() &&
+          @fsx.exists(
+            @path.Path(workspace.wiki_dir).join(@path.Path(page)).to_string(),
+          ) &&
+          !reconciled.contains(page) {
+          reconciled.push(page)
+        }
+      None => ()
+    }
+  }
+  if result_stage_is_bootstrap_like(result) &&
+    !result_has_substantive_pages(reconciled) {
+    for page in recent_substantive_pages(root, limit=8) {
+      if !reconciled.contains(page) {
+        reconciled.push(page)
+      }
+    }
+  }
+  reconciled
+}
+
+///|
+fn result_stage_is_bootstrap_like(result : BookResult) -> Bool {
+  match infer_task_kind_from_external_id(result.task_id) {
+    Some("ingest") => true
+    _ => {
+      let summary = result.summary.to_lower()
+      summary.contains("bootstrap") || summary.contains("materializ")
+    }
+  }
+}
+
+///|
+fn normalize_result_workspace_path(path : String) -> String {
+  let normalized = path.trim().to_string()
+  if normalized.has_prefix("wiki/") {
+    normalized[5:].to_string()
+  } else if normalized.has_prefix("keeper/") {
+    normalized
+  } else {
+    normalized
+  }
+}
+
+///|
+fn result_has_substantive_pages(pages : Array[String]) -> Bool {
+  pages.any(fn(page) {
+    page.has_prefix("sources/") ||
+    page.has_prefix("entities/") ||
+    page.has_prefix("concepts/") ||
+    page.has_prefix("queries/")
+  })
+}
+
+///|
+async fn recent_substantive_pages(
+  root : String,
+  limit? : Int = 8,
+) -> Array[String] {
+  let workspace = workspace_paths(root)
+  let candidates : Array[(String, Int64)] = []
+  for dir in ["sources", "entities", "concepts", "queries"] {
+    let absolute = @path.Path(workspace.wiki_dir)
+      .join(@path.Path(dir))
+      .to_string()
+    if !@fsx.exists(absolute) {
+      continue
+    }
+    for path in collect_markdown_pages(absolute) {
+      candidates.push(
+        (
+          relative_to_root(path, workspace.wiki_dir),
+          @fsx.mtime(path).unwrap_or(0L),
+        ),
+      )
+    }
+  }
+  for
+    path in [
+      @path.Path(workspace.wiki_dir)
+      .join(@path.Path("synthesis/overview.md"))
+      .to_string(),
+      @path.Path(workspace.wiki_dir)
+      .join(@path.Path("synthesis/claims.md"))
+      .to_string(),
+    ] {
+    if @fsx.exists(path) {
+      candidates.push(
+        (
+          relative_to_root(path, workspace.wiki_dir),
+          @fsx.mtime(path).unwrap_or(0L),
+        ),
+      )
+    }
+  }
+  candidates.sort_by(fn(a, b) {
+    if a.1 == b.1 {
+      a.0.compare(b.0)
+    } else {
+      b.1.compare(a.1)
+    }
+  })
+  let selected : Array[String] = []
+  for i = 0; i < candidates.length() && i < limit; i = i + 1 {
+    if !selected.contains(candidates[i].0) {
+      selected.push(candidates[i].0)
+    }
+  }
+  selected
+}
+
+///|
 pub async fn summarize_state(root : String) -> BookStateSummary {
+  refresh_workspace_projections(root)
   let workspace = workspace_paths(root)
   let pages = collect_markdown_pages(workspace.wiki_dir)
   let pending = list_pending_reviews(root)
@@ -627,6 +926,7 @@ pub async fn summarize_state(root : String) -> BookStateSummary {
 
 ///|
 pub async fn report_health(root : String) -> BookHealthReport {
+  refresh_workspace_projections(root)
   let workspace = workspace_paths(root)
   let pending = list_pending_reviews(root)
   let claims_path = @path.Path(workspace.wiki_dir)
@@ -941,6 +1241,34 @@ fn task_skill_names(task : BookTask) -> Array[String] {
         names.push("claim-audit")
         names.push("index-maintain")
         names.push("wiki-memory")
+      }
+      "bootstrap_gather" => {
+        names.push("wiki-ingest")
+        names.push("source-diarize")
+        names.push("index-maintain")
+      }
+      "source_materialize" => {
+        names.push("wiki-ingest")
+        names.push("source-diarize")
+        names.push("entity-revise")
+        names.push("concept-revise")
+        names.push("claim-audit")
+        names.push("index-maintain")
+      }
+      "knowledge_revise" => {
+        names.push("entity-revise")
+        names.push("concept-revise")
+        names.push("synthesis-revise")
+        names.push("claim-audit")
+        names.push("contradiction-review")
+        names.push("index-maintain")
+      }
+      "review_finalize" => {
+        names.push("wiki-review")
+        names.push("review-decision")
+        names.push("contradiction-review")
+        names.push("claim-audit")
+        names.push("memory-prune")
       }
       "review" => {
         names.push("wiki-review")
@@ -1483,6 +1811,83 @@ fn has_substantive_coverage(
 }
 
 ///|
+fn has_bootstrap_materialization(
+  source_page_count : Int,
+  entity_page_count : Int,
+  concept_page_count : Int,
+  query_note_count : Int,
+) -> Bool {
+  source_page_count > 0 &&
+  (entity_page_count > 0 || concept_page_count > 0 || query_note_count > 0)
+}
+
+///|
+async fn refresh_workspace_projections(root : String) -> Unit {
+  let workspace = workspace_paths(root)
+  let source_page_count = count_markdown_under(workspace.wiki_dir, "sources")
+  let entity_page_count = count_markdown_under(workspace.wiki_dir, "entities")
+  let concept_page_count = count_markdown_under(workspace.wiki_dir, "concepts")
+  let query_note_count = count_markdown_under(workspace.wiki_dir, "queries")
+  let bootstrap_complete = has_bootstrap_materialization(
+    source_page_count, entity_page_count, concept_page_count, query_note_count,
+  )
+  ignore(ensure_journey_page(workspace))
+  ignore(ensure_debug_journal_page(workspace))
+  ignore(refresh_keeper_insights(root))
+  ignore(refresh_synthesis_map(root))
+  if !bootstrap_complete {
+    return
+  }
+  let substantive_pages = recent_substantive_pages(root, limit=8)
+  let synthetic = workspace_projection_reconcile_result()
+  let review_queued = !list_pending_reviews(root).is_empty()
+  let journey_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(journey_relative_page()))
+    .to_string()
+  if file_needs_projection_reconcile(journey_path) {
+    ignore(
+      append_journey_entry(
+        workspace, synthetic, "workspace-inventory", review_queued, substantive_pages,
+        true,
+      ),
+    )
+  }
+  let debug_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(debug_journal_relative_page()))
+    .to_string()
+  if file_needs_projection_reconcile(debug_path) {
+    ignore(
+      append_debug_journal_entry(
+        workspace, synthetic, "workspace-inventory", review_queued, substantive_pages,
+        true,
+      ),
+    )
+  }
+}
+
+///|
+fn workspace_projection_reconcile_result() -> BookResult {
+  {
+    task_id: "workspace-bootstrap-ingest-followup",
+    summary: "Recovered bootstrap completion from durable workspace pages after runtime bookkeeping did not close the loop cleanly.",
+    artifacts: [],
+    memory_candidates: [],
+    requires_review: false,
+    notify_town: false,
+  }
+}
+
+///|
+async fn file_needs_projection_reconcile(path : String) -> Bool {
+  if !@fsx.exists(path) {
+    true
+  } else {
+    let content = @fsx.read_file(path)
+    content.contains("_None yet._")
+  }
+}
+
+///|
 fn book_has_weak_coverage(state : BookStateSummary) -> Bool {
   !state.substantive_coverage_ready
 }
@@ -1505,7 +1910,7 @@ fn resolve_task_from_batch(
       match exact {
         Some(task) => Some(task)
         None =>
-          match infer_task_kind_from_external_id(task_id) {
+          match resolve_task_kind_from_external_id(task_id) {
             Some(kind) =>
               tasks.iter().find_first(fn(task : BookTask) { task.kind == kind })
             None => None
@@ -1519,7 +1924,7 @@ fn resolve_task_from_batch(
 ///|
 fn infer_task_kind_from_external_id(task_id : String) -> String? {
   let normalized = task_id.trim().to_lower()
-  if normalized.contains("ingest") || normalized.contains("bootstrap") {
+  if normalized.contains("bootstrap") || normalized.contains("ingest") {
     Some("ingest")
   } else if normalized.contains("review") {
     Some("review")
@@ -1527,6 +1932,30 @@ fn infer_task_kind_from_external_id(task_id : String) -> String? {
     Some("planning")
   } else if normalized.contains("synthesis") {
     Some("synthesis")
+  } else if normalized.contains("analysis") || normalized.contains("query") {
+    Some("analysis")
+  } else {
+    None
+  }
+}
+
+///|
+fn resolve_task_kind_from_external_id(task_id : String) -> String? {
+  let normalized = task_id.trim().to_lower()
+  if normalized.contains("bootstrap") || normalized.contains("ingest") {
+    Some("bootstrap_gather")
+  } else if normalized.contains("material") ||
+    normalized.contains("populate") ||
+    normalized.contains("source") {
+    Some("source_materialize")
+  } else if normalized.contains("revise") || normalized.contains("synthesis") {
+    Some("knowledge_revise")
+  } else if normalized.contains("finalize") {
+    Some("review_finalize")
+  } else if normalized.contains("review") {
+    Some("review")
+  } else if normalized.contains("plan") || normalized.contains("planning") {
+    Some("planning")
   } else if normalized.contains("analysis") || normalized.contains("query") {
     Some("analysis")
   } else {
@@ -1681,8 +2110,11 @@ async test "persist result appends compact journey entry" {
     }),
   )
   let journey = @fsx.read_file(root + "/wiki/history/journey.md")
-  assert_true(journey.contains("### goal-research-moontown-ingest-followup"))
-  assert_true(journey.contains("- Stage: `ingest`"))
+  assert_true(journey.contains("### goal-research-moontown"))
+  assert_true(journey.contains("- Stage: `bootstrap`"))
+  assert_true(
+    journey.contains("- Latest task: `goal-research-moontown-ingest-followup`"),
+  )
   assert_true(journey.contains("- Status: `pending-review`"))
 }
 
@@ -1701,15 +2133,99 @@ async test "persist result appends detailed debug journal entry" {
     }),
   )
   let journal = @fsx.read_file(root + "/wiki/history/debug-journal.md")
-  assert_true(journal.contains("### goal-research-moontown-ingest-followup"))
+  assert_true(journal.contains("### goal-research-moontown"))
+  assert_true(
+    journal.contains("- Latest task: `goal-research-moontown-ingest-followup`"),
+  )
   assert_true(journal.contains("- Result class: `administrative`"))
   assert_true(journal.contains("no durable artifact paths were reported"))
   assert_true(journal.contains("Ingest provider returned an empty result"))
 }
 
 ///|
-test "normalize provider result converts empty ingest completion into blocker" {
-  let normalized = normalize_provider_result({
+async test "persist result reconciles substantive bootstrap pages from workspace" {
+  let root = "/tmp/moonbook-bookapi-reconcile-bootstrap"
+  ignore(init_workspace(root))
+  ignore(
+    @fsx.write_to_file(
+      root + "/wiki/sources/demo.md",
+      "# Demo Source\n",
+      create=0o644,
+    ),
+  )
+  ignore(
+    @fsx.write_to_file(
+      root + "/wiki/entities/moonbook.md",
+      "# MoonBook\n",
+      create=0o644,
+    ),
+  )
+  ignore(
+    @fsx.write_to_file(
+      root + "/wiki/concepts/provider-backed-execution.md",
+      "# Provider-backed execution\n",
+      create=0o644,
+    ),
+  )
+  ignore(
+    persist_result(root, {
+      task_id: "goal-research-moontown-ingest-followup",
+      summary: "Completed provider task Bootstrap ingest and population.",
+      artifacts: [],
+      memory_candidates: [],
+      requires_review: false,
+      notify_town: false,
+    }),
+  )
+  let journey = @fsx.read_file(root + "/wiki/history/journey.md")
+  let journal = @fsx.read_file(root + "/wiki/history/debug-journal.md")
+  assert_true(journey.contains("- Status: `bootstrap-complete`"))
+  assert_true(journal.contains("- Result class: `substantive`"))
+  assert_true(journal.contains("wiki/sources/demo.md"))
+  assert_true(
+    journal.contains(
+      "Recovered bootstrap completion from durable workspace pages despite weak provider completion text.",
+    ),
+  )
+}
+
+///|
+async test "summarize state backfills projection pages from durable workspace state" {
+  let root = "/tmp/moonbook-bookapi-projection-reconcile"
+  ignore(init_workspace(root))
+  ignore(
+    @fsx.write_to_file(
+      root + "/wiki/sources/demo.md",
+      "# Demo Source\n",
+      create=0o644,
+    ),
+  )
+  ignore(
+    @fsx.write_to_file(
+      root + "/wiki/entities/moonbook.md",
+      "# MoonBook\n",
+      create=0o644,
+    ),
+  )
+  let summary = summarize_state(root)
+  inspect(summary.substantive_coverage_ready, content="false")
+  let journey = @fsx.read_file(root + "/wiki/history/journey.md")
+  let journal = @fsx.read_file(root + "/wiki/history/debug-journal.md")
+  let map = @fsx.read_file(root + "/wiki/synthesis/map.md")
+  assert_true(
+    journey.contains(
+      "Recovered bootstrap completion from durable workspace pages after runtime bookkeeping did not close the loop cleanly.",
+    ),
+  )
+  assert_true(journal.contains("- Result class: `substantive`"))
+  assert_true(map.contains("- Bootstrap outcome: `complete`"))
+}
+
+///|
+async test "reconcile provider result converts empty ingest completion into blocker" {
+  let root = "/tmp/moonbook-bookapi-normalize-blocker"
+  ignore(init_workspace(root))
+  let normalized = reconcile_provider_result(root, workspace_paths(root), {
     task_id: "goal-research-moontown-moonbook-and-moonclaw-ingest-followup",
     summary: "Completed provider task Bootstrap ingest and population.",
     artifacts: [],
@@ -1727,19 +2243,73 @@ test "normalize provider result converts empty ingest completion into blocker" {
 }
 
 ///|
+async test "reconcile provider result prefers durable workspace pages over weak provider completion text" {
+  let root = "/tmp/moonbook-bookapi-normalize-recovered"
+  ignore(init_workspace(root))
+  ignore(
+    @fsx.write_to_file(
+      root + "/wiki/sources/demo.md",
+      "# Demo Source\n",
+      create=0o644,
+    ),
+  )
+  ignore(
+    @fsx.write_to_file(
+      root + "/wiki/entities/moonbook.md",
+      "# MoonBook\n",
+      create=0o644,
+    ),
+  )
+  let normalized = reconcile_provider_result(root, workspace_paths(root), {
+    task_id: "goal-research-moontown-moonbook-and-moonclaw-ingest-followup",
+    summary: "Completed provider task Bootstrap ingest and population.",
+    artifacts: [],
+    memory_candidates: [],
+    requires_review: false,
+    notify_town: false,
+  })
+  assert_eq(
+    normalized.summary,
+    "Recovered bootstrap completion from durable workspace pages despite weak provider completion text.",
+  )
+  assert_true(!normalized.requires_review)
+  assert_true(!normalized.artifacts.is_empty())
+}
+
+///|
 async test "produce task batch bootstraps research goals on weak coverage" {
   let root = "/tmp/moonbook-bookapi-bootstrap"
   ignore(init_workspace(root))
   let batch = produce_task_batch(
     root, "research moontown, moonbook and moonclaw",
   )
-  assert_true(batch.tasks.any(fn(task) { task.kind == "ingest" }))
+  assert_true(batch.summary.contains("bootstrap_phases"))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "bootstrap_gather" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "source_materialize" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "knowledge_revise" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "review_finalize" }))
+  assert_true(!batch.tasks.any(fn(task) { task.kind == "ingest" }))
   assert_true(batch.tasks.any(fn(task) { task.kind == "planning" }))
   assert_true(
     !batch.tasks.any(fn(task) {
       task.kind == "analysis" || task.kind == "synthesis"
     }),
   )
+  let gather = batch.tasks
+    .iter()
+    .find_first(fn(task : BookTask) { task.kind == "bootstrap_gather" })
+    .unwrap()
+  assert_true(gather.prompt.contains("Success means"))
+  assert_true(gather.prompt.contains("Blockers"))
+  assert_true(gather.prompt.contains("fan-out phase"))
+  assert_true(gather.prompt.contains("2 to 4 bounded gather lanes"))
+  assert_true(gather.target_pages.contains("synthesis/map.md"))
+  let materialize = batch.tasks
+    .iter()
+    .find_first(fn(task : BookTask) { task.kind == "source_materialize" })
+    .unwrap()
+  assert_true(materialize.prompt.contains("wiki/sources"))
+  assert_true(materialize.target_pages.contains("index.md"))
 }
 
 ///|
@@ -1786,5 +2356,47 @@ async test "resolve task for goal accepts external bootstrap task ids" {
     "research moontown, moonbook and moonclaw",
     task_id=Some("goal-coding-research-bootstrap-ingest"),
   ).unwrap()
-  assert_eq(task.kind, "ingest")
+  assert_eq(task.kind, "bootstrap_gather")
+}
+
+///|
+async test "resolve task for goal recovers bootstrap semantic task after coverage exists" {
+  let root = "/tmp/moonbook-bookapi-bootstrap-fallback"
+  ignore(init_workspace(root))
+  ignore(
+    @fsx.write_to_file(
+      root + "/wiki/sources/demo.md",
+      "# Demo Source\n",
+      create=0o644,
+    ),
+  )
+  ignore(
+    @fsx.write_to_file(
+      root + "/wiki/entities/demo.md",
+      "# Demo Entity\n",
+      create=0o644,
+    ),
+  )
+  ignore(
+    @fsx.write_to_file(
+      root + "/wiki/concepts/demo.md",
+      "# Demo Concept\n",
+      create=0o644,
+    ),
+  )
+  ignore(
+    @fsx.write_to_file(
+      root + "/wiki/synthesis/evidence.md",
+      "# Evidence\n\n## Results\n\n- seeded\n",
+      create=0o644,
+    ),
+  )
+  let task = resolve_task_for_goal(
+    root,
+    "research moontown, moonbook and moonclaw",
+    task_id=Some(
+      "goal-research-moontown-moonbook-and-moonclaw-bootstrap_gather",
+    ),
+  ).unwrap()
+  assert_eq(task.kind, "bootstrap_gather")
 }

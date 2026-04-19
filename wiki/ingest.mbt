@@ -14,12 +14,25 @@ priv struct IngestKeeperProposal {
   request : String
   profile : String
   output_contract : String
+  semantic_phases : Array[String]
+  execution_mode : String
+  max_parallel_workers : Int
+  gather_lanes : Array[IngestGatherLane]
   source_path : String
   source_page : String
   context_pages : Array[String]
   related_pages : Array[String]
   skill_paths : Array[String]
   notes : Array[String]
+} derive(ToJson)
+
+///|
+priv struct IngestGatherLane {
+  id : String
+  title : String
+  objective : String
+  expected_artifacts : Array[String]
+  expected_outputs : Array[String]
 } derive(ToJson)
 
 ///|
@@ -468,9 +481,13 @@ async fn emit_ingest_keeper_packet(
   let notes = ingest_packet_notes(stored_raw_path, source_relative_page)
   let packet : IngestKeeperProposal = {
     title: source_title,
-    request: "Run the skill-driven wiki ingest revision pass for \{source_title}. Read the source page, inspect the maintained wiki, and apply semantic follow-up through the seeded skill pack.",
+    request: "Run the skill-driven wiki ingest revision pass for \{source_title}. Act as the book keeper, not a generic ingest runner. Read the source page, inspect the maintained wiki, honor the semantic phases, and use the gather lane specs below to spawn multiple bounded MoonClaw gather workers in parallel when the source surface is broad. Do not compress the gather phase into one catch-all worker unless the material is obviously tiny.",
     profile: "wiki_ingest_controller",
     output_contract: "keeper.plan.packet.v1",
+    semantic_phases: ingest_semantic_phases(),
+    execution_mode: "parallel-lane-bootstrap",
+    max_parallel_workers: 4,
+    gather_lanes: ingest_gather_lanes(source_title, source_relative_page),
     source_path: relative_to_root(stored_raw_path, workspace.root),
     source_page: "wiki/" + source_relative_page,
     context_pages: ingest_packet_context_pages(source_relative_page),
@@ -518,6 +535,52 @@ fn ingest_packet_context_pages(source_relative_page : String) -> Array[String] {
 }
 
 ///|
+fn ingest_semantic_phases() -> Array[String] {
+  [
+    "bootstrap_gather", "source_materialize", "knowledge_revise", "review_finalize",
+  ]
+}
+
+///|
+fn ingest_gather_lanes(
+  source_title : String,
+  source_relative_page : String,
+) -> Array[IngestGatherLane] {
+  [
+    {
+      id: "docs",
+      title: "Docs lane",
+      objective: "Read only high-signal docs, READMEs, guides, and product-facing markdown relevant to \{source_title}. Produce packet-ready evidence with provenance and candidate ontology.",
+      expected_artifacts: ["raw/bootstrap/*docs*.md"],
+      expected_outputs: [
+        "inspected source paths", "evidence bullets", "candidate entities", "candidate concepts",
+        "lane readiness judgment",
+      ],
+    },
+    {
+      id: "implementation",
+      title: "Implementation lane",
+      objective: "Read only the highest-signal code, manifests, configs, and runtime wiring that support durable claims about wiki/\{source_relative_page}. Produce packet-ready implementation evidence, not final synthesis.",
+      expected_artifacts: ["raw/bootstrap/*implementation*.md"],
+      expected_outputs: [
+        "inspected source paths", "runtime or code evidence bullets", "candidate entities",
+        "candidate concepts", "unresolved questions",
+      ],
+    },
+    {
+      id: "architecture",
+      title: "Architecture lane",
+      objective: "Read only files that explain system boundaries, topology, call chains, or cross-component responsibilities related to \{source_title}. Produce architecture notes with relationship candidates and uncertainty markers.",
+      expected_artifacts: ["raw/bootstrap/*architecture*.md"],
+      expected_outputs: [
+        "inspected source paths", "relationship evidence bullets", "candidate entities",
+        "candidate concepts", "topology notes",
+      ],
+    },
+  ]
+}
+
+///|
 fn ingest_packet_skill_paths() -> Array[String] {
   [
     "skills/wiki-ingest/SKILL.md", "skills/source-diarize/SKILL.md", "skills/entity-revise/SKILL.md",
@@ -534,6 +597,13 @@ fn ingest_plan_notes(
   claims : Array[StructuredClaim],
 ) -> Array[String] {
   let notes : Array[String] = []
+  notes.push(
+    "semantic-phases: bootstrap_gather -> source_materialize -> knowledge_revise -> review_finalize",
+  )
+  notes.push(
+    "execution-mode: parallel-lane-bootstrap with one MoonClaw gather worker per lane when the source surface is broad",
+  )
+  notes.push("gather-lanes: docs, implementation, architecture")
   notes.push(
     "skill-followup: source-diarize, synthesis-revise, index-maintain, claim-audit",
   )
@@ -2497,4 +2567,14 @@ async test "ingest leaves ontology revision to follow-up skills" {
   let packet = @fsx.read_file(result.keeper_packet_path)
   assert_true(packet.contains("\"profile\": \"wiki_ingest_controller\""))
   assert_true(packet.contains("\"skills/source-diarize/SKILL.md\""))
+  assert_true(
+    packet.contains("\"execution_mode\": \"parallel-lane-bootstrap\""),
+  )
+  assert_true(packet.contains("\"max_parallel_workers\": 4"))
+  assert_true(packet.contains("\"semantic_phases\""))
+  assert_true(packet.contains("\"gather_lanes\""))
+  assert_true(packet.contains("\"id\": \"docs\""))
+  assert_true(packet.contains("\"id\": \"implementation\""))
+  assert_true(packet.contains("\"id\": \"architecture\""))
+  assert_true(packet.contains("one MoonClaw gather worker per lane"))
 }

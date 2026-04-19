@@ -41,13 +41,30 @@ async fn refresh_synthesis_map(root : String) -> String {
   let source_count = count_markdown_under(workspace.wiki_dir, "sources")
   let entity_count = count_markdown_under(workspace.wiki_dir, "entities")
   let concept_count = count_markdown_under(workspace.wiki_dir, "concepts")
+  let query_count = count_markdown_under(workspace.wiki_dir, "queries")
   let evidence_count = count_evidence_entries(root)
+  let coverage_ready = has_substantive_coverage(
+    source_count, entity_count, concept_count, evidence_count,
+  )
+  let bootstrap_complete = has_bootstrap_materialization(
+    source_count, entity_count, concept_count, query_count,
+  )
+  let bootstrap_outcome = if bootstrap_complete {
+    "complete"
+  } else {
+    "incomplete"
+  }
   let coverage : Array[String] = [
     "- Source pages: `\{source_count}`",
     "- Entity pages: `\{entity_count}`",
     "- Concept pages: `\{concept_count}`",
+    "- Query pages: `\{query_count}`",
     "- Claim entries: `\{count_heading_entries(claims_text)}`",
     "- Evidence records: `\{evidence_count}`",
+  ]
+  let readiness : Array[String] = [
+    "- Coverage ready: `\{coverage_ready}`",
+    "- Bootstrap outcome: `\{bootstrap_outcome}`",
   ]
   let entity_hubs = ranked_page_hubs(
     pages.filter(path => path.contains("/wiki/entities/")),
@@ -81,6 +98,8 @@ async fn refresh_synthesis_map(root : String) -> String {
     "Coverage, hub pages, and open maintenance loops for this wiki.\n\n" +
     "## Coverage\n\n" +
     coverage.join("\n") +
+    "\n\n## Readiness\n\n" +
+    readiness.join("\n") +
     "\n\n## Entity Hubs\n\n" +
     render_hub_lines(entity_hubs) +
     "\n## Concept Hubs\n\n" +

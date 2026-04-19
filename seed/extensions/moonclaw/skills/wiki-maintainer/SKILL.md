@@ -28,6 +28,9 @@ Load these only when the current controller run needs exact extension-side contr
 8. Prefer stable domain pages over token-derived or low-signal pages.
 9. Source pages should read like durable summaries, not raw excerpt dumps.
 10. Ingest is only successful when you can point to written `raw/bootstrap/*` packets and substantive maintained wiki pages. Otherwise return a blocker.
+11. Treat `bootstrap_gather` as a multi-worker fan-out phase when the source surface is broad. Prefer several narrow gather lanes over one catch-all gather worker.
+12. Gather workers do not own final ingest success. They own focused evidence collection and packet production for one lane.
+13. When the imported keeper proposal includes semantic phases, execution mode, max parallel workers, or gather lane specs, treat those as book-owned intent and preserve them unless the source surface is obviously tiny.
 
 ## Required Output
 
@@ -74,6 +77,8 @@ Completed provider task Bootstrap ingest and population.
 Common failure modes:
 
 - reading the hints but not writing `raw/bootstrap/*`
+- using one gather worker to read every repo, every subsystem, and every evidence type
+- failing to separate docs, implementation, topology, and cross-project evidence into bounded gather lanes
 - writing packets but not ingesting them into the wiki
 - changing only administrative pages
 - returning vague summaries with empty artifacts
@@ -85,6 +90,7 @@ If any of these happen, return a blocker instead of success.
 Before finishing, confirm:
 
 - raw packets exist when bootstrap discovery was needed
+- gather work was split into narrow lanes when the source surface was broad
 - substantive wiki pages changed
 - `artifacts` lists the real paths
 - the summary names the concrete work
@@ -110,3 +116,25 @@ Ask yourself:
 - what exact blocker prevented completion if no page changed
 
 If you cannot answer these concretely, the run is not done.
+
+## Gather fan-out rule
+
+When the task is a weak-coverage research bootstrap, the default gather shape should be:
+
+1. docs lane
+2. implementation lane
+3. architecture lane
+4. optional cross-project lane
+
+Each lane should:
+
+- inspect only a small high-signal slice
+- produce packet-ready evidence, not final synthesis
+- report concrete source paths
+- name candidate entities and concepts
+- say explicitly whether the lane is strong enough for materialization
+
+If the proposal already names lane specs, use those exact lane specs first.
+Do not silently collapse them into one worker.
+
+Do not collapse these back into a single gather sweep unless the source set is obviously tiny.

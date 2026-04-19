@@ -48,16 +48,23 @@ async fn append_journey_entry(
   evidence_id : String,
   review_queued : Bool,
   updated_pages : Array[String],
+  bootstrap_cluster_complete : Bool,
 ) -> String {
+  let bootstrap_recent_pages = if bootstrap_cluster_complete {
+    recent_substantive_pages(workspace.root, limit=8)
+  } else {
+    []
+  }
   let relative = ensure_journey_page(workspace)
   let absolute = @path.Path(workspace.wiki_dir)
     .join(@path.Path(relative))
     .to_string()
   let current = @fsx.read_file(absolute)
   let block = journey_entry_block(
-    result, evidence_id, review_queued, updated_pages,
+    result, evidence_id, review_queued, updated_pages, bootstrap_cluster_complete,
+    bootstrap_recent_pages,
   )
-  let next = upsert_journey_block(current, result.task_id, block)
+  let next = upsert_journey_block(current, journey_entry_id(result), block)
   @fsx.write_to_file(absolute, next, create=0o644)
   relative
 }
@@ -68,23 +75,40 @@ fn journey_entry_block(
   evidence_id : String,
   review_queued : Bool,
   updated_pages : Array[String],
+  bootstrap_cluster_complete : Bool,
+  bootstrap_recent_pages : Array[String],
 ) -> String {
   let builder = StringBuilder::new()
-  builder.write_string("### \{result.task_id}\n\n")
-  builder.write_string("- Stage: `\{journey_stage_label(result.task_id)}`\n")
+  let entry_id = journey_entry_id(result)
+  builder.write_string("### \{entry_id}\n\n")
+  builder.write_string("- Stage: `\{journey_stage_label(result)}`\n")
+  if entry_id != result.task_id {
+    builder.write_string("- Latest task: `\{result.task_id}`\n")
+  }
   builder.write_string(
-    "- Status: `\{journey_status_label(result, review_queued)}`\n",
+    "- Status: `\{journey_status_label(result, review_queued, updated_pages, bootstrap_cluster_complete)}`\n",
   )
+  let bootstrap_cluster = bootstrap_cluster_key(result.task_id)
+  if result_stage_is_bootstrap_like(result) {
+    builder.write_string("- Bootstrap cluster: `\{bootstrap_cluster}`\n")
+    builder.write_string(
+      "- Bootstrap outcome: `\{bootstrap_cluster_label(bootstrap_cluster_complete)}`\n",
+    )
+  }
   builder.write_string("- Summary: \{clamp_excerpt(result.summary)}\n")
   builder.write_string("- Evidence: `\{evidence_id}`\n")
-  let highlights = journey_highlights(result, updated_pages)
+  let highlights = journey_highlights(
+    result, updated_pages, bootstrap_cluster_complete, bootstrap_recent_pages,
+  )
   if !highlights.is_empty() {
     builder.write_string("- Highlights:\n")
     for item in highlights {
       builder.write_string("  - \{item}\n")
     }
   }
-  let open_loops = journey_open_loops(result, review_queued)
+  let open_loops = journey_open_loops(
+    result, review_queued, updated_pages, bootstrap_cluster_complete,
+  )
   if !open_loops.is_empty() {
     builder.write_string("- Open loops:\n")
     for item in open_loops {
@@ -96,16 +120,37 @@ fn journey_entry_block(
 }
 
 ///|
-fn journey_stage_label(task_id : String) -> String {
-  match infer_task_kind_from_external_id(task_id) {
-    Some(kind) => kind
-    None => "run"
+fn journey_entry_id(result : BookResult) -> String {
+  if result_stage_is_bootstrap_like(result) {
+    bootstrap_cluster_key(result.task_id)
+  } else {
+    result.task_id
   }
 }
 
 ///|
-fn journey_status_label(result : BookResult, review_queued : Bool) -> String {
-  if review_queued || result.requires_review {
+fn journey_stage_label(result : BookResult) -> String {
+  if result_stage_is_bootstrap_like(result) {
+    "bootstrap"
+  } else {
+    match infer_task_kind_from_external_id(result.task_id) {
+      Some(kind) => kind
+      None => "run"
+    }
+  }
+}
+
+///|
+fn journey_status_label(
+  result : BookResult,
+  review_queued : Bool,
+  updated_pages : Array[String],
+  bootstrap_cluster_complete : Bool,
+) -> String {
+  if result_stage_is_bootstrap_like(result) &&
+    (bootstrap_cluster_complete || result_has_substantive_pages(updated_pages)) {
+    "bootstrap-complete"
+  } else if review_queued || result.requires_review {
     "pending-review"
   } else if result.notify_town {
     "escalated"
@@ -118,6 +163,8 @@ fn journey_status_label(result : BookResult, review_queued : Bool) -> String {
 fn journey_highlights(
   result : BookResult,
   updated_pages : Array[String],
+  bootstrap_cluster_complete : Bool,
+  bootstrap_recent_pages : Array[String],
 ) -> Array[String] {
   let highlights : Array[String] = []
   for page in updated_pages {
@@ -129,6 +176,14 @@ fn journey_highlights(
     highlights.push("updated `wiki/\{page}`")
     if highlights.length() >= 4 {
       break
+    }
+  }
+  if highlights.is_empty() && bootstrap_cluster_complete {
+    for page in bootstrap_recent_pages {
+      highlights.push("workspace now includes `wiki/\{page}`")
+      if highlights.length() >= 4 {
+        break
+      }
     }
   }
   if highlights.is_empty() && !result.artifacts.is_empty() {
@@ -146,18 +201,53 @@ fn journey_highlights(
 fn journey_open_loops(
   result : BookResult,
   review_queued : Bool,
+  updated_pages : Array[String],
+  bootstrap_cluster_complete : Bool,
 ) -> Array[String] {
   let loops : Array[String] = []
-  if review_queued || result.requires_review {
+  if (review_queued || result.requires_review) && !bootstrap_cluster_complete {
     loops.push("promotion review is still required")
   }
   if result.notify_town {
     loops.push("town-level follow-up should consume this result")
   }
-  if result.artifacts.is_empty() {
+  if result.artifacts.is_empty() &&
+    !result_has_substantive_pages(updated_pages) &&
+    !bootstrap_cluster_complete {
     loops.push("no durable artifact paths were reported")
   }
+  if result_stage_is_bootstrap_like(result) &&
+    !result_has_substantive_pages(updated_pages) &&
+    bootstrap_cluster_complete {
+    loops.push(
+      "this subrun lagged the final workspace state; inspect sibling bootstrap entries",
+    )
+  }
   loops
+}
+
+///|
+fn bootstrap_cluster_key(task_id : String) -> String {
+  let normalized = task_id.trim().to_lower()
+  for
+    suffix in [
+      "-bootstrap_gather", "-source_materialize", "-knowledge_revise", "-review_finalize",
+      "-ingest-followup", "-bootstrap-ingest", "-bootstrap-ingest-followup",
+    ] {
+    if normalized.has_suffix(suffix) {
+      return normalized[:normalized.length() - suffix.length()].to_string()
+    }
+  }
+  normalized.to_string()
+}
+
+///|
+fn bootstrap_cluster_label(complete : Bool) -> String {
+  if complete {
+    "complete"
+  } else {
+    "incomplete"
+  }
 }
 
 ///|
@@ -336,6 +426,7 @@ async test "journey recent entries reads newest first" {
       "EV-a",
       false,
       ["sources/a.md"],
+      true,
     ),
   )
   ignore(
@@ -352,6 +443,7 @@ async test "journey recent entries reads newest first" {
       "EV-b",
       true,
       ["queries/b.md"],
+      true,
     ),
   )
   let entries = recent_journey_entries(root, limit=2)

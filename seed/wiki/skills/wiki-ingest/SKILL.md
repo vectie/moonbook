@@ -1,31 +1,62 @@
 ---
 name: wiki-ingest
-description: Ingest one source or bootstrap packet into the wiki by preparing raw source packets, diarizing evidence, revising durable wiki pages, and returning strict JSON results that distinguish success from blockers.
+description: Ingest raw sources into the wiki through MoonBook-owned semantic phases and MoonClaw-executed bounded tasks, with strict JSON results that separate durable success from blockers.
 ---
 
 # Wiki Ingest
 
 ## Purpose
 
-Use this skill when the task is to turn raw material into durable wiki coverage.
-This includes:
+Use this skill when the job is to turn raw material into durable wiki coverage.
+It is not a generic summarizer.
+It is a phased maintainer contract for moving evidence from raw inputs into a maintained wiki.
+
+Typical cases:
 
 - importing a user-provided source
 - bootstrapping a new book from local repositories
-- revising existing wiki pages from newly staged raw packets
-- recovering from weak or administrative-only ingest runs
+- revising existing wiki pages from staged raw packets
+- recovering from weak, noisy, or administrative-only ingest runs
 
-The core contract is simple:
+MoonBook owns the semantic decomposition.
+MoonClaw owns the executable decomposition.
+
+That means:
+
+- MoonBook decides what ingest means for this domain
+- MoonBook emits phased work instead of one giant ingest blob
+- MoonClaw splits or rejects overbroad execution units
+- MoonClaw enforces budgets, retries, and artifact persistence
+
+The core workspace contract is still:
 
 - raw material lives under `raw/`
-- generated bootstrap packets live under `raw/bootstrap/`
+- bootstrap packets live under `raw/bootstrap/`
 - durable wiki pages live under `wiki/`
 
-This skill is responsible for moving work from the raw side to the durable side.
+## Semantic phase graph
+
+MoonBook should express ingest as a four-phase semantic graph:
+
+1. `bootstrap_gather`
+2. `source_materialize`
+3. `knowledge_revise`
+4. `review_finalize`
+
+These are domain phases, not implementation details.
+
+MoonClaw may execute each phase with one worker or several workers.
+If a phase is too broad, MoonClaw should split it into bounded child tasks.
+If a task cannot be split safely, MoonClaw should return a blocker instead of hanging.
+
+The clean rule is:
+
+- MoonBook owns what each phase means
+- MoonClaw owns how each phase is executed without becoming unbounded
 
 ## Inputs
 
-Expected input sources:
+Expected inputs:
 
 - a concrete `SOURCE` path under `raw/` or `raw/bootstrap/`
 - an ingest-oriented task title or prompt
@@ -45,16 +76,16 @@ For bootstrap discovery also inspect:
 
 1. `raw/bootstrap/`
 2. local repo hints passed in the task prompt
-3. any already-created maintained source pages under `wiki/sources/`
+3. already-created maintained source pages under `wiki/sources/`
 
 ## References
 
-Load these only when the current task needs more detail than this top-level procedure:
+Load these only when the task needs stricter rules than the top-level contract:
 
 - `references/raw-first-contract.md`
-  - use when bootstrap packet structure, success/blocker JSON, or durable page targets need exact rules
+  - use when packet structure, success JSON, or blocker rules need exactness
 - `references/bootstrap-examples.md`
-  - use when the run needs concrete packet examples for repo research, local path hints, or multi-project ingest
+  - use when the task needs concrete repo-research examples or packet naming guidance
 
 ## Required outputs
 
@@ -82,15 +113,213 @@ Required rules:
 - for bootstrap work, `artifacts` should include `raw/bootstrap/*`
 - for successful ingest, `artifacts` should include at least one substantive `wiki/*` page
 
+## Phase contract
+
+### `bootstrap_gather`
+
+Goal:
+
+- inspect the minimum set of high-signal files
+- collect provenance
+- produce raw bootstrap packets
+- decide whether the source material is worth durable ingest
+
+Inputs:
+
+- repo hints
+- local paths
+- source discovery hints
+- weak or empty book coverage
+
+Outputs:
+
+- `raw/bootstrap/<slug>.md`
+- a short list of candidate source pages
+- a short list of candidate entities and concepts
+- explicit missing-material notes if the source is too weak
+
+Success looks like:
+
+- the packet is readable without chat history
+- provenance is preserved
+- evidence bullets are concrete
+- the packet can be used by the next phase without guessing
+
+Blocker looks like:
+
+- only scaffolding was found
+- no substantive source material exists
+- discovery produced no evidence worth revising
+
+### `source_materialize`
+
+Goal:
+
+- convert gathered raw packets into durable source pages
+- preserve provenance and evidence
+- make the source page easy for later synthesis to cite
+
+Inputs:
+
+- raw bootstrap packet(s)
+- inspected source material
+- current `wiki/sources/` coverage
+
+Outputs:
+
+- `wiki/sources/*.md`
+- updates to `wiki/index.md`
+- updates to `wiki/log.md`
+
+Success looks like:
+
+- the source page names the source cleanly
+- provenance is visible
+- the page does not dump raw excerpts indiscriminately
+- the page points at likely related entities or concepts
+
+Blocker looks like:
+
+- the packet exists but still lacks enough material to justify a durable source page
+- the candidate source is actually a placeholder or scaffold
+
+### `knowledge_revise`
+
+Goal:
+
+- revise entities, concepts, and synthesis pages from the materialized source
+- strengthen the wiki rather than only adding one-off source summaries
+
+Inputs:
+
+- source pages
+- entity candidates
+- concept candidates
+- prior synthesis pages
+- claims or contradictions found during reading
+
+Outputs:
+
+- `wiki/entities/*.md`
+- `wiki/concepts/*.md`
+- `wiki/synthesis/overview.md`
+- `wiki/synthesis/claims.md`
+- optionally `wiki/queries/*.md` when the task is query-shaped
+
+Success looks like:
+
+- entity pages capture identity and relationships
+- concept pages explain recurring ideas
+- synthesis pages connect sources and preserve disagreement
+- the wiki gains durable cross-links, not just more notes
+
+Blocker looks like:
+
+- the material only supports a source note, not a maintained synthesis update
+- the phase would create generic buckets or empty ontology pages
+
+### `review_finalize`
+
+Goal:
+
+- check that the ingest actually improved the wiki
+- catch empty success-shaped outputs
+- decide whether the result is promotable or should stay blocked
+
+Inputs:
+
+- the outputs of the previous phases
+- `wiki/index.md`
+- `wiki/log.md`
+- any claim or contradiction notes
+
+Outputs:
+
+- a final JSON result
+- review notes if needed
+- any pending follow-up that should be handed back to the town or keeper
+
+Success looks like:
+
+- the summary names the actual work
+- artifacts are concrete
+- the wiki state reflects the new knowledge
+- blockers are not disguised as success
+
+Blocker looks like:
+
+- artifacts are empty
+- only admin pages changed
+- the run could not produce a durable page
+- the final summary would otherwise say "completed" without substance
+
+## Execution splitting rules
+
+MoonClaw may run each semantic phase with multiple workers.
+Use that when it lowers risk.
+
+For `bootstrap_gather`, assume multiple bounded workers by default when the goal spans more than one repo, subsystem, or evidence type.
+Do not let one gather worker own the whole discovery surface unless the source set is obviously tiny.
+
+Good splits:
+
+- one worker gathers repo or product docs
+- one worker gathers implementation evidence from code and config
+- one worker gathers architecture or cross-project topology notes
+- one worker consolidates or prepares the resulting packets for materialization
+- one worker materializes source pages
+- one worker revises entity and concept pages
+- one worker reviews the final state
+
+Bad splits:
+
+- one worker tries to do discovery, synthesis, review, and finalization in one unbounded loop
+- one worker is asked to "research everything" with no phase boundary
+- one worker is left to infer success from administrative updates alone
+
+If a handoff is still too large, MoonClaw should:
+
+- split it into 2 to 4 bounded child tasks
+- keep each child task tied to concrete outputs
+- reject the handoff if the contract is still vague
+
+### Gather lane contract
+
+Each gather worker should own one narrow lane.
+Good lane shapes:
+
+1. docs lane
+2. implementation lane
+3. architecture lane
+4. cross-project relation lane
+
+Each lane should produce:
+
+- inspected source paths
+- one focused packet section or one standalone `raw/bootstrap/*.md` packet
+- candidate entities
+- candidate concepts
+- unresolved questions
+- a lane-local readiness judgment
+
+Each lane should avoid:
+
+- re-reading everything another gather lane already covered
+- claiming final ingest success
+- rewriting durable wiki pages directly unless the assigned phase is no longer gather
+- returning generic prose like "completed gathering"
+
+The gather phase is complete only when the combined lane outputs are strong enough for `source_materialize`.
+
 ## Success criteria
 
 Count the run as successful only if all of the following are true:
 
-1. you inspected substantive source material
-2. you wrote or confirmed usable raw packets when bootstrap discovery was needed
-3. you created or revised at least one substantive durable wiki page
+1. substantive source material was inspected
+2. bootstrap packets were written when needed
+3. at least one durable wiki page was created or revised
 4. `wiki/index.md` and `wiki/log.md` reflect the change
-5. the summary names what changed without vague filler
+5. the summary names the actual work without vague filler
 
 Substantive durable pages include:
 
@@ -102,13 +331,6 @@ Substantive durable pages include:
 - `wiki/synthesis/claims.md`
 
 Administrative-only updates do not count as ingest success.
-
-Examples of administrative-only updates:
-
-- touching only debug pages
-- touching only `maintenance-plan.md`
-- touching only observations/evidence pages
-- returning empty `artifacts`
 
 ## Failure and blocker rules
 
@@ -138,13 +360,22 @@ Use this workflow when the book has weak coverage or the prompt says research/bo
 2. identify 1 to 5 high-signal primary files
 3. read those files directly
 4. write one or more source packets into `raw/bootstrap/`
-5. each packet should preserve provenance, source paths, and evidence bullets
-6. derive candidate source page titles
-7. derive entity and concept candidates
-8. ingest from the packet into durable wiki pages
-9. update navigation and maintenance surfaces
+5. derive candidate source page titles
+6. derive entity and concept candidates
+7. ingest from the packet into durable wiki pages
+8. update navigation and maintenance surfaces
+9. finalize only after the wiki contains durable substance
 
 The raw packet is an intermediate product, not the final goal.
+
+When the goal spans several repos or components, change step 2 into a gather fan-out:
+
+2a. select a docs lane
+2b. select an implementation lane
+2c. select an architecture or topology lane
+2d. optionally select a cross-project linkage lane
+
+Keep each lane small enough that one worker can finish it reliably without needing to rediscover the entire system.
 
 ## Raw packet format guidance
 
@@ -215,6 +446,7 @@ Do not:
 - claim success with empty artifacts
 - skip `wiki/index.md` and `wiki/log.md`
 - store disposable chat residue as durable knowledge
+- let one worker own the entire ingest lifecycle when the phases can be separated
 
 ## Concrete success example
 
@@ -262,12 +494,13 @@ Do not:
     }
   ],
   "requires_review": true,
-  "notify_town": false
+  "notify_town": true
 }
 ```
 
-## Bad output to avoid
+## Final reminder
 
-```text
-Completed provider task Bootstrap ingest and population.
-```
+The goal is not to return a success-shaped JSON object.
+The goal is to make the wiki better.
+
+If the phases cannot produce durable knowledge, stop early and say so.

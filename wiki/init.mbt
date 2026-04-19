@@ -513,7 +513,7 @@ fn site_index_text(title : String) -> String {
   "<head>\n" +
   "  <meta charset=\"utf-8\">\n" +
   "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
-  "  <title>\{title} Demo Site</title>\n" +
+  "  <title>\{title} Website</title>\n" +
   "  <meta name=\"description\" content=\"A polished marketing projection for the MoonBook workspace.\">\n" +
   "  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n" +
   "  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n" +
@@ -531,7 +531,7 @@ fn site_index_text(title : String) -> String {
   "      <a href=\"../index.html\">Book</a>\n" +
   "      <a href=\"../Home.html\">Wiki</a>\n" +
   "      <a href=\"#layers\">Layers</a>\n" +
-  "      <a href=\"#demo\">Demo</a>\n" +
+  "      <a href=\"#generated\">Generated</a>\n" +
   "    </nav>\n" +
   "  </header>\n" +
   "  <main class=\"page-shell\">\n" +
@@ -543,8 +543,8 @@ fn site_index_text(title : String) -> String {
   "        <div class=\"hero-actions\">\n" +
   "          <a class=\"button button-primary\" href=\"../index.html\">Open the book</a>\n" +
   "          <a class=\"button button-secondary\" href=\"../Home.html\">Open the wiki</a>\n" +
-  "          <a class=\"button button-secondary\" href=\"./generated/index.html\">Open live projection</a>\n" +
-  "          <a class=\"button button-secondary\" href=\"./generated/reader.html\">Open reader walkthrough</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"#layers\">See the layers</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"#generated\">See generated surfaces</a>\n" +
   "        </div>\n" +
   "      </div>\n" +
   "      <div class=\"hero-stage tilt\" id=\"demo\">\n" +
@@ -602,6 +602,26 @@ fn site_index_text(title : String) -> String {
   "        <article>\n" +
   "          <h3>Visitors</h3>\n" +
   "          <p>Need a crisp story, not the full internals. The marketing projection gives them that surface.</p>\n" +
+  "        </article>\n" +
+  "      </div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\" id=\"generated\">\n" +
+  "      <div class=\"section-heading narrow\">\n" +
+  "        <p class=\"eyebrow\">Generated surfaces</p>\n" +
+  "        <h2>Build or serve emits the live projections from the current workspace state.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"story-grid\">\n" +
+  "        <article>\n" +
+  "          <h3>Marketing projection</h3>\n" +
+  "          <p>Written to <code>book/site/generated/index.html</code> from wiki, keeper, review, and journey state.</p>\n" +
+  "        </article>\n" +
+  "        <article>\n" +
+  "          <h3>Journal view</h3>\n" +
+  "          <p>Written to <code>book/site/generated/journal.html</code> so operators can inspect the durable timeline without entering the full wiki.</p>\n" +
+  "        </article>\n" +
+  "        <article>\n" +
+  "          <h3>Course and skills</h3>\n" +
+  "          <p>Written to <code>book/site/generated/course.html</code> and <code>book/site/generated/skills.html</code> when you need education and operations, not just presentation.</p>\n" +
   "        </article>\n" +
   "      </div>\n" +
   "    </section>\n" +
@@ -1166,6 +1186,12 @@ async test "init workspace seeds keeper memory files" {
   assert_true(@fsx.exists(root + "/site/index.html"))
   assert_true(@fsx.exists(root + "/site/styles.css"))
   assert_true(@fsx.exists(root + "/site/app.js"))
+  let site_index = @fsx.read_file(root + "/site/index.html")
+  assert_true(site_index.contains("<title>"))
+  assert_true(!site_index.contains("Demo Site"))
+  assert_true(!site_index.contains("./generated/reader.html"))
+  assert_true(site_index.contains("book/site/generated/index.html"))
+  assert_true(site_index.contains("book/site/generated/journal.html"))
   assert_true(@fsx.exists(root + "/raw/bootstrap/.gitkeep"))
 }
 
@@ -1177,10 +1203,8 @@ async test "seeded wiki ingest skill is copied from repo templates" {
   let reference = @fsx.read_file(
     root + "/skills/wiki-ingest/references/raw-first-contract.md",
   )
-  assert_true(
-    text.contains("generated bootstrap packets live under `raw/bootstrap/`"),
-  )
+  assert_true(text.contains("bootstrap packets live under `raw/bootstrap/`"))
   assert_true(text.contains("references/raw-first-contract.md"))
-  assert_true(text.contains("Bad output to avoid"))
+  assert_true(text.contains("Gather lane contract"))
   assert_true(reference.contains("## Non-negotiable sequence"))
 }

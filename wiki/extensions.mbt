@@ -262,29 +262,67 @@ fn moonclaw_jobs_text() -> String {
   "        },\n" +
   "        \"steps\": [\n" +
   "          {\n" +
-  "            \"id\": \"discover_sources\",\n" +
-  "            \"title\": \"Discover substantive source material\",\n" +
+  "            \"id\": \"plan_gather_fanout\",\n" +
+  "            \"title\": \"Plan gather worker fan-out\",\n" +
+  "            \"kind\": \"job.analysis\",\n" +
+  "            \"prompt_template\": \"Act as the book keeper for ${proposal.title}. Read the imported proposal request and notes first. If the proposal declares gather lane specs or parallel-lane bootstrap intent, preserve them. Do not compress multiple gather lanes into one worker unless the source surface is obviously tiny. Produce a concrete execution note for separate docs, implementation, and architecture workers before gather begins.\",\n" +
+  "            \"metadata\": {\n" +
+  "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"board_lane\": \"Plan\",\n" +
+  "              \"board_order\": 0\n" +
+  "            }\n" +
+  "          },\n" +
+  "          {\n" +
+  "            \"id\": \"gather_docs\",\n" +
+  "            \"title\": \"Gather repo and product docs\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Act as the wiki gather worker for ${proposal.title}. Gather high-signal material from the current workspace and any explicitly allowed local sources. Focus on substantive source files, repo docs, specs, and implementation files that can support durable wiki pages. Write one or more source packets under raw/bootstrap/ with provenance, evidence bullets, and source-path notes before claiming progress. Return structured findings with concrete raw packet paths, source paths, entity candidates, concept candidates, open questions, and a readiness judgment. Do not claim success with only generic completion text.\",\n" +
+  "            \"request_template\": \"Act as the wiki gather worker for the docs lane of ${proposal.title}. Inspect only high-signal docs, specs, READMEs, guides, and product-facing markdown from the current workspace and any explicitly allowed local sources. Write packet-ready evidence into raw/bootstrap/ with provenance, evidence bullets, source-path notes, entity candidates, concept candidates, and open questions. Do not read the entire repo and do not claim final ingest success from this lane.\",\n" +
   "            \"child_profile\": \"wiki_gather_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
-  "              \"board_lane\": \"Discover\",\n" +
-  "              \"board_order\": 0\n" +
+  "              \"board_lane\": \"Gather\",\n" +
+  "              \"board_order\": 1\n" +
+  "            }\n" +
+  "          },\n" +
+  "          {\n" +
+  "            \"id\": \"gather_implementation\",\n" +
+  "            \"title\": \"Gather implementation evidence\",\n" +
+  "            \"kind\": \"job.delegate\",\n" +
+  "            \"request_template\": \"Act as the wiki gather worker for the implementation lane of ${proposal.title}. Inspect only the highest-signal code, config, manifests, and runtime wiring that support durable wiki claims. Produce packet-ready evidence under raw/bootstrap/ with concrete source paths, evidence bullets, entity candidates, concept candidates, and unresolved questions. Keep the lane narrow and do not try to summarize the whole system.\",\n" +
+  "            \"child_profile\": \"wiki_gather_worker\",\n" +
+  "            \"include_parent_outputs\": true,\n" +
+  "            \"max_depth\": 3,\n" +
+  "            \"metadata\": {\n" +
+  "              \"board_lane\": \"Gather\",\n" +
+  "              \"board_order\": 2\n" +
+  "            }\n" +
+  "          },\n" +
+  "          {\n" +
+  "            \"id\": \"gather_architecture\",\n" +
+  "            \"title\": \"Gather architecture and topology notes\",\n" +
+  "            \"kind\": \"job.delegate\",\n" +
+  "            \"request_template\": \"Act as the wiki gather worker for the architecture lane of ${proposal.title}. Inspect only the files that explain system boundaries, call chains, topology, and cross-component responsibilities. Write packet-ready architecture notes into raw/bootstrap/ with provenance, evidence bullets, relationship candidates, and explicit uncertainty markers. Do not duplicate doc or implementation lanes.\",\n" +
+  "            \"child_profile\": \"wiki_gather_worker\",\n" +
+  "            \"include_parent_outputs\": true,\n" +
+  "            \"max_depth\": 3,\n" +
+  "            \"metadata\": {\n" +
+  "              \"board_lane\": \"Gather\",\n" +
+  "              \"board_order\": 3\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
   "            \"id\": \"prepare_materials\",\n" +
   "            \"title\": \"Prepare ingestable materials\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Act as the wiki gather worker for ${proposal.title}. Transform discovered source material into ingestable raw packets under raw/bootstrap/: source summaries, evidence bullets, candidate pages to update, and explicit blockers when material is still too weak. Return the raw/bootstrap paths in artifacts. If the gathered material is not enough for MoonBook ingestion, say so explicitly and explain what is missing.\",\n" +
+  "            \"request_template\": \"Act as the wiki gather worker for the material-prep lane of ${proposal.title}. Consolidate the bounded gather outputs into ingestable raw packets under raw/bootstrap/: source summaries, evidence bullets, candidate pages to update, and explicit blockers when material is still too weak. Return the raw/bootstrap paths in artifacts. If the gathered material is not enough for MoonBook ingestion, say so explicitly and explain what is missing.\",\n" +
   "            \"child_profile\": \"wiki_gather_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
   "              \"board_lane\": \"Prepare\",\n" +
-  "              \"board_order\": 1\n" +
+  "              \"board_order\": 4\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
@@ -296,7 +334,7 @@ fn moonclaw_jobs_text() -> String {
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
   "              \"board_lane\": \"Inspect\",\n" +
-  "              \"board_order\": 2\n" +
+  "              \"board_order\": 5\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
@@ -308,7 +346,7 @@ fn moonclaw_jobs_text() -> String {
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
   "              \"board_lane\": \"Plan\",\n" +
-  "              \"board_order\": 3\n" +
+  "              \"board_order\": 6\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
@@ -321,7 +359,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
   "              \"board_lane\": \"Revise\",\n" +
-  "              \"board_order\": 4\n" +
+  "              \"board_order\": 7\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
@@ -334,7 +372,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
   "              \"board_lane\": \"Review\",\n" +
-  "              \"board_order\": 5\n" +
+  "              \"board_order\": 8\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
@@ -346,7 +384,7 @@ fn moonclaw_jobs_text() -> String {
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
   "              \"board_lane\": \"Finalize\",\n" +
-  "              \"board_order\": 6\n" +
+  "              \"board_order\": 9\n" +
   "            }\n" +
   "          }\n" +
   "        ],\n" +
@@ -621,8 +659,8 @@ fn moonclaw_providers_text(root : String) -> String {
   "    \"name\": \"moonbook\",\n" +
   "    \"title\": \"MoonBook Book Harness\",\n" +
   "    \"description\": \"MoonBook provider-task bridge for domain-local workspace logic.\",\n" +
-  "    \"kind\": \"extension\",\n" +
-  "    \"capabilities\": [\"provider.task\", \"moonbook.bookapi\"],\n" +
+  "    \"kind\": \"task-provider\",\n" +
+  "    \"capabilities\": [\"provider\", \"extension\", \"provider.task\", \"extension.task\", \"bookapi\", \"moonbook.bookapi\"],\n" +
   "    \"metadata\": {\n" +
   "      \"command\": \"moon\",\n" +
   "      \"args\": [\"run\", \"cmd/main\", \"--\"],\n" +
@@ -778,9 +816,16 @@ test "moonclaw jobs include role runtime metadata" {
 ///|
 test "moonclaw ingest controller decomposes gather before revision" {
   let text = moonclaw_jobs_text()
-  assert_true(text.contains("\"id\": \"discover_sources\""))
+  assert_true(text.contains("\"id\": \"plan_gather_fanout\""))
+  assert_true(text.contains("\"id\": \"gather_docs\""))
+  assert_true(text.contains("\"id\": \"gather_implementation\""))
+  assert_true(text.contains("\"id\": \"gather_architecture\""))
   assert_true(text.contains("\"id\": \"prepare_materials\""))
+  assert_true(text.contains("parallel-lane bootstrap intent"))
   assert_true(text.contains("\"child_profile\": \"wiki_gather_worker\""))
+  assert_true(text.contains("docs lane"))
+  assert_true(text.contains("implementation lane"))
+  assert_true(text.contains("architecture lane"))
   assert_true(
     text.contains(
       "Do not claim success unless at least one substantive durable page",
@@ -792,8 +837,11 @@ test "moonclaw ingest controller decomposes gather before revision" {
 test "moonclaw providers text seeds moonbook provider target" {
   let text = moonclaw_providers_text("/tmp/wiki")
   assert_true(text.contains("\"name\": \"moonbook\""))
+  assert_true(text.contains("\"kind\": \"task-provider\""))
   assert_true(
-    text.contains("\"capabilities\": [\"provider.task\", \"moonbook.bookapi\"]"),
+    text.contains(
+      "\"capabilities\": [\"provider\", \"extension\", \"provider.task\", \"extension.task\", \"bookapi\", \"moonbook.bookapi\"]",
+    ),
   )
   assert_true(text.contains("\"workspace_root\": \"/tmp/wiki\""))
 }
