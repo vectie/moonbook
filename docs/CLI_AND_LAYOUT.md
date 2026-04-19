@@ -47,7 +47,7 @@ Build pipeline:
 3. load chapter files
 4. preprocess README chapter paths into `index.*`
 5. render HTML output
-6. copy the optional root `site/` marketing projection into `book/site/` when present
+6. copy the optional root `site/` authored website into `book/site/` when present
 7. generate a live marketing projection into `book/site/generated/` from wiki, keeper, review, and journey state when the workspace is a wiki
 8. write `book/book.json`
 
@@ -527,13 +527,13 @@ Created by `moonbook wiki init`:
 - `raw/`
   immutable source material
 - `site/`
-  optional static marketing website projection copied to `book/site/` during build and serve
+  optional repo-owned source website copied to `book/site/` during build and serve
 - `site/index.html`
-  landing page scaffold for marketing storytelling
+  landing page scaffold for the repo-owned source website; it should remain valid even before generated projections exist
 - `site/styles.css`
-  expressive visual system for the marketing projection
+  expressive visual system for the repo-owned source website
 - `site/app.js`
-  lightweight reveal and interaction behavior for the marketing projection
+  lightweight reveal and interaction behavior for the repo-owned source website
 - `book/site/generated/index.html`
   live generated marketing projection built from current workspace state
 - `book/site/generated/marketing-state.json`

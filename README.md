@@ -61,7 +61,8 @@ MoonBook is strongest when you want one local system to handle:
 - `2026-04-17`: added `skill hub` as a dedicated live backend for managing skills across the machine, with whole-machine scan roots, in-browser editing, automatic snapshots, rollback, `/api/debug`, and SSE-driven refresh
 - `2026-04-16`: refactored the CLI around top-level `book`, `pack`, `skill`, and `doctor` surfaces, and added a first skill manager with inventory, show, compare, sync, install, scaffold, and doctor commands over workspace plus seeded skills
 - `2026-04-16`: added `wiki/history/journey.md` as a compact run timeline, split the generated site into marketing and journal views, and embedded a `ctc`-inspired course projection plus `wiki-course` skill route
-- `2026-04-15`: added an optional `site/` marketing projection for wiki workspaces, plus a dedicated marketing routine/skill boundary, and taught the build pipeline to publish it into `book/site/` alongside the rendered book and wiki
+- `2026-04-15`: added an optional `site/` authored website layer for wiki workspaces, plus a dedicated marketing routine/skill boundary, and taught the build pipeline to publish it into `book/site/` alongside the rendered book and wiki
+- `2026-04-19`: clarified the website split so `site/index.html` stays a standalone repo-owned source page while the live generated projections are emitted separately into `book/site/generated/`
 - `2026-04-05`: split wiki maintenance internals into dedicated workspace, maintenance-plan, and review-helper files; tightened summary dedupe by page path; cleaned entity/concept/claim normalization; updated the docs to reflect the refactored wiki package layout
 - `2026-04-05`: added wiki review lifecycle commands with pending/approved queues, maintenance-plan updates, query-signal propagation, stronger claim status/support/confidence handling, and review-queue lint checks
 - `2026-04-05`: deepened wiki ingest so sources now update related entity pages, concept pages, relationship sections, synthesis pages, and a structured claims register instead of only generating source summaries
@@ -78,8 +79,8 @@ MoonBook is strongest when you want one local system to handle:
 - 🧰 `skill list`, `skill show`, `skill compare`, `skill sync`, `skill install`, `skill scaffold`, `skill doctor`, and `skill hub` for workspace plus machine-wide skill operations
 - 🌐 local static HTTP serving with polling rebuilds and current CLI conveniences like `--open`, `--dest-dir`, and `--watcher poll|native`
 - 🧱 HTML rendering with sidebar navigation, breadcrumbs, previous/next links, local asset copying, code-block handling, tables, footnotes, raw HTML passthrough, and GitHub-style markdown layout cues
-- ✨ optional `site/` marketing website projection that is copied into `book/site/` during build and serve
-- ✨ generated live marketing projection emitted into `book/site/generated/` from current wiki, keeper, and review state
+- 🌐 optional repo-owned `site/` source website that is copied into `book/site/` during build and serve
+- ✨ generated live marketing projection emitted into `book/site/generated/` from current wiki, keeper, review, and journey state
 - 🧭 generated journal view emitted into `book/site/generated/journal.html` from live journey and workspace state
 - 🎓 generated course view emitted into `book/site/generated/course.html` from live workspace and journey state
 - 🛠️ generated skill manager emitted into `book/site/generated/skills.html` with inventory, duplicate detection, bundled-reference diagnostics, copyable lifecycle commands, override drift comparison against seeded baselines, and staged sync commands for candidate bundles
@@ -182,7 +183,7 @@ moon run cmd/main -- wiki review list ./research-wiki
 moon run cmd/main -- wiki review approve ./research-wiki <review-id>
 moon run cmd/main -- wiki lint ./research-wiki
 moon run cmd/main -- build ./research-wiki
-# optional: open ./research-wiki/book/site/index.html for the authored marketing surface
+# optional: open ./research-wiki/book/site/index.html for the authored source website
 # optional: open ./research-wiki/book/site/generated/index.html for the live generated projection
 # optional: open ./research-wiki/book/site/generated/journal.html for the generated journal view
 # optional: open ./research-wiki/book/site/generated/course.html for the generated course view

@@ -57,7 +57,8 @@ Implemented behaviors:
 - `serve` accepts `--watcher poll|native`
 - `serve` serves `index.html` at `/`
 - `serve` serves `404.html` as a fallback when present
-- `build` and `serve` copy an optional root `site/` marketing projection into `book/site/`
+- `build` and `serve` copy an optional root `site/` authored website into `book/site/`
+- the authored `site/` layer remains standalone and should not assume generated files already exist
 - `build` and `serve` generate a live marketing projection into `book/site/generated/`
 - generated site also includes a dedicated journal view at `book/site/generated/journal.html`
 - generated site also includes a `ctc`-inspired educational course view at `book/site/generated/course.html`
