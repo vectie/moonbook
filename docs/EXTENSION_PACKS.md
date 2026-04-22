@@ -11,12 +11,14 @@ MoonBook should own:
 - workspace shape
 - wiki file contract
 - build/render/serve behavior
+- durable `wiki/*` materialization from raw research envelopes
 
 Extension packs should own:
 
 - runtime-specific config files
 - runtime-specific helper docs
 - runtime-specific manifests
+- bounded worker execution and raw artifact collection
 
 This keeps MoonBook from being strongly coupled to a single agent/runtime.
 
@@ -68,9 +70,10 @@ The `moontown` pack is aligned to Moontown's current persisted bootstrap shape:
 The `moonclaw` pack is aligned to MoonClaw's current role substrate:
 
 - controller profiles carry explicit `role_runtime` planner envelopes
-- revision/review workers carry explicit execution envelopes
+- gather/review workers carry explicit execution envelopes
 - MoonBook owns the lead/review policy files and skill docs that make the embedded planner feel book-specific
 - MoonBook seeds `.moonclaw/providers.json` with the provider-task target name `moonbook`
+- MoonClaw is expected to return a strict research envelope under `raw/bootstrap/`; MoonBook decides what becomes durable `wiki/sources/`, `wiki/entities/`, `wiki/concepts/`, and synthesis pages
 
 The exact set depends on the pack installer, but the important boundary is that these files are added by `wiki enable`, not by `wiki init`.
 

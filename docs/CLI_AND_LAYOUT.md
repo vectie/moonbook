@@ -70,7 +70,7 @@ Runs a local static HTTP server for the built book:
 Bootstraps a wiki workspace instead of a plain mdBook:
 
 1. creates `raw/` for immutable source material
-2. creates `raw/bootstrap/` for generated source packets used during bootstrap discovery
+2. creates `raw/bootstrap/` for generated research artifacts used during bootstrap discovery and MoonBook materialization
 3. creates `wiki/` as the rendered markdown knowledge base
 4. writes `wiki/SUMMARY.md`, `wiki/Home.md`, `wiki/index.md`, and `wiki/log.md`
 5. writes a root `AGENTS.md` schema file for future ingest/query/lint workflows

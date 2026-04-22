@@ -693,6 +693,7 @@ Current ownership by phase:
   - initial wiki maintenance
   - keeper packet emission
   - extension seeding
+  - durable `wiki/*` materialization from raw research envelopes
 - MoonClaw owns:
   - proposal import
   - packet normalization
@@ -700,9 +701,10 @@ Current ownership by phase:
   - workflow compilation
   - controller execution
   - delegate child runs
+  - bounded research/tool execution that writes `raw/bootstrap/*` artifacts
 - The wiki workspace itself is the shared state boundary:
-  - MoonBook writes it directly
-  - MoonClaw child workers also write it directly during revision steps
+  - MoonClaw writes raw research artifacts under `raw/bootstrap/`
+  - MoonBook promotes complete envelopes into `wiki/sources/`, `wiki/entities/`, `wiki/concepts/`, and synthesis pages
 
 This is currently a process boundary plus shared-filesystem integration, not a linked in-process API.
 
@@ -714,7 +716,7 @@ The call chain is functional, but still exposes some important realities:
 2. The workspace may be mutated during submit if runtime files are missing.
 3. The controller run is still open until review and finalization complete.
 4. Analysis steps are compiled without a default timeout in this path.
-5. The revision child run currently reports `child_family: generic`, which means the delegate child proposal is not surfacing a stronger family label in the returned result even though it was invoked through `wiki_revision_worker`.
+5. The revision child run should now finalize the raw research envelope instead of claiming durable wiki ownership.
 
 ## Short Summary
 
@@ -728,7 +730,8 @@ Today’s keeper call chain is:
 6. MoonClaw applies `wiki_ingest_controller`.
 7. MoonClaw compiles controller steps into a workflow.
 8. Controller planner steps emit `keeper.plan.packet.v1`.
-9. Delegate step spawns a child run that edits the wiki.
-10. Review step validates the result before finalization.
+9. Delegate steps spawn child runs that gather and finalize `raw/bootstrap/` research artifacts.
+10. MoonBook persists the result and materializes complete research envelopes into durable wiki pages.
+11. Review step validates the result before finalization.
 
-At inspection time, the chain was working through `review_revisions`, with `apply_revisions` already successful.
+At inspection time, the desired chain is no longer “MoonClaw edits wiki pages.” It is “MoonClaw returns a strict research envelope; MoonBook decides what becomes durable wiki state.”

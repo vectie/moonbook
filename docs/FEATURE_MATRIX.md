@@ -91,6 +91,7 @@ Implemented behaviors:
 - `skill hub` is positioned as “manage skills across this machine” rather than only “inspect skills in this workspace”
 - `pack list` reports currently supported extension packs
 - generated marketing projection includes current status, workflow, review pressure, keeper memory, depth links, and synthesis preview from live workspace state
+- generated marketing projection includes a research-trail section from the required `raw/bootstrap/` artifacts so missing search, screening, evidence, or synthesis records remain visible instead of falling back to generic copy
 - `wiki init` seeds `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
 - `wiki init` seeds claims, maintenance-plan, query-insights, pending-review, and approved-review pages
 - `wiki init` seeds an observations page for persisted book results
@@ -105,7 +106,8 @@ Implemented behaviors:
 - `wiki enable moonclaw` seeds role-aware controller/worker profiles with explicit `role_runtime` envelopes aligned to MoonClaw's planner substrate
 - `wiki enable moonclaw` seeds `.moonclaw/providers.json` with the provider-task target name `moonbook`
 - `wiki enable moonclaw` now decomposes ingest work into gather, material-prep, inspect, plan, revise, review, and finalize stages instead of jumping straight into a monolithic inspect step
-- `wiki enable moonclaw` now uses a raw-first bootstrap flow where gather workers stage packets under `raw/bootstrap/` before keeper revision
+- `wiki enable moonclaw` now uses a raw-first bootstrap flow where workers complete `raw/bootstrap/research-question.md`, `search-log.md`, `source-screen.md`, `local-sources.md`, `evidence-matrix.md`, and `synthesis-brief.md`
+- `wiki enable moonclaw` now treats MoonClaw as the research/artifact executor and MoonBook as the durable `wiki/*` materialization owner
 - `wiki enable moontown` installs an optional town-facing book API manifest and guide without changing the core wiki contract
 - `wiki enable moontown` records an extension manifest under `.moonbook/extensions/moontown.json`
 - `wiki ingest` imports sources into `raw/imported/` when needed
@@ -138,6 +140,7 @@ Implemented behaviors:
 - `wiki book tasks` emits a dedicated planning task when health or goal wording indicates planning pressure
 - `wiki book context` returns a machine-readable worker context bundle derived from book-local policy, Keeper memory, routines, and relevance-ranked durable pages
 - `wiki book persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, records evidence in `wiki/synthesis/evidence.md`, syncs non-durable memory candidates into Keeper memory, promotes immediately-safe durable candidates into target pages, stages review-gated durable candidates, refreshes `keeper/INSIGHTS.md`, updates the maintenance plan, and can queue review
+- `wiki book persist` materializes complete raw research envelopes into durable source/entity/concept/synthesis pages, including recovery from generic provider completion text when all required `raw/bootstrap/` artifacts exist
 - `wiki book persist` also appends a detailed classification entry to `wiki/history/debug-journal.md`, including artifacts, memory candidates, and explicit notes when a result was only administrative
 - `wiki book catalog` returns a machine-readable town catalog record with id, purpose, workspace root, memory scope, tags, and skills
 - `wiki book summary` returns page/review counts plus Keeper/evidence counts and a compact state summary

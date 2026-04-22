@@ -67,7 +67,7 @@ moon run cmd/main -- wiki ingest ./research-wiki ./raw/article.md
 
 Current ingest behavior:
 
-- for bootstrap discovery, stages generated source packets under `raw/bootstrap/` before keeper revision
+- for bootstrap discovery, stages generated source packets under `raw/bootstrap/` before MoonBook materialization
 - rejects hidden placeholders, empty files, and `.gitkeep`-style workspace scaffolding
 - creates a source page in `wiki/sources/`
 - extracts first-pass entities and concepts
@@ -119,6 +119,9 @@ Current book-harness behavior:
 - tolerates external bootstrap-style task ids by mapping them onto the closest local MoonBook task kind when possible
 - emits a dedicated planning task when health or goal wording requires it
 - persists worker results into `synthesis/observations.md`
+- treats complete `raw/bootstrap/` research envelopes as the worker-owned output contract
+- materializes complete research envelopes into durable `wiki/sources/`, entity, concept, and synthesis pages inside MoonBook
+- recovers generic provider completion text when all required raw research artifacts exist, instead of forcing MoonClaw to write durable wiki pages directly
 - records persisted-result evidence in `synthesis/evidence.md`
 - compresses persisted book work into `history/journey.md` for a readable run timeline
 - records detailed run-by-run debug notes in `history/debug-journal.md`
@@ -212,7 +215,7 @@ The maintained wiki currently revolves around these page families:
 - `wiki/reviews/`
   pending and approved operator review items
 - `raw/bootstrap/`
-  generated source packets written during bootstrap discovery before Keeper ingest
+  generated research artifacts written during bootstrap discovery before MoonBook materializes durable wiki pages
 - `keeper/MEMORY.md`
   reusable active domain memory
 - `keeper/USER.md`
@@ -239,6 +242,7 @@ What it does well now:
 - persisted-result evidence capture
 - synthesis-map maintenance for coverage and planning pressure
 - compact journey maintenance for operator-readable run history
+- raw research envelope materialization from worker artifacts into durable wiki state
 - static build/serve of the resulting wiki
 
 What is still missing:
