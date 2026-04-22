@@ -537,7 +537,8 @@ fn ingest_packet_context_pages(source_relative_page : String) -> Array[String] {
 ///|
 fn ingest_semantic_phases() -> Array[String] {
   [
-    "bootstrap_gather", "source_materialize", "knowledge_revise", "review_finalize",
+    "bootstrap_gather", "source_materialize", "knowledge_revise", "marketing_project",
+    "review_finalize",
   ]
 }
 
@@ -586,6 +587,7 @@ fn ingest_packet_skill_paths() -> Array[String] {
     "skills/wiki-ingest/SKILL.md", "skills/source-diarize/SKILL.md", "skills/entity-revise/SKILL.md",
     "skills/concept-revise/SKILL.md", "skills/synthesis-revise/SKILL.md", "skills/claim-audit/SKILL.md",
     "skills/contradiction-review/SKILL.md", "skills/review-decision/SKILL.md", "skills/index-maintain/SKILL.md",
+    "skills/research-report/SKILL.md", "skills/wiki-marketing/SKILL.md",
   ]
 }
 
@@ -598,7 +600,7 @@ fn ingest_plan_notes(
 ) -> Array[String] {
   let notes : Array[String] = []
   notes.push(
-    "semantic-phases: bootstrap_gather -> source_materialize -> knowledge_revise -> review_finalize",
+    "semantic-phases: bootstrap_gather -> source_materialize -> knowledge_revise -> marketing_project -> review_finalize",
   )
   notes.push(
     "execution-mode: parallel-lane-bootstrap with one MoonClaw gather worker per lane when the source surface is broad",

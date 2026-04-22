@@ -137,6 +137,9 @@ pub async fn init_workspace(
   let course_skill_dir = @path.Path(skills_dir)
     .join(@path.Path("wiki-course"))
     .to_string()
+  let research_report_skill_dir = @path.Path(skills_dir)
+    .join(@path.Path("research-report"))
+    .to_string()
   let source_diarize_skill_dir = @path.Path(skills_dir)
     .join(@path.Path("source-diarize"))
     .to_string()
@@ -213,6 +216,7 @@ pub async fn init_workspace(
   @fsx.make_directory(memory_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(marketing_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(course_skill_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(research_report_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(source_diarize_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(entity_revise_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(concept_revise_skill_dir, recursive=true, exists_ok=true)
@@ -269,6 +273,9 @@ pub async fn init_workspace(
     marketing_skill_dir, "seed/wiki/skills/wiki-marketing",
   )
   copy_seed_tree_if_missing(course_skill_dir, "seed/wiki/skills/wiki-course")
+  copy_seed_tree_if_missing(
+    research_report_skill_dir, "seed/wiki/skills/research-report",
+  )
   copy_seed_tree_if_missing(
     source_diarize_skill_dir, "seed/wiki/skills/source-diarize",
   )
@@ -990,7 +997,11 @@ fn resolver_text() -> String {
   "- intent: course\n" +
   "  skill: `skills/wiki-course/SKILL.md`\n" +
   "  supporting_skills: `skills/wiki-query/SKILL.md`, `skills/wiki-marketing/SKILL.md`, `skills/query-promote/SKILL.md`\n" +
-  "  load_first: `wiki/index.md`, `wiki/history/journey.md`, `wiki/synthesis/map.md`, `wiki/synthesis/evidence.md`, `site/index.html`\n"
+  "  load_first: `wiki/index.md`, `wiki/history/journey.md`, `wiki/synthesis/map.md`, `wiki/synthesis/evidence.md`, `site/index.html`\n" +
+  "- intent: research-report\n" +
+  "  skill: `skills/research-report/SKILL.md`\n" +
+  "  supporting_skills: `skills/wiki-ingest/SKILL.md`, `skills/source-diarize/SKILL.md`, `skills/synthesis-revise/SKILL.md`, `skills/claim-audit/SKILL.md`, `skills/wiki-marketing/SKILL.md`\n" +
+  "  load_first: `raw/bootstrap/research-question.md`, `raw/bootstrap/source-screen.md`, `raw/bootstrap/evidence-matrix.md`, `raw/bootstrap/synthesis-brief.md`, `raw/bootstrap/deep-report.md`, `raw/bootstrap/marketing-brief.md`, `wiki/index.md`, `wiki/synthesis/overview.md`, `wiki/synthesis/map.md`\n"
 }
 
 ///|
@@ -1052,9 +1063,11 @@ fn schema_text() -> String {
   "### Marketing\n\n" +
   "When updating the marketing projection:\n\n" +
   "1. Read `RESOLVER.md` and load `skills/wiki-marketing/SKILL.md`\n" +
-  "2. Treat `wiki/` as the detailed source of truth and `site/` as the compressed presentation layer\n" +
-  "3. Keep claims accurate, but rewrite them into audience-facing product language\n" +
-  "4. Prefer stable capability framing, clear product boundaries, and links back into maintained wiki pages\n\n" +
+  "2. Pick the buyer, name the pain, make a promise, explain differentiation, show proof, handle objections, and write a conversion path\n" +
+  "3. Write product copy into `raw/bootstrap/marketing-brief.md` for drafts or `wiki/synthesis/marketing.md` for promoted positioning\n" +
+  "4. Treat `wiki/` as the detailed source of truth and the generated marketing page as the compressed presentation layer\n" +
+  "5. Keep claims accurate, but rewrite them into seller-facing product language\n" +
+  "6. Do not hard-code sales claims in renderer code; improve the brief and skill instead\n\n" +
   "### Course\n\n" +
   "When updating the educational course projection:\n\n" +
   "1. Read `RESOLVER.md` and load `skills/wiki-course/SKILL.md`\n" +
@@ -1169,6 +1182,7 @@ async test "init workspace seeds keeper memory files" {
     @fsx.exists(root + "/skills/wiki-memory/references/memory-boundaries.md"),
   )
   assert_true(@fsx.exists(root + "/skills/wiki-marketing/SKILL.md"))
+  assert_true(@fsx.exists(root + "/skills/research-report/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/source-diarize/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/entity-revise/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/concept-revise/SKILL.md"))

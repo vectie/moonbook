@@ -79,7 +79,8 @@ Implemented behaviors:
 - `wiki init` scaffolds `raw/bootstrap/` for raw-first bootstrap source packets
 - `wiki init` keeps the core workspace agent-agnostic
 - `wiki init` scaffolds a `site/` marketing website projection with `index.html`, `styles.css`, and `app.js`
-- `wiki init` seeds a dedicated `skills/wiki-marketing/SKILL.md` routine for maintaining `site/` as a presentation layer distinct from `wiki/`
+- `wiki init` seeds a dedicated `skills/wiki-marketing/SKILL.md` routine for writing real product marketing: buyer pain, promise, differentiation, proof, objections, and conversion path
+- `wiki init` seeds a dedicated `skills/research-report/SKILL.md` routine for turning screened research artifacts into article-quality reports with evidence-backed claims
 - `wiki init` copies repo-owned static `SKILL.md` templates from `seed/wiki/skills/` instead of generating them in code
 - `skill list` inventories workspace skills plus repo-seeded core and extension skills
 - `skill show` prints machine-readable metadata for one resolved skill
@@ -90,8 +91,10 @@ Implemented behaviors:
 - `skill doctor` reports duplicate names, missing bundled references, and workspace overrides
 - `skill hub` is positioned as “manage skills across this machine” rather than only “inspect skills in this workspace”
 - `pack list` reports currently supported extension packs
-- generated marketing projection includes current status, workflow, review pressure, keeper memory, depth links, and synthesis preview from live workspace state
-- generated marketing projection includes a research-trail section from the required `raw/bootstrap/` artifacts so missing search, screening, evidence, or synthesis records remain visible instead of falling back to generic copy
+- generated marketing projection renders skill-authored product copy from `raw/bootstrap/marketing-brief.md`, `wiki/synthesis/marketing.md`, or `site/marketing.md` instead of hard-coded sales claims
+- generated marketing projection keeps debug state, research evidence, review pressure, and journey details out of the sales page and routes those details to wiki, journal, course, and skill surfaces
+- generated research report includes executive summary, topic explanation, architecture, runtime model, memory/state, cross-project relationship, comparative positioning, maturity/gaps, and evidence-table sections
+- generated research report synthesizes parsed evidence rows into readable sections instead of pasting raw markdown table rows into article prose
 - `wiki init` seeds `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
 - `wiki init` seeds claims, maintenance-plan, query-insights, pending-review, and approved-review pages
 - `wiki init` seeds an observations page for persisted book results
@@ -106,7 +109,7 @@ Implemented behaviors:
 - `wiki enable moonclaw` seeds role-aware controller/worker profiles with explicit `role_runtime` envelopes aligned to MoonClaw's planner substrate
 - `wiki enable moonclaw` seeds `.moonclaw/providers.json` with the provider-task target name `moonbook`
 - `wiki enable moonclaw` now decomposes ingest work into gather, material-prep, inspect, plan, revise, review, and finalize stages instead of jumping straight into a monolithic inspect step
-- `wiki enable moonclaw` now uses a raw-first bootstrap flow where workers complete `raw/bootstrap/research-question.md`, `search-log.md`, `source-screen.md`, `local-sources.md`, `evidence-matrix.md`, and `synthesis-brief.md`
+- `wiki enable moonclaw` now uses a raw-first bootstrap flow where workers complete `raw/bootstrap/research-question.md`, `search-log.md`, `source-screen.md`, `local-sources.md`, `evidence-matrix.md`, `synthesis-brief.md`, `deep-report.md`, and `marketing-brief.md`
 - `wiki enable moonclaw` now treats MoonClaw as the research/artifact executor and MoonBook as the durable `wiki/*` materialization owner
 - `wiki enable moontown` installs an optional town-facing book API manifest and guide without changing the core wiki contract
 - `wiki enable moontown` records an extension manifest under `.moonbook/extensions/moontown.json`

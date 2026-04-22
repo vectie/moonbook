@@ -357,30 +357,46 @@ fn moonclaw_jobs_text() -> String {
   "            }\n" +
   "          },\n" +
   "          {\n" +
+  "            \"id\": \"write_marketing_brief\",\n" +
+  "            \"title\": \"Write buyer-facing marketing brief\",\n" +
+  "            \"kind\": \"job.delegate\",\n" +
+  "            \"request_template\": \"Write only raw/bootstrap/marketing-brief.md for ${proposal.title}. Load wiki-marketing/SKILL.md and use its exact skeleton. The visible page must read like product marketing for a buyer, not a planning document, run log, source audit, or implementation summary. The only accepted level-2 headings are The Problem, The Product, Why It Wins, What You Can Ship, Who It Is For, Proof Points, Objections, and Next Step. If any heading such as Audience, Buyer Pain, Core Positioning, Product Promise, Differentiation, Seller-Facing Messaging Angles, Positioning Guardrails, Recommended Next Materialization, Evidence Base Used, Source IDs, or Web Verification Status appears, rewrite the brief before returning. Use deep-report.md, synthesis-brief.md, and evidence-matrix.md as backing material, but translate evidence into buyer value. Return raw/bootstrap/marketing-brief.md in artifacts or return a structured blocker.\",\n" +
+  "            \"child_profile\": \"wiki_revision_worker\",\n" +
+  "            \"include_parent_outputs\": true,\n" +
+  "            \"max_depth\": 3,\n" +
+  "            \"metadata\": {\n" +
+  "              \"preferred_skills\": [\"wiki-marketing\"],\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"web_search\": false,\n" +
+  "              \"board_lane\": \"Market\",\n" +
+  "              \"board_order\": 7\n" +
+  "            }\n" +
+  "          },\n" +
+  "          {\n" +
   "            \"id\": \"apply_revisions\",\n" +
   "            \"title\": \"Finalize research envelope\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Finalize the research envelope for ${proposal.title}. Read the prepared raw/bootstrap packets and make sure the required raw artifacts exist: research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, and synthesis-brief.md. Return those raw/bootstrap paths in artifacts. Do not edit durable wiki pages directly; MoonBook will materialize wiki/sources, wiki/entities, wiki/concepts, and synthesis pages from this envelope. If any required raw artifact is missing, return an explicit structured blocker.\",\n" +
+  "            \"request_template\": \"Finalize the research envelope for ${proposal.title}. Read the prepared raw/bootstrap packets and make sure the required raw artifacts exist: research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, deep-report.md, and marketing-brief.md. Use the research-report skill to make deep-report.md a long-form article, not a checklist. Use the exact output skeleton in wiki-marketing/SKILL.md for marketing-brief.md: the only accepted level-2 headings are The Problem, The Product, Why It Wins, What You Can Ship, Who It Is For, Proof Points, Objections, and Next Step. Do not use planning headings like Audience And Buying Situation, Positioning, Messaging Guidance, Source IDs, or Next Materialization. Return those raw/bootstrap paths in artifacts. Do not edit durable wiki pages directly; MoonBook will materialize wiki/sources, wiki/entities, wiki/concepts, and synthesis pages from this envelope. If any required raw artifact is missing or marketing headings are invalid, return an explicit structured blocker.\",\n" +
   "            \"child_profile\": \"wiki_revision_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
   "              \"web_search\": true,\n" +
   "              \"board_lane\": \"Revise\",\n" +
-  "              \"board_order\": 7\n" +
+  "              \"board_order\": 8\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
   "            \"id\": \"review_revisions\",\n" +
   "            \"title\": \"Review wiki consistency\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Review the research envelope for ${proposal.title}. Check that required raw/bootstrap artifacts exist, source screening is explicit, evidence rows support the synthesis brief, false leads are pruned, and blockers name unavailable tools or inaccessible sources. Do not require MoonClaw-created durable wiki pages; MoonBook owns final wiki materialization.\",\n" +
+  "            \"request_template\": \"Review the research envelope for ${proposal.title}. Check that required raw/bootstrap artifacts exist, source screening is explicit, evidence rows support the synthesis brief and deep-report.md, marketing-brief.md reads like buyer-facing product marketing instead of generic feature inventory, and marketing-brief.md uses only the wiki-marketing skeleton headings: The Problem, The Product, Why It Wins, What You Can Ship, Who It Is For, Proof Points, Objections, Next Step. Reject internal planning headings such as Audience And Buying Situation, Positioning, Messaging Guidance, Source IDs, or Next Materialization. Do not require MoonClaw-created durable wiki pages; MoonBook owns final wiki materialization.\",\n" +
   "            \"child_profile\": \"wiki_review_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
   "              \"board_lane\": \"Review\",\n" +
-  "              \"board_order\": 8\n" +
+  "              \"board_order\": 9\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
@@ -715,7 +731,7 @@ fn routines_text() -> String {
   "# Routines\n\n" +
   "## Ingest\n\n" +
   "1. Read the raw source from `raw/`\n" +
-  "2. Produce a complete research envelope under `raw/bootstrap/`\n" +
+  "2. Produce a complete research envelope under `raw/bootstrap/`, including `deep-report.md` for article-quality synthesis and `marketing-brief.md` for product-facing copy\n" +
   "3. Let MoonBook materialize durable `wiki/sources/`, entity, concept, and synthesis pages from that envelope\n" +
   "4. Update `wiki/index.md`, `wiki/SUMMARY.md`, and `wiki/log.md`\n\n" +
   "## Query\n\n" +

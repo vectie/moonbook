@@ -36,12 +36,13 @@ The core workspace contract is still:
 
 ## Semantic phase graph
 
-MoonBook should express ingest as a four-phase semantic graph:
+MoonBook should express research ingest as a five-phase semantic graph:
 
 1. `bootstrap_gather`
 2. `source_materialize`
 3. `knowledge_revise`
-4. `review_finalize`
+4. `marketing_project`
+5. `review_finalize`
 
 These are domain phases, not implementation details.
 
@@ -53,6 +54,13 @@ The clean rule is:
 
 - MoonBook owns what each phase means
 - MoonClaw owns how each phase is executed without becoming unbounded
+
+`marketing_project` is intentionally separate from `knowledge_revise`.
+Do not ask one worker to write ontology updates, a deep research article, and
+buyer-facing marketing copy in the same pass. That produces planning headings,
+source audits, and process residue in the generated page. The marketing worker
+loads `skills/wiki-marketing/SKILL.md`, reads the already prepared research
+envelope, and writes only `raw/bootstrap/marketing-brief.md`.
 
 ## Inputs
 
@@ -127,6 +135,8 @@ For research-shaped bootstrap tasks, produce these files under `raw/bootstrap/`:
 - `evidence-matrix.md`
 - `local-sources.md`
 - `synthesis-brief.md`
+- `deep-report.md`
+- `marketing-brief.md` when the book is expected to publish a product website
 
 If a file cannot be produced, still explain the blocker in the closest artifact you can write.
 For example, if web search is unavailable, write `search-log.md` with:
@@ -246,6 +256,83 @@ It should include:
 This is the artifact the generated site should project first.
 If it is missing, the site should remain diagnostic.
 
+### `deep-report.md`
+
+This file is the reader-facing research article.
+Use `skills/research-report/SKILL.md`.
+
+It must not be a status report about the ingest run.
+It should compete with a polished deep-research page:
+
+- direct executive summary
+- ecosystem or topic context
+- architecture and operating model
+- technical proof from inspected sources
+- relationship and comparison sections
+- maturity and gap analysis
+- at least one table
+- at least one Mermaid diagram when relationships matter
+- final evidence and limits section
+
+If the evidence is not good enough to write this article, do not write a thin
+article. Return a blocker that says which sources or tool capabilities are
+missing.
+
+### `marketing-brief.md`
+
+This file is the buyer-facing product story.
+Use `skills/wiki-marketing/SKILL.md`.
+
+It must not be a list of artifacts, sources, task IDs, or backend phases.
+It is generated in the separate `marketing_project` phase after the evidence
+matrix, synthesis brief, and deep report exist.
+It should name:
+
+- the buyer
+- the pain
+- the product promise
+- the differentiator
+- visible deliverables
+- proof points
+- objections
+- next action
+
+It must use exactly these level-2 headings:
+
+- `## The Problem`
+- `## The Product`
+- `## Why It Wins`
+- `## What You Can Ship`
+- `## Who It Is For`
+- `## Proof Points`
+- `## Objections`
+- `## Next Step`
+
+It must not use planning, audit, or seller-note headings such as:
+
+- `## Audience`
+- `## Buyer Pain`
+- `## Core Positioning`
+- `## Product Promise`
+- `## Differentiation`
+- `## Seller-Facing Messaging Angles`
+- `## Positioning Guardrails`
+- `## Recommended Next Materialization`
+- `## Evidence Base Used`
+- `## Source IDs`
+- `## Web Verification Status`
+
+If the generated brief contains those headings, rewrite it before returning
+success.
+
+Research report and marketing brief are different:
+
+- `deep-report.md` explains the subject in depth.
+- `marketing-brief.md` sells the product outcome.
+- Do not merge them.
+- Do not let marketing copy replace evidence.
+- Do not let evidence tables replace marketing.
+
 ## Phase contract
 
 ### `bootstrap_gather`
@@ -271,6 +358,10 @@ Outputs:
 - `raw/bootstrap/search-log.md`
 - `raw/bootstrap/source-screen.md`
 - `raw/bootstrap/local-sources.md`
+- `raw/bootstrap/evidence-matrix.md`
+- `raw/bootstrap/synthesis-brief.md`
+- `raw/bootstrap/deep-report.md`
+- `raw/bootstrap/marketing-brief.md` when website projection is required
 - a short list of candidate source pages
 - a short list of candidate entities and concepts
 - explicit missing-material notes if the source is too weak
@@ -339,6 +430,7 @@ Inputs:
 Outputs:
 
 - `raw/bootstrap/synthesis-brief.md`
+- `raw/bootstrap/deep-report.md`
 - entity, concept, claim, and synthesis recommendations inside the synthesis brief
 - optionally query-page recommendations when the work is query-shaped
 
@@ -348,11 +440,47 @@ Success looks like:
 - concept recommendations explain recurring ideas
 - synthesis recommendations connect sources and preserve disagreement
 - MoonBook has enough grounded guidance to create durable cross-links
+- the deep report reads like a reader-facing article, not a run log
 
 Blocker looks like:
 
 - the material only supports a source note, not a maintained synthesis recommendation
 - the phase would create generic buckets or empty ontology pages
+
+### `marketing_project`
+
+Goal:
+
+- convert the research envelope into buyer-facing product copy
+- keep marketing separate from research evidence and system bookkeeping
+- produce the generated website's marketing source file
+
+Inputs:
+
+- `raw/bootstrap/deep-report.md`
+- `raw/bootstrap/synthesis-brief.md`
+- `raw/bootstrap/evidence-matrix.md`
+- `skills/wiki-marketing/SKILL.md`
+
+Outputs:
+
+- `raw/bootstrap/marketing-brief.md`
+
+Success looks like:
+
+- the brief uses exactly the wiki-marketing skeleton headings
+- the copy names buyer pain, product promise, advantages, deliverables, proof,
+  objections, and next action
+- evidence is translated into buyer value instead of dumped as source IDs
+- no internal task, provider, artifact, ReviewQueued, or raw path language leaks
+  into visible copy
+
+Blocker looks like:
+
+- missing deep report or evidence material
+- invalid level-2 headings
+- copy that reads like an audit, planning memo, or implementation note
+- claims that cannot be supported without overclaiming
 
 ### `review_finalize`
 
@@ -403,7 +531,9 @@ Good splits:
 - one worker gathers implementation evidence from code and config
 - one worker gathers architecture or cross-project topology notes
 - one worker consolidates or prepares the resulting packets for materialization
-- one worker finalizes the evidence matrix and synthesis brief
+- one worker writes the evidence matrix and synthesis brief
+- one worker writes the deep research report using `skills/research-report/SKILL.md`
+- one worker writes the marketing brief using `skills/wiki-marketing/SKILL.md`
 - one worker reviews whether MoonBook can safely materialize the envelope
 
 Bad splits:
@@ -453,8 +583,10 @@ Count the run as successful only if all of the following are true:
 1. substantive source material was inspected
 2. bootstrap packets were written when needed
 3. all required research artifacts exist under `raw/bootstrap/`
-4. the evidence matrix and synthesis brief explain what MoonBook should materialize
-5. the summary names the actual work without vague filler
+4. `deep-report.md` reads like a real article, not a run status page
+5. `marketing-brief.md` uses the exact marketing skeleton and reads like product marketing, not an evidence inventory, when website projection is requested
+6. the evidence matrix and synthesis brief explain what MoonBook should materialize
+7. the summary names the actual work without vague filler
 
 MoonBook, not MoonClaw, decides what becomes durable:
 
@@ -499,7 +631,10 @@ Use this workflow when the book has weak coverage or the prompt says research/bo
 6. derive entity and concept candidates
 7. write `evidence-matrix.md`
 8. write `synthesis-brief.md`
-9. return the raw artifact envelope so MoonBook can materialize durable wiki pages
+9. write `deep-report.md` through the research-report skill
+10. run the separate `marketing_project` phase
+11. write `marketing-brief.md` through the wiki-marketing skill when a website projection is needed
+12. return the raw artifact envelope so MoonBook can materialize durable wiki pages
 
 The raw research envelope is the worker's final goal.
 Durable wiki materialization is MoonBook's responsibility.
@@ -596,7 +731,9 @@ Do not:
     "raw/bootstrap/source-screen.md",
     "raw/bootstrap/local-sources.md",
     "raw/bootstrap/evidence-matrix.md",
-    "raw/bootstrap/synthesis-brief.md"
+    "raw/bootstrap/synthesis-brief.md",
+    "raw/bootstrap/deep-report.md",
+    "raw/bootstrap/marketing-brief.md"
   ],
   "memory_candidates": [
     {

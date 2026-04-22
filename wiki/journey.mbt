@@ -231,8 +231,8 @@ fn bootstrap_cluster_key(task_id : String) -> String {
   let normalized = task_id.trim().to_lower()
   for
     suffix in [
-      "-bootstrap_gather", "-source_materialize", "-knowledge_revise", "-review_finalize",
-      "-ingest-followup", "-bootstrap-ingest", "-bootstrap-ingest-followup",
+      "-bootstrap_gather", "-source_materialize", "-knowledge_revise", "-marketing_project",
+      "-review_finalize", "-ingest-followup", "-bootstrap-ingest", "-bootstrap-ingest-followup",
     ] {
     if normalized.has_suffix(suffix) {
       return normalized[:normalized.length() - suffix.length()].to_string()

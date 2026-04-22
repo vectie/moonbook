@@ -399,6 +399,25 @@ pub impl Show for UiJourneyItem
 pub impl ToJson for UiJourneyItem
 pub impl @json.FromJson for UiJourneyItem
 
+pub struct UiMarketingBrief {
+  source_path : String
+  headline : String
+  lede : String
+  sections : Array[UiMarketingSection]
+}
+pub impl Show for UiMarketingBrief
+pub impl ToJson for UiMarketingBrief
+pub impl @json.FromJson for UiMarketingBrief
+
+pub struct UiMarketingSection {
+  title : String
+  body : String
+  bullets : Array[String]
+}
+pub impl Show for UiMarketingSection
+pub impl ToJson for UiMarketingSection
+pub impl @json.FromJson for UiMarketingSection
+
 pub struct UiMetric {
   label : String
   value : String
@@ -417,6 +436,15 @@ pub struct UiPanelItem {
 pub impl Show for UiPanelItem
 pub impl ToJson for UiPanelItem
 pub impl @json.FromJson for UiPanelItem
+
+pub struct UiResearchReportSection {
+  title : String
+  detail : String
+  evidence : String
+}
+pub impl Show for UiResearchReportSection
+pub impl ToJson for UiResearchReportSection
+pub impl @json.FromJson for UiResearchReportSection
 
 pub struct UiSkillDiagnostics {
   total_count : Int
@@ -479,8 +507,11 @@ pub struct UiState {
   chapters : Array[UiChapterLink]
   skill_diagnostics : UiSkillDiagnostics
   skills : Array[UiSkillItem]
+  marketing_brief : UiMarketingBrief
   research_artifacts : Array[UiPanelItem]
   research_brief : String
+  research_long_report : String
+  research_report : Array[UiResearchReportSection]
   synthesis_preview : String
 }
 pub impl Show for UiState

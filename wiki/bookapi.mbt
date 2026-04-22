@@ -215,7 +215,7 @@ pub async fn produce_task_batch(
       },
       kind: "ingest",
       prompt: if weak_coverage {
-        "Load `skills/wiki-ingest/SKILL.md`, inspect `raw/`, `raw/bootstrap/`, `wiki/sources/`, and `wiki/synthesis/maintenance-plan.md`, then bootstrap durable book coverage for the goal. Discover or stage high-signal sources, write source packets into raw/bootstrap/, populate maintained source pages from those packets, and revise the wiki so later synthesis can cite durable pages: \{goal}"
+        "Load `skills/wiki-ingest/SKILL.md` and `skills/research-report/SKILL.md`, inspect `raw/`, `raw/bootstrap/`, `wiki/sources/`, and `wiki/synthesis/maintenance-plan.md`, then bootstrap durable book coverage for the goal. Discover or stage high-signal sources, write source packets into raw/bootstrap/, write a Kimi-quality long-form `raw/bootstrap/deep-report.md`, populate maintained source pages from those packets, and revise the wiki so later synthesis can cite durable pages: \{goal}"
       } else {
         "Load `skills/wiki-ingest/SKILL.md` and inspect `raw/`, `raw/bootstrap/`, and `wiki/sources/` to determine whether the goal requires new source ingestion or revision of existing source summaries: \{goal}"
       },
@@ -325,7 +325,7 @@ fn bootstrap_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] 
       "bootstrap_gather",
       "Gather bootstrap materials",
       100,
-      "Load `skills/wiki-ingest/SKILL.md` and `skills/source-diarize/SKILL.md`. Treat bootstrap_gather as a fan-out phase, not a single sweep. Split the work into 2 to 4 bounded gather lanes such as repo-doc discovery, implementation evidence, architecture/topology notes, and cross-project linkage. Each lane must inspect only a small high-signal slice, write or contribute to concrete raw/bootstrap packets with provenance, evidence bullets, source-path notes, and report explicit blockers when its lane is weak. Success means writing `raw/bootstrap/research-question.md`, `raw/bootstrap/search-log.md`, `raw/bootstrap/source-screen.md`, and `raw/bootstrap/local-sources.md`, plus enough gathered material for source materialization. If web_search or web_fetch is unavailable, record that limitation in the search log instead of silently running local-only. Blockers are only scaffolding, placeholders, missing substantive source paths, missing required research artifacts, or gather outputs that are still too weak to hand off.",
+      "Load `skills/wiki-ingest/SKILL.md`, `skills/source-diarize/SKILL.md`, and `skills/research-report/SKILL.md`. Treat bootstrap_gather as a fan-out phase, not a single sweep. Split the work into 2 to 4 bounded gather lanes such as repo-doc discovery, implementation evidence, architecture/topology notes, and cross-project linkage. Each lane must inspect only a small high-signal slice, write or contribute to concrete raw/bootstrap packets with provenance, evidence bullets, source-path notes, and report explicit blockers when its lane is weak. Success means writing `raw/bootstrap/research-question.md`, `raw/bootstrap/search-log.md`, `raw/bootstrap/source-screen.md`, and `raw/bootstrap/local-sources.md`, plus enough gathered material for source materialization and `raw/bootstrap/deep-report.md`. If web_search or web_fetch is unavailable, record that limitation in the search log instead of silently running local-only. Blockers are only scaffolding, placeholders, missing substantive source paths, missing required research artifacts, or gather outputs that are still too weak to hand off.",
       [
         "../raw/README.md", "../raw/bootstrap/", "synthesis/map.md", "synthesis/maintenance-plan.md",
       ],
@@ -349,10 +349,23 @@ fn bootstrap_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] 
       "knowledge_revise",
       "Prepare knowledge revision evidence",
       80,
-      "Load `skills/entity-revise/SKILL.md`, `skills/concept-revise/SKILL.md`, `skills/synthesis-revise/SKILL.md`, and `skills/claim-audit/SKILL.md`. Prepare ontology and synthesis recommendations in `raw/bootstrap/synthesis-brief.md` using the evidence matrix. Do not write durable entity, concept, claim, or synthesis pages directly unless explicitly asked; MoonBook owns those durable wiki writes. Blockers are unsupported claims, missing synthesis brief, unresolved source contradictions, or no safe revision target.",
+      "Load `skills/entity-revise/SKILL.md`, `skills/concept-revise/SKILL.md`, `skills/synthesis-revise/SKILL.md`, `skills/claim-audit/SKILL.md`, and `skills/research-report/SKILL.md`. Prepare ontology and synthesis recommendations in `raw/bootstrap/synthesis-brief.md`, and write a long-form `raw/bootstrap/deep-report.md` using the evidence matrix. Do not write marketing copy in this phase; MoonBook schedules a separate marketing_project phase with `skills/wiki-marketing/SKILL.md` so buyer-facing copy stays focused. Do not write durable entity, concept, claim, or synthesis pages directly unless explicitly asked; MoonBook owns those durable wiki writes. Blockers are unsupported claims, missing synthesis brief, missing deep report, unresolved source contradictions, or no safe revision target.",
       [
         "../raw/bootstrap/synthesis-brief.md", "../raw/bootstrap/evidence-matrix.md",
-        "synthesis/map.md",
+        "../raw/bootstrap/deep-report.md", "synthesis/map.md",
+      ],
+      true,
+    ),
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "marketing_project",
+      "Write product marketing brief",
+      75,
+      "Load only `skills/wiki-marketing/SKILL.md` plus the prepared research artifacts. Write `raw/bootstrap/marketing-brief.md` as buyer-facing product marketing, not a plan, audit, evidence log, or implementation summary. Use the exact skeleton from the skill. The only accepted `##` headings are: The Problem, The Product, Why It Wins, What You Can Ship, Who It Is For, Proof Points, Objections, Next Step. Reject and rewrite if any other `##` heading appears. Do not mention this task, provider execution, ReviewQueued, source IDs, raw paths, artifact contracts, or internal planning headings in the visible copy. Translate evidence into buyer value. Blockers are missing deep-report/evidence material, invalid marketing heading structure, or claims that cannot be supported without backend leakage.",
+      [
+        "../raw/bootstrap/deep-report.md", "../raw/bootstrap/evidence-matrix.md",
+        "../raw/bootstrap/synthesis-brief.md", "../raw/bootstrap/marketing-brief.md",
       ],
       true,
     ),
@@ -428,8 +441,8 @@ fn provider_result_contract_lines() -> Array[String] {
     "Use keys: task_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
     "Set task_id to the active provider task id.", "artifacts must be an array of workspace-relative output paths.",
     "memory_candidates must be an array of objects with kind, title, detail, durable, target_page.",
-    "For weak-coverage research goals, follow the MoonBook phases in order: bootstrap_gather, source_materialize, knowledge_revise, review_finalize.",
-    "For research bootstrap, artifacts must include raw/bootstrap/research-question.md, raw/bootstrap/search-log.md, raw/bootstrap/source-screen.md, raw/bootstrap/evidence-matrix.md, raw/bootstrap/local-sources.md, and raw/bootstrap/synthesis-brief.md, or the result must be a structured blocker explaining exactly which files are missing.",
+    "For weak-coverage research goals, follow the MoonBook phases in order: bootstrap_gather, source_materialize, knowledge_revise, marketing_project, review_finalize.",
+    "For research bootstrap, artifacts must include raw/bootstrap/research-question.md, raw/bootstrap/search-log.md, raw/bootstrap/source-screen.md, raw/bootstrap/evidence-matrix.md, raw/bootstrap/local-sources.md, raw/bootstrap/synthesis-brief.md, raw/bootstrap/deep-report.md, and raw/bootstrap/marketing-brief.md, or the result must be a structured blocker explaining exactly which files are missing.",
     "For bootstrap ingest, MoonClaw should produce raw/bootstrap research artifacts and should not need to create wiki/* pages; MoonBook owns durable wiki materialization from the research envelope.",
     "If web_search or web_fetch is unavailable, explicitly say so in the blocker and record that limitation in raw/bootstrap/search-log.md or raw/bootstrap/source-screen.md when possible.",
     "Use [] for empty arrays and null for missing target_page.", "For ingest or bootstrap work, generic completion text without substantive artifacts or durable candidates is a blocker, not success.",
@@ -468,19 +481,22 @@ fn bootstrap_material_task_kind(kind : String) -> Bool {
   kind == "ingest" ||
   kind == "bootstrap_gather" ||
   kind == "source_materialize" ||
-  kind == "knowledge_revise"
+  kind == "knowledge_revise" ||
+  kind == "marketing_project"
 }
 
 ///|
 fn research_artifact_contract_block() -> String {
   "\n\nResearch artifact contract:\n" +
-  "- Required files: `raw/bootstrap/research-question.md`, `raw/bootstrap/search-log.md`, `raw/bootstrap/source-screen.md`, `raw/bootstrap/evidence-matrix.md`, `raw/bootstrap/local-sources.md`, `raw/bootstrap/synthesis-brief.md`.\n" +
+  "- Required files: `raw/bootstrap/research-question.md`, `raw/bootstrap/search-log.md`, `raw/bootstrap/source-screen.md`, `raw/bootstrap/evidence-matrix.md`, `raw/bootstrap/local-sources.md`, `raw/bootstrap/synthesis-brief.md`, `raw/bootstrap/deep-report.md`, `raw/bootstrap/marketing-brief.md`.\n" +
   "- `research-question.md`: state the question, scope, keywords, and exclusion boundaries.\n" +
   "- `search-log.md`: record search attempts, local paths inspected, web search/fetch attempts, and tool availability or denial.\n" +
   "- `source-screen.md`: list included/excluded sources with reasons and confidence.\n" +
   "- `evidence-matrix.md`: compare accepted sources by claim/theme/path and quote-free evidence notes.\n" +
   "- `local-sources.md`: digest inspected local repo files with exact paths and why each matters.\n" +
   "- `synthesis-brief.md`: summarize what is verified, what is provisional, and what remains blocked.\n" +
+  "- `deep-report.md`: follow `skills/research-report/SKILL.md` and write a long-form article with executive summary, ecosystem context, project-specific sections, integration relationships, comparison, maturity assessment, diagrams/tables where useful, source IDs, and explicit limits.\n" +
+  "- `marketing-brief.md`: follow the exact output skeleton in `skills/wiki-marketing/SKILL.md`. Use only these `##` headings: `The Problem`, `The Product`, `Why It Wins`, `What You Can Ship`, `Who It Is For`, `Proof Points`, `Objections`, `Next Step`. Do not use internal headings such as `Audience And Buying Situation`, `Core Buyer Pain`, `Positioning`, `Messaging Guidance`, `Source IDs`, or `Next Materialization`.\n" +
   "- MoonClaw returns the raw research envelope; MoonBook will decide and write durable `wiki/*` pages from that envelope.\n" +
   "- If any required artifact cannot be written, return a structured blocker instead of generic completion text.\n"
 }
@@ -514,7 +530,12 @@ async fn skill_body_excerpt_block(root : String, task : BookTask) -> String {
       }
       builder.write_string(line + "\n")
       line_count += 1
-      if line_count >= 72 {
+      let max_lines = if relative.contains("research-report") {
+        190
+      } else {
+        96
+      }
+      if line_count >= max_lines {
         builder.write_string("...\n")
         break
       }
@@ -1012,6 +1033,26 @@ async fn materialize_research_envelope_pages(
   if !updated.contains(overview_relative) {
     updated.push(overview_relative)
   }
+  let report_relative = "synthesis/report.md"
+  let report_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(report_relative))
+    .to_string()
+  @fsx.write_to_file(
+    report_path,
+    research_envelope_report_page(root, topic, result),
+    create=0o644,
+  )
+  update_summary(workspace.summary_path, "Research Report", report_relative)
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Core Pages",
+    "Research Report",
+    report_relative,
+    "long-form research article materialized from raw bootstrap deep-report.md",
+  )
+  if !updated.contains(report_relative) {
+    updated.push(report_relative)
+  }
   updated
 }
 
@@ -1061,6 +1102,28 @@ async fn research_envelope_source_page(
 }
 
 ///|
+async fn research_envelope_report_page(
+  root : String,
+  topic : String,
+  result : BookResult,
+) -> String {
+  ignore(topic)
+  ignore(result)
+  let report = research_artifact_text(root, "raw/bootstrap/deep-report.md")
+  let evidence = research_artifact_text(
+    root, "raw/bootstrap/evidence-matrix.md",
+  )
+  if report.contains("## Evidence Matrix") ||
+    (report.contains("## Evidence and Limits") && evidence.trim().is_empty()) {
+    report + "\n"
+  } else if evidence.trim().is_empty() {
+    report + "\n"
+  } else {
+    report + "\n\n## Evidence Matrix\n\n" + evidence + "\n"
+  }
+}
+
+///|
 async fn research_artifact_text(root : String, relative : String) -> String {
   let path = @path.Path(root).join(@path.Path(relative)).to_string()
   if @fsx.exists(path) {
@@ -1077,10 +1140,14 @@ fn first_research_line(content : String) -> String {
     if line.is_empty() || line == "---" || line.has_prefix("```") {
       continue
     }
-    if line.has_prefix("# ") {
-      return line[2:].trim().to_string()
+    if line.has_prefix("#") ||
+      line.has_prefix("Task:") ||
+      line == "Question:" ||
+      line.has_prefix("Success criteria:") ||
+      line.has_prefix("- ") {
+      continue
     }
-    if !line.has_prefix("- ") {
+    if !line.is_empty() {
       return line
     }
   }
@@ -1143,6 +1210,7 @@ fn required_research_artifacts() -> Array[String] {
   [
     "raw/bootstrap/research-question.md", "raw/bootstrap/search-log.md", "raw/bootstrap/source-screen.md",
     "raw/bootstrap/evidence-matrix.md", "raw/bootstrap/local-sources.md", "raw/bootstrap/synthesis-brief.md",
+    "raw/bootstrap/deep-report.md",
   ]
 }
 
@@ -1160,7 +1228,7 @@ fn research_artifact_blocker_result(
       {
         kind: "blocker",
         title: "Research artifact contract not satisfied",
-        detail: "Missing required artifacts: \{missing_text}. The provider must write the research question, search log, source screen, evidence matrix, local source digest, and synthesis brief before MoonBook can treat this bootstrap as research-complete.",
+        detail: "Missing required artifacts: \{missing_text}. The provider must write the research question, search log, source screen, evidence matrix, local source digest, synthesis brief, and long-form deep report before MoonBook can treat this bootstrap as research-complete.",
         durable: false,
         target_page: None,
       },
@@ -1179,6 +1247,7 @@ fn result_is_empty_ingest_blocker(result : BookResult) -> Bool {
     stage == "bootstrap_gather" ||
     stage == "source_materialize" ||
     stage == "knowledge_revise" ||
+    stage == "marketing_project" ||
     stage == "review_finalize"
   ) &&
   result.artifacts.is_empty() &&
@@ -1693,6 +1762,7 @@ fn task_skill_names(task : BookTask) -> Array[String] {
       "bootstrap_gather" => {
         names.push("wiki-ingest")
         names.push("source-diarize")
+        names.push("research-report")
         names.push("web-first-research")
         names.push("repo-source-materialize")
         names.push("index-maintain")
@@ -1701,6 +1771,7 @@ fn task_skill_names(task : BookTask) -> Array[String] {
         names.push("wiki-ingest")
         names.push("source-diarize")
         names.push("repo-source-materialize")
+        names.push("research-report")
         names.push("entity-revise")
         names.push("concept-revise")
         names.push("claim-audit")
@@ -1711,15 +1782,23 @@ fn task_skill_names(task : BookTask) -> Array[String] {
         names.push("concept-revise")
         names.push("synthesis-revise")
         names.push("repo-source-materialize")
+        names.push("research-report")
         names.push("claim-audit")
         names.push("contradiction-review")
         names.push("index-maintain")
+      }
+      "marketing_project" => {
+        names.push("wiki-marketing")
+        names.push("research-report")
+        names.push("claim-audit")
+        names.push("review-decision")
       }
       "review_finalize" => {
         names.push("wiki-review")
         names.push("review-decision")
         names.push("contradiction-review")
         names.push("claim-audit")
+        names.push("research-report")
         names.push("memory-prune")
       }
       "review" => {
@@ -1738,6 +1817,7 @@ fn task_skill_names(task : BookTask) -> Array[String] {
         names.push("wiki-memory")
         names.push("wiki-query")
         names.push("synthesis-revise")
+        names.push("research-report")
         names.push("query-promote")
         names.push("memory-prune")
       }
@@ -1745,6 +1825,12 @@ fn task_skill_names(task : BookTask) -> Array[String] {
         names.push("wiki-query")
         names.push("query-promote")
         names.push("claim-audit")
+        if task.prompt.to_lower().contains("research") ||
+          task.prompt.to_lower().contains("report") ||
+          task.prompt.to_lower().contains("evidence") ||
+          task.prompt.to_lower().contains("synthesis") {
+          names.push("research-report")
+        }
         if task.prompt.to_lower().contains("course") ||
           task.prompt.to_lower().contains("teach") ||
           task.prompt.to_lower().contains("walkthrough") {
@@ -1804,6 +1890,8 @@ fn skill_name_from_path(path : String) -> String {
     "wiki-memory"
   } else if normalized.contains("/skills/wiki-course/") {
     "wiki-course"
+  } else if normalized.contains("/skills/research-report/") {
+    "research-report"
   } else if normalized.contains("/skills/source-diarize/") {
     "source-diarize"
   } else if normalized.contains("/skills/entity-revise/") {
@@ -2450,6 +2538,8 @@ fn resolve_task_kind_from_external_id(task_id : String) -> String? {
     normalized.contains("populate") ||
     normalized.contains("source") {
     Some("source_materialize")
+  } else if normalized.contains("marketing") || normalized.contains("market") {
+    Some("marketing_project")
   } else if normalized.contains("revise") || normalized.contains("synthesis") {
     Some("knowledge_revise")
   } else if normalized.contains("finalize") {
@@ -2572,6 +2662,7 @@ async test "catalog skills include base harness skills" {
   assert_true(skills.contains("wiki-query"))
   assert_true(skills.contains("wiki-review"))
   assert_true(skills.contains("source-diarize"))
+  assert_true(skills.contains("research-report"))
   assert_true(skills.contains("query-promote"))
   assert_true(skills.contains("review-decision"))
 }
@@ -2734,6 +2825,7 @@ async test "persist result materializes raw research envelope into wiki pages" {
   assert_true(
     @fsx.exists(root + "/wiki/concepts/research-artifact-envelope.md"),
   )
+  assert_true(@fsx.exists(root + "/wiki/synthesis/report.md"))
   assert_true(
     @fsx.read_file(root + "/wiki/sources/research-evidence.md").contains(
       "Source type: verified research artifact envelope",
@@ -2931,6 +3023,7 @@ async test "produce task batch bootstraps research goals on weak coverage" {
   assert_true(batch.tasks.any(fn(task) { task.kind == "bootstrap_gather" }))
   assert_true(batch.tasks.any(fn(task) { task.kind == "source_materialize" }))
   assert_true(batch.tasks.any(fn(task) { task.kind == "knowledge_revise" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "marketing_project" }))
   assert_true(batch.tasks.any(fn(task) { task.kind == "review_finalize" }))
   assert_true(!batch.tasks.any(fn(task) { task.kind == "ingest" }))
   assert_true(batch.tasks.any(fn(task) { task.kind == "planning" }))

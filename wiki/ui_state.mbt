@@ -86,6 +86,37 @@ pub struct UiSkillItem {
 } derive(Show, ToJson, FromJson)
 
 ///|
+pub struct UiResearchReportSection {
+  title : String
+  detail : String
+  evidence : String
+} derive(Show, ToJson, FromJson)
+
+///|
+priv struct ResearchEvidenceRow {
+  source_id : String
+  evidence : String
+  locator : String
+  confidence : String
+  notes : String
+}
+
+///|
+pub struct UiMarketingSection {
+  title : String
+  body : String
+  bullets : Array[String]
+} derive(Show, ToJson, FromJson)
+
+///|
+pub struct UiMarketingBrief {
+  source_path : String
+  headline : String
+  lede : String
+  sections : Array[UiMarketingSection]
+} derive(Show, ToJson, FromJson)
+
+///|
 pub struct UiState {
   root : String
   title : String
@@ -101,8 +132,11 @@ pub struct UiState {
   chapters : Array[UiChapterLink]
   skill_diagnostics : UiSkillDiagnostics
   skills : Array[UiSkillItem]
+  marketing_brief : UiMarketingBrief
   research_artifacts : Array[UiPanelItem]
   research_brief : String
+  research_long_report : String
+  research_report : Array[UiResearchReportSection]
   synthesis_preview : String
 } derive(Show, ToJson, FromJson)
 
@@ -184,8 +218,11 @@ pub async fn generate_ui_state(root : String) -> UiState {
     chapters: ui_chapter_links(root),
     skill_diagnostics: ui_skill_diagnostics(skill_report),
     skills: ui_skill_items(root, skill_records),
+    marketing_brief: ui_marketing_brief(root),
     research_artifacts: ui_research_artifacts(root),
     research_brief: ui_research_brief(root),
+    research_long_report: ui_research_long_report(root),
+    research_report: ui_research_report(root, project_title),
     synthesis_preview: ui_synthesis_preview(root),
   }
 }
@@ -943,6 +980,937 @@ async fn ui_research_brief(root : String) -> String {
 }
 
 ///|
+async fn ui_marketing_brief(root : String) -> UiMarketingBrief {
+  for
+    relative in [
+      "wiki/synthesis/marketing.md", "raw/bootstrap/marketing-brief.md", "site/marketing.md",
+    ] {
+    let path = @path.Path(root).join(@path.Path(relative)).to_string()
+    if @fsx.exists(path) {
+      return parse_marketing_brief(relative, @fsx.read_file(path))
+    }
+  }
+  {
+    source_path: "missing: raw/bootstrap/marketing-brief.md",
+    headline: "Marketing brief needed",
+    lede: "Load `skills/wiki-marketing/SKILL.md` and generate `raw/bootstrap/marketing-brief.md` before using this as a product website.",
+    sections: [
+      {
+        title: "Authoring contract",
+        body: "The generated site renderer is ready, but the persuasive product copy must come from a keeper-authored marketing brief rather than MoonBook code.",
+        bullets: [
+          "Write a seller-facing headline and lede", "Add feature, audience, strength, surface, and conversion sections",
+          "Keep evidence and debug detail in the wiki, journal, or course surfaces",
+        ],
+      },
+    ],
+  }
+}
+
+///|
+fn parse_marketing_brief(
+  source_path : String,
+  content : String,
+) -> UiMarketingBrief {
+  let headline_parts : Array[String] = []
+  let lede_parts : Array[String] = []
+  let sections : Array[UiMarketingSection] = []
+  let body_parts : Array[String] = []
+  let bullets : Array[String] = []
+  let mut headline = ""
+  let mut current_title = ""
+  let mut seen_section = false
+  for raw in content.split("\n") {
+    let line = raw.trim().to_string()
+    if line.is_empty() {
+      continue
+    }
+    if line.has_prefix("# ") {
+      headline = clean_marketing_text(line[2:].trim().to_string())
+      continue
+    }
+    if line.has_prefix("## ") {
+      if !current_title.is_empty() {
+        sections.push({
+          title: current_title,
+          body: body_parts.join(" "),
+          bullets: bullets.copy(),
+        })
+        body_parts.clear()
+        bullets.clear()
+      }
+      current_title = clean_marketing_text(line[3:].trim().to_string())
+      seen_section = true
+      continue
+    }
+    if line.has_prefix("### ") {
+      let subtitle = clean_marketing_text(line[4:].trim().to_string())
+      if seen_section {
+        bullets.push(subtitle)
+      } else {
+        lede_parts.push(subtitle)
+      }
+      continue
+    }
+    if line.has_prefix("- ") {
+      let item = clean_marketing_text(line[2:].trim().to_string())
+      if seen_section {
+        bullets.push(item)
+      } else {
+        lede_parts.push(item)
+      }
+      continue
+    }
+    let cleaned = clean_marketing_text(line)
+    if seen_section {
+      body_parts.push(cleaned)
+    } else if headline.is_empty() {
+      headline_parts.push(cleaned)
+    } else {
+      lede_parts.push(cleaned)
+    }
+  }
+  if !current_title.is_empty() {
+    sections.push({
+      title: current_title,
+      body: body_parts.join(" "),
+      bullets: bullets.copy(),
+    })
+  }
+  let resolved_headline = if !headline.is_empty() {
+    headline
+  } else if !headline_parts.is_empty() {
+    clamp_text(headline_parts.join(" "), 130)
+  } else {
+    "Marketing brief needs a headline"
+  }
+  let resolved_lede = if lede_parts.is_empty() {
+    "The marketing brief exists but needs a short seller-facing lede."
+  } else {
+    clamp_text(lede_parts.join(" "), 360)
+  }
+  let resolved_sections = if sections.is_empty() {
+    [
+      {
+        title: "Brief needs sections",
+        body: "Add `##` sections for features, buyers, strengths, surfaces, and conversion path.",
+        bullets: [],
+      },
+    ]
+  } else {
+    normalize_marketing_sections(sections)
+  }
+  {
+    source_path,
+    headline: resolved_headline,
+    lede: resolved_lede,
+    sections: resolved_sections,
+  }
+}
+
+///|
+fn normalize_marketing_sections(
+  sections : Array[UiMarketingSection],
+) -> Array[UiMarketingSection] {
+  let normalized : Array[UiMarketingSection] = []
+  for
+    title in [
+      "The Problem", "The Product", "Why It Wins", "What You Can Ship", "Who It Is For",
+      "Proof Points", "Objections", "Next Step",
+    ] {
+    let body_parts : Array[String] = []
+    let bullets : Array[String] = []
+    for section in sections {
+      if marketing_canonical_section_title(section.title) == title {
+        if !section.body.trim().is_empty() {
+          body_parts.push(sanitize_marketing_surface_text(section.body))
+        }
+        for bullet in section.bullets {
+          if !bullet.trim().is_empty() {
+            let cleaned = sanitize_marketing_surface_text(bullet)
+            if !cleaned.trim().is_empty() {
+              bullets.push(cleaned)
+            }
+          }
+        }
+      }
+    }
+    if !body_parts.is_empty() || !bullets.is_empty() {
+      normalized.push({ title, body: body_parts.join(" "), bullets })
+    }
+  }
+  if normalized.is_empty() {
+    [
+      {
+        title: "The Problem",
+        body: "The marketing brief did not follow the wiki-marketing skill skeleton. Regenerate it from `skills/wiki-marketing/SKILL.md` before using this page as final copy.",
+        bullets: [],
+      },
+    ]
+  } else {
+    normalized
+  }
+}
+
+///|
+fn marketing_canonical_section_title(title : String) -> String {
+  let lower = title.trim().to_lower()
+  if lower == "the problem" ||
+    lower.contains("buyer pain") ||
+    lower.contains("buyer problem") ||
+    lower.contains("core buyer pain") ||
+    lower.contains("pain") ||
+    lower.contains("problem") {
+    "The Problem"
+  } else if lower == "the product" ||
+    lower.contains("product promise") ||
+    lower.contains("core promise") ||
+    lower.contains("product") ||
+    lower.contains("positioning") ||
+    lower.contains("promise") {
+    "The Product"
+  } else if lower == "why it wins" ||
+    lower.contains("differentiation") ||
+    lower.contains("supported strength") ||
+    lower.contains("strength") ||
+    lower.contains("competitive framing") ||
+    lower.contains("wins") {
+    "Why It Wins"
+  } else if lower == "what you can ship" ||
+    lower.contains("seller narrative") ||
+    lower.contains("messaging angle") ||
+    lower.contains("ship") ||
+    lower.contains("deliverable") ||
+    lower.contains("materialization target") {
+    "What You Can Ship"
+  } else if lower == "who it is for" ||
+    lower.contains("audience") ||
+    lower.contains("buyer") ||
+    lower.contains("who") {
+    "Who It Is For"
+  } else if lower == "proof points" ||
+    lower.contains("proof") ||
+    lower.contains("evidence") ||
+    lower.contains("verification") {
+    "Proof Points"
+  } else if lower == "objections" ||
+    lower.contains("objection") ||
+    lower.contains("guardrail") ||
+    lower.contains("risk") {
+    "Objections"
+  } else if lower == "next step" ||
+    lower.contains("next") ||
+    lower.contains("action") ||
+    lower.contains("cta") {
+    "Next Step"
+  } else {
+    "Proof Points"
+  }
+}
+
+///|
+fn clean_marketing_text(text : String) -> String {
+  let stripped = text
+    .replace_all(old="**", new="")
+    .replace_all(old="`", new="")
+    .to_string()
+    .trim(chars="# ")
+    .to_string()
+  sanitize_marketing_surface_text(clean_report_text(stripped))
+}
+
+///|
+fn sanitize_marketing_surface_text(text : String) -> String {
+  let mut cleaned = text
+    .replace_all(old="raw/bootstrap/", new="research intake ")
+    .replace_all(old="raw/bootstrap", new="research intake")
+    .replace_all(old="wiki/sources/", new="source page ")
+    .replace_all(old="wiki/entities/", new="entity page ")
+    .replace_all(old="wiki/concepts/", new="concept page ")
+    .replace_all(old="wiki/synthesis/", new="synthesis page ")
+    .replace_all(old="memory_candidates", new="memory signals")
+    .replace_all(old="requires_review", new="review signals")
+    .replace_all(old="notify_town", new="town notification signals")
+    .replace_all(old="task_id", new="task identifier")
+    .replace_all(old="bootstrap_gather", new="research gathering")
+    .replace_all(old="source_materialize", new="source preparation")
+    .replace_all(old="knowledge_revise", new="knowledge revision")
+    .replace_all(old="review_finalize", new="review closeout")
+    .replace_all(old="marketing_project", new="marketing projection")
+    .to_string()
+  for prefix in ["C", "L", "W", "B"] {
+    for index in 1..<31 {
+      cleaned = cleaned
+        .replace_all(old="\{prefix}\{index}, ", new="")
+        .replace_all(old=", \{prefix}\{index}", new="")
+        .replace_all(old="(\{prefix}\{index})", new="")
+        .replace_all(old="\{prefix}\{index}.", new="")
+        .replace_all(old="\{prefix}\{index}", new="")
+        .to_string()
+    }
+  }
+  cleaned
+  .replace_all(old="Supported by .", new="")
+  .replace_all(old="Supported by", new="")
+  .replace_all(old="via .", new="")
+  .replace_all(old=" .", new=".")
+  .replace_all(old=" ,", new=",")
+  .replace_all(old="  ", new=" ")
+  .to_string()
+  .trim()
+  .to_string()
+}
+
+///|
+async fn ui_research_long_report(root : String) -> String {
+  for relative in ["wiki/synthesis/report.md", "raw/bootstrap/deep-report.md"] {
+    let path = @path.Path(root).join(@path.Path(relative)).to_string()
+    if @fsx.exists(path) {
+      return @fsx.read_file(path)
+    }
+  }
+  ""
+}
+
+///|
+async fn ui_research_report(
+  root : String,
+  title : String,
+) -> Array[UiResearchReportSection] {
+  let brief = read_workspace_text(root, "raw/bootstrap/synthesis-brief.md")
+  let evidence = read_workspace_text(root, "raw/bootstrap/evidence-matrix.md")
+  let local_sources = read_workspace_text(
+    root, "raw/bootstrap/local-sources.md",
+  )
+  let source_screen = read_workspace_text(
+    root, "raw/bootstrap/source-screen.md",
+  )
+  let source_page = read_workspace_text(
+    root, "wiki/sources/research-evidence.md",
+  )
+  let overview = read_workspace_text(root, "wiki/synthesis/overview.md")
+  let evidence_rows = parse_research_evidence_rows(evidence)
+  let corpus = brief +
+    "\n\n" +
+    evidence +
+    "\n\n" +
+    local_sources +
+    "\n\n" +
+    source_screen +
+    "\n\n" +
+    source_page +
+    "\n\n" +
+    overview
+  [
+    {
+      title: "Executive summary",
+      detail: research_executive_summary(title, brief, evidence_rows),
+      evidence: report_evidence_from_rows(
+        evidence_rows,
+        ["readme", "overview", "synthesis", title.to_lower()],
+        evidence,
+        "executive",
+      ),
+    },
+    {
+      title: "What is \{title}?",
+      detail: research_topic_summary(title, brief, evidence_rows),
+      evidence: report_evidence_from_rows(
+        evidence_rows,
+        [title.to_lower(), "readme", "overview"],
+        evidence,
+        title.to_lower(),
+      ),
+    },
+    {
+      title: "Architecture",
+      detail: research_keyword_summary(
+        evidence_rows,
+        [
+          "architecture", "component", "topology", "boundary", "controller", "adapter",
+          "routing",
+        ],
+        "Architecture evidence is still thin. Add files or source rows that describe components, boundaries, controllers, workers, and handoff points.",
+      ),
+      evidence: report_evidence_from_rows(
+        evidence_rows,
+        ["architecture", "topology", "controller", "adapter", "routing"],
+        evidence,
+        "architecture",
+      ),
+    },
+    {
+      title: "Runtime model",
+      detail: research_keyword_summary(
+        evidence_rows,
+        [
+          "runtime", "job", "session", "worker", "task", "provider", "gateway", "tool",
+        ],
+        "Runtime behavior is not yet summarized from evidence. The next gather pass should inspect job, provider, session, and worker runtime files.",
+      ),
+      evidence: report_evidence_from_rows(
+        evidence_rows,
+        ["runtime", "job", "session", "worker", "provider", "tool"],
+        evidence,
+        "runtime",
+      ),
+    },
+    {
+      title: "Memory and state",
+      detail: research_keyword_summary(
+        evidence_rows,
+        [
+          "memory", "state", "artifact", "workspace", "persistent", "durable", "storage",
+          "keeper",
+        ],
+        "Memory and state behavior still needs a sourced section. Capture what is durable, what is temporary, and which layer owns each state family.",
+      ),
+      evidence: report_evidence_from_rows(
+        evidence_rows,
+        ["memory", "state", "artifact", "workspace", "storage", "keeper"],
+        evidence,
+        "memory",
+      ),
+    },
+    {
+      title: "Relationship to Moontown and MoonBook",
+      detail: research_relationship_summary(title, corpus, evidence_rows),
+      evidence: report_evidence_from_rows(
+        evidence_rows,
+        [
+          "moontown", "moonbook", "moonclaw", "relationship", "orchestration", "materialization",
+        ],
+        evidence,
+        "moontown",
+      ),
+    },
+    {
+      title: "Comparative positioning",
+      detail: research_comparison_summary(title, source_screen, evidence_rows),
+      evidence: report_evidence_from_rows(
+        evidence_rows,
+        [
+          "mdbook", "openclaw", "maria", "compare", "comparison", "rewrite", "motivated",
+        ],
+        source_screen + "\n" + evidence,
+        "comparison",
+      ),
+    },
+    {
+      title: "Maturity and gaps",
+      detail: research_maturity_summary(brief, evidence_rows),
+      evidence: report_evidence_from_rows(
+        evidence_rows,
+        ["gap", "missing", "risk", "blocker", "future", "todo", "needs"],
+        brief + "\n" + evidence,
+        "gap",
+      ),
+    },
+    {
+      title: "Evidence table",
+      detail: if evidence.trim().is_empty() {
+        "No evidence matrix exists yet. Generate `raw/bootstrap/evidence-matrix.md` before treating this as a research report."
+      } else {
+        research_evidence_table_summary(evidence_rows)
+      },
+      evidence: "raw/bootstrap/evidence-matrix.md",
+    },
+  ]
+}
+
+///|
+fn parse_research_evidence_rows(content : String) -> Array[ResearchEvidenceRow] {
+  let rows : Array[ResearchEvidenceRow] = []
+  for raw in content.split("\n") {
+    let line = raw.trim().to_string()
+    if !line.has_prefix("|") || line.contains("---") {
+      continue
+    }
+    let cells = line
+      .split("|")
+      .map(fn(part) { part.trim().to_string() })
+      .to_array()
+    if cells.length() < 5 {
+      continue
+    }
+    let source_id = cells[1]
+    if source_id.is_empty() ||
+      source_id == "Source ID" ||
+      source_id == "Claim ID" {
+      continue
+    }
+    rows.push({
+      source_id,
+      evidence: clean_report_text(cells[2]),
+      locator: clean_report_text(cells[3]),
+      confidence: clean_report_text(cells[4]),
+      notes: if cells.length() > 5 {
+        clean_report_text(cells[5])
+      } else {
+        ""
+      },
+    })
+  }
+  rows
+}
+
+///|
+fn research_executive_summary(
+  title : String,
+  brief : String,
+  rows : Array[ResearchEvidenceRow],
+) -> String {
+  match
+    best_report_paragraph(brief, [
+      "executive", "summary", "answer", "finding", "verified",
+    ]) {
+    Some(text) =>
+      if is_shallow_report_paragraph(text) {
+        research_executive_summary_from_rows(title, rows)
+      } else {
+        text
+      }
+    None => research_executive_summary_from_rows(title, rows)
+  }
+}
+
+///|
+fn research_executive_summary_from_rows(
+  title : String,
+  rows : Array[ResearchEvidenceRow],
+) -> String {
+  if rows.is_empty() {
+    "No executive summary is available yet. Generate `raw/bootstrap/synthesis-brief.md` with a direct answer before presenting this page as a research article."
+  } else {
+    "\{title} is supported by \{rows.length()} screened evidence rows. The strongest current basis is \{row_brief(rows[0])}; keep explicit gaps visible until the synthesis brief becomes more analytical."
+  }
+}
+
+///|
+fn research_topic_summary(
+  title : String,
+  brief : String,
+  rows : Array[ResearchEvidenceRow],
+) -> String {
+  match
+    best_report_paragraph(brief, [
+      title.to_lower(),
+      "what is",
+      "role",
+      "purpose",
+      "system",
+    ]) {
+    Some(text) =>
+      if is_shallow_report_paragraph(text) {
+        research_topic_summary_from_rows(title, rows)
+      } else {
+        text
+      }
+    None => research_topic_summary_from_rows(title, rows)
+  }
+}
+
+///|
+fn research_topic_summary_from_rows(
+  title : String,
+  rows : Array[ResearchEvidenceRow],
+) -> String {
+  let selected = select_evidence_rows(
+    rows,
+    [title.to_lower(), "readme", "overview", "home"],
+    2,
+  )
+  if selected.is_empty() {
+    "\{title} has not been explained from verified evidence yet. The report needs a role paragraph sourced from the synthesis brief or entity page."
+  } else {
+    "\{title} is described through \{selected.length()} high-signal source row(s): \{row_list_sentence(selected)}"
+  }
+}
+
+///|
+fn is_shallow_report_paragraph(text : String) -> Bool {
+  let lowered = text.to_lower()
+  lowered.has_prefix("topic:") ||
+  lowered.has_prefix("verified findings:") ||
+  lowered.has_prefix("web verification status:") ||
+  lowered.has_prefix("next materialization:") ||
+  lowered.contains("local source hints were mounted") ||
+  lowered.contains("candidate source lists are not enough")
+}
+
+///|
+fn best_non_shallow_report_paragraph(
+  corpus : String,
+  keywords : Array[String],
+) -> String? {
+  match best_report_paragraph(corpus, keywords) {
+    Some(text) =>
+      if is_shallow_report_paragraph(text) {
+        None
+      } else {
+        Some(text)
+      }
+    None => None
+  }
+}
+
+///|
+fn research_keyword_summary(
+  rows : Array[ResearchEvidenceRow],
+  keywords : Array[String],
+  fallback : String,
+) -> String {
+  let selected = select_evidence_rows(rows, keywords, 3)
+  if selected.is_empty() {
+    fallback
+  } else {
+    "The screened evidence points to \{row_list_sentence(selected)}"
+  }
+}
+
+///|
+fn research_relationship_summary(
+  title : String,
+  corpus : String,
+  rows : Array[ResearchEvidenceRow],
+) -> String {
+  ignore(corpus)
+  let selected = select_evidence_rows(
+    rows,
+    [
+      "moontown", "moonbook", "moonclaw", "orchestration", "materialization", "runtime",
+    ],
+    3,
+  )
+  if selected.is_empty() {
+    "Cross-project relationship evidence is not yet strong enough. The report should explain town orchestration, book memory/materialization, and claw execution boundaries."
+  } else {
+    "\{title} should be read inside the town-book-claw split: Moontown owns orchestration, MoonBook owns durable workspace and memory materialization, and MoonClaw owns worker execution. Current supporting rows: \{row_list_sentence(selected)}"
+  }
+}
+
+///|
+fn research_comparison_summary(
+  title : String,
+  source_screen : String,
+  rows : Array[ResearchEvidenceRow],
+) -> String {
+  ignore(source_screen)
+  let selected = select_evidence_rows(
+    rows,
+    [
+      "mdbook", "openclaw", "maria", "compare", "comparison", "rewrite", "motivated",
+    ],
+    2,
+  )
+  if selected.is_empty() {
+    "No supported comparison section exists yet for \{title}. The report should avoid external positioning claims until source-screen rows and evidence rows support them."
+  } else {
+    "Comparative positioning is supported only where the evidence names a lineage or adjacent system. Current support: \{row_list_sentence(selected)}"
+  }
+}
+
+///|
+fn research_maturity_summary(
+  brief : String,
+  rows : Array[ResearchEvidenceRow],
+) -> String {
+  match
+    best_non_shallow_report_paragraph(brief, [
+      "maturity", "gap", "missing", "risk", "blocker", "future", "trajectory",
+    ]) {
+    Some(text) => text
+    None =>
+      if rows.is_empty() {
+        "Maturity is not yet assessed from evidence. The synthesis brief should distinguish verified behavior, provisional behavior, and implementation gaps."
+      } else {
+        let weak_rows = select_evidence_rows(
+          rows,
+          [
+            "needs", "missing", "blocked", "provisional", "candidate", "unavailable",
+          ],
+          2,
+        )
+        if weak_rows.is_empty() {
+          "Maturity looks presentable at the evidence-envelope level: \{rows.length()} source rows were screened. The next improvement is deeper synthesis, not more generic process copy."
+        } else {
+          "Maturity is mixed. The evidence envelope has \{rows.length()} screened rows, but gaps remain around \{row_list_sentence(weak_rows)}"
+        }
+      }
+  }
+}
+
+///|
+fn research_evidence_table_summary(rows : Array[ResearchEvidenceRow]) -> String {
+  if rows.is_empty() {
+    return "The evidence matrix exists but has no parseable source rows yet."
+  }
+  let local_count = research_evidence_ref_count(rows, "L")
+  let web_count = research_evidence_ref_count(rows, "W")
+  let examples = select_evidence_rows(
+    rows,
+    ["readme", "architecture", "runtime", "memory", "provider", "tool"],
+    3,
+  )
+  "The report is backed by \{rows.length()} screened source row(s): \{local_count} local and \{web_count} web. Representative rows: \{row_list_sentence(examples)}"
+}
+
+///|
+fn research_evidence_ref_count(
+  rows : Array[ResearchEvidenceRow],
+  prefix : String,
+) -> Int {
+  let refs : Array[String] = []
+  for row in rows {
+    for field in [row.source_id, row.locator, row.evidence, row.notes] {
+      for source_ref in research_evidence_refs(field, prefix) {
+        if !refs.contains(source_ref) {
+          refs.push(source_ref)
+        }
+      }
+    }
+  }
+  refs.length()
+}
+
+///|
+fn research_evidence_refs(text : String, prefix : String) -> Array[String] {
+  let refs : Array[String] = []
+  let normalized = text
+    .replace_all(old=",", new=" ")
+    .replace_all(old=";", new=" ")
+    .replace_all(old="(", new=" ")
+    .replace_all(old=")", new=" ")
+    .replace_all(old="[", new=" ")
+    .replace_all(old="]", new=" ")
+    .replace_all(old="`", new=" ")
+  for token in normalized.split(" ") {
+    let item = token.trim().trim(chars=".:").to_string()
+    if item.length() < 2 || !item.has_prefix(prefix) {
+      continue
+    }
+    let suffix = item[prefix.length():]
+    if suffix.is_empty() {
+      continue
+    }
+    let mut all_digits = true
+    for ch in suffix {
+      if ch < '0' || ch > '9' {
+        all_digits = false
+        break
+      }
+    }
+    if all_digits && !refs.contains(item) {
+      refs.push(item)
+    }
+  }
+  refs
+}
+
+///|
+async fn read_workspace_text(root : String, relative : String) -> String {
+  let path = @path.Path(root).join(@path.Path(relative)).to_string()
+  if @fsx.exists(path) {
+    @fsx.read_file(path)
+  } else {
+    ""
+  }
+}
+
+///|
+fn report_evidence(corpus : String, keyword : String) -> String {
+  match best_report_paragraph(corpus, [keyword]) {
+    Some(text) => clamp_text(text, 180)
+    None => "Evidence pending"
+  }
+}
+
+///|
+fn report_evidence_from_rows(
+  rows : Array[ResearchEvidenceRow],
+  keywords : Array[String],
+  fallback_corpus : String,
+  fallback_keyword : String,
+) -> String {
+  let selected = select_evidence_rows(rows, keywords, 1)
+  if selected.is_empty() {
+    report_evidence(fallback_corpus, fallback_keyword)
+  } else {
+    clamp_text("\{selected[0].source_id}: \{row_brief(selected[0])}", 180)
+  }
+}
+
+///|
+fn select_evidence_rows(
+  rows : Array[ResearchEvidenceRow],
+  keywords : Array[String],
+  limit : Int,
+) -> Array[ResearchEvidenceRow] {
+  let selected : Array[ResearchEvidenceRow] = []
+  for row in rows {
+    if evidence_row_matches(row, keywords) {
+      selected.push(row)
+      if selected.length() >= limit {
+        break
+      }
+    }
+  }
+  if selected.is_empty() && !rows.is_empty() && limit > 0 {
+    selected.push(rows[0])
+  }
+  selected
+}
+
+///|
+fn evidence_row_matches(
+  row : ResearchEvidenceRow,
+  keywords : Array[String],
+) -> Bool {
+  let haystack = (row.source_id +
+  " " +
+  row.evidence +
+  " " +
+  row.locator +
+  " " +
+  row.confidence +
+  " " +
+  row.notes).to_lower()
+  for keyword in keywords {
+    let key = keyword.trim().to_lower()
+    if !key.is_empty() && haystack.contains(key) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn row_list_sentence(rows : Array[ResearchEvidenceRow]) -> String {
+  rows.map(fn(row) { "\{row.source_id} (\{row_brief(row)})" }).join("; ") + "."
+}
+
+///|
+fn row_brief(row : ResearchEvidenceRow) -> String {
+  let base = if !row.evidence.is_empty() {
+    row.evidence
+  } else if !row.locator.is_empty() {
+    row.locator
+  } else {
+    row.notes
+  }
+  clamp_text(clean_report_text(base), 220)
+}
+
+///|
+fn clean_report_text(text : String) -> String {
+  let focused = match marker_tail(text, "preview=") {
+    Some(value) => value
+    None =>
+      match marker_tail(text, "snippet=") {
+        Some(value) => value
+        None => text
+      }
+  }
+  focused
+  .replace_all(old="`", new="")
+  .replace_all(old="**", new="")
+  .replace_all(old="alias=", new="")
+  .replace_all(old="path=", new="")
+  .replace_all(old="original=", new="")
+  .replace_all(old="preview=", new="")
+  .replace_all(old="snippet=", new="")
+  .replace_all(old="status=included", new="")
+  .replace_all(old="status=fetched", new="")
+  .to_string()
+  .trim()
+  .to_string()
+}
+
+///|
+fn marker_tail(text : String, marker : String) -> String? {
+  match text.find(marker) {
+    Some(index) => Some(text[index + marker.length():].trim().to_string())
+    None => None
+  }
+}
+
+///|
+fn best_report_paragraph(corpus : String, keywords : Array[String]) -> String? {
+  let chunks = markdown_paragraphs(corpus)
+  let mut best_score = 0
+  let mut best_text : String? = None
+  for chunk in chunks {
+    let lowered = chunk.to_lower()
+    let mut score = 0
+    for keyword in keywords {
+      let key = keyword.trim().to_lower()
+      if !key.is_empty() && lowered.contains(key) {
+        score += 1
+      }
+    }
+    if score > best_score {
+      best_score = score
+      best_text = Some(clamp_text(chunk, 620))
+    }
+  }
+  best_text
+}
+
+///|
+fn markdown_paragraphs(content : String) -> Array[String] {
+  let chunks : Array[String] = []
+  let current : Array[String] = []
+  for raw in content.split("\n") {
+    let line = raw.trim().to_string()
+    if line.is_empty() {
+      if !current.is_empty() {
+        chunks.push(current.join(" "))
+        current.clear()
+      }
+      continue
+    }
+    if line == "---" || line.has_prefix("```") {
+      continue
+    }
+    if line.has_prefix("|") {
+      continue
+    }
+    let cleaned = if line.has_prefix("#") {
+      line.replace(old="#", new="").to_string().trim().to_string()
+    } else {
+      line
+    }
+    if !cleaned.is_empty() {
+      current.push(cleaned)
+    }
+  }
+  if !current.is_empty() {
+    chunks.push(current.join(" "))
+  }
+  chunks
+}
+
+///|
+fn clamp_text(text : String, max_len : Int) -> String {
+  if text.length() <= max_len {
+    text
+  } else if max_len <= 3 {
+    "...".to_string()
+  } else {
+    let builder = StringBuilder::new()
+    let mut count = 0
+    for ch in text {
+      if count >= max_len - 3 {
+        break
+      }
+      builder.write_char(ch)
+      count += 1
+    }
+    builder.to_string() + "..."
+  }
+}
+
+///|
 priv struct ResearchArtifactSpec {
   title : String
   path : String
@@ -957,6 +1925,7 @@ fn research_artifact_specs() -> Array[ResearchArtifactSpec] {
     { title: "Evidence matrix", path: "raw/bootstrap/evidence-matrix.md" },
     { title: "Local sources", path: "raw/bootstrap/local-sources.md" },
     { title: "Synthesis brief", path: "raw/bootstrap/synthesis-brief.md" },
+    { title: "Deep report", path: "raw/bootstrap/deep-report.md" },
   ]
 }
 
@@ -967,11 +1936,12 @@ fn markdown_excerpt(content : String, max_len : Int) -> String {
     let line = raw.trim().to_string()
     if line.is_empty() ||
       line.has_prefix("#") ||
+      line.has_prefix("|") ||
       line == "---" ||
       line.has_prefix("```") {
       continue
     }
-    parts.push(line)
+    parts.push(clean_report_text(line))
     if parts.join(" ").length() >= max_len {
       break
     }
@@ -980,60 +1950,19 @@ fn markdown_excerpt(content : String, max_len : Int) -> String {
   if joined.is_empty() {
     return "Artifact exists but does not yet contain a readable summary."
   }
-  if joined.length() > max_len {
-    joined[:max_len - 3].to_string() + "..."
-  } else {
-    joined
-  }
+  clamp_text(joined, max_len)
 }
 
 ///|
 fn marketing_projection_html(state : UiState, updated_note : String) -> String {
+  ignore(updated_note)
   let book_prefix = "../../"
-  let status_chips = state.status_chips
-    .map(fn(chip) {
-      "<span class=\"chip chip-\{chip.tone}\">\{escape_html(chip.label)}</span>"
-    })
-    .join("")
-  let metrics = state.metrics
-    .map(fn(metric) {
-      "<article class=\"metric-card metric-\{metric.tone}\">" +
-      "<span class=\"metric-label\">\{escape_html(metric.label)}</span>" +
-      "<strong>\{escape_html(metric.value)}</strong>" +
-      "<p>\{escape_html(metric.note)}</p>" +
-      "</article>"
-    })
-    .join("")
-  let advantages = marketing_advantage_cards()
-  let readiness = state.readiness
-    .map(fn(item) { marketing_panel_item(item) })
-    .join("")
-  let research_artifacts = state.research_artifacts
-    .map(fn(item) { marketing_panel_item(item) })
-    .join("")
-  let reviews = state.review_queue
-    .map(fn(item) { marketing_panel_item(item) })
-    .join("")
-  let keeper = state.keeper_items
-    .map(fn(item) { marketing_panel_item(item) })
-    .join("")
-  let families = state.page_families
-    .map(fn(item) { marketing_panel_item(item) })
-    .join("")
-  let chapters = state.chapters
-    .map(fn(item) {
-      "<a class=\"chapter-link\" href=\"\{book_prefix}\{escape_html(item.href)}\">" +
-      "<span class=\"chapter-number\">\{escape_html(item.number)}</span>" +
-      "<span class=\"chapter-copy\"><strong>\{escape_html(item.title)}</strong><small>\{escape_html(item.source_path)}</small></span>" +
-      "</a>"
-    })
-    .join("")
+  let marketing_sections = marketing_brief_sections_html(state.marketing_brief)
+  let hero_panels = marketing_hero_panels_html(state.marketing_brief)
+  let research_article = research_article_projection_html(state)
+  let product_story = escape_html(state.marketing_brief.lede)
   let project_title = escape_html(state.title)
-  let project_summary = escape_html(state.summary)
-  let synthesis_preview = escape_html(state.synthesis_preview)
-  let research_brief = escape_html(state.research_brief)
-  let update_note_html = escape_html(updated_note)
-  let hero_headline = escape_html(marketing_hero_headline(state))
+  let hero_headline = escape_html(state.marketing_brief.headline)
   "<!doctype html>\n" +
   "<html lang=\"en\">\n" +
   "<head>\n" +
@@ -1044,6 +1973,7 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   "  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n" +
   "  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n" +
   "  <link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n" +
+  "  <script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>\n" +
   "  <link rel=\"stylesheet\" href=\"./styles.css\">\n" +
   "</head>\n" +
   "<body data-page=\"marketing\">\n" +
@@ -1053,85 +1983,44 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   "    <nav class=\"nav\">\n" +
   "      <a href=\"\{book_prefix}Home.html\">Wiki</a>\n" +
   "      <a href=\"\{book_prefix}index.html\">Book</a>\n" +
-  "      <a href=\"./skills.html\">Skills</a>\n" +
-  "      <a href=\"#state\">State</a>\n" +
   "      <a href=\"#research\">Research</a>\n" +
-  "      <a href=\"#depth\">Depth</a>\n" +
+  "      <a href=\"#features\">Story</a>\n" +
+  "      <a href=\"#conversion\">Depth</a>\n" +
+  "      <a href=\"./skills.html\">Skills</a>\n" +
   "    </nav>\n" +
   "  </header>\n" +
   "  <main class=\"page-shell\">\n" +
   "    <section class=\"hero reveal\">\n" +
   "      <div class=\"hero-copy\">\n" +
-  "        <p class=\"eyebrow\">Live marketing projection</p>\n" +
+  "        <p class=\"eyebrow\">Product website</p>\n" +
   "        <h1>\{hero_headline}</h1>\n" +
-  "        <p class=\"lede\">\{project_summary}</p>\n" +
+  "        <p class=\"lede\">\{product_story}</p>\n" +
   "        <div class=\"hero-actions\">\n" +
-  "          <a class=\"button button-primary\" href=\"\{book_prefix}Home.html\">Open detailed wiki</a>\n" +
-  "          <a class=\"button button-secondary\" href=\"\{book_prefix}index.html\">Open book</a>\n" +
-  "          <a class=\"button button-secondary\" href=\"./journal.html\">Open journal view</a>\n" +
-  "          <a class=\"button button-secondary\" href=\"./skills.html\">Open skills view</a>\n" +
+  "          <a class=\"button button-primary\" href=\"#features\">See the product</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"\{book_prefix}Home.html\">Explore the wiki</a>\n" +
+  "          <a class=\"button button-secondary\" href=\"./journal.html\">View progress</a>\n" +
   "        </div>\n" +
-  "        <div class=\"chip-row\">\{status_chips}</div>\n" +
   "      </div>\n" +
   "      <div class=\"hero-stage tilt\">\n" +
-  "        <div class=\"panel-block\">\n" +
-  "          <span class=\"panel-label\">positioning</span>\n" +
-  "          <p>The wiki stays detailed and evidence-oriented. This surface stays horizontal: it explains the structural advantage of durable knowledge, multiple projections, and extension-friendly boundaries.</p>\n" +
-  "        </div>\n" +
-  "        <div class=\"panel-block panel-block-dark\">\n" +
-  "          <span class=\"panel-label\">last update</span>\n" +
-  "          <pre><code>\{update_note_html}</code></pre>\n" +
-  "        </div>\n" +
+  "        \{hero_panels}\n" +
   "      </div>\n" +
   "    </section>\n" +
-  "    <section class=\"section reveal\" id=\"state\">\n" +
+  research_article +
+  "    <section class=\"section reveal\" id=\"features\">\n" +
   "      <div class=\"section-heading\">\n" +
-  "        <p class=\"eyebrow\">Product edge</p>\n" +
-  "        <h2>Anchor the pitch in the current workspace state.</h2>\n" +
+  "        <p class=\"eyebrow\">Product story</p>\n" +
+  "        <h2>What the product offers, who it helps, and where readers should go next.</h2>\n" +
   "      </div>\n" +
-  "      <div class=\"metric-grid\">\{metrics}</div>\n" +
+  "      <div class=\"workflow-grid\">\{marketing_sections}</div>\n" +
   "    </section>\n" +
-  "    <section class=\"section reveal\">\n" +
-  "      <div class=\"section-heading narrow\">\n" +
-  "        <p class=\"eyebrow\">Advantages</p>\n" +
-  "        <h2>Explain why this shape is stronger than shallow or tightly coupled alternatives.</h2>\n" +
-  "      </div>\n" +
-  "      <div class=\"workflow-grid\">\{advantages}</div>\n" +
-  "    </section>\n" +
-  "    <section class=\"section reveal\">\n" +
+  "    <section class=\"section reveal\" id=\"conversion\">\n" +
   "      <div class=\"section-heading\">\n" +
-  "        <p class=\"eyebrow\">Readiness</p>\n" +
-  "        <h2>Show whether the book can actually support synthesis.</h2>\n" +
+  "        <p class=\"eyebrow\">Conversion path</p>\n" +
+  "        <h2>Start with the product page, then open the surfaces that prove depth.</h2>\n" +
   "      </div>\n" +
-  "      <div class=\"readiness-grid\">\{readiness}</div>\n" +
-  "    </section>\n" +
-  "    <section class=\"section reveal\" id=\"research\">\n" +
-  "      <div class=\"section-heading\">\n" +
-  "        <p class=\"eyebrow\">Research trail</p>\n" +
-  "        <h2>Show the question, search, screening, evidence, and synthesis before the pitch.</h2>\n" +
-  "      </div>\n" +
-  "      <div class=\"readiness-grid\">\{research_artifacts}</div>\n" +
-  "      <div class=\"depth-card research-brief-card\"><h3>Synthesis brief</h3><pre class=\"preview-block\"><code>\{research_brief}</code></pre></div>\n" +
-  "    </section>\n" +
-  "    <section class=\"section reveal\">\n" +
-  "      <div class=\"section-heading\">\n" +
-  "        <p class=\"eyebrow\">Pressure points</p>\n" +
-  "        <h2>Review, keeper memory, and coverage stay visible.</h2>\n" +
-  "      </div>\n" +
-  "      <div class=\"triple-grid\">\n" +
-  "        <div class=\"panel-shell\"><h3>Review queue</h3>\{reviews}</div>\n" +
-  "        <div class=\"panel-shell\"><h3>Keeper memory</h3>\{keeper}</div>\n" +
-  "        <div class=\"panel-shell\"><h3>Knowledge surfaces</h3>\{families}</div>\n" +
-  "      </div>\n" +
-  "    </section>\n" +
-  "    <section class=\"section reveal\" id=\"depth\">\n" +
-  "      <div class=\"section-heading\">\n" +
-  "        <p class=\"eyebrow\">Depth links</p>\n" +
-  "        <h2>Use the projection as the front door, then drop into maintained pages.</h2>\n" +
-  "      </div>\n" +
-  "      <div class=\"depth-grid\">\n" +
-  "        <div class=\"depth-card\"><h3>Chapters</h3><div class=\"chapter-stack\">\{chapters}</div></div>\n" +
-  "        <div class=\"depth-card\"><h3>Synthesis preview</h3><pre class=\"preview-block\"><code>\{synthesis_preview}</code></pre></div>\n" +
+  "      <div class=\"depth-grid product-depth-grid\">\n" +
+  "        <div class=\"depth-card\"><h3>For readers who want proof</h3><p>Keep the sales page focused, then route serious readers to the detailed wiki and structured book when they want substance.</p><div class=\"hero-actions stacked\"><a class=\"button button-secondary\" href=\"\{book_prefix}Home.html\">Open wiki</a><a class=\"button button-secondary\" href=\"\{book_prefix}index.html\">Open book</a></div></div>\n" +
+  "        <div class=\"depth-card\"><h3>For teams who operate it</h3><p>The journal, course, and skill manager stay one click away without crowding the product story.</p><div class=\"hero-actions stacked\"><a class=\"button button-secondary\" href=\"./journal.html\">Journal</a><a class=\"button button-secondary\" href=\"./course.html\">Course</a><a class=\"button button-secondary\" href=\"./skills.html\">Skills</a></div></div>\n" +
   "      </div>\n" +
   "    </section>\n" +
   "  </main>\n" +
@@ -1163,53 +2052,310 @@ fn marketing_journey_item(item : UiJourneyItem) -> String {
 }
 
 ///|
-fn marketing_advantage_cards() -> String {
-  [
-    marketing_workflow_card(
-      "Durable knowledge instead of disposable answers", "The system accumulates maintained pages, so each new task starts from revised state rather than rediscovering raw fragments.",
-      "durable",
-    ),
-    marketing_workflow_card(
-      "One workspace, multiple surfaces", "Detailed wiki, static book, marketing site, and journal view all derive from the same local workspace instead of drifting apart.",
-      "multi-surface",
-    ),
-    marketing_workflow_card(
-      "Extension-friendly, not runtime-locked", "MoonBook remains a useful standalone wiki while still exposing clear seams for worker and town runtimes to plug in.",
-      "open-boundary",
-    ),
-    marketing_workflow_card(
-      "Operational truth stays visible", "Coverage readiness, review pressure, evidence, and Keeper memory remain inspectable, so the product story stays grounded.",
-      "observable",
-    ),
-  ].join("")
+fn marketing_brief_sections_html(brief : UiMarketingBrief) -> String {
+  let cards : Array[String] = []
+  for section in brief.sections {
+    if !section.title.trim().is_empty() &&
+      (!section.body.trim().is_empty() || !section.bullets.is_empty()) {
+      cards.push(marketing_brief_section_card(section))
+    }
+  }
+  if cards.is_empty() {
+    "<article class=\"workflow-card marketing-card\"><span class=\"workflow-status status-needed\">brief needed</span><h3>Marketing brief needs content</h3><p>Generate `raw/bootstrap/marketing-brief.md` from `skills/wiki-marketing/SKILL.md` so this page can present real buyer-facing positioning.</p></article>"
+  } else {
+    cards.join("")
+  }
 }
 
 ///|
-fn marketing_workflow_card(
-  title : String,
-  detail : String,
-  status : String,
+fn marketing_hero_panels_html(brief : UiMarketingBrief) -> String {
+  let first = brief.sections.get(0)
+  let second = brief.sections.get(1)
+  let first_panel = match first {
+    Some(section) => marketing_hero_panel("product focus", section, false)
+    None =>
+      "<div class=\"panel-block\"><span class=\"panel-label\">product focus</span><p>\{escape_html(brief.lede)}</p></div>"
+  }
+  let second_panel = match second {
+    Some(section) => marketing_hero_panel("reader value", section, true)
+    None =>
+      "<div class=\"panel-block panel-block-dark\"><span class=\"panel-label\">reader value</span><p>Open the deeper surfaces when you need proof, docs, timeline, or repeatable procedures.</p></div>"
+  }
+  first_panel + second_panel
+}
+
+///|
+fn marketing_hero_panel(
+  label : String,
+  section : UiMarketingSection,
+  dark : Bool,
 ) -> String {
-  "<article class=\"workflow-card\">" +
-  "<span class=\"workflow-status status-\{escape_html(status)}\">\{escape_html(status)}</span>" +
-  "<h3>\{escape_html(title)}</h3>" +
-  "<p>\{escape_html(detail)}</p>" +
+  let block_class = if dark {
+    "panel-block panel-block-dark"
+  } else {
+    "panel-block"
+  }
+  let bullets = if section.bullets.is_empty() {
+    ""
+  } else {
+    let take_count = if section.bullets.length() < 3 {
+      section.bullets.length()
+    } else {
+      3
+    }
+    let visible : Array[String] = []
+    for index in 0..<take_count {
+      visible.push(section.bullets[index])
+    }
+    "<ul class=\"hero-panel-list\">" +
+    visible.map(fn(item) { "<li>\{escape_html(item)}</li>" }).join("") +
+    "</ul>"
+  }
+  "<div class=\"\{block_class}\">" +
+  "<span class=\"panel-label\">\{escape_html(label)}</span>" +
+  "<h3>\{escape_html(section.title)}</h3>" +
+  (if section.body.trim().is_empty() {
+    ""
+  } else {
+    "<p>\{escape_html(section.body)}</p>"
+  }) +
+  bullets +
+  "</div>"
+}
+
+///|
+fn marketing_brief_section_card(section : UiMarketingSection) -> String {
+  let body = section.body.trim().to_string()
+  let bullets = if section.bullets.is_empty() {
+    ""
+  } else {
+    "<ul>" +
+    section.bullets.map(fn(item) { "<li>\{escape_html(item)}</li>" }).join("") +
+    "</ul>"
+  }
+  "<article class=\"workflow-card marketing-card\">" +
+  "<span class=\"workflow-status status-active\">highlight</span>" +
+  "<h3>\{escape_html(section.title)}</h3>" +
+  (if body.is_empty() { "" } else { "<p>\{escape_html(body)}</p>" }) +
+  bullets +
   "</article>"
 }
 
 ///|
-fn marketing_hero_headline(state : UiState) -> String {
-  if state.summary.contains("Bootstrap incomplete for ") {
-    let first = match state.summary.find(".") {
-      Some(index) => state.summary[:index].to_string()
-      None => state.summary
+fn research_article_projection_html(state : UiState) -> String {
+  if !state.research_long_report.trim().is_empty() {
+    "<section class=\"section reveal\" id=\"research\">" +
+    "<div class=\"section-heading\">" +
+    "<p class=\"eyebrow\">Deep research</p>" +
+    "<h2>The generated site should present the knowledge, not only the product shell.</h2>" +
+    "</div>" +
+    "<div class=\"article-layout\">" +
+    report_toc_html(state.research_long_report) +
+    "<article class=\"long-report article-report\">" +
+    markdown_report_html(state.research_long_report) +
+    "</article>" +
+    "</div>" +
+    "</section>"
+  } else {
+    let cards = state.research_report
+      .map(fn(section) { research_report_card_html(section) })
+      .join("")
+    "<section class=\"section reveal\" id=\"research\">" +
+    "<div class=\"section-heading\">" +
+    "<p class=\"eyebrow\">Research readiness</p>" +
+    "<h2>The article view needs `raw/bootstrap/deep-report.md` before it can match a deep-research page.</h2>" +
+    "</div>" +
+    "<div class=\"report-grid\">\{cards}</div>" +
+    "</section>"
+  }
+}
+
+///|
+fn research_report_card_html(section : UiResearchReportSection) -> String {
+  "<article class=\"report-card\">" +
+  "<div class=\"report-card-head\"><span class=\"workflow-status status-needed\">research</span><h3>\{escape_html(section.title)}</h3></div>" +
+  "<p>\{escape_html(section.detail)}</p>" +
+  (if section.evidence.trim().is_empty() {
+    ""
+  } else {
+    "<div class=\"report-evidence\">\{escape_html(section.evidence)}</div>"
+  }) +
+  "</article>"
+}
+
+///|
+fn markdown_report_html(markdown : String) -> String {
+  let lines = markdown.split("\n").to_array()
+  let html : Array[String] = []
+  let mut index = 0
+  let mut heading_index = 0
+  let mut in_list = false
+  while index < lines.length() {
+    let line = lines[index].trim().to_string()
+    if line.is_empty() {
+      if in_list {
+        html.push("</ul>")
+        in_list = false
+      }
+      index += 1
+      continue
     }
-    return first + "."
+    if line.has_prefix("```mermaid") {
+      if in_list {
+        html.push("</ul>")
+        in_list = false
+      }
+      let code : Array[String] = []
+      index += 1
+      while index < lines.length() && !lines[index].trim().has_prefix("```") {
+        code.push(lines[index].to_string())
+        index += 1
+      }
+      let rendered_code = escape_html(code.join("\n"))
+      html.push("<div class=\"mermaid report-mermaid\">\{rendered_code}</div>")
+      index += 1
+      continue
+    }
+    if line.has_prefix("```") {
+      if in_list {
+        html.push("</ul>")
+        in_list = false
+      }
+      let code : Array[String] = []
+      index += 1
+      while index < lines.length() && !lines[index].trim().has_prefix("```") {
+        code.push(lines[index].to_string())
+        index += 1
+      }
+      let rendered_code = escape_html(code.join("\n"))
+      html.push(
+        "<pre class=\"report-code\"><code>\{rendered_code}</code></pre>",
+      )
+      index += 1
+      continue
+    }
+    if line.has_prefix("|") {
+      if in_list {
+        html.push("</ul>")
+        in_list = false
+      }
+      let table_lines : Array[String] = []
+      while index < lines.length() && lines[index].trim().has_prefix("|") {
+        table_lines.push(lines[index].trim().to_string())
+        index += 1
+      }
+      html.push(markdown_table_html(table_lines))
+      continue
+    }
+    if line.has_prefix("- ") {
+      if !in_list {
+        html.push("<ul>")
+        in_list = true
+      }
+      html.push("<li>\{inline_markdown_html(line[2:].trim().to_string())}</li>")
+      index += 1
+      continue
+    }
+    if in_list {
+      html.push("</ul>")
+      in_list = false
+    }
+    if line.has_prefix("# ") {
+      heading_index += 1
+      html.push(
+        "<h2 id=\"report-sec-\{heading_index}\">\{inline_markdown_html(line[2:].trim().to_string())}</h2>",
+      )
+    } else if line.has_prefix("## ") {
+      heading_index += 1
+      html.push(
+        "<h3 id=\"report-sec-\{heading_index}\">\{inline_markdown_html(line[3:].trim().to_string())}</h3>",
+      )
+    } else if line.has_prefix("### ") {
+      html.push("<h4>\{inline_markdown_html(line[4:].trim().to_string())}</h4>")
+    } else {
+      html.push("<p>\{inline_markdown_html(line)}</p>")
+    }
+    index += 1
   }
-  if state.summary.contains("ontology coverage is still missing") {
-    return "\{state.title} has source material, but ontology coverage is still incomplete."
+  if in_list {
+    html.push("</ul>")
   }
-  "\{state.title} is a maintained workspace, not a static note dump."
+  html.join("")
+}
+
+///|
+fn report_toc_html(markdown : String) -> String {
+  let links : Array[String] = []
+  let mut heading_index = 0
+  for raw in markdown.split("\n") {
+    let line = raw.trim().to_string()
+    if line.has_prefix("# ") || line.has_prefix("## ") {
+      heading_index += 1
+      let title = if line.has_prefix("## ") {
+        line[3:].trim().to_string()
+      } else {
+        line[2:].trim().to_string()
+      }
+      if !title.is_empty() && links.length() < 14 {
+        links.push(
+          "<a href=\"#report-sec-\{heading_index}\">\{inline_markdown_html(title)}</a>",
+        )
+      }
+    }
+  }
+  if links.is_empty() {
+    ""
+  } else {
+    let body = links.join("")
+    "<aside class=\"article-toc\"><p class=\"eyebrow\">Contents</p>\{body}</aside>"
+  }
+}
+
+///|
+fn markdown_table_html(lines : Array[String]) -> String {
+  let rows : Array[String] = []
+  let mut is_head = true
+  for raw in lines {
+    if raw.contains("---") {
+      continue
+    }
+    let cells = raw
+      .split("|")
+      .map(fn(part) { part.trim().to_string() })
+      .to_array()
+    let visible : Array[String] = []
+    for cell in cells {
+      if !cell.is_empty() {
+        visible.push(cell)
+      }
+    }
+    if visible.is_empty() {
+      continue
+    }
+    let tag = if is_head { "th" } else { "td" }
+    rows.push(
+      "<tr>" +
+      visible
+      .map(fn(cell) { "<\{tag}>\{inline_markdown_html(cell)}</\{tag}>" })
+      .join("") +
+      "</tr>",
+    )
+    is_head = false
+  }
+  if rows.is_empty() {
+    ""
+  } else {
+    let body = rows.join("")
+    "<div class=\"report-table-wrap\"><table class=\"report-table\">\{body}</table></div>"
+  }
+}
+
+///|
+fn inline_markdown_html(text : String) -> String {
+  escape_html(text)
+  .replace_all(old="**", new="")
+  .replace_all(old="`", new="")
+  .to_string()
 }
 
 ///|
@@ -1913,6 +3059,7 @@ fn marketing_projection_styles() -> String {
   "h3 { font-size: 1.12rem; }\n" +
   ".lede { margin: 1.3rem 0 0; max-width: 39rem; font-size: 1.07rem; line-height: 1.72; color: var(--muted); }\n" +
   ".hero-actions { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 1.6rem; }\n" +
+  ".hero-actions.stacked { align-items: flex-start; flex-direction: column; }\n" +
   ".button { display: inline-flex; align-items: center; justify-content: center; min-height: 3.15rem; padding: 0.85rem 1.2rem; border-radius: 999px; border: 1px solid transparent; font-weight: 700; }\n" +
   ".button-primary { color: #fff8ef; background: linear-gradient(135deg, var(--forest), #245b4d); box-shadow: 0 18px 36px rgba(23, 60, 52, 0.24); }\n" +
   ".button-secondary { border-color: var(--line); background: rgba(255, 255, 255, 0.56); }\n" +
@@ -1921,31 +3068,62 @@ fn marketing_projection_styles() -> String {
   ".chip-healthy { color: #1b6b4f; }\n" +
   ".chip-alert { color: #9a3e1f; }\n" +
   ".chip-review { color: #8b5b00; }\n" +
-  ".hero-stage, .metric-card, .workflow-card, .panel-shell, .depth-card { border: 1px solid var(--line); box-shadow: var(--shadow); }\n" +
+  ".hero-stage, .metric-card, .workflow-card, .panel-shell, .depth-card, .report-card, .long-report { border: 1px solid var(--line); box-shadow: var(--shadow); }\n" +
   ".hero-stage { display: grid; gap: 1rem; padding: 1.15rem; border-radius: 1.95rem; background: linear-gradient(180deg, rgba(255, 252, 246, 0.86), rgba(242, 228, 202, 0.74)); }\n" +
-  ".panel-block, .metric-card, .workflow-card, .panel-shell, .depth-card, .panel-item { border-radius: 1.35rem; background: rgba(255,255,255,0.58); }\n" +
+  ".panel-block, .metric-card, .workflow-card, .panel-shell, .depth-card, .panel-item, .report-card, .long-report { border-radius: 1.35rem; background: rgba(255,255,255,0.58); }\n" +
   ".panel-block { padding: 1rem; }\n" +
   ".panel-block-dark { background: var(--forest-deep); color: #edf5f0; }\n" +
   ".panel-label { display: inline-block; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }\n" +
   ".panel-block-dark .panel-label { color: rgba(237, 245, 240, 0.74); }\n" +
+  ".hero-panel-list { margin: 0.85rem 0 0; padding-left: 1.1rem; color: var(--muted); line-height: 1.65; }\n" +
+  ".panel-block-dark .hero-panel-list, .panel-block-dark p { color: rgba(237, 245, 240, 0.78); }\n" +
   "pre { overflow: auto; margin: 0.9rem 0 0; padding: 1rem; border-radius: 1rem; background: var(--forest-deep); color: #eff7f2; }\n" +
   ".section { padding: 4rem 0 0; }\n" +
   ".section-heading { display: flex; flex-direction: column; gap: 0.7rem; max-width: 48rem; }\n" +
   ".section-heading.narrow { max-width: 39rem; }\n" +
-  ".metric-grid, .workflow-grid, .triple-grid, .depth-grid { display: grid; gap: 1rem; margin-top: 1.7rem; }\n" +
+  ".metric-grid, .workflow-grid, .triple-grid, .depth-grid, .report-grid { display: grid; gap: 1rem; margin-top: 1.7rem; }\n" +
   ".metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }\n" +
   ".workflow-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }\n" +
   ".journey-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.7rem; }\n" +
   ".readiness-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1.7rem; }\n" +
   ".triple-grid, .depth-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }\n" +
-  ".metric-card, .workflow-card, .panel-shell, .depth-card { padding: 1.3rem; }\n" +
+  ".report-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }\n" +
+  ".article-layout { display: grid; grid-template-columns: 16rem minmax(0, 1fr); gap: 1.2rem; align-items: start; margin-top: 1.7rem; }\n" +
+  ".article-toc { position: sticky; top: 5.4rem; display: grid; gap: .35rem; padding: 1rem; border: 1px solid var(--line); border-radius: 1.2rem; background: rgba(255,255,255,.68); box-shadow: var(--shadow); }\n" +
+  ".article-toc a { display: block; padding: .55rem .65rem; border-radius: .8rem; color: var(--muted); font-size: .9rem; line-height: 1.35; }\n" +
+  ".article-toc a:hover, .article-toc a:focus-visible { color: var(--ink); background: rgba(23,60,52,.08); outline: none; }\n" +
+  ".long-report { margin-top: 1.5rem; padding: 1.55rem; background: rgba(255,255,255,.74); }\n" +
+  ".article-layout .long-report { margin-top: 0; }\n" +
+  ".long-report h2 { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(2rem, 4vw, 3.3rem); line-height: .98; margin: .1rem 0 1rem; }\n" +
+  ".long-report h3 { margin: 1.35rem 0 .55rem; font-size: 1.12rem; letter-spacing: -.01em; }\n" +
+  ".long-report h4 { margin: 1rem 0 .4rem; color: var(--forest); }\n" +
+  ".long-report p, .long-report li { color: var(--muted); font-size: .98rem; line-height: 1.75; }\n" +
+  ".long-report ul { margin: .6rem 0 .75rem 1.2rem; padding: 0; }\n" +
+  ".long-report .mermaid, .report-code { overflow-x: auto; margin: 1rem 0; padding: 1rem; border-radius: 1rem; border: 1px solid var(--line); background: rgba(23,60,52,.07); color: var(--ink); font-size: .88rem; line-height: 1.55; }\n" +
+  ".report-mermaid { min-height: 14rem; display: grid; place-items: center; }\n" +
+  ".report-table-wrap { overflow-x: auto; margin: 1rem 0; border-radius: 1rem; border: 1px solid var(--line); }\n" +
+  ".report-table { width: 100%; border-collapse: collapse; min-width: 36rem; background: rgba(255,255,255,.64); }\n" +
+  ".report-table th, .report-table td { padding: .7rem .8rem; text-align: left; border-bottom: 1px solid var(--line); color: var(--muted); font-size: .9rem; vertical-align: top; }\n" +
+  ".report-table th { color: var(--ink); background: rgba(23,60,52,.08); }\n" +
+  ".metric-card, .workflow-card, .panel-shell, .depth-card, .report-card { padding: 1.3rem; }\n" +
+  ".report-card { display: flex; flex-direction: column; gap: 1rem; min-height: 17rem; }\n" +
+  ".report-card-head { display: flex; flex-direction: column; gap: 0.45rem; }\n" +
+  ".report-card p { margin: 0; color: var(--muted); line-height: 1.75; }\n" +
+  ".report-evidence { margin-top: auto; color: var(--forest); font-weight: 700; line-height: 1.55; }\n" +
+  ".architecture-map { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; gap: 0.5rem; align-items: center; padding: 0.85rem; border-radius: 1rem; background: rgba(23, 60, 52, 0.07); }\n" +
+  ".architecture-map span { display: block; padding: 0.65rem; border-radius: 0.8rem; background: rgba(255,255,255,0.72); font-weight: 700; text-align: center; }\n" +
+  ".architecture-map small { color: var(--muted); font-weight: 500; }\n" +
   ".metric-card strong { display: block; margin-top: 0.4rem; font-size: 2rem; line-height: 1; }\n" +
   ".metric-label, .workflow-status { display: inline-block; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }\n" +
   ".workflow-status { margin-bottom: 0.7rem; }\n" +
   ".status-active, .status-stable, .status-durable, .status-multi-surface, .status-open-boundary, .status-observable { color: #1b6b4f; }\n" +
   ".status-expanded, .status-crowded, .status-needed, .status-blocked { color: #9a3e1f; }\n" +
   ".metric-card p, .workflow-card p, .panel-item p, .panel-item small, .panel-block p { color: var(--muted); line-height: 1.66; }\n" +
+  ".marketing-card ul { margin: 1rem 0 0; padding-left: 1.15rem; color: var(--muted); line-height: 1.7; }\n" +
   ".panel-item { padding: 1rem; margin-top: 0.9rem; border: 1px solid rgba(16, 33, 29, 0.08); }\n" +
+  ".surface-card { display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0; }\n" +
+  ".surface-card a { margin-top: auto; color: var(--forest); font-weight: 700; }\n" +
+  ".product-depth-grid .depth-card p { color: var(--muted); line-height: 1.7; }\n" +
   ".journey-card { padding: 1.2rem; border-radius: 1.35rem; border: 1px solid rgba(16, 33, 29, 0.08); background: rgba(255,255,255,0.62); box-shadow: var(--shadow); }\n" +
   ".journey-card ul { margin: 0.9rem 0 0; padding-left: 1.1rem; color: var(--muted); }\n" +
   ".translation-list { margin: 0; padding-left: 1.1rem; color: var(--muted); line-height: 1.7; }\n" +
@@ -1997,7 +3175,9 @@ fn marketing_projection_styles() -> String {
   ".reveal { opacity: 0; transform: translateY(18px); transition: opacity 560ms ease, transform 560ms ease; }\n" +
   ".reveal.is-visible { opacity: 1; transform: translateY(0); }\n" +
   "@media (max-width: 980px) {\n" +
-  "  .hero, .metric-grid, .workflow-grid, .journey-grid, .readiness-grid, .triple-grid, .depth-grid, .skill-explorer, .skill-detail-grid, .skill-diagnostics-grid, .skill-action-grid, .skill-compare-grid, .skill-compare-excerpts { grid-template-columns: 1fr; }\n" +
+  "  .hero, .metric-grid, .workflow-grid, .journey-grid, .readiness-grid, .triple-grid, .depth-grid, .report-grid, .article-layout, .skill-explorer, .skill-detail-grid, .skill-diagnostics-grid, .skill-action-grid, .skill-compare-grid, .skill-compare-excerpts { grid-template-columns: 1fr; }\n" +
+  "  .article-toc { position: static; }\n" +
+  "  .architecture-map { grid-template-columns: 1fr; }\n" +
   "  .page-shell { width: min(100% - 1.4rem, 1200px); }\n" +
   "}\n" +
   "@media (max-width: 640px) {\n" +
@@ -2013,6 +3193,9 @@ fn marketing_projection_styles() -> String {
 
 ///|
 fn marketing_projection_script() -> String {
+  "if (window.mermaid) {\n" +
+  "  window.mermaid.initialize({ startOnLoad: true, theme: 'base', flowchart: { useMaxWidth: true, htmlLabels: true } });\n" +
+  "}\n" +
   "const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;\n" +
   "const revealNodes = document.querySelectorAll('.reveal');\n" +
   "if (!reduceMotion && 'IntersectionObserver' in window) {\n" +
@@ -2284,6 +3467,22 @@ test "summary link parts parse markdown bullets" {
 async test "write marketing projection emits generated site bundle" {
   let root = "/tmp/moonbook-marketing-projection"
   ignore(init_workspace(root))
+  let brief_path = @path.Path(root)
+    .join(@path.Path("raw/bootstrap/marketing-brief.md"))
+    .to_string()
+  @fsx.write_to_file(
+    brief_path,
+    "# Sell the Workspace That Keeps Learning\n\nA product-facing front door for teams that want polished presentation and maintained knowledge in the same local project.\n\n## The Problem\n\nTeams need a clean story first and deeper proof later.\n\n- launch pages drift away from the docs\n- product proof gets buried in internal notes\n\n## The Product\n\nMoonBook turns maintained wiki state into a polished product website.\n\n- polished product website\n- detailed wiki behind the pitch\n- repeatable skill-driven publishing\n\n## Why It Wins\n\nThe pitch and the evidence live in the same workspace.\n\n- skill-driven publishing\n- durable wiki behind the site\n",
+    create=0o644,
+  )
+  let deep_report_path = @path.Path(root)
+    .join(@path.Path("raw/bootstrap/deep-report.md"))
+    .to_string()
+  @fsx.write_to_file(
+    deep_report_path,
+    "# MoonBook: Deep Research Analysis\n\n## Executive Summary\n\nMoonBook should present sourced research artifacts before marketing claims.\n\n## Architecture\n\n| Layer | Role |\n| --- | --- |\n| Book | Maintained memory and projection surface |\n\n```mermaid\nflowchart LR\nRaw[Raw packets] --> Wiki[Durable wiki]\nWiki --> Site[Generated site]\n```\n",
+    create=0o644,
+  )
   let site_root = @path.Path(root).join(@path.Path("book/site")).to_string()
   let index_path = write_marketing_projection(root, site_root)
   let generated_dir = @path.Path(site_root)
@@ -2353,17 +3552,41 @@ async test "write marketing projection emits generated site bundle" {
       .to_string(),
     ),
   )
-  assert_true(@fsx.read_file(index_path).contains("Live marketing projection"))
-  assert_true(@fsx.read_file(index_path).contains("Research trail"))
+  assert_true(@fsx.read_file(index_path).contains("Product website"))
+  assert_true(
+    @fsx.read_file(index_path).contains(
+      "Sell the Workspace That Keeps Learning",
+    ),
+  )
+  assert_true(@fsx.read_file(index_path).contains("The Problem"))
+  assert_true(@fsx.read_file(index_path).contains("The Product"))
+  assert_true(@fsx.read_file(index_path).contains("polished product website"))
+  assert_true(@fsx.read_file(index_path).contains("Deep research"))
+  assert_true(@fsx.read_file(index_path).contains("article-toc"))
+  assert_true(
+    @fsx.read_file(index_path).contains("MoonBook: Deep Research Analysis"),
+  )
+  assert_true(@fsx.read_file(index_path).contains("report-table"))
+  assert_true(@fsx.read_file(index_path).contains("report-mermaid"))
+  assert_true(
+    !@fsx.read_file(index_path).contains("raw/bootstrap/marketing-brief.md"),
+  )
+  assert_true(!@fsx.read_file(index_path).contains("Research trail"))
+  assert_true(!@fsx.read_file(index_path).contains("Live product signals"))
+  assert_true(!@fsx.read_file(index_path).contains("Coverage Readiness"))
+  assert_true(!@fsx.read_file(index_path).contains("critical"))
+  assert_true(!@fsx.read_file(index_path).contains("no verified sources"))
+  assert_true(!@fsx.read_file(index_path).contains("Skill-authored"))
+  assert_true(!@fsx.read_file(index_path).contains("Claims Register"))
+  assert_true(!@fsx.read_file(index_path).contains("Maintenance Plan"))
+  assert_true(
+    !@fsx.read_file(index_path).contains("Marketing page out of the box"),
+  )
   assert_true(@fsx.read_file(skills_index_path).contains("Skill manager"))
   assert_true(
     @fsx.read_file(skills_state_path).contains("\"skill_diagnostics\""),
   )
-  assert_true(
-    @fsx.read_file(index_path).contains(
-      "missing: raw/bootstrap/research-question.md",
-    ),
-  )
+  assert_true(!@fsx.read_file(index_path).contains("missing: raw/bootstrap"))
 }
 
 ///|
@@ -2403,8 +3626,24 @@ async test "ui state projects research artifacts and synthesis brief" {
     "# Synthesis Brief\n\nFinding: MoonBook should present sourced research artifacts before marketing claims.\n",
     create=0o644,
   )
+  @fsx.write_to_file(
+    @path.Path(root)
+    .join(@path.Path("raw/bootstrap/evidence-matrix.md"))
+    .to_string(),
+    "# Evidence Matrix\n\n| Source ID | Evidence | Locator | Confidence | Notes |\n| --- | --- | --- | --- | --- |\n| L1 | preview=`MoonBook is a MoonBit rewrite of mdBook with wiki-maintainer projections.` | original=`README.md` | High | local README |\n| L2 | preview=`Architecture uses a keeper, skills, and generated site surfaces.` | original=`wiki/bookapi.mbt` | Medium | architecture row |\n",
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    @path.Path(root)
+    .join(@path.Path("raw/bootstrap/deep-report.md"))
+    .to_string(),
+    "# Deep Report\n\n## Executive Summary\n\nMoonBook should present sourced research artifacts before marketing claims [L1].\n",
+    create=0o644,
+  )
   let state = generate_ui_state(root)
-  assert_eq(state.research_artifacts.length(), 6)
+  assert_eq(state.research_artifacts.length(), 7)
+  assert_true(state.research_long_report.contains("Deep Report"))
+  assert_true(state.research_report.length() >= 8)
   assert_true(
     state.research_artifacts.any(fn(item) {
       item.meta == "raw/bootstrap/synthesis-brief.md" &&
@@ -2412,6 +3651,20 @@ async test "ui state projects research artifacts and synthesis brief" {
     }),
   )
   assert_true(state.research_brief.contains("Finding: MoonBook should present"))
+  assert_true(
+    state.research_report.any(fn(section) {
+      section.title == "Executive summary" &&
+      section.detail.contains("MoonBook should present")
+    }),
+  )
+  assert_true(
+    state.research_report.all(fn(section) {
+      !section.detail.contains("| Source ID")
+    }),
+  )
+  assert_true(
+    state.research_report.all(fn(section) { !section.detail.contains("alias=") }),
+  )
 }
 
 ///|

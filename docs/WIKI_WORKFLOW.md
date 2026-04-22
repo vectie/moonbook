@@ -48,6 +48,7 @@ This creates:
 - `keeper/WORKING.md`
 - `keeper/POLICY.md`
 - `keeper/INSIGHTS.md`
+- `skills/research-report/SKILL.md`
 
 ### 2. Enable Optional Runtime Pack
 
@@ -58,6 +59,25 @@ moon run cmd/main -- wiki book catalog ./research-wiki
 ```
 
 This is optional. It installs runtime-specific files without changing the core workspace contract.
+
+### Research Report Projection
+
+Research workspaces should keep raw gathering separate from presentation:
+
+- MoonClaw-style workers collect or write `raw/bootstrap/research-question.md`, `search-log.md`, `source-screen.md`, `local-sources.md`, `evidence-matrix.md`, `synthesis-brief.md`, `deep-report.md`, and `marketing-brief.md`.
+- MoonBook owns durable materialization into `wiki/sources/`, `wiki/entities/`, `wiki/concepts/`, and `wiki/synthesis/`.
+- The generated site uses `skills/research-report/SKILL.md` as the synthesis contract: reports should read as article-quality knowledge pages, cite source IDs, include a long-form `deep-report.md`, and avoid pasting raw evidence tables as prose.
+- If required artifacts are missing, the projection should stay diagnostic and explain the blocker instead of falling back to generic product copy.
+
+### Marketing Projection
+
+The generated marketing page is a thin renderer over a keeper-authored brief:
+
+- `skills/wiki-marketing/SKILL.md` defines real positioning work: buyer selection, pain, promise, differentiated strengths, proof, objections, and conversion copy.
+- The keeper should write `raw/bootstrap/marketing-brief.md` for draft output or `wiki/synthesis/marketing.md` for promoted positioning.
+- The generated page uses the first `#` heading as the hero headline, text before the first `##` as the lede, and each `##` section as a product card.
+- Renderer code should not contain the actual sales claims. Improve the skill and the brief when the product story is weak.
+- Operational state, evidence tables, review queues, and debug journals belong in the wiki/journal/course surfaces, not in the marketing page.
 
 ### 3. Ingest Sources
 
@@ -243,6 +263,7 @@ What it does well now:
 - synthesis-map maintenance for coverage and planning pressure
 - compact journey maintenance for operator-readable run history
 - raw research envelope materialization from worker artifacts into durable wiki state
+- generated report projection that presents synthesized research sections before showing process telemetry
 - static build/serve of the resulting wiki
 
 What is still missing:
