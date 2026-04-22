@@ -95,6 +95,9 @@ pub struct BookHealthReport {
   level : String
   summary : String
   source_page_count : Int
+  candidate_source_count : Int
+  provisional_source_count : Int
+  verified_source_count : Int
   entity_page_count : Int
   concept_page_count : Int
   query_note_count : Int
@@ -128,6 +131,9 @@ pub struct BookStateSummary {
   page_count : Int
   source_count : Int
   source_page_count : Int
+  candidate_source_count : Int
+  provisional_source_count : Int
+  verified_source_count : Int
   entity_count : Int
   entity_page_count : Int
   concept_count : Int
@@ -473,6 +479,8 @@ pub struct UiState {
   chapters : Array[UiChapterLink]
   skill_diagnostics : UiSkillDiagnostics
   skills : Array[UiSkillItem]
+  research_artifacts : Array[UiPanelItem]
+  research_brief : String
   synthesis_preview : String
 }
 pub impl Show for UiState

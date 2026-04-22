@@ -111,7 +111,140 @@ Required rules:
 - `summary` must describe the real work completed
 - `artifacts` must list concrete written paths
 - for bootstrap work, `artifacts` should include `raw/bootstrap/*`
-- for successful ingest, `artifacts` should include at least one substantive `wiki/*` page
+- MoonClaw should return raw research artifacts; MoonBook owns durable `wiki/*` materialization from those artifacts
+
+## Research artifact contract
+
+Research bootstrap is not complete until the workspace contains a visible research trail.
+This is stricter than a generic summary because later readers need to know what was searched,
+what was screened out, what evidence supports the synthesis, and what remains uncertain.
+
+For research-shaped bootstrap tasks, produce these files under `raw/bootstrap/`:
+
+- `research-question.md`
+- `search-log.md`
+- `source-screen.md`
+- `evidence-matrix.md`
+- `local-sources.md`
+- `synthesis-brief.md`
+
+If a file cannot be produced, still explain the blocker in the closest artifact you can write.
+For example, if web search is unavailable, write `search-log.md` with:
+
+- the intended query angles
+- the unavailable tool or permission
+- what local sources were used instead
+- what confidence penalty this creates
+
+### `research-question.md`
+
+This file states the exact research question before gathering starts.
+It should include:
+
+- the user's requested topic
+- the scope boundaries
+- the target audience
+- the claims that need verification
+- what output shape is expected
+
+Good:
+
+- "Research the relationship between Moontown, MoonBook, and MoonClaw as a product stack. Verify local repo claims against project files and public sources when available."
+
+Bad:
+
+- "Research MoonBook."
+
+### `search-log.md`
+
+This file records search behavior.
+It is not a final report.
+It should include:
+
+- each query angle attempted
+- whether the search was web, local repo, package registry, docs, or code search
+- the result count or qualitative result
+- sources followed
+- sources rejected as unrelated
+- tool availability notes
+
+Use multiple angles for public research:
+
+- project names together
+- each project name alone
+- organization or author names
+- package registry names
+- official docs
+- architecture and related terms
+- false-lead pruning, especially for ambiguous names
+
+### `source-screen.md`
+
+This file explains inclusion and exclusion.
+Each candidate source should be marked as:
+
+- `included`
+- `excluded`
+- `deferred`
+- `inaccessible`
+
+For each candidate include:
+
+- title or path
+- type: local repo, official docs, package registry, public page, generated artifact, user-provided source
+- reason
+- reliability notes
+- next action
+
+Candidate inventories are not verified source coverage.
+A candidate source page must not satisfy durable coverage unless the source was actually inspected.
+
+### `evidence-matrix.md`
+
+This file connects claims to evidence.
+Use a compact table with columns like:
+
+- claim or theme
+- source
+- evidence
+- support level
+- uncertainty
+- target wiki page
+
+Do not put unsupported product copy here.
+If the claim is an inference, label it as an inference.
+If sources disagree, record the contradiction instead of smoothing it away.
+
+### `local-sources.md`
+
+This file records local repository or filesystem inspection.
+Include:
+
+- paths inspected
+- high-signal files read
+- paths skipped
+- access failures
+- important excerpts summarized in your own words
+- target pages suggested by the local evidence
+
+Never promote `.gitkeep`, generated cache files, empty scaffolds, or pure config placeholders as substantive source material.
+
+### `synthesis-brief.md`
+
+This file is the final research brief for this bootstrap cycle.
+It should only make claims supported by `evidence-matrix.md` or inspected local sources.
+It should include:
+
+- executive answer
+- relationship-level synthesis
+- what is verified
+- what is provisional
+- contradictions or false leads
+- recommended durable wiki pages
+- recommended marketing projection angle, if relevant
+
+This is the artifact the generated site should project first.
+If it is missing, the site should remain diagnostic.
 
 ## Phase contract
 
@@ -134,6 +267,10 @@ Inputs:
 Outputs:
 
 - `raw/bootstrap/<slug>.md`
+- `raw/bootstrap/research-question.md`
+- `raw/bootstrap/search-log.md`
+- `raw/bootstrap/source-screen.md`
+- `raw/bootstrap/local-sources.md`
 - a short list of candidate source pages
 - a short list of candidate entities and concepts
 - explicit missing-material notes if the source is too weak
@@ -155,9 +292,9 @@ Blocker looks like:
 
 Goal:
 
-- convert gathered raw packets into durable source pages
+- prepare gathered raw packets for MoonBook-owned durable source-page materialization
 - preserve provenance and evidence
-- make the source page easy for later synthesis to cite
+- make the evidence envelope easy for MoonBook to cite and promote
 
 Inputs:
 
@@ -167,32 +304,33 @@ Inputs:
 
 Outputs:
 
-- `wiki/sources/*.md`
-- updates to `wiki/index.md`
-- updates to `wiki/log.md`
+- `raw/bootstrap/evidence-matrix.md`
+- stable source ids and page recommendations in the evidence matrix
+- explicit materialization recommendations for MoonBook
 
 Success looks like:
 
-- the source page names the source cleanly
+- the source ids name the source cleanly
 - provenance is visible
 - the page does not dump raw excerpts indiscriminately
 - the page points at likely related entities or concepts
+- MoonBook has enough evidence to decide what becomes `wiki/sources/*.md`
 
 Blocker looks like:
 
-- the packet exists but still lacks enough material to justify a durable source page
+- the packet exists but still lacks enough material to justify MoonBook materialization
 - the candidate source is actually a placeholder or scaffold
 
 ### `knowledge_revise`
 
 Goal:
 
-- revise entities, concepts, and synthesis pages from the materialized source
-- strengthen the wiki rather than only adding one-off source summaries
+- prepare entity, concept, and synthesis recommendations from the evidence envelope
+- strengthen the materialization plan rather than only adding one-off source summaries
 
 Inputs:
 
-- source pages
+- evidence matrix
 - entity candidates
 - concept candidates
 - prior synthesis pages
@@ -200,22 +338,20 @@ Inputs:
 
 Outputs:
 
-- `wiki/entities/*.md`
-- `wiki/concepts/*.md`
-- `wiki/synthesis/overview.md`
-- `wiki/synthesis/claims.md`
-- optionally `wiki/queries/*.md` when the task is query-shaped
+- `raw/bootstrap/synthesis-brief.md`
+- entity, concept, claim, and synthesis recommendations inside the synthesis brief
+- optionally query-page recommendations when the work is query-shaped
 
 Success looks like:
 
-- entity pages capture identity and relationships
-- concept pages explain recurring ideas
-- synthesis pages connect sources and preserve disagreement
-- the wiki gains durable cross-links, not just more notes
+- entity recommendations capture identity and relationships
+- concept recommendations explain recurring ideas
+- synthesis recommendations connect sources and preserve disagreement
+- MoonBook has enough grounded guidance to create durable cross-links
 
 Blocker looks like:
 
-- the material only supports a source note, not a maintained synthesis update
+- the material only supports a source note, not a maintained synthesis recommendation
 - the phase would create generic buckets or empty ontology pages
 
 ### `review_finalize`
@@ -243,14 +379,14 @@ Success looks like:
 
 - the summary names the actual work
 - artifacts are concrete
-- the wiki state reflects the new knowledge
+- the raw research envelope is complete enough for MoonBook materialization
 - blockers are not disguised as success
 
 Blocker looks like:
 
 - artifacts are empty
 - only admin pages changed
-- the run could not produce a durable page
+- the run could not produce a complete raw research envelope
 - the final summary would otherwise say "completed" without substance
 
 ## Execution splitting rules
@@ -267,9 +403,8 @@ Good splits:
 - one worker gathers implementation evidence from code and config
 - one worker gathers architecture or cross-project topology notes
 - one worker consolidates or prepares the resulting packets for materialization
-- one worker materializes source pages
-- one worker revises entity and concept pages
-- one worker reviews the final state
+- one worker finalizes the evidence matrix and synthesis brief
+- one worker reviews whether MoonBook can safely materialize the envelope
 
 Bad splits:
 
@@ -306,7 +441,7 @@ Each lane should avoid:
 
 - re-reading everything another gather lane already covered
 - claiming final ingest success
-- rewriting durable wiki pages directly unless the assigned phase is no longer gather
+- rewriting durable wiki pages directly instead of returning a raw research envelope for MoonBook
 - returning generic prose like "completed gathering"
 
 The gather phase is complete only when the combined lane outputs are strong enough for `source_materialize`.
@@ -317,11 +452,11 @@ Count the run as successful only if all of the following are true:
 
 1. substantive source material was inspected
 2. bootstrap packets were written when needed
-3. at least one durable wiki page was created or revised
-4. `wiki/index.md` and `wiki/log.md` reflect the change
+3. all required research artifacts exist under `raw/bootstrap/`
+4. the evidence matrix and synthesis brief explain what MoonBook should materialize
 5. the summary names the actual work without vague filler
 
-Substantive durable pages include:
+MoonBook, not MoonClaw, decides what becomes durable:
 
 - `wiki/sources/*.md`
 - `wiki/entities/*.md`
@@ -342,14 +477,14 @@ Do not say "completed" when:
 - source material is too weak or too noisy
 - the source is actually scaffolding or a placeholder
 
-If you cannot produce substantive durable pages, return a blocker.
+If you cannot produce the complete raw research envelope, return a blocker.
 
 A blocker must state:
 
 - what source paths were inspected
 - what raw packets were written, if any
 - what material was missing
-- why no durable wiki page could be produced
+- why MoonBook cannot safely materialize durable wiki pages yet
 - what the next highest-value follow-up should be
 
 ## Bootstrap-first workflow
@@ -362,11 +497,12 @@ Use this workflow when the book has weak coverage or the prompt says research/bo
 4. write one or more source packets into `raw/bootstrap/`
 5. derive candidate source page titles
 6. derive entity and concept candidates
-7. ingest from the packet into durable wiki pages
-8. update navigation and maintenance surfaces
-9. finalize only after the wiki contains durable substance
+7. write `evidence-matrix.md`
+8. write `synthesis-brief.md`
+9. return the raw artifact envelope so MoonBook can materialize durable wiki pages
 
-The raw packet is an intermediate product, not the final goal.
+The raw research envelope is the worker's final goal.
+Durable wiki materialization is MoonBook's responsibility.
 
 When the goal spans several repos or components, change step 2 into a gather fan-out:
 
@@ -392,9 +528,9 @@ A good raw bootstrap packet should contain:
 
 The packet should be readable by Keeper without needing chat history.
 
-## Durable page priorities
+## Materialization recommendations
 
-When deciding what to revise first, use this order:
+When recommending what MoonBook should revise first, use this order:
 
 1. `wiki/sources/`
 2. `wiki/entities/`
@@ -409,7 +545,7 @@ Prefer stable ontology over token-derived page names.
 
 ## Content quality rules
 
-Source pages should:
+Recommended source pages should:
 
 - summarize the source cleanly
 - preserve provenance
@@ -417,19 +553,19 @@ Source pages should:
 - call out uncertainty
 - link to related entities and concepts
 
-Entity pages should:
+Recommended entity pages should:
 
 - capture identity and role
 - include relationships
 - avoid becoming generic buckets
 
-Concept pages should:
+Recommended concept pages should:
 
 - explain recurring ideas
 - remain cumulative
 - avoid one-off jargon fragments
 
-Synthesis pages should:
+Recommended synthesis pages should:
 
 - connect sources
 - preserve disagreement
@@ -444,7 +580,7 @@ Do not:
 - create pages just because a word appeared once
 - write vague summaries like "completed provider task"
 - claim success with empty artifacts
-- skip `wiki/index.md` and `wiki/log.md`
+- claim that MoonClaw wrote durable wiki pages when it only prepared raw artifacts
 - store disposable chat residue as durable knowledge
 - let one worker own the entire ingest lifecycle when the phases can be separated
 
@@ -453,21 +589,22 @@ Do not:
 ```json
 {
   "task_id": "goal-research-moontown-moonbook-and-moonclaw-ingest-followup",
-  "summary": "Wrote raw/bootstrap/moontown-overview.md from local repo docs, added wiki/sources/moontown-source.md, updated wiki/entities/moontown.md, and refreshed wiki/index.md plus wiki/log.md.",
+  "summary": "Completed raw research artifacts for the Moontown, MoonBook, and MoonClaw relationship: question, search log, source screen, local source digest, evidence matrix, and synthesis brief.",
   "artifacts": [
-    "raw/bootstrap/moontown-overview.md",
-    "wiki/sources/moontown-source.md",
-    "wiki/entities/moontown.md",
-    "wiki/index.md",
-    "wiki/log.md"
+    "raw/bootstrap/research-question.md",
+    "raw/bootstrap/search-log.md",
+    "raw/bootstrap/source-screen.md",
+    "raw/bootstrap/local-sources.md",
+    "raw/bootstrap/evidence-matrix.md",
+    "raw/bootstrap/synthesis-brief.md"
   ],
   "memory_candidates": [
     {
       "kind": "finding",
-      "title": "Moontown routes work through MoonBook and MoonClaw",
-      "detail": "The maintained source and entity pages now state that Moontown schedules domain work into MoonBook workspaces and MoonClaw execution runs.",
-      "durable": true,
-      "target_page": "wiki/synthesis/overview.md"
+      "title": "MoonBook should materialize the research envelope",
+      "detail": "The evidence matrix and synthesis brief contain enough source-backed material for MoonBook to promote into durable source, entity, concept, and synthesis pages.",
+      "durable": false,
+      "target_page": null
     }
   ],
   "requires_review": false,
@@ -480,7 +617,7 @@ Do not:
 ```json
 {
   "task_id": "goal-research-moontown-moonbook-and-moonclaw-ingest-followup",
-  "summary": "Blocked ingest: inspected repo hints and wrote raw/bootstrap/initial-notes.md, but the available materials were too shallow to support a durable source page.",
+  "summary": "Blocked ingest: inspected repo hints and wrote raw/bootstrap/initial-notes.md, but the available materials were too shallow to complete evidence-matrix.md or synthesis-brief.md.",
   "artifacts": [
     "raw/bootstrap/initial-notes.md"
   ],
@@ -488,7 +625,7 @@ Do not:
     {
       "kind": "blocker",
       "title": "Need higher-signal MoonClaw source material",
-      "detail": "The inspected files were mostly navigation and setup docs. The next pass should inspect runtime, provider, and job execution files before attempting durable source-page creation.",
+      "detail": "The inspected files were mostly navigation and setup docs. The next pass should inspect runtime, provider, and job execution files before MoonBook attempts durable materialization.",
       "durable": false,
       "target_page": null
     }
@@ -501,6 +638,6 @@ Do not:
 ## Final reminder
 
 The goal is not to return a success-shaped JSON object.
-The goal is to make the wiki better.
+The goal is to return a complete, auditable research envelope that MoonBook can turn into a better wiki.
 
-If the phases cannot produce durable knowledge, stop early and say so.
+If the phases cannot produce grounded research artifacts, stop early and say so.

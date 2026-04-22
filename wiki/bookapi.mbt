@@ -78,6 +78,9 @@ pub struct BookStateSummary {
   page_count : Int
   source_count : Int
   source_page_count : Int
+  candidate_source_count : Int
+  provisional_source_count : Int
+  verified_source_count : Int
   entity_count : Int
   entity_page_count : Int
   concept_count : Int
@@ -96,6 +99,9 @@ pub struct BookHealthReport {
   level : String
   summary : String
   source_page_count : Int
+  candidate_source_count : Int
+  provisional_source_count : Int
+  verified_source_count : Int
   entity_page_count : Int
   concept_page_count : Int
   query_note_count : Int
@@ -118,6 +124,14 @@ pub struct BookCatalogRecord {
   tags : Array[String]
   skills : Array[String]
 } derive(Show, ToJson, FromJson)
+
+///|
+priv struct SourceCoverageSummary {
+  total_count : Int
+  candidate_count : Int
+  provisional_count : Int
+  verified_count : Int
+}
 
 ///|
 pub async fn accept_goal(
@@ -311,7 +325,7 @@ fn bootstrap_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] 
       "bootstrap_gather",
       "Gather bootstrap materials",
       100,
-      "Load `skills/wiki-ingest/SKILL.md` and `skills/source-diarize/SKILL.md`. Treat bootstrap_gather as a fan-out phase, not a single sweep. Split the work into 2 to 4 bounded gather lanes such as repo-doc discovery, implementation evidence, architecture/topology notes, and cross-project linkage. Each lane must inspect only a small high-signal slice, write or contribute to concrete raw/bootstrap packets with provenance, evidence bullets, and source-path notes, and report explicit blockers when its lane is weak. Success means at least one substantive source candidate, at least one bootstrap packet, and enough gathered material for source materialization. Blockers are only scaffolding, placeholders, missing substantive source paths, or gather outputs that are still too weak to hand off.",
+      "Load `skills/wiki-ingest/SKILL.md` and `skills/source-diarize/SKILL.md`. Treat bootstrap_gather as a fan-out phase, not a single sweep. Split the work into 2 to 4 bounded gather lanes such as repo-doc discovery, implementation evidence, architecture/topology notes, and cross-project linkage. Each lane must inspect only a small high-signal slice, write or contribute to concrete raw/bootstrap packets with provenance, evidence bullets, source-path notes, and report explicit blockers when its lane is weak. Success means writing `raw/bootstrap/research-question.md`, `raw/bootstrap/search-log.md`, `raw/bootstrap/source-screen.md`, and `raw/bootstrap/local-sources.md`, plus enough gathered material for source materialization. If web_search or web_fetch is unavailable, record that limitation in the search log instead of silently running local-only. Blockers are only scaffolding, placeholders, missing substantive source paths, missing required research artifacts, or gather outputs that are still too weak to hand off.",
       [
         "../raw/README.md", "../raw/bootstrap/", "synthesis/map.md", "synthesis/maintenance-plan.md",
       ],
@@ -321,22 +335,24 @@ fn bootstrap_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] 
       goal_id,
       goal,
       "source_materialize",
-      "Materialize durable source pages",
+      "Prepare source materialization evidence",
       90,
-      "Load `skills/wiki-ingest/SKILL.md`. Use the gathered bootstrap packets to create or revise durable `wiki/sources/*.md` pages and refresh index/log coverage. Success means at least one durable source page and matching index/log updates. Blockers are weak packets, placeholder sources, or no durable source material.",
-      ["sources/", "index.md", "log.md"],
+      "Load `skills/wiki-ingest/SKILL.md`. Use the gathered bootstrap packets to finish the source evidence envelope, especially `raw/bootstrap/evidence-matrix.md` and stable source ids. Do not claim ownership of durable `wiki/sources/*.md` writes; MoonBook will materialize those pages from the raw research envelope after persistence. Blockers are weak packets, placeholder sources, missing evidence matrix, or no source material strong enough for MoonBook materialization.",
+      [
+        "../raw/bootstrap/evidence-matrix.md", "../raw/bootstrap/source-screen.md",
+      ],
       true,
     ),
     bootstrap_phase_task(
       goal_id,
       goal,
       "knowledge_revise",
-      "Revise knowledge surfaces",
+      "Prepare knowledge revision evidence",
       80,
-      "Load `skills/entity-revise/SKILL.md`, `skills/concept-revise/SKILL.md`, `skills/synthesis-revise/SKILL.md`, and `skills/claim-audit/SKILL.md`. Revise entity, concept, claim, and synthesis pages using the durable source pages created in the prior phase. Success means visible ontology or synthesis updates with claims or cross-links. Blockers are missing source pages, unsupported claims, or no durable revision target.",
+      "Load `skills/entity-revise/SKILL.md`, `skills/concept-revise/SKILL.md`, `skills/synthesis-revise/SKILL.md`, and `skills/claim-audit/SKILL.md`. Prepare ontology and synthesis recommendations in `raw/bootstrap/synthesis-brief.md` using the evidence matrix. Do not write durable entity, concept, claim, or synthesis pages directly unless explicitly asked; MoonBook owns those durable wiki writes. Blockers are unsupported claims, missing synthesis brief, unresolved source contradictions, or no safe revision target.",
       [
-        "entities/", "concepts/", "synthesis/overview.md", "synthesis/claims.md",
-        "synthesis/map.md", "synthesis/maintenance-plan.md",
+        "../raw/bootstrap/synthesis-brief.md", "../raw/bootstrap/evidence-matrix.md",
+        "synthesis/map.md",
       ],
       true,
     ),
@@ -413,9 +429,11 @@ fn provider_result_contract_lines() -> Array[String] {
     "Set task_id to the active provider task id.", "artifacts must be an array of workspace-relative output paths.",
     "memory_candidates must be an array of objects with kind, title, detail, durable, target_page.",
     "For weak-coverage research goals, follow the MoonBook phases in order: bootstrap_gather, source_materialize, knowledge_revise, review_finalize.",
-    "For bootstrap ingest, artifacts should include one or more raw/bootstrap/* packets before wiki revision claims.",
+    "For research bootstrap, artifacts must include raw/bootstrap/research-question.md, raw/bootstrap/search-log.md, raw/bootstrap/source-screen.md, raw/bootstrap/evidence-matrix.md, raw/bootstrap/local-sources.md, and raw/bootstrap/synthesis-brief.md, or the result must be a structured blocker explaining exactly which files are missing.",
+    "For bootstrap ingest, MoonClaw should produce raw/bootstrap research artifacts and should not need to create wiki/* pages; MoonBook owns durable wiki materialization from the research envelope.",
+    "If web_search or web_fetch is unavailable, explicitly say so in the blocker and record that limitation in raw/bootstrap/search-log.md or raw/bootstrap/source-screen.md when possible.",
     "Use [] for empty arrays and null for missing target_page.", "For ingest or bootstrap work, generic completion text without substantive artifacts or durable candidates is a blocker, not success.",
-    "If ingest work does not produce durable source/entity/concept/query updates, say what material is missing and set requires_review to true.",
+    "If ingest work cannot produce the required raw research artifacts, say what material or tool is missing and set requires_review to true.",
   ]
 }
 
@@ -433,13 +451,16 @@ async fn task_prompt_with_material_hints(
     terms,
     task.title + " " + task.prompt,
   )
-  if hints.is_empty() {
-    return task.prompt
+  let artifact_contract = research_artifact_contract_block()
+  let skill_block = skill_body_excerpt_block(root, task)
+  let hint_block = if hints.is_empty() {
+    ""
+  } else {
+    "\n\nLocal source hints for this bootstrap pass:\n" +
+    hints.join("\n") +
+    "\n\nUse these paths as candidate primary materials before concluding that the book has no substantive sources."
   }
-  task.prompt +
-  "\n\nLocal source hints for this bootstrap pass:\n" +
-  hints.join("\n") +
-  "\n\nUse these paths as candidate primary materials before concluding that the book has no substantive sources."
+  task.prompt + artifact_contract + skill_block + hint_block
 }
 
 ///|
@@ -448,6 +469,58 @@ fn bootstrap_material_task_kind(kind : String) -> Bool {
   kind == "bootstrap_gather" ||
   kind == "source_materialize" ||
   kind == "knowledge_revise"
+}
+
+///|
+fn research_artifact_contract_block() -> String {
+  "\n\nResearch artifact contract:\n" +
+  "- Required files: `raw/bootstrap/research-question.md`, `raw/bootstrap/search-log.md`, `raw/bootstrap/source-screen.md`, `raw/bootstrap/evidence-matrix.md`, `raw/bootstrap/local-sources.md`, `raw/bootstrap/synthesis-brief.md`.\n" +
+  "- `research-question.md`: state the question, scope, keywords, and exclusion boundaries.\n" +
+  "- `search-log.md`: record search attempts, local paths inspected, web search/fetch attempts, and tool availability or denial.\n" +
+  "- `source-screen.md`: list included/excluded sources with reasons and confidence.\n" +
+  "- `evidence-matrix.md`: compare accepted sources by claim/theme/path and quote-free evidence notes.\n" +
+  "- `local-sources.md`: digest inspected local repo files with exact paths and why each matters.\n" +
+  "- `synthesis-brief.md`: summarize what is verified, what is provisional, and what remains blocked.\n" +
+  "- MoonClaw returns the raw research envelope; MoonBook will decide and write durable `wiki/*` pages from that envelope.\n" +
+  "- If any required artifact cannot be written, return a structured blocker instead of generic completion text.\n"
+}
+
+///|
+async fn skill_body_excerpt_block(root : String, task : BookTask) -> String {
+  let selected = resolve_skill_paths(root, task)
+  if selected.is_empty() {
+    return "\n\nLoaded skill bodies:\n- No skill files were resolved. Return a structured blocker if the task depends on unavailable skills.\n"
+  }
+  let normalized = @pathx.normalize(root)
+  let builder = StringBuilder::new()
+  builder.write_string(
+    "\n\nLoaded skill body excerpts:\nRead these excerpts as operational instructions, not just metadata. If an excerpt conflicts with the task, follow the explicit research artifact contract above and report the conflict.\n",
+  )
+  for relative in selected {
+    if relative == "RESOLVER.md" {
+      continue
+    }
+    let absolute = @path.Path(normalized).join(@path.Path(relative)).to_string()
+    if !@fsx.exists(absolute) {
+      builder.write_string("- `\{relative}`: missing from workspace.\n")
+      continue
+    }
+    builder.write_string("\n### `\{relative}`\n")
+    let mut line_count = 0
+    for raw in @fsx.read_file(absolute).split("\n") {
+      let line = raw.to_string()
+      if line.trim().is_empty() && line_count > 24 {
+        continue
+      }
+      builder.write_string(line + "\n")
+      line_count += 1
+      if line_count >= 72 {
+        builder.write_string("...\n")
+        break
+      }
+    }
+  }
+  builder.to_string()
 }
 
 ///|
@@ -576,7 +649,10 @@ pub async fn persist_result(
   result : BookResult,
 ) -> PersistResultOutcome {
   let workspace = workspace_paths(root)
-  let normalized_result = reconcile_provider_result(root, workspace, result)
+  let provider_result = reconcile_provider_result(root, workspace, result)
+  let normalized_result = materialize_research_envelope_result(
+    root, workspace, provider_result,
+  )
   let updated_pages : Array[String] = []
   let observations_relative = ensure_observations_page(workspace)
   updated_pages.push(observations_relative)
@@ -639,8 +715,9 @@ pub async fn persist_result(
   let reconciled_pages = reconcile_result_pages(
     root, workspace, normalized_result, updated_pages,
   )
+  let source_coverage = summarize_source_coverage(workspace.wiki_dir)
   let bootstrap_cluster_complete = has_bootstrap_materialization(
-    count_markdown_under(workspace.wiki_dir, "sources"),
+    source_coverage.verified_count,
     count_markdown_under(workspace.wiki_dir, "entities"),
     count_markdown_under(workspace.wiki_dir, "concepts"),
     count_markdown_under(workspace.wiki_dir, "queries"),
@@ -689,10 +766,28 @@ async fn reconcile_provider_result(
   workspace : Paths,
   result : BookResult,
 ) -> BookResult {
+  if result_stage_is_bootstrap_like(result) &&
+    research_artifact_contract_active(root) {
+    let missing = missing_research_artifacts(root)
+    if !missing.is_empty() {
+      return research_artifact_blocker_result(result, missing)
+    }
+    if result_is_empty_ingest_blocker(result) {
+      return {
+        task_id: result.task_id,
+        summary: "Recovered research envelope completion from required raw artifacts written by the worker.",
+        artifacts: required_research_artifacts(),
+        memory_candidates: [],
+        requires_review: false,
+        notify_town: result.notify_town,
+      }
+    }
+  }
   if !result_is_empty_ingest_blocker(result) {
     return result
   }
-  let source_page_count = count_markdown_under(workspace.wiki_dir, "sources")
+  let source_coverage = summarize_source_coverage(workspace.wiki_dir)
+  let source_page_count = source_coverage.verified_count
   let entity_page_count = count_markdown_under(workspace.wiki_dir, "entities")
   let concept_page_count = count_markdown_under(workspace.wiki_dir, "concepts")
   let query_note_count = count_markdown_under(workspace.wiki_dir, "queries")
@@ -737,10 +832,355 @@ async fn reconcile_provider_result(
 }
 
 ///|
+async fn materialize_research_envelope_result(
+  root : String,
+  workspace : Paths,
+  result : BookResult,
+) -> BookResult {
+  if !result_stage_is_bootstrap_like(result) ||
+    !research_artifact_contract_active(root) ||
+    !missing_research_artifacts(root).is_empty() {
+    return result
+  }
+  let pages = materialize_research_envelope_pages(root, workspace, result)
+  if pages.is_empty() {
+    return result
+  }
+  let artifacts : Array[String] = []
+  for artifact in result.artifacts {
+    if !artifacts.contains(artifact) {
+      artifacts.push(artifact)
+    }
+  }
+  for page in pages {
+    let artifact = "wiki/\{page}"
+    if !artifacts.contains(artifact) {
+      artifacts.push(artifact)
+    }
+  }
+  {
+    task_id: result.task_id,
+    summary: "MoonBook materialized durable wiki pages from the raw research artifact envelope. " +
+    result.summary,
+    artifacts,
+    memory_candidates: result.memory_candidates,
+    requires_review: result.requires_review,
+    notify_town: result.notify_town,
+  }
+}
+
+///|
+async fn materialize_research_envelope_pages(
+  root : String,
+  workspace : Paths,
+  result : BookResult,
+) -> Array[String] {
+  let updated : Array[String] = []
+  let topic = research_envelope_topic(root, result)
+  let source_relative = "sources/research-evidence.md"
+  let source_dir = @path.Path(workspace.wiki_dir)
+    .join(@path.Path("sources"))
+    .to_string()
+  let source_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(source_relative))
+    .to_string()
+  @fsx.make_directory(source_dir, recursive=true, exists_ok=true)
+  @fsx.write_to_file(
+    source_path,
+    research_envelope_source_page(root, topic, result),
+    create=0o644,
+  )
+  update_summary(workspace.summary_path, "Research Evidence", source_relative)
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Sources",
+    "Research Evidence",
+    source_relative,
+    "verified source page materialized by MoonBook from raw research artifacts",
+  )
+  updated.push(source_relative)
+
+  let concept_relative = "concepts/research-artifact-envelope.md"
+  let concept_dir = @path.Path(workspace.wiki_dir)
+    .join(@path.Path("concepts"))
+    .to_string()
+  let concept_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(concept_relative))
+    .to_string()
+  @fsx.make_directory(concept_dir, recursive=true, exists_ok=true)
+  let concept_block = "### \{result.task_id}\n\n" +
+    "- Source: [Research Evidence](../sources/research-evidence.md)\n" +
+    "- Summary: \{clamp_excerpt(result.summary)}\n" +
+    "- Role: MoonBook consumes the raw research envelope and decides what becomes durable wiki state.\n\n"
+  let concept_content = if @fsx.exists(concept_path) {
+    append_section_block(
+      @fsx.read_file(concept_path),
+      "## Materialized Runs",
+      concept_block,
+    )
+  } else {
+    "# Research Artifact Envelope\n\n" +
+    "A research artifact envelope is the raw evidence bundle returned by a worker before MoonBook promotes it into durable wiki pages.\n\n" +
+    "## Materialized Runs\n\n" +
+    concept_block
+  }
+  @fsx.write_to_file(concept_path, concept_content, create=0o644)
+  update_summary(
+    workspace.summary_path,
+    "Research Artifact Envelope",
+    concept_relative,
+  )
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Concepts",
+    "Research Artifact Envelope",
+    concept_relative,
+    "MoonBook-owned boundary between raw worker evidence and durable wiki state",
+  )
+  updated.push(concept_relative)
+
+  for entity in research_envelope_entities(root) {
+    let entity_relative = "entities/\{slugify_title(entity)}.md"
+    let entity_dir = @path.Path(workspace.wiki_dir)
+      .join(@path.Path("entities"))
+      .to_string()
+    let entity_path = @path.Path(workspace.wiki_dir)
+      .join(@path.Path(entity_relative))
+      .to_string()
+    @fsx.make_directory(entity_dir, recursive=true, exists_ok=true)
+    let entity_evidence = clamp_excerpt(
+      research_artifact_text(root, "raw/bootstrap/synthesis-brief.md"),
+    )
+    let entity_block = "### \{result.task_id}\n\n" +
+      "- Source: [Research Evidence](../sources/research-evidence.md)\n" +
+      "- Evidence: \{entity_evidence}\n\n"
+    let entity_content = if @fsx.exists(entity_path) {
+      append_section_block(
+        @fsx.read_file(entity_path),
+        "## Research Updates",
+        entity_block,
+      )
+    } else {
+      "# \{entity}\n\n" +
+      "## Role\n\n" +
+      "This entity was identified from the current research artifact envelope and needs continued revision as more sources are verified.\n\n" +
+      "## Research Updates\n\n" +
+      entity_block
+    }
+    @fsx.write_to_file(entity_path, entity_content, create=0o644)
+    update_summary(workspace.summary_path, entity, entity_relative)
+    update_index_section(
+      @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+      "Entities",
+      entity,
+      entity_relative,
+      "entity page materialized from the current research artifact envelope",
+    )
+    if !updated.contains(entity_relative) {
+      updated.push(entity_relative)
+    }
+  }
+
+  let overview_relative = "synthesis/overview.md"
+  let overview_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(overview_relative))
+    .to_string()
+  let overview_brief = clamp_excerpt(
+    research_artifact_text(root, "raw/bootstrap/synthesis-brief.md"),
+  )
+  let overview_block = "### \{result.task_id}\n\n" +
+    "- Source: [Research Evidence](../sources/research-evidence.md)\n" +
+    "- Brief: \{overview_brief}\n\n"
+  let overview_content = if @fsx.exists(overview_path) {
+    append_section_block(
+      @fsx.read_file(overview_path),
+      "## Research Envelope Synthesis",
+      overview_block,
+    )
+  } else {
+    "# Overview\n\n## Research Envelope Synthesis\n\n" + overview_block
+  }
+  @fsx.write_to_file(overview_path, overview_content, create=0o644)
+  update_summary(workspace.summary_path, "Overview", overview_relative)
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Core Pages",
+    "Overview",
+    overview_relative,
+    "synthesis generated from MoonBook-owned research envelope materialization",
+  )
+  if !updated.contains(overview_relative) {
+    updated.push(overview_relative)
+  }
+  updated
+}
+
+///|
+async fn research_envelope_topic(root : String, result : BookResult) -> String {
+  let question = research_artifact_text(
+    root, "raw/bootstrap/research-question.md",
+  )
+  let first = first_research_line(question)
+  if !first.is_empty() {
+    first
+  } else {
+    result.task_id
+  }
+}
+
+///|
+async fn research_envelope_source_page(
+  root : String,
+  topic : String,
+  result : BookResult,
+) -> String {
+  let question = research_artifact_text(
+    root, "raw/bootstrap/research-question.md",
+  )
+  let search = research_artifact_text(root, "raw/bootstrap/search-log.md")
+  let screen = research_artifact_text(root, "raw/bootstrap/source-screen.md")
+  let evidence = research_artifact_text(
+    root, "raw/bootstrap/evidence-matrix.md",
+  )
+  let local_sources = research_artifact_text(
+    root, "raw/bootstrap/local-sources.md",
+  )
+  let brief = research_artifact_text(root, "raw/bootstrap/synthesis-brief.md")
+  "# Research Evidence\n\n" +
+  "- Source type: verified research artifact envelope\n" +
+  "- Durability: verified\n" +
+  "- Materialized by: MoonBook\n" +
+  "- Worker task: `\{result.task_id}`\n" +
+  "- Topic: \{topic}\n\n" +
+  "## Research Question\n\n\{question}\n\n" +
+  "## Search Log\n\n\{search}\n\n" +
+  "## Source Screen\n\n\{screen}\n\n" +
+  "## Local Sources\n\n\{local_sources}\n\n" +
+  "## Evidence Matrix\n\n\{evidence}\n\n" +
+  "## Synthesis Brief\n\n\{brief}\n"
+}
+
+///|
+async fn research_artifact_text(root : String, relative : String) -> String {
+  let path = @path.Path(root).join(@path.Path(relative)).to_string()
+  if @fsx.exists(path) {
+    @fsx.read_file(path)
+  } else {
+    "_Missing artifact: `\{relative}`._"
+  }
+}
+
+///|
+fn first_research_line(content : String) -> String {
+  for raw in content.split("\n") {
+    let line = raw.trim().to_string()
+    if line.is_empty() || line == "---" || line.has_prefix("```") {
+      continue
+    }
+    if line.has_prefix("# ") {
+      return line[2:].trim().to_string()
+    }
+    if !line.has_prefix("- ") {
+      return line
+    }
+  }
+  ""
+}
+
+///|
+async fn research_envelope_entities(root : String) -> Array[String] {
+  let text = (research_artifact_text(root, "raw/bootstrap/research-question.md") +
+  "\n" +
+  research_artifact_text(root, "raw/bootstrap/synthesis-brief.md") +
+  "\n" +
+  research_artifact_text(root, "raw/bootstrap/evidence-matrix.md")).to_lower()
+  let entities : Array[String] = []
+  for item in ["Moontown", "MoonBook", "MoonClaw"] {
+    if text.contains(item.to_lower()) {
+      entities.push(item)
+    }
+  }
+  if entities.is_empty() {
+    entities.push(
+      title_case(book_identity(root).replace(old="-", new=" ").to_string()),
+    )
+  }
+  entities
+}
+
+///|
+async fn research_artifact_contract_active(root : String) -> Bool {
+  let workspace = workspace_paths(root)
+  @fsx.exists(
+    @path.Path(workspace.root)
+    .join(@path.Path("raw/bootstrap/RESEARCH_REQUEST.md"))
+    .to_string(),
+  ) ||
+  @fsx.exists(
+    @path.Path(workspace.root)
+    .join(@path.Path("raw/bootstrap/SOURCE_HINTS.md"))
+    .to_string(),
+  )
+}
+
+///|
+async fn missing_research_artifacts(root : String) -> Array[String] {
+  let workspace = workspace_paths(root)
+  let missing : Array[String] = []
+  for relative in required_research_artifacts() {
+    let absolute = @path.Path(workspace.root)
+      .join(@path.Path(relative))
+      .to_string()
+    if !@fsx.exists(absolute) {
+      missing.push(relative)
+    }
+  }
+  missing
+}
+
+///|
+fn required_research_artifacts() -> Array[String] {
+  [
+    "raw/bootstrap/research-question.md", "raw/bootstrap/search-log.md", "raw/bootstrap/source-screen.md",
+    "raw/bootstrap/evidence-matrix.md", "raw/bootstrap/local-sources.md", "raw/bootstrap/synthesis-brief.md",
+  ]
+}
+
+///|
+fn research_artifact_blocker_result(
+  result : BookResult,
+  missing : Array[String],
+) -> BookResult {
+  let missing_text = missing.join(", ")
+  {
+    task_id: result.task_id,
+    summary: "Blocked research bootstrap: missing required research artifacts: \{missing_text}. Provider must either create these files or return a tool/source-access blocker that names the unavailable capability.",
+    artifacts: result.artifacts,
+    memory_candidates: [
+      {
+        kind: "blocker",
+        title: "Research artifact contract not satisfied",
+        detail: "Missing required artifacts: \{missing_text}. The provider must write the research question, search log, source screen, evidence matrix, local source digest, and synthesis brief before MoonBook can treat this bootstrap as research-complete.",
+        durable: false,
+        target_page: None,
+      },
+    ],
+    requires_review: true,
+    notify_town: result.notify_town,
+  }
+}
+
+///|
 fn result_is_empty_ingest_blocker(result : BookResult) -> Bool {
   let summary = result.summary.trim().to_lower()
   let stage = infer_task_kind_from_external_id(result.task_id).unwrap_or("")
-  stage == "ingest" &&
+  (
+    stage == "ingest" ||
+    stage == "bootstrap_gather" ||
+    stage == "source_materialize" ||
+    stage == "knowledge_revise" ||
+    stage == "review_finalize"
+  ) &&
   result.artifacts.is_empty() &&
   result.memory_candidates.is_empty() &&
   (
@@ -894,7 +1334,8 @@ pub async fn summarize_state(root : String) -> BookStateSummary {
   let workspace = workspace_paths(root)
   let pages = collect_markdown_pages(workspace.wiki_dir)
   let pending = list_pending_reviews(root)
-  let source_page_count = count_markdown_under(workspace.wiki_dir, "sources")
+  let source_coverage = summarize_source_coverage(workspace.wiki_dir)
+  let source_page_count = source_coverage.verified_count
   let entity_page_count = count_markdown_under(workspace.wiki_dir, "entities")
   let concept_page_count = count_markdown_under(workspace.wiki_dir, "concepts")
   let query_note_count = count_markdown_under(workspace.wiki_dir, "queries")
@@ -907,8 +1348,11 @@ pub async fn summarize_state(root : String) -> BookStateSummary {
     book_id: book_identity(root),
     root: workspace.root,
     page_count: pages.length(),
-    source_count: source_page_count,
+    source_count: source_coverage.total_count,
     source_page_count,
+    candidate_source_count: source_coverage.candidate_count,
+    provisional_source_count: source_coverage.provisional_count,
+    verified_source_count: source_coverage.verified_count,
     entity_count: entity_page_count,
     entity_page_count,
     concept_count: concept_page_count,
@@ -920,7 +1364,7 @@ pub async fn summarize_state(root : String) -> BookStateSummary {
     keeper_working_count: keeper.working_memory.length(),
     evidence_count,
     substantive_coverage_ready,
-    summary: "pages=\{pages.length()} sources=\{source_page_count} entities=\{entity_page_count} concepts=\{concept_page_count} queries=\{query_note_count} pending_review=\{pending.length()} keeper_working=\{keeper.working_memory.length()} evidence=\{evidence_count} ready_for_synthesis=\{substantive_coverage_ready}",
+    summary: "pages=\{pages.length()} sources_total=\{source_coverage.total_count} sources_verified=\{source_coverage.verified_count} sources_candidate=\{source_coverage.candidate_count} sources_provisional=\{source_coverage.provisional_count} entities=\{entity_page_count} concepts=\{concept_page_count} queries=\{query_note_count} pending_review=\{pending.length()} keeper_working=\{keeper.working_memory.length()} evidence=\{evidence_count} ready_for_synthesis=\{substantive_coverage_ready}",
   }
 }
 
@@ -950,13 +1394,14 @@ pub async fn report_health(root : String) -> BookHealthReport {
     },
   )
   let keeper = keeper_snapshot(root)
-  let source_page_count = count_markdown_under(workspace.wiki_dir, "sources")
+  let source_coverage = summarize_source_coverage(workspace.wiki_dir)
+  let source_page_count = source_coverage.verified_count
   let entity_page_count = count_markdown_under(workspace.wiki_dir, "entities")
   let concept_page_count = count_markdown_under(workspace.wiki_dir, "concepts")
   let query_note_count = count_markdown_under(workspace.wiki_dir, "queries")
   let evidence_count = count_evidence_entries(root)
   let issues = coverage_issues(
-    source_page_count, entity_page_count, concept_page_count, evidence_count,
+    source_coverage, entity_page_count, concept_page_count, evidence_count,
   )
   let substantive_coverage_ready = has_substantive_coverage(
     source_page_count, entity_page_count, concept_page_count, evidence_count,
@@ -982,8 +1427,11 @@ pub async fn report_health(root : String) -> BookHealthReport {
   }
   {
     level,
-    summary: "sources=\{source_page_count} entities=\{entity_page_count} concepts=\{concept_page_count} queries=\{query_note_count} pending_review=\{pending.length()} low_confidence_claims=\{low_confidence} maintenance_entries=\{maintenance_entries} keeper_working=\{keeper.working_memory.length()} evidence=\{evidence_count} ready_for_synthesis=\{substantive_coverage_ready}",
+    summary: "sources_verified=\{source_coverage.verified_count} sources_candidate=\{source_coverage.candidate_count} sources_provisional=\{source_coverage.provisional_count} entities=\{entity_page_count} concepts=\{concept_page_count} queries=\{query_note_count} pending_review=\{pending.length()} low_confidence_claims=\{low_confidence} maintenance_entries=\{maintenance_entries} keeper_working=\{keeper.working_memory.length()} evidence=\{evidence_count} ready_for_synthesis=\{substantive_coverage_ready}",
     source_page_count,
+    candidate_source_count: source_coverage.candidate_count,
+    provisional_source_count: source_coverage.provisional_count,
+    verified_source_count: source_coverage.verified_count,
     entity_page_count,
     concept_page_count,
     query_note_count,
@@ -1245,11 +1693,14 @@ fn task_skill_names(task : BookTask) -> Array[String] {
       "bootstrap_gather" => {
         names.push("wiki-ingest")
         names.push("source-diarize")
+        names.push("web-first-research")
+        names.push("repo-source-materialize")
         names.push("index-maintain")
       }
       "source_materialize" => {
         names.push("wiki-ingest")
         names.push("source-diarize")
+        names.push("repo-source-materialize")
         names.push("entity-revise")
         names.push("concept-revise")
         names.push("claim-audit")
@@ -1259,6 +1710,7 @@ fn task_skill_names(task : BookTask) -> Array[String] {
         names.push("entity-revise")
         names.push("concept-revise")
         names.push("synthesis-revise")
+        names.push("repo-source-materialize")
         names.push("claim-audit")
         names.push("contradiction-review")
         names.push("index-maintain")
@@ -1780,14 +2232,21 @@ fn count_heading_entries(content : String) -> Int {
 
 ///|
 fn coverage_issues(
-  source_page_count : Int,
+  source_coverage : SourceCoverageSummary,
   entity_page_count : Int,
   concept_page_count : Int,
   evidence_count : Int,
 ) -> Array[String] {
   let issues : Array[String] = []
-  if source_page_count == 0 {
-    issues.push("no durable sources have been ingested yet")
+  if source_coverage.verified_count == 0 {
+    if source_coverage.candidate_count > 0 ||
+      source_coverage.provisional_count > 0 {
+      issues.push(
+        "only candidate or provisional source pages exist; no verified source digestion is present yet",
+      )
+    } else {
+      issues.push("no verified sources have been ingested yet")
+    }
   }
   if entity_page_count == 0 && concept_page_count == 0 {
     issues.push("no maintained entity or concept coverage exists yet")
@@ -1800,31 +2259,74 @@ fn coverage_issues(
 
 ///|
 fn has_substantive_coverage(
-  source_page_count : Int,
+  verified_source_page_count : Int,
   entity_page_count : Int,
   concept_page_count : Int,
   evidence_count : Int,
 ) -> Bool {
-  source_page_count > 0 &&
+  verified_source_page_count > 0 &&
   (entity_page_count > 0 || concept_page_count > 0) &&
   evidence_count > 0
 }
 
 ///|
 fn has_bootstrap_materialization(
-  source_page_count : Int,
+  verified_source_page_count : Int,
   entity_page_count : Int,
   concept_page_count : Int,
   query_note_count : Int,
 ) -> Bool {
-  source_page_count > 0 &&
+  verified_source_page_count > 0 &&
   (entity_page_count > 0 || concept_page_count > 0 || query_note_count > 0)
+}
+
+///|
+async fn summarize_source_coverage(wiki_dir : String) -> SourceCoverageSummary {
+  let sources_dir = @path.Path(wiki_dir).join(@path.Path("sources")).to_string()
+  if !@fsx.exists(sources_dir) {
+    return {
+      total_count: 0,
+      candidate_count: 0,
+      provisional_count: 0,
+      verified_count: 0,
+    }
+  }
+  let mut total_count = 0
+  let mut candidate_count = 0
+  let mut provisional_count = 0
+  let mut verified_count = 0
+  for path in collect_markdown_pages(sources_dir) {
+    total_count += 1
+    match classify_source_page(@fsx.read_file(path)) {
+      "candidate" => candidate_count += 1
+      "provisional" => provisional_count += 1
+      _ => verified_count += 1
+    }
+  }
+  { total_count, candidate_count, provisional_count, verified_count }
+}
+
+///|
+fn classify_source_page(content : String) -> String {
+  let normalized = content.to_lower()
+  if normalized.contains("source type: bootstrap candidate inventory") ||
+    normalized.contains("candidate sources") ||
+    normalized.contains("the files themselves are not readable") {
+    "candidate"
+  } else if normalized.contains("source type: provisional") ||
+    normalized.contains("durability: provisional") ||
+    normalized.contains("source type: candidate inventory") {
+    "provisional"
+  } else {
+    "verified"
+  }
 }
 
 ///|
 async fn refresh_workspace_projections(root : String) -> Unit {
   let workspace = workspace_paths(root)
-  let source_page_count = count_markdown_under(workspace.wiki_dir, "sources")
+  let source_coverage = summarize_source_coverage(workspace.wiki_dir)
+  let source_page_count = source_coverage.verified_count
   let entity_page_count = count_markdown_under(workspace.wiki_dir, "entities")
   let concept_page_count = count_markdown_under(workspace.wiki_dir, "concepts")
   let query_note_count = count_markdown_under(workspace.wiki_dir, "queries")
@@ -2022,9 +2524,34 @@ async test "task prompt adds local source hints for ingest work" {
   let prompt = task_prompt_with_material_hints(book_root, task, [
     "research", "moontown",
   ])
+  assert_true(prompt.contains("Research artifact contract"))
+  assert_true(prompt.contains("raw/bootstrap/research-question.md"))
   assert_true(prompt.contains("Local source hints for this bootstrap pass"))
   assert_true(prompt.contains("/tmp/moonbook-prompt-hints/moontown"))
   assert_true(prompt.contains("README.md"))
+}
+
+///|
+async test "bootstrap context carries skill body excerpts and required research artifacts" {
+  let root = "/tmp/moonbook-bookapi-bootstrap-contract"
+  ignore(init_workspace(root))
+  let context = hydrate_worker_context(root, {
+    id: "goal-research-bootstrap_gather",
+    title: "Gather bootstrap materials",
+    kind: "bootstrap_gather",
+    prompt: "Research moontown.",
+    priority: 100,
+    requires_review: true,
+    target_pages: [],
+  })
+  assert_true(context.prompt.contains("Research artifact contract"))
+  assert_true(context.prompt.contains("Loaded skill body excerpts"))
+  assert_true(context.prompt.contains("skills/wiki-ingest/SKILL.md"))
+  assert_true(
+    context.output_contract.any(fn(line) {
+      line.contains("raw/bootstrap/evidence-matrix.md")
+    }),
+  )
 }
 
 ///|
@@ -2140,6 +2667,123 @@ async test "persist result appends detailed debug journal entry" {
   assert_true(journal.contains("- Result class: `administrative`"))
   assert_true(journal.contains("no durable artifact paths were reported"))
   assert_true(journal.contains("Ingest provider returned an empty result"))
+}
+
+///|
+async test "research bootstrap result blocks when required artifacts are missing" {
+  let root = "/tmp/moonbook-bookapi-research-contract"
+  ignore(init_workspace(root))
+  ignore(
+    @fsx.write_to_file(
+      root + "/raw/bootstrap/RESEARCH_REQUEST.md",
+      "# Research Request\n",
+      create=0o644,
+    ),
+  )
+  let normalized = reconcile_provider_result(root, workspace_paths(root), {
+    task_id: "goal-research-moontown-bootstrap_gather",
+    summary: "Completed provider task.",
+    artifacts: [],
+    memory_candidates: [],
+    requires_review: false,
+    notify_town: false,
+  })
+  assert_true(
+    normalized.summary.contains(
+      "Blocked research bootstrap: missing required research artifacts",
+    ),
+  )
+  assert_true(normalized.requires_review)
+  assert_eq(
+    normalized.memory_candidates[0].title,
+    "Research artifact contract not satisfied",
+  )
+}
+
+///|
+async test "persist result materializes raw research envelope into wiki pages" {
+  let root = "/tmp/moonbook-bookapi-research-envelope"
+  ignore(init_workspace(root))
+  ignore(
+    @fsx.write_to_file(
+      root + "/raw/bootstrap/RESEARCH_REQUEST.md",
+      "# Research Request\n",
+      create=0o644,
+    ),
+  )
+  for relative in required_research_artifacts() {
+    let content = if relative.has_suffix("research-question.md") {
+      "# MoonBook Research\n\nResearch MoonBook as the durable workspace layer.\n"
+    } else if relative.has_suffix("synthesis-brief.md") {
+      "# Synthesis Brief\n\nMoonBook owns durable wiki materialization from raw research artifacts.\n"
+    } else {
+      "# Artifact\n\nMoonBook evidence for the research envelope.\n"
+    }
+    ignore(@fsx.write_to_file(root + "/" + relative, content, create=0o644))
+  }
+  let outcome = persist_result(root, {
+    task_id: "goal-research-moonbook-bootstrap_gather",
+    summary: "Completed raw research artifact envelope for MoonBook.",
+    artifacts: required_research_artifacts(),
+    memory_candidates: [],
+    requires_review: false,
+    notify_town: false,
+  })
+  assert_true(@fsx.exists(root + "/wiki/sources/research-evidence.md"))
+  assert_true(@fsx.exists(root + "/wiki/entities/moonbook.md"))
+  assert_true(
+    @fsx.exists(root + "/wiki/concepts/research-artifact-envelope.md"),
+  )
+  assert_true(
+    @fsx.read_file(root + "/wiki/sources/research-evidence.md").contains(
+      "Source type: verified research artifact envelope",
+    ),
+  )
+  assert_true(
+    @fsx.read_file(root + "/wiki/synthesis/overview.md").contains(
+      "durable wiki materialization",
+    ),
+  )
+  assert_true(outcome.updated_pages.contains("sources/research-evidence.md"))
+}
+
+///|
+async test "generic completion with complete research envelope is materialized by moonbook" {
+  let root = "/tmp/moonbook-bookapi-research-envelope-generic"
+  ignore(init_workspace(root))
+  ignore(
+    @fsx.write_to_file(
+      root + "/raw/bootstrap/RESEARCH_REQUEST.md",
+      "# Research Request\n",
+      create=0o644,
+    ),
+  )
+  for relative in required_research_artifacts() {
+    ignore(
+      @fsx.write_to_file(
+        root + "/" + relative,
+        "# Artifact\n\nMoonBook and MoonClaw research evidence.\n",
+        create=0o644,
+      ),
+    )
+  }
+  let outcome = persist_result(root, {
+    task_id: "goal-research-moonbook-bootstrap_gather",
+    summary: "Completed provider task.",
+    artifacts: [],
+    memory_candidates: [],
+    requires_review: false,
+    notify_town: false,
+  })
+  assert_true(outcome.updated_pages.contains("sources/research-evidence.md"))
+  assert_true(
+    @fsx.exists(root + "/wiki/concepts/research-artifact-envelope.md"),
+  )
+  assert_true(
+    @fsx.read_file(root + "/wiki/synthesis/observations.md").contains(
+      "MoonBook materialized durable wiki pages from the raw research artifact envelope",
+    ),
+  )
 }
 
 ///|
@@ -2309,7 +2953,12 @@ async test "produce task batch bootstraps research goals on weak coverage" {
     .find_first(fn(task : BookTask) { task.kind == "source_materialize" })
     .unwrap()
   assert_true(materialize.prompt.contains("wiki/sources"))
-  assert_true(materialize.target_pages.contains("index.md"))
+  assert_true(
+    materialize.prompt.contains("MoonBook will materialize those pages"),
+  )
+  assert_true(
+    materialize.target_pages.contains("../raw/bootstrap/evidence-matrix.md"),
+  )
 }
 
 ///|

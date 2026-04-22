@@ -38,7 +38,8 @@ async fn refresh_synthesis_map(root : String) -> String {
   } else {
     ""
   }
-  let source_count = count_markdown_under(workspace.wiki_dir, "sources")
+  let source_coverage = summarize_source_coverage(workspace.wiki_dir)
+  let source_count = source_coverage.verified_count
   let entity_count = count_markdown_under(workspace.wiki_dir, "entities")
   let concept_count = count_markdown_under(workspace.wiki_dir, "concepts")
   let query_count = count_markdown_under(workspace.wiki_dir, "queries")
@@ -47,7 +48,10 @@ async fn refresh_synthesis_map(root : String) -> String {
     source_count, entity_count, concept_count, evidence_count,
   )
   let bootstrap_complete = has_bootstrap_materialization(
-    source_count, entity_count, concept_count, query_count,
+    source_coverage.verified_count,
+    entity_count,
+    concept_count,
+    query_count,
   )
   let bootstrap_outcome = if bootstrap_complete {
     "complete"
@@ -55,7 +59,9 @@ async fn refresh_synthesis_map(root : String) -> String {
     "incomplete"
   }
   let coverage : Array[String] = [
-    "- Source pages: `\{source_count}`",
+    "- Verified source pages: `\{source_coverage.verified_count}`",
+    "- Candidate source pages: `\{source_coverage.candidate_count}`",
+    "- Provisional source pages: `\{source_coverage.provisional_count}`",
     "- Entity pages: `\{entity_count}`",
     "- Concept pages: `\{concept_count}`",
     "- Query pages: `\{query_count}`",

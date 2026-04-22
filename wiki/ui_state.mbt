@@ -101,6 +101,8 @@ pub struct UiState {
   chapters : Array[UiChapterLink]
   skill_diagnostics : UiSkillDiagnostics
   skills : Array[UiSkillItem]
+  research_artifacts : Array[UiPanelItem]
+  research_brief : String
   synthesis_preview : String
 } derive(Show, ToJson, FromJson)
 
@@ -165,10 +167,12 @@ pub async fn generate_ui_state(root : String) -> UiState {
       meta: "\{count_evidence_entries(root)} records",
     },
   ]
+  let project_title = ui_project_title(root)
+  let project_summary = ui_project_summary(project_title, state, health)
   {
     root: @pathx.normalize(root),
-    title: catalog_name(root),
-    summary: catalog_purpose(root),
+    title: project_title,
+    summary: project_summary,
     status_chips,
     metrics,
     workflow,
@@ -180,6 +184,8 @@ pub async fn generate_ui_state(root : String) -> UiState {
     chapters: ui_chapter_links(root),
     skill_diagnostics: ui_skill_diagnostics(skill_report),
     skills: ui_skill_items(root, skill_records),
+    research_artifacts: ui_research_artifacts(root),
+    research_brief: ui_research_brief(root),
     synthesis_preview: ui_synthesis_preview(root),
   }
 }
@@ -193,6 +199,131 @@ pub async fn write_ui_state(root : String, output_path : String) -> String {
     create=0o644,
   )
   output_path
+}
+
+///|
+async fn ui_project_title(root : String) -> String {
+  let catalog = catalog_name(root).trim()
+  if !catalog.is_empty() && catalog != "LLM Wiki" {
+    return catalog.to_string()
+  }
+  let leaf = @path.Path(@pathx.normalize(root)).basename().to_string()
+  if leaf.has_prefix("research-") {
+    return titleize_topic_slug(leaf[9:].to_string())
+  }
+  titleize_topic_slug(leaf)
+}
+
+///|
+fn ui_project_summary(
+  topic : String,
+  state : BookStateSummary,
+  health : BookHealthReport,
+) -> String {
+  if state.substantive_coverage_ready {
+    return "MoonBook has verified source coverage, ontology pages, and evidence records for \{topic}. The generated surfaces can now summarize the domain instead of falling back to bootstrap diagnostics."
+  }
+  if state.verified_source_count == 0 &&
+    (state.candidate_source_count > 0 || state.provisional_source_count > 0) {
+    return "Bootstrap incomplete for \{topic}. The current workspace only has candidate or provisional source coverage, so the generated surfaces stay diagnostic instead of pretending the topic is already supported."
+  }
+  if state.source_page_count == 0 {
+    return "Bootstrap incomplete for \{topic}. No verified source digestion exists yet, so the workspace should present missing coverage directly instead of defaulting to generic product copy."
+  }
+  if state.entity_page_count == 0 && state.concept_page_count == 0 {
+    return "\{topic} has verified source material, but ontology coverage is still missing. The next pass should promote entity or concept pages before presenting this as mature synthesis."
+  }
+  let issue_summary = health.issues.join("; ")
+  "MoonBook is still tightening coverage for \{topic}. \{issue_summary}"
+}
+
+///|
+fn titleize_topic_slug(slug : String) -> String {
+  let words : Array[String] = []
+  for raw in slug.replace(old="_", new="-").to_string().split("-") {
+    let token = raw.trim().to_string()
+    if token.is_empty() {
+      continue
+    }
+    if token == "llm" {
+      words.push("LLM")
+    } else {
+      words.push(
+        token[:1].to_upper().to_string() + token[1:].to_lower().to_string(),
+      )
+    }
+  }
+  if words.is_empty() {
+    "MoonBook"
+  } else {
+    words.join(" ")
+  }
+}
+
+///|
+fn compact_review_label(kind : String, title : String) -> String {
+  let compact = compact_task_label(title)
+  "\{kind} | \{compact}"
+}
+
+///|
+fn compact_task_label(text : String) -> String {
+  let normalized = text.trim().to_lower()
+  let lane = if normalized.contains("moontown-research-lane") {
+    "Moontown lane"
+  } else if normalized.contains("moonbook-research-lane") {
+    "MoonBook lane"
+  } else if normalized.contains("moonclaw-research-lane") {
+    "MoonClaw lane"
+  } else {
+    ""
+  }
+  let action = if normalized.contains("bootstrap_gather") ||
+    normalized.contains("bootstrap gather") {
+    "bootstrap gather"
+  } else if normalized.contains("wiki-review") ||
+    normalized.contains("review-the-revised-pages") {
+    "bootstrap review"
+  } else if normalized.contains("entity-revise") ||
+    normalized.contains("concept-revise") ||
+    normalized.contains("synthesis-revise") {
+    "ontology revise"
+  } else if normalized.contains("wiki-ingest") &&
+    normalized.contains("source-diarize") {
+    "source gather"
+  } else if normalized.contains("materialize") ||
+    normalized.contains("source pages") {
+    "source materialize"
+  } else if normalized.contains("query") {
+    "query pass"
+  } else {
+    ""
+  }
+  let rebuilt = if !lane.is_empty() && !action.is_empty() {
+    "\{lane} \{action}"
+  } else if !action.is_empty() {
+    action
+  } else if !lane.is_empty() {
+    lane
+  } else if normalized.has_prefix("goal-") {
+    normalized[5:].to_string()
+  } else {
+    normalized.to_string()
+  }
+  let cleaned = rebuilt.replace(old="_", new=" ").to_string()
+  let titled = titleize_topic_slug(
+    cleaned.replace(old=" ", new="-").to_string(),
+  )
+  clamp_label(titled, 84)
+}
+
+///|
+fn clamp_label(text : String, max_len : Int) -> String {
+  if text.length() <= max_len {
+    text
+  } else {
+    text[:max_len - 1].to_string() + "…"
+  }
 }
 
 ///|
@@ -296,13 +427,23 @@ fn ui_status_chips(
     },
   })
   if state.pending_review_count > 0 {
-    chips.push({ label: "pending review", tone: "review" })
+    chips.push({
+      label: if state.substantive_coverage_ready {
+        "review backlog"
+      } else {
+        "pending review"
+      },
+      tone: "review",
+    })
   }
   chips.push({
     label: if state.substantive_coverage_ready {
       "ready for synthesis"
+    } else if state.verified_source_count == 0 &&
+      (state.candidate_source_count > 0 || state.provisional_source_count > 0) {
+      "bootstrap incomplete"
     } else if state.source_page_count == 0 {
-      "no sources yet"
+      "no verified sources"
     } else {
       "ingest in progress"
     },
@@ -343,9 +484,14 @@ fn ui_metrics(
       },
     },
     {
-      label: "Source Pages",
+      label: "Verified Sources",
       value: state.source_page_count.to_string(),
-      note: "Durable source summaries under `wiki/sources/` anchor later query and synthesis work.",
+      note: if state.candidate_source_count > 0 ||
+        state.provisional_source_count > 0 {
+        "Verified source pages anchor synthesis. Candidate=\{state.candidate_source_count}, provisional=\{state.provisional_source_count}, verified=\{state.verified_source_count}."
+      } else {
+        "Verified source summaries under `wiki/sources/` anchor later query and synthesis work."
+      },
       tone: if state.evidence_count > 0 {
         "healthy"
       } else {
@@ -387,10 +533,17 @@ fn ui_readiness_items(
   health : BookHealthReport,
 ) -> Array[UiPanelItem] {
   let items : Array[UiPanelItem] = []
-  if state.source_page_count == 0 {
+  if state.verified_source_count == 0 &&
+    (state.candidate_source_count > 0 || state.provisional_source_count > 0) {
     items.push({
-      title: "No sources yet",
-      detail: "The workspace is still scaffold-only. Put material under `raw/`, then run ingest so MoonBook can generate durable source pages.",
+      title: "Bootstrap incomplete",
+      detail: "The workspace only has candidate or provisional source pages. MoonBook should not present this as durable coverage until at least one verified source and one ontology page exist.",
+      meta: "candidate=\{state.candidate_source_count}, provisional=\{state.provisional_source_count}",
+    })
+  } else if state.source_page_count == 0 {
+    items.push({
+      title: "No verified sources yet",
+      detail: "The workspace is still scaffold-only or blocked before source digestion. Put material under `raw/`, then run ingest so MoonBook can generate verified source pages.",
       meta: "bootstrap required",
     })
   } else if !state.substantive_coverage_ready {
@@ -431,14 +584,20 @@ fn ui_workflow_items(
   [
     {
       title: "Ingest",
-      detail: if state.source_page_count == 0 {
-        "No durable source pages exist yet. Bootstrap starts in `raw/`, then writes `wiki/sources/` before broader synthesis work."
+      detail: if state.verified_source_count == 0 &&
+        (state.candidate_source_count > 0 || state.provisional_source_count > 0) {
+        "Bootstrap produced candidate or provisional source pages, but not verified digestion. The next pass must turn real inspected material into `wiki/sources/` before broader synthesis work."
+      } else if state.source_page_count == 0 {
+        "No verified source pages exist yet. Bootstrap starts in `raw/`, then writes `wiki/sources/` before broader synthesis work."
       } else if state.substantive_coverage_ready {
         "Source pages, ontology pages, and evidence are in place. Ingest can now revise rather than just bootstrap."
       } else {
         "Source pages exist, but ontology or evidence coverage still needs another ingest/review pass."
       },
-      status: if state.source_page_count == 0 {
+      status: if state.verified_source_count == 0 &&
+        (state.candidate_source_count > 0 || state.provisional_source_count > 0) {
+        "blocked"
+      } else if state.source_page_count == 0 {
         "needed"
       } else if state.substantive_coverage_ready {
         "stable"
@@ -461,7 +620,11 @@ fn ui_workflow_items(
     },
     {
       title: "Review",
-      detail: "Approvals can promote into overview, claims, cited pages, and staged durable targets.",
+      detail: if state.substantive_coverage_ready {
+        "Approvals can promote into overview, claims, cited pages, and staged durable targets without blocking the whole workspace from being presentable."
+      } else {
+        "Approvals can promote into overview, claims, cited pages, and staged durable targets, but they should not mask missing verified source or ontology coverage."
+      },
       status: if state.pending_review_count > 0 {
         "expanded"
       } else {
@@ -507,7 +670,7 @@ async fn ui_review_queue(
     match matched {
       Some(block) =>
         items.push({
-          title: "\{item.kind} | \{item.title}",
+          title: compact_review_label(item.kind, item.title),
           detail: find_review_field(block.block, "- Reason: ").unwrap_or(
             "Pending review item.",
           ),
@@ -517,7 +680,7 @@ async fn ui_review_queue(
         })
       None =>
         items.push({
-          title: "\{item.kind} | \{item.title}",
+          title: compact_review_label(item.kind, item.title),
           detail: "Pending review item.",
           meta: item.status,
         })
@@ -744,6 +907,87 @@ async fn ui_synthesis_preview(root : String) -> String {
 }
 
 ///|
+async fn ui_research_artifacts(root : String) -> Array[UiPanelItem] {
+  let items : Array[UiPanelItem] = []
+  for spec in research_artifact_specs() {
+    let path = @path.Path(root).join(@path.Path(spec.path)).to_string()
+    if @fsx.exists(path) {
+      items.push({
+        title: spec.title,
+        detail: markdown_excerpt(@fsx.read_file(path), 260),
+        meta: spec.path,
+      })
+    } else {
+      items.push({
+        title: spec.title,
+        detail: "Missing required artifact. Bootstrap should remain incomplete until this research record exists or a precise blocker explains why it cannot be produced.",
+        meta: "missing: \{spec.path}",
+      })
+    }
+  }
+  items
+}
+
+///|
+async fn ui_research_brief(root : String) -> String {
+  for
+    relative in [
+      "raw/bootstrap/synthesis-brief.md", "raw/bootstrap/evidence-matrix.md",
+    ] {
+    let path = @path.Path(root).join(@path.Path(relative)).to_string()
+    if @fsx.exists(path) {
+      return @fsx.read_file(path)
+    }
+  }
+  "No synthesis brief has been generated yet. The site should stay diagnostic until the research lane writes `raw/bootstrap/synthesis-brief.md` or explains the blocker."
+}
+
+///|
+priv struct ResearchArtifactSpec {
+  title : String
+  path : String
+}
+
+///|
+fn research_artifact_specs() -> Array[ResearchArtifactSpec] {
+  [
+    { title: "Research question", path: "raw/bootstrap/research-question.md" },
+    { title: "Search log", path: "raw/bootstrap/search-log.md" },
+    { title: "Source screen", path: "raw/bootstrap/source-screen.md" },
+    { title: "Evidence matrix", path: "raw/bootstrap/evidence-matrix.md" },
+    { title: "Local sources", path: "raw/bootstrap/local-sources.md" },
+    { title: "Synthesis brief", path: "raw/bootstrap/synthesis-brief.md" },
+  ]
+}
+
+///|
+fn markdown_excerpt(content : String, max_len : Int) -> String {
+  let parts : Array[String] = []
+  for raw in content.split("\n") {
+    let line = raw.trim().to_string()
+    if line.is_empty() ||
+      line.has_prefix("#") ||
+      line == "---" ||
+      line.has_prefix("```") {
+      continue
+    }
+    parts.push(line)
+    if parts.join(" ").length() >= max_len {
+      break
+    }
+  }
+  let joined = parts.join(" ")
+  if joined.is_empty() {
+    return "Artifact exists but does not yet contain a readable summary."
+  }
+  if joined.length() > max_len {
+    joined[:max_len - 3].to_string() + "..."
+  } else {
+    joined
+  }
+}
+
+///|
 fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   let book_prefix = "../../"
   let status_chips = state.status_chips
@@ -762,6 +1006,9 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
     .join("")
   let advantages = marketing_advantage_cards()
   let readiness = state.readiness
+    .map(fn(item) { marketing_panel_item(item) })
+    .join("")
+  let research_artifacts = state.research_artifacts
     .map(fn(item) { marketing_panel_item(item) })
     .join("")
   let reviews = state.review_queue
@@ -784,7 +1031,9 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   let project_title = escape_html(state.title)
   let project_summary = escape_html(state.summary)
   let synthesis_preview = escape_html(state.synthesis_preview)
+  let research_brief = escape_html(state.research_brief)
   let update_note_html = escape_html(updated_note)
+  let hero_headline = escape_html(marketing_hero_headline(state))
   "<!doctype html>\n" +
   "<html lang=\"en\">\n" +
   "<head>\n" +
@@ -806,6 +1055,7 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   "      <a href=\"\{book_prefix}index.html\">Book</a>\n" +
   "      <a href=\"./skills.html\">Skills</a>\n" +
   "      <a href=\"#state\">State</a>\n" +
+  "      <a href=\"#research\">Research</a>\n" +
   "      <a href=\"#depth\">Depth</a>\n" +
   "    </nav>\n" +
   "  </header>\n" +
@@ -813,7 +1063,7 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   "    <section class=\"hero reveal\">\n" +
   "      <div class=\"hero-copy\">\n" +
   "        <p class=\"eyebrow\">Live marketing projection</p>\n" +
-  "        <h1>\{project_title} is a maintained workspace, not a static note dump.</h1>\n" +
+  "        <h1>\{hero_headline}</h1>\n" +
   "        <p class=\"lede\">\{project_summary}</p>\n" +
   "        <div class=\"hero-actions\">\n" +
   "          <a class=\"button button-primary\" href=\"\{book_prefix}Home.html\">Open detailed wiki</a>\n" +
@@ -854,6 +1104,14 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
   "        <h2>Show whether the book can actually support synthesis.</h2>\n" +
   "      </div>\n" +
   "      <div class=\"readiness-grid\">\{readiness}</div>\n" +
+  "    </section>\n" +
+  "    <section class=\"section reveal\" id=\"research\">\n" +
+  "      <div class=\"section-heading\">\n" +
+  "        <p class=\"eyebrow\">Research trail</p>\n" +
+  "        <h2>Show the question, search, screening, evidence, and synthesis before the pitch.</h2>\n" +
+  "      </div>\n" +
+  "      <div class=\"readiness-grid\">\{research_artifacts}</div>\n" +
+  "      <div class=\"depth-card research-brief-card\"><h3>Synthesis brief</h3><pre class=\"preview-block\"><code>\{research_brief}</code></pre></div>\n" +
   "    </section>\n" +
   "    <section class=\"section reveal\">\n" +
   "      <div class=\"section-heading\">\n" +
@@ -937,6 +1195,21 @@ fn marketing_workflow_card(
   "<h3>\{escape_html(title)}</h3>" +
   "<p>\{escape_html(detail)}</p>" +
   "</article>"
+}
+
+///|
+fn marketing_hero_headline(state : UiState) -> String {
+  if state.summary.contains("Bootstrap incomplete for ") {
+    let first = match state.summary.find(".") {
+      Some(index) => state.summary[:index].to_string()
+      None => state.summary
+    }
+    return first + "."
+  }
+  if state.summary.contains("ontology coverage is still missing") {
+    return "\{state.title} has source material, but ontology coverage is still incomplete."
+  }
+  "\{state.title} is a maintained workspace, not a static note dump."
 }
 
 ///|
@@ -2081,9 +2354,15 @@ async test "write marketing projection emits generated site bundle" {
     ),
   )
   assert_true(@fsx.read_file(index_path).contains("Live marketing projection"))
+  assert_true(@fsx.read_file(index_path).contains("Research trail"))
   assert_true(@fsx.read_file(skills_index_path).contains("Skill manager"))
   assert_true(
     @fsx.read_file(skills_state_path).contains("\"skill_diagnostics\""),
+  )
+  assert_true(
+    @fsx.read_file(index_path).contains(
+      "missing: raw/bootstrap/research-question.md",
+    ),
   )
 }
 
@@ -2107,6 +2386,32 @@ async test "ui state exposes readiness and query counts" {
   assert_true(state.metrics.any(fn(metric) { metric.label == "Query Notes" }))
   assert_true(state.readiness.length() > 0)
   assert_true(state.journey.length() > 0)
+}
+
+///|
+async test "ui state projects research artifacts and synthesis brief" {
+  let root = "/tmp/moonbook-ui-state-research-artifacts"
+  ignore(init_workspace(root))
+  let bootstrap_dir = @path.Path(root)
+    .join(@path.Path("raw/bootstrap"))
+    .to_string()
+  @fsx.make_directory(bootstrap_dir, recursive=true, exists_ok=true)
+  @fsx.write_to_file(
+    @path.Path(root)
+    .join(@path.Path("raw/bootstrap/synthesis-brief.md"))
+    .to_string(),
+    "# Synthesis Brief\n\nFinding: MoonBook should present sourced research artifacts before marketing claims.\n",
+    create=0o644,
+  )
+  let state = generate_ui_state(root)
+  assert_eq(state.research_artifacts.length(), 6)
+  assert_true(
+    state.research_artifacts.any(fn(item) {
+      item.meta == "raw/bootstrap/synthesis-brief.md" &&
+      item.detail.contains("MoonBook should present sourced research artifacts")
+    }),
+  )
+  assert_true(state.research_brief.contains("Finding: MoonBook should present"))
 }
 
 ///|

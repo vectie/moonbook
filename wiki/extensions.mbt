@@ -269,6 +269,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
+  "              \"web_search\": true,\n" +
   "              \"board_lane\": \"Plan\",\n" +
   "              \"board_order\": 0\n" +
   "            }\n" +
@@ -282,6 +283,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
+  "              \"web_search\": true,\n" +
   "              \"board_lane\": \"Gather\",\n" +
   "              \"board_order\": 1\n" +
   "            }\n" +
@@ -295,6 +297,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
+  "              \"web_search\": true,\n" +
   "              \"board_lane\": \"Gather\",\n" +
   "              \"board_order\": 2\n" +
   "            }\n" +
@@ -308,6 +311,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
+  "              \"web_search\": true,\n" +
   "              \"board_lane\": \"Gather\",\n" +
   "              \"board_order\": 3\n" +
   "            }\n" +
@@ -321,6 +325,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
+  "              \"web_search\": true,\n" +
   "              \"board_lane\": \"Prepare\",\n" +
   "              \"board_order\": 4\n" +
   "            }\n" +
@@ -333,6 +338,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
+  "              \"web_search\": true,\n" +
   "              \"board_lane\": \"Inspect\",\n" +
   "              \"board_order\": 5\n" +
   "            }\n" +
@@ -341,23 +347,25 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"plan_revisions\",\n" +
   "            \"title\": \"Plan durable wiki revisions\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Turn the gathered raw/bootstrap materials and inspected wiki state for ${proposal.title} into a concrete revision plan. Separate: raw packets to ingest, substantive pages to create, substantive pages to revise, and blockers caused by weak materials. Treat generic completion text as failure, not success. Prefer cumulative revisions over one-off chat summaries. Favor stable domain pages and synthesis pages over token-derived or low-signal pages. Merge or delete noisy pages instead of preserving weak ontology.\",\n" +
+  "            \"prompt_template\": \"Turn the gathered raw/bootstrap materials and inspected wiki state for ${proposal.title} into a concrete MoonBook materialization plan. Separate: raw artifacts completed, source ids, entity candidates, concept candidates, synthesis claims, and blockers caused by weak materials. Treat generic completion text as failure, not success. Do not require MoonClaw to write durable wiki pages; MoonBook owns promotion into wiki/sources, wiki/entities, wiki/concepts, and synthesis pages from the raw research envelope.\",\n" +
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
+  "              \"web_search\": true,\n" +
   "              \"board_lane\": \"Plan\",\n" +
   "              \"board_order\": 6\n" +
   "            }\n" +
   "          },\n" +
   "          {\n" +
   "            \"id\": \"apply_revisions\",\n" +
-  "            \"title\": \"Apply wiki revisions\",\n" +
+  "            \"title\": \"Finalize research envelope\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Apply the approved wiki revision plan for ${proposal.title}. Read the prepared raw/bootstrap packets, edit the wiki markdown directly, keep raw packet provenance intact, update cross-links, and make sure wiki/index.md and wiki/log.md reflect the changes. Do not claim success unless at least one substantive durable page under wiki/sources/, wiki/entities/, wiki/concepts/, or wiki/queries/ is created or revised, or you return an explicit structured blocker.\",\n" +
+  "            \"request_template\": \"Finalize the research envelope for ${proposal.title}. Read the prepared raw/bootstrap packets and make sure the required raw artifacts exist: research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, and synthesis-brief.md. Return those raw/bootstrap paths in artifacts. Do not edit durable wiki pages directly; MoonBook will materialize wiki/sources, wiki/entities, wiki/concepts, and synthesis pages from this envelope. If any required raw artifact is missing, return an explicit structured blocker.\",\n" +
   "            \"child_profile\": \"wiki_revision_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
   "            \"metadata\": {\n" +
+  "              \"web_search\": true,\n" +
   "              \"board_lane\": \"Revise\",\n" +
   "              \"board_order\": 7\n" +
   "            }\n" +
@@ -366,7 +374,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"review_revisions\",\n" +
   "            \"title\": \"Review wiki consistency\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Review the wiki revisions for ${proposal.title}. Check link integrity, missing backreferences, unsupported claims, stale wording, whether wiki/index.md and wiki/log.md were updated consistently, and whether the resulting ontology is clean rather than token-derived.\",\n" +
+  "            \"request_template\": \"Review the research envelope for ${proposal.title}. Check that required raw/bootstrap artifacts exist, source screening is explicit, evidence rows support the synthesis brief, false leads are pruned, and blockers name unavailable tools or inaccessible sources. Do not require MoonClaw-created durable wiki pages; MoonBook owns final wiki materialization.\",\n" +
   "            \"child_profile\": \"wiki_review_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
@@ -383,6 +391,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
+  "              \"web_search\": true,\n" +
   "              \"board_lane\": \"Finalize\",\n" +
   "              \"board_order\": 9\n" +
   "            }\n" +
@@ -569,6 +578,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
+  "              \"web_search\": true,\n" +
   "              \"role_runtime\": {\n" +
   "                \"planning_layer\": \"execution\",\n" +
   "                \"runtime_mode\": \"executor\",\n" +
@@ -599,6 +609,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
+  "              \"web_search\": true,\n" +
   "              \"role_runtime\": {\n" +
   "                \"planning_layer\": \"execution\",\n" +
   "                \"runtime_mode\": \"executor\",\n" +
@@ -704,8 +715,9 @@ fn routines_text() -> String {
   "# Routines\n\n" +
   "## Ingest\n\n" +
   "1. Read the raw source from `raw/`\n" +
-  "2. Update `wiki/sources/` and any relevant entity, concept, or synthesis pages\n" +
-  "3. Update `wiki/index.md`, `wiki/SUMMARY.md`, and `wiki/log.md`\n\n" +
+  "2. Produce a complete research envelope under `raw/bootstrap/`\n" +
+  "3. Let MoonBook materialize durable `wiki/sources/`, entity, concept, and synthesis pages from that envelope\n" +
+  "4. Update `wiki/index.md`, `wiki/SUMMARY.md`, and `wiki/log.md`\n\n" +
   "## Query\n\n" +
   "1. Read `wiki/index.md` first\n" +
   "2. Read the relevant wiki pages\n" +
@@ -828,7 +840,28 @@ test "moonclaw ingest controller decomposes gather before revision" {
   assert_true(text.contains("architecture lane"))
   assert_true(
     text.contains(
-      "Do not claim success unless at least one substantive durable page",
+      "Do not edit durable wiki pages directly; MoonBook will materialize",
+    ),
+  )
+}
+
+///|
+test "moonclaw ingest profiles request web search explicitly" {
+  let text = moonclaw_jobs_text()
+  assert_true(text.contains("\"web_search\": true"))
+  assert_true(
+    text.contains(
+      "\"id\": \"plan_gather_fanout\",\n            \"title\": \"Plan gather worker fan-out\"",
+    ),
+  )
+  assert_true(
+    text.contains(
+      "\"id\": \"gather_materials\",\n            \"title\": \"Gather source materials\"",
+    ),
+  )
+  assert_true(
+    text.contains(
+      "\"id\": \"revise_wiki\",\n            \"title\": \"Revise wiki files\"",
     ),
   )
 }
