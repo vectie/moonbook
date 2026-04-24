@@ -1,0 +1,605 @@
+///|
+// Wiki, keeper, review, and book-harness command handlers.
+
+async fn run_wiki(args : Array[String]) -> Unit {
+  match args {
+    ["book", .. book_args] => run_wiki_book(book_args.to_array())
+    ["keeper", .. keeper_args] => run_wiki_keeper(keeper_args.to_array())
+    ["enable", extension, root] => run_wiki_enable(root, extension)
+    ["enable", extension] => run_wiki_enable(".", extension)
+    ["lint", root] => run_wiki_lint(root)
+    ["lint"] => run_wiki_lint(".")
+    ["review", .. review_args] => run_wiki_review(review_args.to_array())
+    ["query", .. query_args] => run_wiki_query(query_args.to_array())
+    ["ingest", root, source] => run_wiki_ingest(root, source)
+    ["ingest", source] => run_wiki_ingest(".", source)
+    ["init", root] => run_wiki_init(root)
+    ["init"] => run_wiki_init(".")
+    _ =>
+      println(
+        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki lint [root]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki keeper submit [root] <packet.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]\nmoonbook wiki book accept [root] <goal>\nmoonbook wiki book tasks [root] <goal>\nmoonbook wiki book context [root] <goal> [--task <task-id>]\nmoonbook wiki book persist [root] <result.json>\nmoonbook wiki book summary [root]\nmoonbook wiki book health [root]",
+      )
+  }
+}
+
+///|
+async fn run_wiki_init(root : String) -> Unit {
+  let workspace = @wiki.init_workspace(root) catch {
+    error => {
+      println("moonbook wiki init failed: \{error}")
+      return
+    }
+  }
+  println("initialized wiki workspace at \{workspace.root}")
+  println("raw sources: \{workspace.raw_dir}")
+  println("wiki pages: \{workspace.wiki_dir}")
+  println("schema: \{workspace.schema_path}")
+}
+
+///|
+async fn run_wiki_enable(root : String, extension : String) -> Unit {
+  let integration = @wiki.enable_extension(root, extension) catch {
+    error => {
+      println("moonbook wiki enable failed: \{error}")
+      return
+    }
+  }
+  println(
+    "enabled wiki extension \{integration.extension} at \{integration.root}",
+  )
+  println("extension manifest: \{integration.manifest_path}")
+  for path in integration.installed_files {
+    println("installed: \{path}")
+  }
+}
+
+///|
+async fn run_wiki_ingest(root : String, source : String) -> Unit {
+  let result = @wiki.ingest_source(root, source) catch {
+    error => {
+      println("moonbook wiki ingest failed: \{error}")
+      return
+    }
+  }
+  println("ingested \{result.title}")
+  println("raw source: \{result.raw_path}")
+  println("wiki page: \{result.page_path}")
+  if !result.keeper_packet_path.is_empty() {
+    println("keeper packet: \{result.keeper_packet_path}")
+  }
+}
+
+///|
+async fn run_wiki_query(args : Array[String]) -> Unit {
+  let parsed = parse_wiki_query_args(args) catch {
+    error => {
+      println("moonbook wiki query failed: \{error}")
+      return
+    }
+  }
+  let result = @wiki.query_wiki(parsed.root, parsed.question, save=parsed.save) catch {
+    error => {
+      println("moonbook wiki query failed: \{error}")
+      return
+    }
+  }
+  println(result.answer)
+  match result.saved_page {
+    Some(path) => println("saved query page: \{path}")
+    None => ()
+  }
+}
+
+///|
+async fn run_wiki_lint(root : String) -> Unit {
+  let result = @wiki.lint_wiki(root) catch {
+    error => {
+      println("moonbook wiki lint failed: \{error}")
+      return
+    }
+  }
+  println(result.report)
+}
+
+///|
+async fn run_wiki_review(args : Array[String]) -> Unit {
+  match args {
+    ["list", root] => run_wiki_review_list(root)
+    ["list"] => run_wiki_review_list(".")
+    ["approve", root, review_id] =>
+      run_wiki_review_action(root, review_id, "approve")
+    ["approve", review_id] => run_wiki_review_action(".", review_id, "approve")
+    ["reject", root, review_id] =>
+      run_wiki_review_action(root, review_id, "reject")
+    ["reject", review_id] => run_wiki_review_action(".", review_id, "reject")
+    _ =>
+      println(
+        "moonbook wiki review usage: moonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>",
+      )
+  }
+}
+
+///|
+async fn run_wiki_review_list(root : String) -> Unit {
+  let items = @wiki.list_pending_reviews(root) catch {
+    error => {
+      println("moonbook wiki review failed: \{error}")
+      return
+    }
+  }
+  if items.is_empty() {
+    println("no pending review items")
+    return
+  }
+  for item in items {
+    println("\{item.review_id}\t\{item.kind}\t\{item.status}\t\{item.title}")
+  }
+}
+
+///|
+async fn run_wiki_review_action(
+  root : String,
+  review_id : String,
+  action : String,
+) -> Unit {
+  let result = if action == "approve" {
+    @wiki.approve_review(root, review_id) catch {
+      error => {
+        println("moonbook wiki review failed: \{error}")
+        return
+      }
+    }
+  } else {
+    @wiki.reject_review(root, review_id) catch {
+      error => {
+        println("moonbook wiki review failed: \{error}")
+        return
+      }
+    }
+  }
+  println("\{action}d review \{result.review_id}")
+  for page in result.promoted_pages {
+    println("updated: wiki/\{page}")
+  }
+}
+
+///|
+async fn run_wiki_keeper(args : Array[String]) -> Unit {
+  match args {
+    ["submit", .. raw] => run_wiki_keeper_submit(raw.to_array())
+    _ =>
+      println(
+        "moonbook wiki keeper usage: moonbook wiki keeper submit [root] <packet.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]",
+      )
+  }
+}
+
+///|
+async fn run_wiki_keeper_submit(args : Array[String]) -> Unit {
+  let parsed = parse_wiki_keeper_submit_args(args) catch {
+    error => {
+      println("moonbook wiki keeper submit failed: \{error}")
+      return
+    }
+  }
+  ensure_wiki_keeper_submit_runtime(parsed.root) catch {
+    error => {
+      println("moonbook wiki keeper submit failed: \{error}")
+      return
+    }
+  }
+  let moon_args = [
+    "-C",
+    parsed.moonclaw_root,
+    "run",
+    "cmd/main",
+    "--",
+    "proposal",
+    "import",
+    parsed.packet_path,
+    "--json",
+    "--cwd",
+    parsed.cwd,
+    ..match parsed.home {
+      Some(home) => ["--home", home]
+      None => []
+    },
+    ..if parsed.confirm {
+      ["--confirm"]
+    } else {
+      []
+    },
+  ]
+  let code = @process.run("moon", moon_args) catch {
+    error => {
+      println("moonbook wiki keeper submit failed: \{error}")
+      return
+    }
+  }
+  if code != 0 {
+    println(
+      "moonbook wiki keeper submit failed: moonclaw exited with code \{code}",
+    )
+  }
+}
+
+///|
+async fn run_wiki_book(args : Array[String]) -> Unit {
+  match args {
+    ["accept", .. raw] => run_wiki_book_accept(raw.to_array())
+    ["tasks", .. raw] => run_wiki_book_tasks(raw.to_array())
+    ["context", .. raw] => run_wiki_book_context(raw.to_array())
+    ["persist", root, path] => run_wiki_book_persist(root, path)
+    ["persist", path] => run_wiki_book_persist(".", path)
+    ["catalog", root] => run_wiki_book_catalog(root)
+    ["catalog"] => run_wiki_book_catalog(".")
+    ["summary", root] => run_wiki_book_summary(root)
+    ["summary"] => run_wiki_book_summary(".")
+    ["health", root] => run_wiki_book_health(root)
+    ["health"] => run_wiki_book_health(".")
+    _ =>
+      println(
+        "moonbook wiki book usage: moonbook wiki book accept [root] <goal>\nmoonbook wiki book tasks [root] <goal>\nmoonbook wiki book context [root] <goal> [--task <task-id>]\nmoonbook wiki book persist [root] <result.json>\nmoonbook wiki book catalog [root]\nmoonbook wiki book summary [root]\nmoonbook wiki book health [root]",
+      )
+  }
+}
+
+///|
+async fn run_wiki_book_accept(args : Array[String]) -> Unit {
+  let parsed = parse_wiki_book_goal_args(args, false) catch {
+    error => {
+      println("moonbook wiki book accept failed: \{error}")
+      return
+    }
+  }
+  let result = @wiki.accept_goal(parsed.root, parsed.goal) catch {
+    error => {
+      println("moonbook wiki book accept failed: \{error}")
+      return
+    }
+  }
+  print_json(result)
+}
+
+///|
+async fn run_wiki_book_tasks(args : Array[String]) -> Unit {
+  let parsed = parse_wiki_book_goal_args(args, false) catch {
+    error => {
+      println("moonbook wiki book tasks failed: \{error}")
+      return
+    }
+  }
+  let result = @wiki.produce_task_batch(parsed.root, parsed.goal) catch {
+    error => {
+      println("moonbook wiki book tasks failed: \{error}")
+      return
+    }
+  }
+  print_json(result)
+}
+
+///|
+async fn run_wiki_book_context(args : Array[String]) -> Unit {
+  let parsed = parse_wiki_book_goal_args(args, true) catch {
+    error => {
+      println("moonbook wiki book context failed: \{error}")
+      return
+    }
+  }
+  let task = @wiki.resolve_task_for_goal(
+    parsed.root,
+    parsed.goal,
+    task_id=parsed.task_id,
+  ) catch {
+    error => {
+      println("moonbook wiki book context failed: \{error}")
+      return
+    }
+  }
+  match task {
+    Some(task) => {
+      let context = @wiki.hydrate_worker_context(parsed.root, task) catch {
+        error => {
+          println("moonbook wiki book context failed: \{error}")
+          return
+        }
+      }
+      print_json(context)
+    }
+    None =>
+      println(
+        "moonbook wiki book context failed: no matching task found for goal",
+      )
+  }
+}
+
+///|
+async fn run_wiki_book_persist(root : String, path : String) -> Unit {
+  let text = @fsx.read_file(path) catch {
+    error => {
+      println("moonbook wiki book persist failed: \{error}")
+      return
+    }
+  }
+  let result : @wiki.BookResult = @json.from_json(@json.parse(text)) catch {
+    error => {
+      println("moonbook wiki book persist failed: \{error}")
+      return
+    }
+  }
+  let outcome = @wiki.persist_result(root, result) catch {
+    error => {
+      println("moonbook wiki book persist failed: \{error}")
+      return
+    }
+  }
+  print_json(outcome)
+}
+
+///|
+async fn run_wiki_book_catalog(root : String) -> Unit {
+  let result = @wiki.catalog_record(root) catch {
+    error => {
+      println("moonbook wiki book catalog failed: \{error}")
+      return
+    }
+  }
+  print_json(result)
+}
+
+///|
+async fn run_wiki_book_summary(root : String) -> Unit {
+  let result = @wiki.summarize_state(root) catch {
+    error => {
+      println("moonbook wiki book summary failed: \{error}")
+      return
+    }
+  }
+  print_json(result)
+}
+
+///|
+async fn run_wiki_book_health(root : String) -> Unit {
+  let result = @wiki.report_health(root) catch {
+    error => {
+      println("moonbook wiki book health failed: \{error}")
+      return
+    }
+  }
+  print_json(result)
+}
+
+///|
+struct ParsedWikiQueryArgs {
+  root : String
+  question : String
+  save : Bool
+}
+
+///|
+struct ParsedWikiBookGoalArgs {
+  root : String
+  goal : String
+  task_id : String?
+}
+
+///|
+struct ParsedWikiKeeperSubmitArgs {
+  root : String
+  packet_path : String
+  confirm : Bool
+  home : String?
+  cwd : String
+  moonclaw_root : String
+}
+
+///|
+async fn parse_wiki_query_args(args : Array[String]) -> ParsedWikiQueryArgs {
+  let filtered : Array[String] = []
+  let mut save = false
+  for arg in args {
+    if arg == "--save" {
+      save = true
+    } else {
+      filtered.push(arg)
+    }
+  }
+  if filtered.is_empty() {
+    fail("usage: moonbook wiki query [root] <question> [--save]")
+  }
+  if filtered.length() >= 2 && looks_like_wiki_root(filtered[0]) {
+    { root: filtered[0], question: filtered[1:].join(" "), save }
+  } else {
+    { root: ".", question: filtered.join(" "), save }
+  }
+}
+
+///|
+async fn parse_wiki_book_goal_args(
+  args : Array[String],
+  allow_task : Bool,
+) -> ParsedWikiBookGoalArgs {
+  let filtered : Array[String] = []
+  let mut task_id : String? = None
+  let mut i = 0
+  while i < args.length() {
+    if allow_task && args[i] == "--task" {
+      if i + 1 >= args.length() {
+        fail("usage requires a value after --task")
+      }
+      task_id = Some(args[i + 1])
+      i += 2
+    } else {
+      filtered.push(args[i])
+      i += 1
+    }
+  }
+  if filtered.is_empty() {
+    fail("usage requires a goal")
+  }
+  if filtered.length() >= 2 && looks_like_wiki_root(filtered[0]) {
+    { root: filtered[0], goal: filtered[1:].join(" "), task_id }
+  } else {
+    { root: ".", goal: filtered.join(" "), task_id }
+  }
+}
+
+///|
+async fn parse_wiki_keeper_submit_args(
+  args : Array[String],
+) -> ParsedWikiKeeperSubmitArgs {
+  let filtered : Array[String] = []
+  let mut confirm = false
+  let mut latest = false
+  let mut home : String? = None
+  let mut cwd : String? = None
+  let mut moonclaw_root : String? = None
+  let mut i = 0
+  while i < args.length() {
+    match args[i] {
+      "--confirm" => {
+        confirm = true
+        i += 1
+      }
+      "--latest" => {
+        latest = true
+        i += 1
+      }
+      "--home" => {
+        if i + 1 >= args.length() {
+          fail("usage requires a value after --home")
+        }
+        home = Some(args[i + 1])
+        i += 2
+      }
+      "--cwd" => {
+        if i + 1 >= args.length() {
+          fail("usage requires a value after --cwd")
+        }
+        cwd = Some(args[i + 1])
+        i += 2
+      }
+      "--moonclaw" => {
+        if i + 1 >= args.length() {
+          fail("usage requires a value after --moonclaw")
+        }
+        moonclaw_root = Some(args[i + 1])
+        i += 2
+      }
+      arg => {
+        filtered.push(arg)
+        i += 1
+      }
+    }
+  }
+  if latest && filtered.length() > 1 {
+    fail(
+      "usage: moonbook wiki keeper submit [root] --latest [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]",
+    )
+  }
+  if !latest && (filtered.is_empty() || filtered.length() > 2) {
+    fail(
+      "usage: moonbook wiki keeper submit [root] <packet.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]",
+    )
+  }
+  let root = if latest {
+    if filtered.length() == 1 {
+      filtered[0]
+    } else {
+      "."
+    }
+  } else if filtered.length() == 2 {
+    filtered[0]
+  } else {
+    "."
+  }
+  let resolved_packet = if latest {
+    latest_keeper_packet_path(root)
+  } else {
+    let packet_arg = if filtered.length() == 2 {
+      filtered[1]
+    } else {
+      filtered[0]
+    }
+    resolve_keeper_packet_path(root, packet_arg)
+  }
+  {
+    root,
+    packet_path: resolved_packet,
+    confirm,
+    home,
+    cwd: cwd.unwrap_or(root),
+    moonclaw_root: moonclaw_root.unwrap_or(default_moonclaw_root()),
+  }
+}
+
+///|
+async fn looks_like_wiki_root(path : String) -> Bool {
+  let summary = @path.Path(path).join(@path.Path("wiki/SUMMARY.md")).to_string()
+  @fsx.exists(summary)
+}
+
+///|
+async fn ensure_wiki_keeper_submit_runtime(root : String) -> Unit {
+  let jobs_path = @path.Path(root)
+    .join(@path.Path("moonclaw.jobs.json"))
+    .to_string()
+  if @fsx.exists(jobs_path) {
+    return
+  }
+  if !looks_like_wiki_root(root) {
+    fail(
+      "root is not a wiki workspace and moonclaw.jobs.json is missing: \{root}",
+    )
+  }
+  let install = @wiki.enable_extension(root, "moonclaw")
+  println(
+    "seeded moonclaw extension for keeper submit: \{install.manifest_path}",
+  )
+}
+
+///|
+async fn latest_keeper_packet_path(root : String) -> String {
+  let jobs_dir = @path.Path(root).join(@path.Path("keeper/jobs")).to_string()
+  if !@fsx.exists(jobs_dir) {
+    fail("keeper jobs directory does not exist: \{jobs_dir}")
+  }
+  let mut latest_path = ""
+  let mut latest_mtime = -1L
+  for entry in @fsx.list_directory(jobs_dir) {
+    if !entry.has_suffix(".json") {
+      continue
+    }
+    let entry_mtime = @fsx.mtime(entry).unwrap_or(-1L)
+    if entry_mtime > latest_mtime {
+      latest_path = entry
+      latest_mtime = entry_mtime
+    }
+  }
+  if latest_path.is_empty() {
+    fail("no keeper packet found under \{jobs_dir}")
+  }
+  latest_path
+}
+
+///|
+fn resolve_keeper_packet_path(root : String, packet_path : String) -> String {
+  if @path.Path(packet_path).is_absolute() {
+    @path.Path(packet_path).normalize().to_string()
+  } else if root == "." {
+    @path.Path(packet_path).normalize().to_string()
+  } else {
+    @path.Path(root).join(@path.Path(packet_path)).normalize().to_string()
+  }
+}
+
+///|
+fn default_moonclaw_root() -> String {
+  match @env.current_dir() {
+    Some(cwd) =>
+      @path.Path(cwd).join(@path.Path("../moonclaw")).normalize().to_string()
+    None => "../moonclaw"
+  }
+}
+
+///|
