@@ -60,6 +60,7 @@ Implemented behaviors:
 - `build` and `serve` copy an optional root `site/` authored website into `book/site/`
 - the authored `site/` layer remains standalone and should not assume generated files already exist
 - `build` and `serve` generate a live marketing projection into `book/site/generated/`
+- `build` and `serve` make `book/site/index.html` open the live generated marketing projection so the default site page is topic-specific after a wiki build
 - generated site also includes a dedicated journal view at `book/site/generated/journal.html`
 - generated site also includes a `ctc`-inspired educational course view at `book/site/generated/course.html`
 - generated site also includes a dedicated skill manager at `book/site/generated/skills.html`

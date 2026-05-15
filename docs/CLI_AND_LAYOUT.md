@@ -602,6 +602,8 @@ Created by `moonbook wiki init`:
   lightweight reveal and interaction behavior for the repo-owned source website
 - `book/site/generated/index.html`
   live generated marketing projection built from current workspace state
+- `book/site/index.html`
+  build output entrypoint that opens `book/site/generated/index.html`, preventing stale generic source-site copy from becoming the default public page
 - `book/site/generated/marketing-state.json`
   machine-readable snapshot used by the generated marketing projection
 - `book/site/generated/journal.html`

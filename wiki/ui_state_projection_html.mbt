@@ -77,6 +77,30 @@ fn marketing_projection_html(state : UiState, updated_note : String) -> String {
 }
 
 ///|
+fn marketing_projection_entry_html(state : UiState) -> String {
+  let project_title = escape_html(state.title)
+  "<!doctype html>\n" +
+  "<html lang=\"en\">\n" +
+  "<head>\n" +
+  "  <meta charset=\"utf-8\">\n" +
+  "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+  "  <meta http-equiv=\"refresh\" content=\"0; url=./generated/index.html\">\n" +
+  "  <title>\{project_title} Marketing Projection</title>\n" +
+  "  <meta name=\"description\" content=\"Opening the live generated marketing projection for \{project_title}.\">\n" +
+  "  <link rel=\"canonical\" href=\"./generated/index.html\">\n" +
+  "  <style>body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:#fff7ea;color:#13241f}.card{max-width:42rem;padding:2rem;border:1px solid rgba(19,36,31,.14);border-radius:24px;background:#fffaf2;box-shadow:0 24px 80px rgba(20,34,29,.12)}a{color:#173c34;font-weight:700}</style>\n" +
+  "</head>\n" +
+  "<body>\n" +
+  "  <main class=\"card\">\n" +
+  "    <p>Opening the live generated marketing projection for \{project_title}.</p>\n" +
+  "    <p><a href=\"./generated/index.html\">Open generated projection</a></p>\n" +
+  "  </main>\n" +
+  "  <script>location.replace('./generated/index.html');</script>\n" +
+  "</body>\n" +
+  "</html>\n"
+}
+
+///|
 fn marketing_panel_item(item : UiPanelItem) -> String {
   "<article class=\"panel-item\">" +
   "<strong>\{escape_html(item.title)}</strong>" +

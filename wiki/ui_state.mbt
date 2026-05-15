@@ -244,11 +244,74 @@ async fn ui_project_title(root : String) -> String {
   if !catalog.is_empty() && catalog != "LLM Wiki" {
     return catalog.to_string()
   }
+  match ui_research_title(root) {
+    Some(title) if !title.trim().is_empty() => return title
+    _ => ()
+  }
   let leaf = @path.Path(@pathx.normalize(root)).basename().to_string()
   if leaf.has_prefix("research-") {
     return titleize_topic_slug(leaf[9:].to_string())
   }
   titleize_topic_slug(leaf)
+}
+
+///|
+async fn ui_research_title(root : String) -> String? {
+  for
+    relative in [
+      "raw/bootstrap/deep-report.md", "wiki/synthesis/report.md", "raw/bootstrap/synthesis-brief.md",
+    ] {
+    let path = @path.Path(root).join(@path.Path(relative)).to_string()
+    if !@fsx.exists(path) {
+      continue
+    }
+    match first_projection_markdown_heading(@fsx.read_file(path)) {
+      Some(title) => {
+        let normalized = normalize_research_projection_title(title)
+        if !normalized.is_blank() {
+          return Some(normalized)
+        }
+      }
+      None => ()
+    }
+  }
+  None
+}
+
+///|
+fn first_projection_markdown_heading(markdown : String) -> String? {
+  for raw in markdown.split("\n") {
+    let line = raw.trim().to_string()
+    if line.has_prefix("# ") {
+      return Some(line[2:].trim().to_string())
+    }
+  }
+  None
+}
+
+///|
+fn normalize_research_projection_title(title : String) -> String {
+  let mut normalized = title.trim().to_string()
+  for
+    suffix in [
+      ": Deep Research Analysis", " - Deep Research Analysis", " Deep Research Analysis",
+      ": Research Analysis", " - Research Analysis",
+    ] {
+    if normalized.has_suffix(suffix) {
+      normalized = normalized[:normalized.length() - suffix.length()]
+        .trim()
+        .to_string()
+    }
+  }
+  let lower = normalized.to_lower()
+  if lower == "deep report" ||
+    lower == "research report" ||
+    lower == "synthesis brief" ||
+    lower == "evidence matrix" {
+    ""
+  } else {
+    normalized
+  }
 }
 
 ///|
@@ -380,6 +443,9 @@ pub async fn write_marketing_projection(
   let index_path = @path.Path(generated_dir)
     .join(@path.Path("index.html"))
     .to_string()
+  let entry_index_path = @path.Path(site_root)
+    .join(@path.Path("index.html"))
+    .to_string()
   let styles_path = @path.Path(generated_dir)
     .join(@path.Path("styles.css"))
     .to_string()
@@ -412,6 +478,11 @@ pub async fn write_marketing_projection(
   @fsx.write_to_file(
     index_path,
     marketing_projection_html(state, updated_note),
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    entry_index_path,
+    marketing_projection_entry_html(state),
     create=0o644,
   )
   @fsx.write_to_file(
@@ -963,6 +1034,21 @@ test "summary link parts parse markdown bullets" {
 }
 
 ///|
+async test "ui state derives research title from deep report heading" {
+  let root = "/tmp/moonbook-ui-state-research-title"
+  ignore(init_workspace(root))
+  @fsx.write_to_file(
+    @path.Path(root)
+    .join(@path.Path("raw/bootstrap/deep-report.md"))
+    .to_string(),
+    "# One Person Company (OPC): Deep Research Analysis\n\n## Executive Summary\n\nA sourced report.\n",
+    create=0o644,
+  )
+  let state = generate_ui_state(root)
+  assert_eq(state.title, "One Person Company (OPC)")
+}
+
+///|
 async test "write marketing projection emits generated site bundle" {
   let root = "/tmp/moonbook-marketing-projection"
   ignore(init_workspace(root))
@@ -984,6 +1070,9 @@ async test "write marketing projection emits generated site bundle" {
   )
   let site_root = @path.Path(root).join(@path.Path("book/site")).to_string()
   let index_path = write_marketing_projection(root, site_root)
+  let entry_index_path = @path.Path(site_root)
+    .join(@path.Path("index.html"))
+    .to_string()
   let generated_dir = @path.Path(site_root)
     .join(@path.Path("generated"))
     .to_string()
@@ -998,6 +1087,14 @@ async test "write marketing projection emits generated site bundle" {
     @path.Path(generated_dir).join(@path.Path("index.html")).to_string(),
   )
   assert_true(@fsx.exists(index_path))
+  assert_true(@fsx.exists(entry_index_path))
+  assert_true(
+    @fsx.read_file(entry_index_path).contains("./generated/index.html"),
+  )
+  assert_true(!@fsx.read_file(entry_index_path).contains("LLM Wiki Website"))
+  assert_true(
+    !@fsx.read_file(entry_index_path).contains("Markdown. Wiki. Website."),
+  )
   assert_true(
     @fsx.exists(
       @path.Path(generated_dir)

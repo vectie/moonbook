@@ -150,8 +150,9 @@ fn parse_link_line(line : String) -> Link raise {
     Some(index) => index
     None => fail("missing ]")
   }
-  let open_path = match line.find("(") {
-    Some(index) => index
+  let after_name = line[close_name:].to_string()
+  let open_path = match after_name.find("(") {
+    Some(index) => close_name + index
     None => fail("missing (")
   }
   let close_path = match line.rev_find(")") {
@@ -301,6 +302,20 @@ test "parse summary allows draft chapters with empty destinations" {
   let summary = parse_summary("# Summary\n- [Draft]()\n")
   match summary.numbered_chapters[0] {
     Link(link) => assert_eq(link.location, None)
+    _ => fail("expected a link")
+  }
+}
+
+///|
+test "parse summary allows parentheses in link labels" {
+  let summary = parse_summary(
+    "# Summary\n- [One Person Company (OPC)](./entities/opc.md)\n",
+  )
+  match summary.numbered_chapters[0] {
+    Link(link) => {
+      assert_eq(link.name, "One Person Company (OPC)")
+      assert_eq(link.location, Some("./entities/opc.md"))
+    }
     _ => fail("expected a link")
   }
 }

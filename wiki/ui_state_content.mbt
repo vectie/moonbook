@@ -963,8 +963,19 @@ fn clamp_text(text : String, max_len : Int) -> String {
       builder.write_char(ch)
       count += 1
     }
-    builder.to_string() + "..."
+    let mut clipped = builder.to_string().trim().to_string()
+    match clipped.rev_find(" ") {
+      Some(index) if index > max_len / 2 =>
+        clipped = clipped[:index].trim().to_string()
+      _ => ()
+    }
+    clipped + "..."
   }
+}
+
+///|
+test "clamp text prefers word boundary" {
+  assert_eq(clamp_text("alpha beta gamma delta", 17), "alpha beta...")
 }
 
 ///|
