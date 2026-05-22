@@ -79,13 +79,13 @@ The wiki path builds on the same rendering/build infrastructure, but introduces 
 - `wiki/review.mbt`
   review lifecycle commands
 - `wiki/bookapi.mbt`
-  town-facing book harness entrypoints and result persistence orchestration
+  town-facing book harness entrypoints, standing-watch task selection, and result persistence orchestration
 - `wiki/bookapi_types.mbt`
   public Book API contracts shared with town/worker adapters
 - `wiki/bookapi_planning.mbt`
   goal decomposition, semantic bootstrap task planning, and external task resolution helpers
 - `wiki/bookapi_context.mbt`
-  worker-context hydration, skill resolution, source hints, and memory/context selection
+  worker-context hydration, skill resolution, standing-watch baseline prompts, source hints, and memory/context selection
 - `wiki/bookapi_state.mbt`
   catalog export, summary, health, coverage tiers, and readiness checks
 - `wiki/keeper_memory.mbt`
@@ -131,6 +131,7 @@ This layer is responsible for:
 - maintaining bounded Keeper memory under `keeper/`
 - maintaining lightweight evidence under `wiki/synthesis/evidence.md`
 - maintaining a synthesis-planning surface under `wiki/synthesis/map.md`
+- maintaining recurring watch decisions under `wiki/history/standing-watch.md`
 - maintaining persistent markdown pages across ingests
 - tracking lightweight claims and review queues
 - refreshing Keeper self-maintenance hints under `keeper/INSIGHTS.md`
@@ -191,6 +192,7 @@ The current `moontown` alignment is intentionally additive:
 
 - MoonBook exports a catalog-style book record for town bootstrap
 - MoonBook exposes optional book-harness commands for planning, hydration, persistence, summary, and health
+- MoonBook owns standing-watch baseline decisions for recurring goals, while Moontown owns scheduling/supervision and MoonClaw owns execution
 - MoonBook does not take over town scheduling or worker execution
 
 This keeps MoonBook from depending on one agent runtime while still allowing runtime-specific setup.

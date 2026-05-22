@@ -131,6 +131,9 @@ pub async fn init_workspace(
   let memory_skill_dir = @path.Path(skills_dir)
     .join(@path.Path("wiki-memory"))
     .to_string()
+  let standing_watch_skill_dir = @path.Path(skills_dir)
+    .join(@path.Path("standing-watch"))
+    .to_string()
   let marketing_skill_dir = @path.Path(skills_dir)
     .join(@path.Path("wiki-marketing"))
     .to_string()
@@ -214,6 +217,7 @@ pub async fn init_workspace(
   @fsx.make_directory(lint_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(review_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(memory_skill_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(standing_watch_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(marketing_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(course_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(research_report_skill_dir, recursive=true, exists_ok=true)
@@ -269,6 +273,9 @@ pub async fn init_workspace(
   copy_seed_tree_if_missing(lint_skill_dir, "seed/wiki/skills/wiki-lint")
   copy_seed_tree_if_missing(review_skill_dir, "seed/wiki/skills/wiki-review")
   copy_seed_tree_if_missing(memory_skill_dir, "seed/wiki/skills/wiki-memory")
+  copy_seed_tree_if_missing(
+    standing_watch_skill_dir, "seed/wiki/skills/standing-watch",
+  )
   copy_seed_tree_if_missing(
     marketing_skill_dir, "seed/wiki/skills/wiki-marketing",
   )
@@ -990,6 +997,10 @@ fn resolver_text() -> String {
   "  skill: `skills/wiki-memory/SKILL.md`\n" +
   "  supporting_skills: `skills/memory-prune/SKILL.md`, `skills/query-promote/SKILL.md`\n" +
   "  load_first: `keeper/MEMORY.md`, `keeper/USER.md`, `keeper/WORKING.md`, `keeper/INSIGHTS.md`\n" +
+  "- intent: standing-watch\n" +
+  "  skill: `skills/standing-watch/SKILL.md`\n" +
+  "  supporting_skills: `skills/source-diarize/SKILL.md`, `skills/claim-audit/SKILL.md`, `skills/synthesis-revise/SKILL.md`, `skills/wiki-memory/SKILL.md`, `skills/wiki-review/SKILL.md`, `skills/query-promote/SKILL.md`\n" +
+  "  load_first: `wiki/history/standing-watch.md`, `wiki/index.md`, `wiki/sources/`, `wiki/synthesis/overview.md`, `wiki/synthesis/claims.md`, `wiki/synthesis/evidence.md`, `wiki/reviews/pending.md`\n" +
   "- intent: marketing\n" +
   "  skill: `skills/wiki-marketing/SKILL.md`\n" +
   "  supporting_skills: `skills/wiki-query/SKILL.md`, `skills/synthesis-revise/SKILL.md`, `skills/query-promote/SKILL.md`\n" +
@@ -1060,6 +1071,14 @@ fn schema_text() -> String {
   "3. Read the relevant wiki pages\n" +
   "4. Answer from the wiki with citations to page paths\n" +
   "5. If the answer creates durable value, propose filing it back into the wiki\n\n" +
+  "### Standing Watch\n\n" +
+  "When running a recurring 24/7 topic check:\n\n" +
+  "1. Read `RESOLVER.md` and load `skills/standing-watch/SKILL.md`\n" +
+  "2. Compare the current wiki baseline and previous `wiki/history/standing-watch.md` decisions against newly inspected sources\n" +
+  "3. Decide `update`, `no_change`, `needs_review`, or `failed` from evidence quality and baseline delta\n" +
+  "4. Include the required `standing_goal_decision`, `delta_score`, `new_source_count`, and `next_check_hint` marker lines in the result summary\n" +
+  "5. Update durable pages only when there is meaningful new evidence; otherwise return a compact no-change result\n" +
+  "6. Let Moontown schedule and supervise the loop; MoonBook owns the book-local baseline decision and durable state\n\n" +
   "### Marketing\n\n" +
   "When updating the marketing projection:\n\n" +
   "1. Read `RESOLVER.md` and load `skills/wiki-marketing/SKILL.md`\n" +
@@ -1181,6 +1200,7 @@ async test "init workspace seeds keeper memory files" {
   assert_true(
     @fsx.exists(root + "/skills/wiki-memory/references/memory-boundaries.md"),
   )
+  assert_true(@fsx.exists(root + "/skills/standing-watch/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/wiki-marketing/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/research-report/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/source-diarize/SKILL.md"))

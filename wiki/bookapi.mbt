@@ -41,6 +41,16 @@ pub async fn produce_task_batch(
   let tasks : Array[BookTask] = []
   let bootstrap_research_goal = weak_coverage && research_bootstrap_goal(goal)
 
+  if standing_watch_goal(goal) {
+    tasks.push(standing_watch_task(normalized_goal_id, goal))
+    return {
+      goal_id: normalized_goal_id,
+      goal,
+      summary: "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level} standing_watch=1",
+      tasks: dedupe_tasks(tasks),
+    }
+  }
+
   if state.pending_review_count > 0 ||
     notes.contains("review") ||
     notes.contains("approve") ||
@@ -177,7 +187,36 @@ pub async fn resolve_task_for_goal(
   let batch = produce_task_batch(root, goal)
   match resolve_task_from_batch(batch.tasks, task_id~) {
     Some(task) => Some(task)
-    None => fallback_bootstrap_task_for_goal(goal, batch.goal_id, task_id~)
+    None =>
+      match
+        fallback_standing_watch_task_for_goal(goal, batch.goal_id, task_id~) {
+        Some(task) => Some(task)
+        None => fallback_bootstrap_task_for_goal(goal, batch.goal_id, task_id~)
+      }
+  }
+}
+
+///|
+fn fallback_standing_watch_task_for_goal(
+  goal : String,
+  goal_id : String,
+  task_id? : String? = None,
+) -> BookTask? {
+  match task_id {
+    Some(task_id) =>
+      if external_standing_watch_task_id(task_id) {
+        Some(standing_watch_task_with_id(task_id, goal))
+      } else if standing_watch_goal(goal) {
+        Some(standing_watch_task(goal_id, goal))
+      } else {
+        None
+      }
+    None =>
+      if standing_watch_goal(goal) {
+        Some(standing_watch_task(goal_id, goal))
+      } else {
+        None
+      }
   }
 }
 
@@ -222,6 +261,14 @@ pub async fn persist_result(
   let block = persisted_result_block(normalized_result)
   observations = append_section_block(observations, "## Results", block)
   @fsx.write_to_file(observations_path, observations, create=0o644)
+  if result_is_standing_watch(normalized_result) {
+    let watch_relative = append_standing_watch_history(
+      workspace, normalized_result,
+    )
+    if !updated_pages.contains(watch_relative) {
+      updated_pages.push(watch_relative)
+    }
+  }
   let evidence_id = append_result_evidence(workspace, normalized_result)
   let evidence_relative = evidence_relative_page()
   if !updated_pages.contains(evidence_relative) {
@@ -1274,6 +1321,151 @@ async fn file_needs_projection_reconcile(path : String) -> Bool {
 }
 
 ///|
+fn standing_watch_goal(goal : String) -> Bool {
+  let notes = goal.to_lower()
+  notes.contains("standing-watch") ||
+  notes.contains("standing watch") ||
+  notes.contains("standing_goal_decision") ||
+  notes.contains("next_check_hint") ||
+  notes.contains("24/7") ||
+  notes.contains("24 x 7") ||
+  notes.contains("periodically check")
+}
+
+///|
+fn standing_watch_task(goal_id : String, goal : String) -> BookTask {
+  standing_watch_task_with_id("\{goal_id}-standing-watch", goal)
+}
+
+///|
+fn standing_watch_task_with_id(task_id : String, goal : String) -> BookTask {
+  {
+    id: task_id,
+    title: "Run standing watch decision",
+    kind: "standing-watch",
+    prompt: standing_watch_prompt(goal),
+    priority: 100,
+    requires_review: false,
+    target_pages: [
+      "history/standing-watch.md", "history/journey.md", "sources/", "synthesis/overview.md",
+      "synthesis/claims.md", "synthesis/evidence.md", "synthesis/maintenance-plan.md",
+      "reviews/pending.md", "../raw/bootstrap/",
+    ],
+  }
+}
+
+///|
+fn external_standing_watch_task_id(task_id : String) -> Bool {
+  let normalized = task_id.trim().to_lower()
+  normalized.contains("standing-watch") ||
+  (normalized.has_prefix("standing-") && normalized.contains("-tick-"))
+}
+
+///|
+fn standing_watch_prompt(goal : String) -> String {
+  "Load `skills/standing-watch/SKILL.md` before deciding. Treat this as a recurring book-local watch pass, not a one-off report. Compare the current wiki baseline, prior watch history, and available sources against the standing goal. Only update durable wiki pages when there is meaningful new evidence, contradiction, or synthesis value. If there is no meaningful delta, return a compact no-change result instead of inventing content.\n\nStanding goal:\n\{goal}\n\nYour summary must include these machine-readable lines exactly once:\nstanding_goal_decision: update | no_change | needs_review | failed\ndelta_score: 0-100\nnew_source_count: <integer>\nnext_check_hint: normal | slower | faster | review"
+}
+
+///|
+fn result_is_standing_watch(result : BookResult) -> Bool {
+  let text = (result.task_id + "\n" + result.summary).to_lower()
+  text.contains("standing-watch") ||
+  text.contains("standing_goal_decision") ||
+  text.contains("next_check_hint")
+}
+
+///|
+async fn append_standing_watch_history(
+  workspace : Paths,
+  result : BookResult,
+) -> String {
+  let relative = "history/standing-watch.md"
+  let dir = @path.Path(workspace.wiki_dir)
+    .join(@path.Path("history"))
+    .to_string()
+  let absolute = @path.Path(workspace.wiki_dir)
+    .join(@path.Path(relative))
+    .to_string()
+  @fsx.make_directory(dir, recursive=true, exists_ok=true)
+  let current = if @fsx.exists(absolute) {
+    @fsx.read_file(absolute)
+  } else {
+    "# Standing Watch\n\nThis page stores MoonBook-owned decisions for recurring 24/7 topic checks. The AI decides whether a check found meaningful new information; MoonBook records the decision, evidence paths, and review state.\n\n## Decisions\n\n_None yet._\n"
+  }
+  let block = standing_watch_history_block(result)
+  let updated = append_section_block(current, "## Decisions", block)
+  @fsx.write_to_file(absolute, updated, create=0o644)
+  update_summary(workspace.summary_path, "Standing Watch", relative)
+  update_index_section(
+    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    "Core Pages",
+    "Standing Watch",
+    relative,
+    "recurring watch decisions and deltas for long-running book upkeep",
+  )
+  relative
+}
+
+///|
+fn standing_watch_history_block(result : BookResult) -> String {
+  let decision = standing_watch_summary_field(
+    result.summary,
+    "standing_goal_decision",
+    "unknown",
+  )
+  let delta_score = standing_watch_summary_field(
+    result.summary,
+    "delta_score",
+    "unknown",
+  )
+  let new_source_count = standing_watch_summary_field(
+    result.summary,
+    "new_source_count",
+    "unknown",
+  )
+  let next_check_hint = standing_watch_summary_field(
+    result.summary,
+    "next_check_hint",
+    "normal",
+  )
+  let builder = StringBuilder::new()
+  builder.write_string("### \{result.task_id}\n\n")
+  builder.write_string("- Decision: `\{decision}`\n")
+  builder.write_string("- Delta score: `\{delta_score}`\n")
+  builder.write_string("- New source count: `\{new_source_count}`\n")
+  builder.write_string("- Next check hint: `\{next_check_hint}`\n")
+  builder.write_string("- Requires review: `\{result.requires_review}`\n")
+  builder.write_string("- Notify town: `\{result.notify_town}`\n")
+  if !result.artifacts.is_empty() {
+    builder.write_string("- Artifacts:\n")
+    for artifact in result.artifacts {
+      builder.write_string("  - `\{artifact}`\n")
+    }
+  }
+  builder.write_string("- Summary: \{clamp_excerpt(result.summary)}\n\n")
+  builder.to_string()
+}
+
+///|
+fn standing_watch_summary_field(
+  summary : String,
+  key : String,
+  fallback : String,
+) -> String {
+  let prefix = key + ":"
+  for raw in summary.split("\n") {
+    let mut line = raw.trim().to_string()
+    if line.has_prefix("- ") {
+      line = line[2:].trim().to_string()
+    }
+    if line.to_lower().has_prefix(prefix) {
+      return line[prefix.length():].trim().to_string()
+    }
+  }
+  fallback
+}
+
+///|
 fn memory_candidate_section(relative_page : String) -> String {
   if relative_page.has_prefix("entities/") {
     "Entities"
@@ -1295,6 +1487,47 @@ test "memory candidate section maps known page groups" {
   assert_eq(memory_candidate_section("queries/overview.md"), "Queries")
   assert_eq(memory_candidate_section("sources/article.md"), "Sources")
   assert_eq(memory_candidate_section("synthesis/notes.md"), "Core Pages")
+}
+
+///|
+test "standing watch goal detection stays generic" {
+  assert_true(standing_watch_goal("standing-watch topic=one person company"))
+  assert_true(standing_watch_goal("Periodically check this topic for deltas"))
+  assert_true(!standing_watch_goal("research moontown, moonbook and moonclaw"))
+}
+
+///|
+async test "produce task batch creates dedicated standing watch task" {
+  let root = "/tmp/moonbook-bookapi-standing-watch"
+  ignore(init_workspace(root))
+  let batch = produce_task_batch(
+    root, "standing-watch: periodically check latest sources about one person company and update the book only when there is a meaningful delta",
+  )
+  assert_true(batch.summary.contains("standing_watch=1"))
+  assert_eq(batch.tasks.length(), 1)
+  assert_eq(batch.tasks[0].kind, "standing-watch")
+  assert_true(batch.tasks[0].prompt.contains("skills/standing-watch/SKILL.md"))
+  assert_true(batch.tasks[0].prompt.contains("standing_goal_decision"))
+  assert_true(batch.tasks[0].target_pages.contains("history/standing-watch.md"))
+}
+
+///|
+async test "persist standing watch result records durable watch history" {
+  let root = "/tmp/moonbook-bookapi-standing-watch-history"
+  ignore(init_workspace(root))
+  let outcome = persist_result(root, {
+    task_id: "goal-opc-standing-watch",
+    summary: "standing_goal_decision: no_change\ndelta_score: 8\nnew_source_count: 0\nnext_check_hint: slower\nNo credible new source changed the book baseline.",
+    artifacts: [],
+    memory_candidates: [],
+    requires_review: false,
+    notify_town: true,
+  })
+  assert_true(outcome.updated_pages.contains("history/standing-watch.md"))
+  let history = @fsx.read_file(root + "/wiki/history/standing-watch.md")
+  assert_true(history.contains("### goal-opc-standing-watch"))
+  assert_true(history.contains("- Decision: `no_change`"))
+  assert_true(history.contains("- Next check hint: `slower`"))
 }
 
 ///|
@@ -1363,6 +1596,26 @@ async test "bootstrap context carries skill body excerpts and required research 
 }
 
 ///|
+async test "standing watch context loads watch skill and marker contract" {
+  let root = "/tmp/moonbook-bookapi-standing-watch-context"
+  ignore(init_workspace(root))
+  let task = standing_watch_task(
+    "goal-opc", "standing-watch: periodically check one person company news",
+  )
+  let context = hydrate_worker_context(root, task)
+  assert_true(context.skill_paths.contains("skills/standing-watch/SKILL.md"))
+  assert_true(context.skill_paths.contains("skills/source-diarize/SKILL.md"))
+  assert_true(context.prompt.contains("Standing watch workspace baseline"))
+  assert_true(context.prompt.contains("standing_goal_decision"))
+  assert_true(!context.prompt.contains("research artifact contract above"))
+  assert_true(
+    context.output_contract.any(fn(line) {
+      line.contains("standing-watch tasks")
+    }),
+  )
+}
+
+///|
 async test "catalog record defaults to book private memory scope" {
   let root = "/tmp/moonbook-bookapi-catalog"
   ignore(init_workspace(root))
@@ -1381,6 +1634,7 @@ async test "catalog skills include base harness skills" {
   assert_true(skills.contains("wiki-review"))
   assert_true(skills.contains("source-diarize"))
   assert_true(skills.contains("research-report"))
+  assert_true(skills.contains("standing-watch"))
   assert_true(skills.contains("query-promote"))
   assert_true(skills.contains("review-decision"))
 }
@@ -1817,6 +2071,22 @@ async test "resolve task for goal accepts external bootstrap task ids" {
     task_id=Some("goal-coding-research-bootstrap-ingest"),
   ).unwrap()
   assert_eq(task.kind, "bootstrap_gather")
+}
+
+///|
+async test "resolve task for goal accepts external standing watch task ids" {
+  let root = "/tmp/moonbook-bookapi-external-standing-watch-task"
+  ignore(init_workspace(root))
+  let task = resolve_task_for_goal(
+    root,
+    "Research latest One Person Company news and update the book only when there is a meaningful delta.",
+    task_id=Some("standing-watch-opc-news-tick-1"),
+  ).unwrap()
+  assert_eq(task.id, "standing-watch-opc-news-tick-1")
+  assert_eq(task.kind, "standing-watch")
+  assert_true(task.prompt.contains("skills/standing-watch/SKILL.md"))
+  assert_true(task.prompt.contains("standing_goal_decision"))
+  assert_true(!task.prompt.contains("Research artifact contract"))
 }
 
 ///|

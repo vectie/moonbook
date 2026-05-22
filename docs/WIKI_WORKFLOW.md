@@ -49,6 +49,7 @@ This creates:
 - `keeper/POLICY.md`
 - `keeper/INSIGHTS.md`
 - `skills/research-report/SKILL.md`
+- `skills/standing-watch/SKILL.md`
 
 ### 2. Enable Optional Runtime Pack
 
@@ -79,7 +80,27 @@ The generated marketing page is a thin renderer over a keeper-authored brief:
 - Renderer code should not contain the actual sales claims. Improve the skill and the brief when the product story is weak.
 - Operational state, evidence tables, review queues, and debug journals belong in the wiki/journal/course surfaces, not in the marketing page.
 
-### 3. Ingest Sources
+### 3. Standing Watch
+
+Standing watch is the MoonBook-side half of 24/7 monitoring.
+Moontown schedules and supervises the loop; MoonBook owns the book-local baseline decision.
+
+```bash
+moon run cmd/main -- wiki book tasks ./research-wiki "standing-watch: periodically check latest sources about one person company and update only when there is a meaningful delta"
+moon run cmd/main -- wiki book context ./research-wiki "standing-watch: periodically check latest sources about one person company and update only when there is a meaningful delta"
+```
+
+Current standing-watch behavior:
+
+- detects standing-watch goals without hardcoding the topic
+- emits a dedicated `standing-watch` task instead of mixing the pass with research bootstrap or synthesis fanout
+- hydrates worker context with `skills/standing-watch/SKILL.md`, source diarization, claim audit, synthesis revision, memory, review, and query-promotion skills
+- includes a compact workspace baseline and previous `wiki/history/standing-watch.md` decisions in the prompt
+- requires provider summaries to include `standing_goal_decision`, `delta_score`, `new_source_count`, and `next_check_hint`
+- persists watch decisions into `wiki/history/standing-watch.md`
+- leaves current-source discovery and quality judgment to the LLM skill, while keeping deterministic bookkeeping in MoonBook code
+
+### 4. Ingest Sources
 
 ```bash
 moon run cmd/main -- wiki ingest ./research-wiki ./raw/article.md
@@ -100,7 +121,7 @@ Current ingest behavior:
 - queues contested or low-confidence claims in `wiki/reviews/pending.md`
 - updates `wiki/SUMMARY.md`, canonicalizes `wiki/index.md`, and appends `wiki/log.md`
 
-### 4. Query the Maintained Wiki
+### 5. Query the Maintained Wiki
 
 ```bash
 moon run cmd/main -- wiki query ./research-wiki "How do these sources connect?" --save
@@ -118,7 +139,7 @@ Current query behavior:
 - updates `wiki/synthesis/maintenance-plan.md`
 - can queue a review item for later promotion
 
-### 5. Book Harness APIs
+### 6. Book Harness APIs
 
 For town-level orchestration, MoonBook can expose a machine-readable book boundary:
 
@@ -135,6 +156,7 @@ Current book-harness behavior:
 - accepts town-style goals into book-local planning
 - produces local tasks inside the book boundary
 - hydrates worker context from book policy, routines, Keeper memory, and durable wiki pages
+- hydrates standing-watch tasks with book baseline, prior watch decisions, and the seeded standing-watch skill
 - hydrates bootstrap ingest with explicit local repo source hints and `raw/bootstrap/` staging expectations
 - tolerates external bootstrap-style task ids by mapping them onto the closest local MoonBook task kind when possible
 - emits a dedicated planning task when health or goal wording requires it
@@ -150,8 +172,9 @@ Current book-harness behavior:
 - stages review-gated durable candidates in `reviews/pending.md`
 - refreshes `keeper/INSIGHTS.md`
 - reports book-local state and health without requiring a town runtime
+- persists standing-watch decisions into `history/standing-watch.md`
 
-### 6. Review
+### 7. Review
 
 List pending review items:
 
@@ -184,7 +207,7 @@ Current review behavior:
 - updates `synthesis/maintenance-plan.md`
 - appends the action to `wiki/log.md`
 
-### 7. Lint
+### 8. Lint
 
 ```bash
 moon run cmd/main -- wiki lint ./research-wiki
@@ -228,6 +251,8 @@ The maintained wiki currently revolves around these page families:
   coverage and maintenance view across entities, concepts, claims, and open loops
 - `wiki/synthesis/evidence.md`
   support records for persisted worker results and review outcomes
+- `wiki/history/standing-watch.md`
+  recurring watch decisions, baseline deltas, source counts, and next-check hints
 - `wiki/history/journey.md`
   compact timeline of major runs, promoted findings, failures, and open loops
 - `wiki/history/debug-journal.md`
@@ -262,6 +287,7 @@ What it does well now:
 - persisted-result evidence capture
 - synthesis-map maintenance for coverage and planning pressure
 - compact journey maintenance for operator-readable run history
+- skill-guided standing-watch decisions for recurring 24/7 topic checks
 - raw research envelope materialization from worker artifacts into durable wiki state
 - generated report projection that presents synthesized research sections before showing process telemetry
 - static build/serve of the resulting wiki

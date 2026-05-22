@@ -41,6 +41,8 @@ fn provider_result_contract_lines() -> Array[String] {
     "For research bootstrap, artifacts must include raw/bootstrap/research-question.md, raw/bootstrap/search-log.md, raw/bootstrap/source-screen.md, raw/bootstrap/evidence-matrix.md, raw/bootstrap/local-sources.md, raw/bootstrap/synthesis-brief.md, raw/bootstrap/deep-report.md, and raw/bootstrap/marketing-brief.md, or the result must be a structured blocker explaining exactly which files are missing.",
     "For bootstrap ingest, MoonClaw should produce raw/bootstrap research artifacts and should not need to create wiki/* pages; MoonBook owns durable wiki materialization from the research envelope.",
     "If web_search or web_fetch is unavailable, explicitly say so in the blocker and record that limitation in raw/bootstrap/search-log.md or raw/bootstrap/source-screen.md when possible.",
+    "For standing-watch tasks, summary must include exactly one marker block with standing_goal_decision, delta_score, new_source_count, and next_check_hint.",
+    "For standing-watch no_change decisions, return a compact result and do not invent durable artifacts; for update or needs_review decisions, list the concrete artifact or wiki paths that changed.",
     "Use [] for empty arrays and null for missing target_page.", "For ingest or bootstrap work, generic completion text without substantive artifacts or durable candidates is a blocker, not success.",
     "If ingest work cannot produce the required raw research artifacts, say what material or tool is missing and set requires_review to true.",
   ]
@@ -52,6 +54,11 @@ async fn task_prompt_with_material_hints(
   task : BookTask,
   terms : Array[String],
 ) -> String {
+  if standing_watch_task_kind(task.kind) {
+    return task.prompt +
+      standing_watch_context_block(root) +
+      skill_body_excerpt_block(root, task)
+  }
   if !bootstrap_material_task_kind(task.kind) {
     return task.prompt
   }
@@ -73,12 +80,42 @@ async fn task_prompt_with_material_hints(
 }
 
 ///|
+fn standing_watch_task_kind(kind : String) -> Bool {
+  kind == "standing-watch"
+}
+
+///|
 fn bootstrap_material_task_kind(kind : String) -> Bool {
   kind == "ingest" ||
   kind == "bootstrap_gather" ||
   kind == "source_materialize" ||
   kind == "knowledge_revise" ||
   kind == "marketing_project"
+}
+
+///|
+async fn standing_watch_context_block(root : String) -> String {
+  let workspace = workspace_paths(root)
+  let state = summarize_state(root)
+  let health = report_health(root)
+  let watch_path = @path.Path(workspace.wiki_dir)
+    .join(@path.Path("history/standing-watch.md"))
+    .to_string()
+  let previous = if @fsx.exists(watch_path) {
+    clamp_excerpt(@fsx.read_file(watch_path))
+  } else {
+    "_No previous standing-watch decisions._"
+  }
+  "\n\nStanding watch workspace baseline:\n" +
+  "- book_id: `\{state.book_id}`\n" +
+  "- health: `\{health.level}`\n" +
+  "- source_page_count: `\{state.source_page_count}`\n" +
+  "- entity_page_count: `\{state.entity_page_count}`\n" +
+  "- concept_page_count: `\{state.concept_page_count}`\n" +
+  "- query_note_count: `\{state.query_note_count}`\n" +
+  "- pending_review_count: `\{state.pending_review_count}`\n" +
+  "- substantive_coverage_ready: `\{state.substantive_coverage_ready}`\n\n" +
+  "Recent standing-watch history excerpt:\n\{previous}\n"
 }
 
 ///|
@@ -90,7 +127,7 @@ async fn skill_body_excerpt_block(root : String, task : BookTask) -> String {
   let normalized = @pathx.normalize(root)
   let builder = StringBuilder::new()
   builder.write_string(
-    "\n\nLoaded skill body excerpts:\nRead these excerpts as operational instructions, not just metadata. If an excerpt conflicts with the task, follow the explicit research artifact contract above and report the conflict.\n",
+    "\n\nLoaded skill body excerpts:\nRead these excerpts as operational instructions, not just metadata. If an excerpt conflicts with the task, follow the explicit task contract above and report the conflict.\n",
   )
   for relative in selected {
     if relative == "RESOLVER.md" {
@@ -216,6 +253,7 @@ async fn resolve_skill_paths(root : String, task : BookTask) -> Array[String] {
   let selected : Array[String] = []
   let candidates = task_skill_names(task)
   for name in candidates {
+    ensure_seed_skill_available(normalized, name)
     let path = @path.Path(normalized)
       .join(@path.Path("skills/\{name}/SKILL.md"))
       .to_string()
@@ -233,11 +271,41 @@ async fn resolve_skill_paths(root : String, task : BookTask) -> Array[String] {
 }
 
 ///|
+async fn ensure_seed_skill_available(root : String, name : String) -> Unit {
+  let destination = @path.Path(root)
+    .join(@path.Path("skills/\{name}"))
+    .to_string()
+  let skill_path = @path.Path(destination)
+    .join(@path.Path("SKILL.md"))
+    .to_string()
+  if @fsx.exists(skill_path) {
+    return
+  }
+  let source = @path.Path(seed_module_root())
+    .join(@path.Path("seed/wiki/skills/\{name}"))
+    .to_string()
+  if !@fsx.exists(source) {
+    return
+  }
+  @fsx.make_directory(destination, recursive=true, exists_ok=true)
+  copy_seed_tree(source, destination)
+}
+
+///|
 fn task_skill_names(task : BookTask) -> Array[String] {
   let names : Array[String] = []
   let kinds = [task.kind]
   for kind in kinds {
     match kind {
+      "standing-watch" => {
+        names.push("standing-watch")
+        names.push("source-diarize")
+        names.push("claim-audit")
+        names.push("synthesis-revise")
+        names.push("wiki-memory")
+        names.push("wiki-review")
+        names.push("query-promote")
+      }
       "ingest" => {
         names.push("wiki-ingest")
         names.push("source-diarize")
@@ -379,6 +447,8 @@ fn skill_name_from_path(path : String) -> String {
     "wiki-memory"
   } else if normalized.contains("/skills/wiki-course/") {
     "wiki-course"
+  } else if normalized.contains("/skills/standing-watch/") {
+    "standing-watch"
   } else if normalized.contains("/skills/research-report/") {
     "research-report"
   } else if normalized.contains("/skills/source-diarize/") {

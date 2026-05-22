@@ -227,8 +227,9 @@ Produces a machine-readable local task batch for a town-issued goal:
 
 1. inspects current book state and review backlog
 2. derives local review, synthesis, analysis, or ingest-follow-up tasks
-3. emits a dedicated planning task when health signals or goal wording indicate planning pressure
-4. prints a JSON task batch
+3. emits a dedicated `standing-watch` task when goal wording indicates a recurring 24/7 topic check
+4. emits a dedicated planning task when health signals or goal wording indicate planning pressure
+5. prints a JSON task batch
 
 ### `moon run cmd/main -- wiki book context [root] <goal> [--task <task-id>]`
 
@@ -238,7 +239,8 @@ Hydrates a worker-ready context bundle:
 2. selects the first task or the requested `--task`
 3. if the requested `--task` is an external bootstrap-style id, resolves it onto the nearest local MoonBook task kind when possible
 4. packages prompt, policy lines, routine lines, relevance-ranked context pages, Keeper memory slices, and memory summary
-5. prints a JSON worker context bundle
+5. for `standing-watch`, adds the seeded standing-watch skill, prior watch history, baseline counts, and marker-output contract
+6. prints a JSON worker context bundle
 
 ### `moon run cmd/main -- wiki book persist [root] <result.json>`
 
@@ -252,7 +254,8 @@ Persists a machine-readable worker result back into the book:
 6. refreshes `keeper/INSIGHTS.md`
 7. updates `wiki/synthesis/maintenance-plan.md`
 8. optionally queues a review item for staged durable promotion
-9. appends a persist event to `wiki/log.md`
+9. records standing-watch decisions in `wiki/history/standing-watch.md` when the result summary carries `standing_goal_decision`
+10. appends a persist event to `wiki/log.md`
 
 ### `moon run cmd/main -- wiki book catalog [root]`
 

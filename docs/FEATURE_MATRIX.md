@@ -82,6 +82,7 @@ Implemented behaviors:
 - `wiki init` scaffolds a `site/` marketing website projection with `index.html`, `styles.css`, and `app.js`
 - `wiki init` seeds a dedicated `skills/wiki-marketing/SKILL.md` routine for writing real product marketing: buyer pain, promise, differentiation, proof, objections, and conversion path
 - `wiki init` seeds a dedicated `skills/research-report/SKILL.md` routine for turning screened research artifacts into article-quality reports with evidence-backed claims
+- `wiki init` seeds a dedicated `skills/standing-watch/SKILL.md` routine for recurring topic checks that decide whether new evidence changes the current book baseline
 - `wiki init` copies repo-owned static `SKILL.md` templates from `seed/wiki/skills/` instead of generating them in code
 - `skill list` inventories workspace skills plus repo-seeded core and extension skills
 - `skill show` prints machine-readable metadata for one resolved skill
@@ -141,9 +142,12 @@ Implemented behaviors:
 - `wiki query --save` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
 - `wiki book accept` returns a machine-readable goal acceptance summary
 - `wiki book tasks` returns a machine-readable local task batch for a town-issued goal
+- `wiki book tasks` emits a dedicated `standing-watch` task for recurring 24/7 topic checks instead of hardcoding one topic or mixing the pass with bootstrap fanout
 - `wiki book tasks` emits a dedicated planning task when health or goal wording indicates planning pressure
 - `wiki book context` returns a machine-readable worker context bundle derived from book-local policy, Keeper memory, routines, and relevance-ranked durable pages
+- `wiki book context` hydrates standing-watch tasks with `skills/standing-watch/SKILL.md`, prior watch decisions, baseline counts, and a marker-output contract
 - `wiki book persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, records evidence in `wiki/synthesis/evidence.md`, syncs non-durable memory candidates into Keeper memory, promotes immediately-safe durable candidates into target pages, stages review-gated durable candidates, refreshes `keeper/INSIGHTS.md`, updates the maintenance plan, and can queue review
+- `wiki book persist` records standing-watch results into `wiki/history/standing-watch.md` when the summary includes `standing_goal_decision`, `delta_score`, `new_source_count`, and `next_check_hint`
 - `wiki book persist` materializes complete raw research envelopes into durable source/entity/concept/synthesis pages, including recovery from generic provider completion text when all required `raw/bootstrap/` artifacts exist
 - `wiki book persist` also appends a detailed classification entry to `wiki/history/debug-journal.md`, including artifacts, memory candidates, and explicit notes when a result was only administrative
 - `wiki book catalog` returns a machine-readable town catalog record with id, purpose, workspace root, memory scope, tags, and skills
