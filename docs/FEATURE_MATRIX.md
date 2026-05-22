@@ -147,7 +147,8 @@ Implemented behaviors:
 - `wiki book context` returns a machine-readable worker context bundle derived from book-local policy, Keeper memory, routines, and relevance-ranked durable pages
 - `wiki book context` hydrates standing-watch tasks with `skills/standing-watch/SKILL.md`, prior watch decisions, baseline counts, and a marker-output contract
 - `wiki book persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, records evidence in `wiki/synthesis/evidence.md`, syncs non-durable memory candidates into Keeper memory, promotes immediately-safe durable candidates into target pages, stages review-gated durable candidates, refreshes `keeper/INSIGHTS.md`, updates the maintenance plan, and can queue review
-- `wiki book persist` records standing-watch results into `wiki/history/standing-watch.md` when the summary includes `standing_goal_decision`, `delta_score`, `new_source_count`, and `next_check_hint`
+- `wiki book persist` records standing-watch results into `wiki/history/standing-watch.md` when the summary includes the required decision, source-count, fact-count, changed-page, and `book_changed` markers
+- `wiki book persist` treats no-change and failed standing-watch cycles as operational records, not evidence progress, unless the result reports durable page or review changes
 - `wiki book persist` materializes complete raw research envelopes into durable source/entity/concept/synthesis pages, including recovery from generic provider completion text when all required `raw/bootstrap/` artifacts exist
 - `wiki book persist` also appends a detailed classification entry to `wiki/history/debug-journal.md`, including artifacts, memory candidates, and explicit notes when a result was only administrative
 - `wiki book catalog` returns a machine-readable town catalog record with id, purpose, workspace root, memory scope, tags, and skills

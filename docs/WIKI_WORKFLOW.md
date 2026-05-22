@@ -96,9 +96,11 @@ Current standing-watch behavior:
 - emits a dedicated `standing-watch` task instead of mixing the pass with research bootstrap or synthesis fanout
 - hydrates worker context with `skills/standing-watch/SKILL.md`, source diarization, claim audit, synthesis revision, memory, review, and query-promotion skills
 - includes a compact workspace baseline and previous `wiki/history/standing-watch.md` decisions in the prompt
-- requires provider summaries to include `standing_goal_decision`, `delta_score`, `new_source_count`, and `next_check_hint`
+- requires provider summaries to include the standing-watch decision markers: `standing_goal_decision`, `delta_score`, `new_source_count`, `next_check_hint`, source/fact accounting counts, changed-page count, and `book_changed`
+- treats failed and no-change checks as valid operational outcomes but not as evidence progress; they must not claim accepted facts or changed book pages
 - persists watch decisions into `wiki/history/standing-watch.md`
 - leaves current-source discovery and quality judgment to the LLM skill, while keeping deterministic bookkeeping in MoonBook code
+- asks the skill to apply imagination, curiosity, judgement, and taste to source selection while still grounding every promoted change in inspected evidence
 
 ### 4. Ingest Sources
 

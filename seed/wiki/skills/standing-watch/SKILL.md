@@ -24,6 +24,29 @@ MoonClaw may search, fetch, inspect, and package work.
 Moontown may schedule the next check.
 MoonBook decides whether the check produced a meaningful book delta.
 
+## Research Temperament
+
+A standing watch is not only a correctness check. It should show imagination,
+curiosity, and judgement.
+
+- **Imagination**: form plausible hypotheses about what may have changed, what
+  second-order effects matter, and which adjacent domains may reveal early
+  signals. Do not invent facts; use imagination to choose better questions.
+- **Curiosity**: ask "why now?", "who is doing this differently?", "what would
+  surprise the current book?", "what weak signal could become important?", and
+  "what source would change my mind?"
+- **Judgement**: separate signal from noise. Prefer sources that change the
+  book's understanding, not sources that merely make the run look busy.
+- **Taste**: write a compact digest that a busy human can trust. A good
+  no-change digest is more valuable than a bloated fake update.
+
+For each cycle, answer these questions before deciding:
+
+- What did I expect to find, and what did I actually find?
+- What is genuinely new compared with the book baseline?
+- What is important but still too weak to promote?
+- What should the next watch pass investigate differently?
+
 ## Inputs
 
 Expected inputs:
@@ -163,6 +186,12 @@ standing_goal_decision: update | no_change | needs_review | failed
 delta_score: 0-100
 new_source_count: <integer>
 next_check_hint: normal | slower | faster | review
+checked_sources_count: <integer>
+new_sources_found: <integer>
+accepted_facts_count: <integer>
+rejected_facts_count: <integer>
+wiki_pages_changed_count: <integer>
+book_changed: yes | no
 ```
 
 Meaning of fields:
@@ -171,6 +200,27 @@ Meaning of fields:
 - `delta_score`: how strongly the new evidence changes the current baseline
 - `new_source_count`: count of newly useful sources, not search results
 - `next_check_hint`: scheduling hint for the mayor loop
+- `checked_sources_count`: count of sources actually opened, fetched, read, or
+  inspected deeply enough to judge
+- `new_sources_found`: count of candidate sources that were not already known,
+  including rejected or deferred candidates
+- `accepted_facts_count`: count of new or revised facts accepted into durable
+  wiki pages, review queues, or synthesis notes
+- `rejected_facts_count`: count of candidate facts rejected as duplicate,
+  irrelevant, unsupported, stale, or inaccessible
+- `wiki_pages_changed_count`: count of durable wiki/book pages actually created
+  or revised; operational logs do not count
+- `book_changed`: `yes` only when durable book knowledge changed or a review
+  item was queued; `no` for ordinary `no_change` and failed/tool-blocked cycles
+
+Strict accounting rule:
+
+- A failed check is not evidence progress.
+- A no-change check is not evidence progress.
+- Generated site rebuilds, retries, journal maintenance, and operational logs do
+  not count as accepted facts or changed knowledge.
+- `new_source_count` must never exceed the number of newly useful sources that
+  affected durable memory, review, or synthesis.
 
 Suggested `delta_score` interpretation:
 
@@ -221,6 +271,12 @@ standing_goal_decision: no_change
 delta_score: 7
 new_source_count: 0
 next_check_hint: slower
+checked_sources_count: 5
+new_sources_found: 2
+accepted_facts_count: 0
+rejected_facts_count: 2
+wiki_pages_changed_count: 0
+book_changed: no
 Checked current sources and found only repeated advice about solo founders, AI automation, and micro-SaaS. No inspected source changed the existing baseline, so no wiki page was promoted. False leads were repeated newsletter mirrors and unrelated company-registration pages.
 ```
 
@@ -254,6 +310,12 @@ standing_goal_decision: update
 delta_score: 58
 new_source_count: 2
 next_check_hint: normal
+checked_sources_count: 6
+new_sources_found: 3
+accepted_facts_count: 4
+rejected_facts_count: 1
+wiki_pages_changed_count: 3
+book_changed: yes
 Two newly inspected sources changed the baseline: one gives concrete evidence that solo AI teams are using agentic coding systems for production work, and another gives a counterexample where operational reliability remains the bottleneck. Updated the strategy and evidence pages with provenance and uncertainty.
 ```
 
@@ -276,6 +338,12 @@ standing_goal_decision: needs_review
 delta_score: 72
 new_source_count: 1
 next_check_hint: review
+checked_sources_count: 4
+new_sources_found: 1
+accepted_facts_count: 0
+rejected_facts_count: 0
+wiki_pages_changed_count: 1
+book_changed: yes
 One credible source suggests a major change to the book's investment thesis, but the claim conflicts with older evidence and has financial implications. Preserved the source and queued review instead of promoting the conclusion as settled.
 ```
 
@@ -294,6 +362,12 @@ standing_goal_decision: failed
 delta_score: 0
 new_source_count: 0
 next_check_hint: review
+checked_sources_count: 0
+new_sources_found: 0
+accepted_facts_count: 0
+rejected_facts_count: 0
+wiki_pages_changed_count: 0
+book_changed: no
 The task required current web search, but web_search and web_fetch were unavailable in this run. No current-event claim was checked, and no baseline change should be inferred.
 ```
 
@@ -327,5 +401,8 @@ Before finishing, verify:
 - each useful new source was inspected, not just listed
 - repeated or excluded sources were not counted as `new_source_count`
 - marker lines are present exactly once
+- accounting lines are present exactly once
+- `book_changed: yes` matches real durable page changes or review queue changes
+- failed/no-change cycles do not report accepted facts or changed pages
 - `requires_review` matches the decision
 - artifact paths exist or are clearly declared as intended outputs

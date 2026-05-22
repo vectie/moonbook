@@ -87,7 +87,7 @@ MoonBook is strongest when you want one local system to handle:
 - ✨ generated live marketing projection emitted into `book/site/generated/` from a skill-authored `marketing-brief.md`, keeping product copy out of renderer code
 - 🔎 generated research-report projection with executive summary, architecture/runtime/memory sections, relationships, maturity gaps, and evidence table derived from `raw/bootstrap/` plus wiki synthesis pages
 - 🧾 seeded `skills/research-report/SKILL.md` that tells keepers how to turn `research-question`, `source-screen`, `evidence-matrix`, local sources, and synthesis briefs into reader-facing reports without dumping raw table rows
-- 🕰️ seeded `skills/standing-watch/SKILL.md` for recurring topic checks that compare new evidence against the current book baseline and emit machine-readable `standing_goal_decision` results
+- 🕰️ seeded `skills/standing-watch/SKILL.md` for recurring topic checks that compare new evidence against the current book baseline and emit machine-readable decision, source-count, fact-count, changed-page, and `book_changed` markers
 - 🧭 durable standing-watch history under `wiki/history/standing-watch.md`, written when a book-local watch result is persisted
 - 🧭 generated journal view emitted into `book/site/generated/journal.html` from live journey and workspace state
 - 🎓 generated course view emitted into `book/site/generated/course.html` from live workspace and journey state

@@ -192,7 +192,7 @@ The current `moontown` alignment is intentionally additive:
 
 - MoonBook exports a catalog-style book record for town bootstrap
 - MoonBook exposes optional book-harness commands for planning, hydration, persistence, summary, and health
-- MoonBook owns standing-watch baseline decisions for recurring goals, while Moontown owns scheduling/supervision and MoonClaw owns execution
+- MoonBook owns standing-watch baseline decisions for recurring goals, including source/fact accounting and `book_changed` classification, while Moontown owns scheduling/supervision and MoonClaw owns execution
 - MoonBook does not take over town scheduling or worker execution
 
 This keeps MoonBook from depending on one agent runtime while still allowing runtime-specific setup.

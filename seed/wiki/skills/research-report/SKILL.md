@@ -76,6 +76,28 @@ The report should be useful to a reader who has not seen the workspace internals
 
 The quality target is a polished deep-research article, not a workspace status page. The reader should feel that the writer understands the subject, has inspected evidence, and can explain why the system matters.
 
+## Research Temperament
+
+Correctness is necessary but not sufficient. The report should also show:
+
+- **Imagination**: propose mechanisms, future scenarios, hidden constraints, and
+  second-order consequences, then test them against the evidence. Do not invent
+  unsupported facts.
+- **Curiosity**: look for surprises, absences, contradictions, incentives,
+  overlooked actors, and questions that would change the reader's mind.
+- **Judgement**: decide which facts matter, which sources deserve trust, which
+  claims are weak, and which tradeoffs deserve attention.
+- **Taste**: write with a point of view. A good report helps the reader make
+  sense of the subject instead of merely proving that files were inspected.
+
+Every major report should answer:
+
+- what is actually going on?
+- why does it matter now?
+- what is surprising or underappreciated?
+- what is likely to change next?
+- what should a serious operator watch or do?
+
 ## Required Inputs
 
 Load these files if they exist:
