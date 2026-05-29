@@ -23,18 +23,12 @@ pub struct FileState {
   path : String
   kind : String
   mtime : Int64
-}
-pub impl Compare for FileState
-pub impl Eq for FileState
-pub impl Show for FileState
-pub impl ToJson for FileState
+} derive(Compare, Eq, Show, ToJson)
 
 pub struct WatchFilter {
   root : String
   patterns : Array[String]
-}
-pub impl Show for WatchFilter
-pub impl ToJson for WatchFilter
+} derive(Show, ToJson)
 
 pub struct WatchOptions {
   root : String
@@ -42,16 +36,12 @@ pub struct WatchOptions {
   dest_dir : String?
   open_browser : Bool
   watcher_kind : String
-}
-pub impl Show for WatchOptions
-pub impl ToJson for WatchOptions
+} derive(Show, ToJson)
 
 pub enum WatcherKind {
   Poll
   Native
-}
-pub impl Show for WatcherKind
-pub impl ToJson for WatcherKind
+} derive(Show, ToJson)
 
 // Type aliases
 

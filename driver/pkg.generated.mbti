@@ -24,25 +24,19 @@ pub struct CleanStats {
   files_removed : Int
   directories_removed : Int
   bytes_removed : Int
-}
-pub impl Show for CleanStats
-pub impl ToJson for CleanStats
+} derive(Show, ToJson)
 
 pub struct MDBook {
   root : String
   config : @core.Config
   book : @core.Book
   summary : @summary.Summary
-}
+} derive(Show, ToJson)
 pub async fn MDBook::build(Self) -> Unit
 pub fn MDBook::count_rust_code_blocks(Self) -> Int
 pub fn MDBook::iter(Self) -> Array[@core.BookItem]
-pub impl Show for MDBook
-pub impl ToJson for MDBook
 
-type UiClientConfig
-pub impl Show for UiClientConfig
-pub impl ToJson for UiClientConfig
+type UiClientConfig derive(Show, ToJson)
 
 // Type aliases
 

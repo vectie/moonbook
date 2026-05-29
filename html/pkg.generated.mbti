@@ -18,9 +18,7 @@ pub struct RenderContext {
   build_dir : String
   config : @core.Config
   book : @core.Book
-}
-pub impl Show for RenderContext
-pub impl ToJson for RenderContext
+} derive(Show, ToJson)
 
 // Type aliases
 

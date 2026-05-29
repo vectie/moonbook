@@ -183,6 +183,77 @@ fn moonclaw_jobs_text() -> String {
   "          }\n" +
   "        }\n" +
   "      },\n" +
+  "      \"wiki_course_controller\": {\n" +
+  "        \"family\": \"wiki_course_controller\",\n" +
+  "        \"role\": \"controller\",\n" +
+  "        \"priority\": 125,\n" +
+  "        \"tags\": [\"wiki\", \"course\", \"teaching\", \"beginner\"],\n" +
+  "        \"match\": {\n" +
+  "          \"all\": [\"wiki\"],\n" +
+  "          \"any\": [\"course\", \"syllabus\", \"lesson\", \"learning path\", \"beginner\", \"workbook\", \"curriculum\", \"teach\"]\n" +
+  "        },\n" +
+  "        \"steps\": [\n" +
+  "          {\n" +
+  "            \"id\": \"plan_course\",\n" +
+  "            \"title\": \"Plan beginner course\",\n" +
+  "            \"kind\": \"job.analysis\",\n" +
+  "            \"prompt_template\": \"Act as the MoonBook course keeper for ${proposal.title}. Load wiki-course/SKILL.md first. Read maintained wiki pages, journey state, synthesis pages, and any raw/bootstrap context. Produce a course plan that teaches a beginner through ordered lessons, exercises, output artifacts, checkpoints, and common mistakes. Do not use research-report/SKILL.md and do not shape the output as Deep Research Analysis or Verified Findings.\",\n" +
+  "            \"metadata\": {\n" +
+  "              \"preferred_skills\": [\"wiki-course\"],\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"web_search\": false,\n" +
+  "              \"board_lane\": \"Plan\",\n" +
+  "              \"board_order\": 0\n" +
+  "            }\n" +
+  "          },\n" +
+  "          {\n" +
+  "            \"id\": \"write_course_workbook\",\n" +
+  "            \"title\": \"Write beginner workbook\",\n" +
+  "            \"kind\": \"job.delegate\",\n" +
+  "            \"request_template\": \"Write course artifacts for ${proposal.title}. Load wiki-course/SKILL.md only. Write raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md, and wiki/synthesis/beginner-course.md as a beginner course/workbook. Use 10-12 lessons unless the request says otherwise. Each lesson needs Objective, Plain explanation, Why it matters, Example, Exercise, Output artifact, Checkpoint, and Common mistake. Return those paths as artifacts. Reject research-report headings, source-audit structure, provider status, or run-log prose.\",\n" +
+  "            \"child_profile\": \"wiki_course_worker\",\n" +
+  "            \"include_parent_outputs\": true,\n" +
+  "            \"max_depth\": 3,\n" +
+  "            \"metadata\": {\n" +
+  "              \"preferred_skills\": [\"wiki-course\"],\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"web_search\": false,\n" +
+  "              \"board_lane\": \"Write\",\n" +
+  "              \"board_order\": 1\n" +
+  "            }\n" +
+  "          },\n" +
+  "          {\n" +
+  "            \"id\": \"review_course\",\n" +
+  "            \"title\": \"Review course quality\",\n" +
+  "            \"kind\": \"job.delegate\",\n" +
+  "            \"request_template\": \"Review the course artifacts for ${proposal.title}. Check beginner clarity, lesson order, exercises, concrete outputs, checkpoints, common mistakes, and whether any research-report or source-audit structure leaked into the visible course. Findings first; if clean, state residual risk.\",\n" +
+  "            \"child_profile\": \"wiki_review_worker\",\n" +
+  "            \"include_parent_outputs\": true,\n" +
+  "            \"max_depth\": 3,\n" +
+  "            \"metadata\": {\n" +
+  "              \"preferred_skills\": [\"wiki-course\", \"wiki-review\"],\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"board_lane\": \"Review\",\n" +
+  "              \"board_order\": 2\n" +
+  "            }\n" +
+  "          }\n" +
+  "        ],\n" +
+  "        \"metadata\": {\n" +
+  "          \"profile_metadata\": {\n" +
+  "            \"disable_waiting_for_input\": true\n" +
+  "          },\n" +
+  "          \"role_runtime\": {\n" +
+  "            \"planning_layer\": \"domain\",\n" +
+  "            \"runtime_mode\": \"planner_only\",\n" +
+  "            \"tool_access\": \"limited\",\n" +
+  "            \"memory_scope\": \"domain\",\n" +
+  "            \"allow_delegate\": true,\n" +
+  "            \"allow_workspace_write\": false,\n" +
+  "            \"allow_execution_tools\": false,\n" +
+  "            \"output_contract\": \"keeper.course.packet.v1\"\n" +
+  "          }\n" +
+  "        }\n" +
+  "      },\n" +
   "      \"wiki_query_controller\": {\n" +
   "        \"family\": \"wiki_query_controller\",\n" +
   "        \"role\": \"controller\",\n" +
@@ -395,6 +466,37 @@ fn moonclaw_jobs_text() -> String {
   "        ],\n" +
   "        \"metadata\": {\n" +
   "          \"worker_role\": \"wiki_revision\"\n" +
+  "        }\n" +
+  "      },\n" +
+  "      \"wiki_course_worker\": {\n" +
+  "        \"family\": \"wiki_course_worker\",\n" +
+  "        \"priority\": 22,\n" +
+  "        \"tags\": [\"wiki\", \"course\", \"worker\", \"teaching\"],\n" +
+  "        \"steps\": [\n" +
+  "          {\n" +
+  "            \"id\": \"write_course\",\n" +
+  "            \"title\": \"Write course artifacts\",\n" +
+  "            \"kind\": \"job.analysis\",\n" +
+  "            \"prompt_template\": \"Act as the wiki course worker for ${request}. Load wiki-course/SKILL.md. Edit only course-facing artifacts: raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md when it is being used as the course workbook, and wiki/synthesis/beginner-course.md. Teach through ordered beginner lessons with examples, exercises, output artifacts, checkpoints, and common mistakes. Do not use research-report/SKILL.md, Deep Research Analysis headings, source-audit structure, or provider/run-log prose.\",\n" +
+  "            \"metadata\": {\n" +
+  "              \"preferred_skills\": [\"wiki-course\"],\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"web_search\": false,\n" +
+  "              \"role_runtime\": {\n" +
+  "                \"planning_layer\": \"execution\",\n" +
+  "                \"runtime_mode\": \"executor\",\n" +
+  "                \"tool_access\": \"full\",\n" +
+  "                \"memory_scope\": \"workspace\",\n" +
+  "                \"allow_delegate\": false,\n" +
+  "                \"allow_workspace_write\": true,\n" +
+  "                \"allow_execution_tools\": true,\n" +
+  "                \"output_contract\": \"wiki.course.result.v1\"\n" +
+  "              }\n" +
+  "            }\n" +
+  "          }\n" +
+  "        ],\n" +
+  "        \"metadata\": {\n" +
+  "          \"worker_role\": \"wiki_course\"\n" +
   "        }\n" +
   "      },\n" +
   "      \"wiki_review_worker\": {\n" +

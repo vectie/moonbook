@@ -15,6 +15,73 @@ fn research_bootstrap_goal(goal : String) -> Bool {
 }
 
 ///|
+fn course_goal(goal : String) -> Bool {
+  let notes = goal.to_lower()
+  notes.contains("course") ||
+  notes.contains("syllabus") ||
+  notes.contains("lesson") ||
+  notes.contains("learning path") ||
+  notes.contains("beginner") ||
+  notes.contains("workbook") ||
+  notes.contains("curriculum") ||
+  notes.contains("teach")
+}
+
+///|
+fn course_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] {
+  [
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "course_outline",
+      "Plan beginner course outline",
+      100,
+      "Load `skills/wiki-course/SKILL.md`. Treat this as a course-design task, not a research-report task. Read the maintained wiki, journey, synthesis pages, and any raw/bootstrap context. Produce `raw/bootstrap/course-outline.md` with a beginner-friendly lesson sequence, prerequisites, exercises, output artifacts, checkpoints, and common mistakes. Do not load `skills/research-report/SKILL.md`. Do not title anything Deep Research Analysis.",
+      [
+        "../raw/bootstrap/course-outline.md", "synthesis/map.md", "history/journey.md",
+      ],
+      true,
+    ),
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "course_workbook",
+      "Write beginner course workbook",
+      95,
+      "Load `skills/wiki-course/SKILL.md`. Write `raw/bootstrap/deep-report.md` as a beginner workbook, not a research report. Use 10-12 lessons unless the request says otherwise. Each lesson should include Objective, Plain explanation, Why it matters, Example, Exercise, Output artifact, Checkpoint, and Common mistake. Evidence and source material may support examples, but the visible structure must teach. Reject source-audit, provider-status, or Verified Findings headings as the main structure.",
+      ["../raw/bootstrap/course-outline.md", "../raw/bootstrap/deep-report.md"],
+      true,
+    ),
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "course_project",
+      "Project durable course synthesis",
+      90,
+      "Load `skills/wiki-course/SKILL.md`. Turn the course outline and workbook into `wiki/synthesis/beginner-course.md` and update course-facing synthesis without changing the task into research. Keep language beginner-friendly, structured, and practice-oriented. Do not require a research envelope or marketing brief.",
+      [
+        "../raw/bootstrap/course-outline.md", "../raw/bootstrap/deep-report.md",
+        "synthesis/beginner-course.md",
+      ],
+      true,
+    ),
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "course_review",
+      "Review course quality",
+      80,
+      "Load `skills/wiki-course/SKILL.md` and `skills/wiki-review/SKILL.md`. Review whether the course teaches a beginner clearly, avoids research-report leakage, includes exercises and checkpoints, and points to concrete artifacts. Return specific fixes if any lesson is too abstract or process-log shaped.",
+      [
+        "../raw/bootstrap/course-outline.md", "../raw/bootstrap/deep-report.md",
+        "synthesis/beginner-course.md", "reviews/pending.md",
+      ],
+      false,
+    ),
+  ]
+}
+
+///|
 fn bootstrap_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] {
   [
     bootstrap_phase_task(

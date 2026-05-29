@@ -9,6 +9,8 @@ pub async fn hydrate_worker_context(
   let policy = policy_lines(root)
   let routines = routine_lines(root)
   let memory_summary = summarize_memory(root)
+  let active_memory = select_memory_entries(keeper.active_memory, terms, 6)
+  let working_memory = select_memory_entries(keeper.working_memory, terms, 8)
   {
     book_id: book_identity(root),
     workspace_root: workspace.root,
@@ -18,11 +20,23 @@ pub async fn hydrate_worker_context(
     routines,
     skill_paths: resolve_skill_paths(root, task),
     context_pages: select_context_pages(root, task, terms),
-    active_memory: select_memory_entries(keeper.active_memory, terms, 6),
+    active_memory: if course_task_kind(task.kind) {
+      filter_course_memory(active_memory)
+    } else {
+      active_memory
+    },
     user_memory: select_memory_entries(keeper.user_memory, terms, 4),
-    working_memory: select_memory_entries(keeper.working_memory, terms, 8),
+    working_memory: if course_task_kind(task.kind) {
+      filter_course_memory(working_memory)
+    } else {
+      working_memory
+    },
     memory_summary,
-    output_contract: provider_result_contract_lines(),
+    output_contract: if course_task_kind(task.kind) {
+      course_provider_result_contract_lines()
+    } else {
+      provider_result_contract_lines()
+    },
   }
 }
 
@@ -31,6 +45,18 @@ pub async fn hydrate_worker_context(
 ///|
 // Worker context hydration helpers, skill resolution, and memory/context selection.
 
+///|
+fn filter_course_memory(entries : Array[String]) -> Array[String] {
+  entries.filter(fn(entry) {
+    let text = entry.to_lower()
+    !text.contains("research artifact contract") &&
+    !text.contains("research bootstrap dossier") &&
+    !text.contains("required raw artifact") &&
+    !text.contains("bootstrap ingest")
+  })
+}
+
+///|
 fn provider_result_contract_lines() -> Array[String] {
   [
     "Return exactly one JSON object.", "Do not output markdown fences or prose outside the JSON object.",
@@ -49,6 +75,21 @@ fn provider_result_contract_lines() -> Array[String] {
 }
 
 ///|
+fn course_provider_result_contract_lines() -> Array[String] {
+  [
+    "Return exactly one JSON object.", "Do not output markdown fences or prose outside the JSON object.",
+    "Use keys: task_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
+    "Set task_id to the active provider task id.", "artifacts must be an array of workspace-relative output paths.",
+    "This is a course task, not a research bootstrap task.",
+    "Do not require research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, or marketing-brief.md unless the course prompt explicitly asks for them.",
+    "Course artifacts should include raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md when used as the workbook, and wiki/synthesis/beginner-course.md.",
+    "The visible course must teach through lessons, examples, exercises, output artifacts, checkpoints, and common mistakes.",
+    "Reject Deep Research Analysis, Verified Findings, source-audit headings, provider status, ReviewQueued state, run ids, and process logs as reader-facing course structure.",
+    "Use [] for empty arrays and null for missing target_page.",
+  ]
+}
+
+///|
 async fn task_prompt_with_material_hints(
   root : String,
   task : BookTask,
@@ -58,6 +99,9 @@ async fn task_prompt_with_material_hints(
     return task.prompt +
       standing_watch_context_block(root) +
       skill_body_excerpt_block(root, task)
+  }
+  if course_task_kind(task.kind) {
+    return task.prompt + skill_body_excerpt_block(root, task)
   }
   if !bootstrap_material_task_kind(task.kind) {
     return task.prompt
@@ -82,6 +126,14 @@ async fn task_prompt_with_material_hints(
 ///|
 fn standing_watch_task_kind(kind : String) -> Bool {
   kind == "standing-watch"
+}
+
+///|
+fn course_task_kind(kind : String) -> Bool {
+  kind == "course_outline" ||
+  kind == "course_workbook" ||
+  kind == "course_project" ||
+  kind == "course_review"
 }
 
 ///|
@@ -357,6 +409,27 @@ fn task_skill_names(task : BookTask) -> Array[String] {
         names.push("claim-audit")
         names.push("research-report")
         names.push("memory-prune")
+      }
+      "course_outline" => {
+        names.push("wiki-course")
+        names.push("source-diarize")
+        names.push("index-maintain")
+      }
+      "course_workbook" => {
+        names.push("wiki-course")
+        names.push("claim-audit")
+        names.push("index-maintain")
+      }
+      "course_project" => {
+        names.push("wiki-course")
+        names.push("synthesis-revise")
+        names.push("index-maintain")
+        names.push("wiki-memory")
+      }
+      "course_review" => {
+        names.push("wiki-course")
+        names.push("wiki-review")
+        names.push("review-decision")
       }
       "review" => {
         names.push("wiki-review")

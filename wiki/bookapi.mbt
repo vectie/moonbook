@@ -39,7 +39,10 @@ pub async fn produce_task_batch(
   let query_ready = book_has_query_ready_coverage(state)
   let ingest_priority = if weak_coverage { 100 } else { 70 }
   let tasks : Array[BookTask] = []
-  let bootstrap_research_goal = weak_coverage && research_bootstrap_goal(goal)
+  let course_requested = course_goal(goal)
+  let bootstrap_research_goal = weak_coverage &&
+    !course_requested &&
+    research_bootstrap_goal(goal)
 
   if standing_watch_goal(goal) {
     tasks.push(standing_watch_task(normalized_goal_id, goal))
@@ -68,7 +71,11 @@ pub async fn produce_task_batch(
     })
   }
 
-  if bootstrap_research_goal {
+  if course_requested {
+    for task in course_semantic_tasks(normalized_goal_id, goal) {
+      tasks.push(task)
+    }
+  } else if bootstrap_research_goal {
     for task in bootstrap_semantic_tasks(normalized_goal_id, goal) {
       tasks.push(task)
     }
@@ -171,6 +178,8 @@ pub async fn produce_task_batch(
     goal,
     summary: if bootstrap_research_goal {
       "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level} bootstrap_phases=\{tasks.length()}"
+    } else if course_requested {
+      "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level} course_phases=\{tasks.length()}"
     } else {
       "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level}"
     },
@@ -226,18 +235,33 @@ fn fallback_bootstrap_task_for_goal(
   goal_id : String,
   task_id? : String? = None,
 ) -> BookTask? {
-  guard research_bootstrap_goal(goal) else { return None }
-  let kind = match task_id {
-    Some(task_id) => resolve_task_kind_from_external_id(task_id)
-    None => None
-  }
-  let bootstrap_tasks = bootstrap_semantic_tasks(goal_id, goal)
-  match kind {
-    Some(kind) =>
-      bootstrap_tasks
-      .iter()
-      .find_first(fn(task : BookTask) { task.kind == kind })
-    None => None
+  if course_goal(goal) {
+    let kind = match task_id {
+      Some(task_id) => resolve_task_kind_from_external_id(task_id)
+      None => None
+    }
+    let course_tasks = course_semantic_tasks(goal_id, goal)
+    match kind {
+      Some(kind) =>
+        course_tasks
+        .iter()
+        .find_first(fn(task : BookTask) { task.kind == kind })
+      None => None
+    }
+  } else {
+    guard research_bootstrap_goal(goal) else { return None }
+    let kind = match task_id {
+      Some(task_id) => resolve_task_kind_from_external_id(task_id)
+      None => None
+    }
+    let bootstrap_tasks = bootstrap_semantic_tasks(goal_id, goal)
+    match kind {
+      Some(kind) =>
+        bootstrap_tasks
+        .iter()
+        .find_first(fn(task : BookTask) { task.kind == kind })
+      None => None
+    }
   }
 }
 
@@ -2024,6 +2048,62 @@ async test "produce task batch bootstraps research goals on weak coverage" {
   assert_true(
     materialize.target_pages.contains("../raw/bootstrap/evidence-matrix.md"),
   )
+}
+
+///|
+async test "produce task batch routes course goals without research report skill" {
+  let root = "/tmp/moonbook-bookapi-course"
+  ignore(init_workspace(root))
+  let batch = produce_task_batch(
+    root, "create a beginner course and workbook for Wenyu Valley tile-map game design",
+  )
+  assert_true(batch.summary.contains("course_phases"))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "course_outline" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "course_workbook" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "course_project" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "course_review" }))
+  assert_true(!batch.tasks.any(fn(task) { task.kind == "bootstrap_gather" }))
+  assert_true(!batch.tasks.any(fn(task) { task.kind == "marketing_project" }))
+  let workbook = batch.tasks
+    .iter()
+    .find_first(fn(task : BookTask) { task.kind == "course_workbook" })
+    .unwrap()
+  assert_true(workbook.prompt.contains("skills/wiki-course/SKILL.md"))
+  assert_true(!workbook.prompt.contains("skills/research-report/SKILL.md"))
+  assert_true(
+    workbook.target_pages.contains("../raw/bootstrap/course-outline.md"),
+  )
+  assert_true(workbook.target_pages.contains("../raw/bootstrap/deep-report.md"))
+}
+
+///|
+async test "course worker context uses course contract not research bootstrap contract" {
+  let root = "/tmp/moonbook-bookapi-course-context"
+  ignore(init_workspace(root))
+  let task = course_semantic_tasks(
+    "goal-course",
+    "create a beginner course and workbook for Wenyu Valley tile-map game design",
+  )[1]
+  let context = hydrate_worker_context(root, task)
+  assert_true(context.skill_paths.contains("skills/wiki-course/SKILL.md"))
+  assert_true(!context.skill_paths.contains("skills/research-report/SKILL.md"))
+  assert_true(context.prompt.contains("Loaded skill body excerpts"))
+  assert_true(context.output_contract.contains("This is a course task, not a research bootstrap task."))
+  assert_true(
+    !context.output_contract.any(fn(line) {
+      line.contains("For research bootstrap")
+    }),
+  )
+}
+
+///|
+test "course memory filter removes stale research-bootstrap operational records" {
+  let filtered = filter_course_memory([
+    "- Research artifact contract not satisfied: Missing required artifacts.",
+    "- provider-review: Completed from research bootstrap dossier.",
+    "- Course lesson artifact updated.",
+  ])
+  assert_eq(filtered, ["- Course lesson artifact updated."])
 }
 
 ///|

@@ -31,15 +31,12 @@ pub fn new_with_items(Array[BookItem]) -> Book
 // Types and methods
 pub struct Book {
   items : Array[BookItem]
-}
+} derive(Show, ToJson, @json.FromJson)
 pub fn Book::chapters(Self) -> Array[Chapter]
 pub fn Book::for_each_chapter_mut(Self, (Chapter) -> Chapter) -> Self
 pub fn Book::for_each_mut(Self, (BookItem) -> BookItem) -> Self
 pub fn Book::iter(Self) -> Array[BookItem]
 pub fn Book::push_item(Self, BookItem) -> Unit
-pub impl Show for Book
-pub impl ToJson for Book
-pub impl @json.FromJson for Book
 
 pub struct BookConfig {
   title : String?
@@ -48,26 +45,19 @@ pub struct BookConfig {
   language : String?
   multilingual : Bool
   description : String?
-}
-pub impl Show for BookConfig
-pub impl ToJson for BookConfig
+} derive(Show, ToJson)
 
 pub enum BookItem {
   Chapter(Chapter)
   Separator
   PartTitle(String)
-}
-pub impl Show for BookItem
-pub impl ToJson for BookItem
-pub impl @json.FromJson for BookItem
+} derive(Show, ToJson, @json.FromJson)
 
 pub struct BuildConfig {
   build_dir : String
   create_missing : Bool
   use_default_preprocessors : Bool
-}
-pub impl Show for BuildConfig
-pub impl ToJson for BuildConfig
+} derive(Show, ToJson)
 
 pub struct Chapter {
   name : String
@@ -77,14 +67,11 @@ pub struct Chapter {
   path : String?
   source_path : String?
   parent_names : Array[String]
-}
+} derive(Show, ToJson, @json.FromJson)
 pub fn Chapter::display(Self) -> String
 pub fn Chapter::is_draft_chapter(Self) -> Bool
 pub fn Chapter::new(String, String, String, Array[String]) -> Self
 pub fn Chapter::new_draft(String, Array[String]) -> Self
-pub impl Show for Chapter
-pub impl ToJson for Chapter
-pub impl @json.FromJson for Chapter
 
 pub struct Config {
   book : BookConfig
@@ -92,28 +79,21 @@ pub struct Config {
   rust : RustConfig
   output : Json
   preprocessor : Json
-}
+} derive(Show, ToJson)
 pub fn Config::contains_key(Self, String) -> Bool
 pub fn Config::read(Self, String) -> Json?
 pub fn Config::set(Self, String, Json) -> Self
 pub fn Config::with_build_dir(Self, String) -> Self
-pub impl Show for Config
-pub impl ToJson for Config
 
 pub struct RustConfig {
   edition : String?
-}
-pub impl Show for RustConfig
-pub impl ToJson for RustConfig
+} derive(Show, ToJson)
 
 pub struct SectionNumber {
   items : Array[Int]
-}
+} derive(Show, ToJson, @json.FromJson)
 pub fn SectionNumber::new(Array[Int]) -> Self
 pub fn SectionNumber::to_string(Self) -> String
-pub impl Show for SectionNumber
-pub impl ToJson for SectionNumber
-pub impl @json.FromJson for SectionNumber
 
 // Type aliases
 

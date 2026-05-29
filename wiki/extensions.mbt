@@ -77,9 +77,11 @@ test "moonclaw manifest declares config and jobs entrypoints" {
 test "moonclaw jobs seed wiki profiles" {
   let text = moonclaw_jobs_text()
   assert_true(text.contains("\"wiki_ingest_controller\""))
+  assert_true(text.contains("\"wiki_course_controller\""))
   assert_true(text.contains("\"wiki_gather_worker\""))
   assert_true(text.contains("\"wiki_query_controller\""))
   assert_true(text.contains("\"wiki_lint_controller\""))
+  assert_true(text.contains("\"wiki_course_worker\""))
   assert_true(text.contains("\"wiki_revision_worker\""))
   assert_true(text.contains("\"wiki_review_worker\""))
 }
@@ -133,6 +135,17 @@ test "moonclaw ingest profiles request web search explicitly" {
       "\"id\": \"revise_wiki\",\n            \"title\": \"Revise wiki files\"",
     ),
   )
+}
+
+///|
+test "moonclaw course profile avoids research report injection" {
+  let text = moonclaw_jobs_text()
+  assert_true(text.contains("\"wiki_course_controller\""))
+  assert_true(text.contains("\"child_profile\": \"wiki_course_worker\""))
+  assert_true(text.contains("\"preferred_skills\": [\"wiki-course\"]"))
+  assert_true(text.contains("Do not use research-report/SKILL.md"))
+  assert_true(text.contains("raw/bootstrap/course-outline.md"))
+  assert_true(text.contains("wiki/synthesis/beginner-course.md"))
 }
 
 ///|

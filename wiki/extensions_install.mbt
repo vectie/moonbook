@@ -45,7 +45,7 @@ async fn install_moonclaw_extension(
   @fsx.make_directory(maintainer_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(review_dir, recursive=true, exists_ok=true)
   write_extension_file_if_missing(config_path, moonclaw_config_text(root))
-  write_extension_file_if_missing(jobs_path, moonclaw_jobs_text())
+  write_generated_extension_file(jobs_path, moonclaw_jobs_text())
   write_extension_file_if_missing(providers_path, moonclaw_providers_text(root))
   write_extension_file_if_missing(identity_path, identity_text(root))
   write_extension_file_if_missing(user_path, user_text())
@@ -101,6 +101,11 @@ async fn write_extension_file_if_missing(
   if !@fsx.exists(path) {
     @fsx.write_to_file(path, content, create=0o644)
   }
+}
+
+///|
+async fn write_generated_extension_file(path : String, content : String) -> Unit {
+  @fsx.write_to_file(path, content, create=0o644)
 }
 
 ///|
