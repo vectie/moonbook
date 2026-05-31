@@ -254,6 +254,77 @@ fn moonclaw_jobs_text() -> String {
   "          }\n" +
   "        }\n" +
   "      },\n" +
+  "      \"wiki_planbook_controller\": {\n" +
+  "        \"family\": \"wiki_planbook_controller\",\n" +
+  "        \"role\": \"controller\",\n" +
+  "        \"priority\": 128,\n" +
+  "        \"tags\": [\"wiki\", \"planbook\", \"planning\", \"repair\", \"self-healing\"],\n" +
+  "        \"match\": {\n" +
+  "          \"all\": [\"wiki\"],\n" +
+  "          \"any\": [\"planbook\", \"/ce: plan\", \"code plan\", \"implementation plan\", \"executable plan\", \"acceptance criteria\", \"repair packet\", \"self-healing autonomy\", \"self healing autonomy\"]\n" +
+  "        },\n" +
+  "        \"steps\": [\n" +
+  "          {\n" +
+  "            \"id\": \"collect_plan_context\",\n" +
+  "            \"title\": \"Collect bounded plan context\",\n" +
+  "            \"kind\": \"job.analysis\",\n" +
+  "            \"prompt_template\": \"Act as the PlanBook keeper for ${proposal.title}. Load planbook/SKILL.md first. Read the request, existing plans, planning wiki pages, keeper memory, recent validation evidence, and only the source files needed to make an executable plan. Do not use research-report/SKILL.md or wiki-course/SKILL.md unless the user explicitly asks for those artifact types.\",\n" +
+  "            \"metadata\": {\n" +
+  "              \"preferred_skills\": [\"planbook\"],\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"web_search\": false,\n" +
+  "              \"board_lane\": \"Context\",\n" +
+  "              \"board_order\": 0\n" +
+  "            }\n" +
+  "          },\n" +
+  "          {\n" +
+  "            \"id\": \"write_executable_plan\",\n" +
+  "            \"title\": \"Write executable plan packet\",\n" +
+  "            \"kind\": \"job.delegate\",\n" +
+  "            \"request_template\": \"Write or update the PlanBook artifacts for ${proposal.title}. Load planbook/SKILL.md only. Produce one durable plan at plans/<slug>/plan.md plus supporting planning wiki updates when useful. The plan must include goal, problem, non-goals, owner boundaries, context read, proposed implementation, file map, acceptance criteria, validation commands, risks, rollback, and handoff notes. Return a keeper.planbook.packet.v1 style result with decision, plan_path, owner, acceptance_criteria, validation_commands, changed_artifacts, follow_up_gaps, and remaining_blockers. Use remaining_blockers: none when clean.\",\n" +
+  "            \"child_profile\": \"wiki_planbook_worker\",\n" +
+  "            \"include_parent_outputs\": true,\n" +
+  "            \"max_depth\": 3,\n" +
+  "            \"metadata\": {\n" +
+  "              \"preferred_skills\": [\"planbook\"],\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"web_search\": false,\n" +
+  "              \"board_lane\": \"Plan\",\n" +
+  "              \"board_order\": 1\n" +
+  "            }\n" +
+  "          },\n" +
+  "          {\n" +
+  "            \"id\": \"review_planbook_packet\",\n" +
+  "            \"title\": \"Review plan executability\",\n" +
+  "            \"kind\": \"job.delegate\",\n" +
+  "            \"request_template\": \"Review the PlanBook packet for ${proposal.title}. Check that the plan is executable, owner boundaries are correct, acceptance criteria are testable, validation commands are realistic, and no research/course output shape leaked into the plan. Findings first; if clean, state residual risk and remaining_blockers: none. If not clean, list owner-scoped remaining_blockers.\",\n" +
+  "            \"child_profile\": \"wiki_review_worker\",\n" +
+  "            \"include_parent_outputs\": true,\n" +
+  "            \"max_depth\": 3,\n" +
+  "            \"metadata\": {\n" +
+  "              \"preferred_skills\": [\"planbook\", \"wiki-review\"],\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"board_lane\": \"Review\",\n" +
+  "              \"board_order\": 2\n" +
+  "            }\n" +
+  "          }\n" +
+  "        ],\n" +
+  "        \"metadata\": {\n" +
+  "          \"profile_metadata\": {\n" +
+  "            \"disable_waiting_for_input\": true\n" +
+  "          },\n" +
+  "          \"role_runtime\": {\n" +
+  "            \"planning_layer\": \"domain\",\n" +
+  "            \"runtime_mode\": \"planner_only\",\n" +
+  "            \"tool_access\": \"limited\",\n" +
+  "            \"memory_scope\": \"domain\",\n" +
+  "            \"allow_delegate\": true,\n" +
+  "            \"allow_workspace_write\": false,\n" +
+  "            \"allow_execution_tools\": false,\n" +
+  "            \"output_contract\": \"keeper.planbook.packet.v1\"\n" +
+  "          }\n" +
+  "        }\n" +
+  "      },\n" +
   "      \"wiki_query_controller\": {\n" +
   "        \"family\": \"wiki_query_controller\",\n" +
   "        \"role\": \"controller\",\n" +
@@ -497,6 +568,37 @@ fn moonclaw_jobs_text() -> String {
   "        ],\n" +
   "        \"metadata\": {\n" +
   "          \"worker_role\": \"wiki_course\"\n" +
+  "        }\n" +
+  "      },\n" +
+  "      \"wiki_planbook_worker\": {\n" +
+  "        \"family\": \"wiki_planbook_worker\",\n" +
+  "        \"priority\": 23,\n" +
+  "        \"tags\": [\"wiki\", \"planbook\", \"worker\", \"planning\"],\n" +
+  "        \"steps\": [\n" +
+  "          {\n" +
+  "            \"id\": \"write_planbook\",\n" +
+  "            \"title\": \"Write PlanBook artifacts\",\n" +
+  "            \"kind\": \"job.analysis\",\n" +
+  "            \"prompt_template\": \"Act as the PlanBook worker for ${request}. Load planbook/SKILL.md. Edit only plan-facing artifacts: plans/<slug>/plan.md, wiki/planning/index.md, wiki/planning/execution-evidence.md, and wiki/reviews/active-plan-review.md when useful. Produce one executable plan with acceptance criteria and validation evidence. Revise the same durable plan in place instead of creating v1/v2/v3 drafts. If clean, return remaining_blockers: none; if not clean, return concrete blockers with owners. Do not use research-report/SKILL.md, wiki-course/SKILL.md, Deep Research Analysis headings, lesson structure, or generic completion prose.\",\n" +
+  "            \"metadata\": {\n" +
+  "              \"preferred_skills\": [\"planbook\"],\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"web_search\": false,\n" +
+  "              \"role_runtime\": {\n" +
+  "                \"planning_layer\": \"execution\",\n" +
+  "                \"runtime_mode\": \"executor\",\n" +
+  "                \"tool_access\": \"full\",\n" +
+  "                \"memory_scope\": \"workspace\",\n" +
+  "                \"allow_delegate\": false,\n" +
+  "                \"allow_workspace_write\": true,\n" +
+  "                \"allow_execution_tools\": true,\n" +
+  "                \"output_contract\": \"wiki.planbook.result.v1\"\n" +
+  "              }\n" +
+  "            }\n" +
+  "          }\n" +
+  "        ],\n" +
+  "        \"metadata\": {\n" +
+  "          \"worker_role\": \"wiki_planbook\"\n" +
   "        }\n" +
   "      },\n" +
   "      \"wiki_review_worker\": {\n" +

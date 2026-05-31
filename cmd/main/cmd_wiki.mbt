@@ -3,14 +3,14 @@
 
 async fn run_wiki(args : Array[String]) -> Unit {
   match args {
-    ["book", .. book_args] => run_wiki_book(book_args.to_array())
-    ["keeper", .. keeper_args] => run_wiki_keeper(keeper_args.to_array())
+    ["book", .. book_args] => run_wiki_book(book_args.to_owned())
+    ["keeper", .. keeper_args] => run_wiki_keeper(keeper_args.to_owned())
     ["enable", extension, root] => run_wiki_enable(root, extension)
     ["enable", extension] => run_wiki_enable(".", extension)
     ["lint", root] => run_wiki_lint(root)
     ["lint"] => run_wiki_lint(".")
-    ["review", .. review_args] => run_wiki_review(review_args.to_array())
-    ["query", .. query_args] => run_wiki_query(query_args.to_array())
+    ["review", .. review_args] => run_wiki_review(review_args.to_owned())
+    ["query", .. query_args] => run_wiki_query(query_args.to_owned())
     ["ingest", root, source] => run_wiki_ingest(root, source)
     ["ingest", source] => run_wiki_ingest(".", source)
     ["init", root] => run_wiki_init(root)
@@ -166,7 +166,7 @@ async fn run_wiki_review_action(
 ///|
 async fn run_wiki_keeper(args : Array[String]) -> Unit {
   match args {
-    ["submit", .. raw] => run_wiki_keeper_submit(raw.to_array())
+    ["submit", .. raw] => run_wiki_keeper_submit(raw.to_owned())
     _ =>
       println(
         "moonbook wiki keeper usage: moonbook wiki keeper submit [root] <packet.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]",
@@ -226,9 +226,9 @@ async fn run_wiki_keeper_submit(args : Array[String]) -> Unit {
 ///|
 async fn run_wiki_book(args : Array[String]) -> Unit {
   match args {
-    ["accept", .. raw] => run_wiki_book_accept(raw.to_array())
-    ["tasks", .. raw] => run_wiki_book_tasks(raw.to_array())
-    ["context", .. raw] => run_wiki_book_context(raw.to_array())
+    ["accept", .. raw] => run_wiki_book_accept(raw.to_owned())
+    ["tasks", .. raw] => run_wiki_book_tasks(raw.to_owned())
+    ["context", .. raw] => run_wiki_book_context(raw.to_owned())
     ["persist", root, path] => run_wiki_book_persist(root, path)
     ["persist", path] => run_wiki_book_persist(".", path)
     ["catalog", root] => run_wiki_book_catalog(root)
@@ -536,7 +536,13 @@ async fn parse_wiki_keeper_submit_args(
 ///|
 async fn looks_like_wiki_root(path : String) -> Bool {
   let summary = @path.Path(path).join(@path.Path("wiki/SUMMARY.md")).to_string()
-  @fsx.exists(summary)
+  let wiki_dir = @path.Path(path).join(@path.Path("wiki")).to_string()
+  let raw_dir = @path.Path(path).join(@path.Path("raw")).to_string()
+  let agents = @path.Path(path).join(@path.Path("AGENTS.md")).to_string()
+  @fsx.exists(summary) ||
+  @fsx.exists(wiki_dir) ||
+  @fsx.exists(raw_dir) ||
+  @fsx.exists(agents)
 }
 
 ///|

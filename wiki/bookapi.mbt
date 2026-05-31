@@ -30,6 +30,9 @@ pub async fn produce_task_batch(
   goal : String,
   goal_id? : String? = None,
 ) -> BookTaskBatch {
+  // Older workspaces may predate newer required pages such as wiki/history.
+  // Re-running init is idempotent and repairs the contract before planning.
+  ignore(init_workspace(root))
   let workspace = workspace_paths(root)
   let state = summarize_state(root)
   let health = report_health(root)
@@ -40,8 +43,10 @@ pub async fn produce_task_batch(
   let ingest_priority = if weak_coverage { 100 } else { 70 }
   let tasks : Array[BookTask] = []
   let course_requested = course_goal(goal)
+  let planbook_requested = planbook_goal(goal)
   let bootstrap_research_goal = weak_coverage &&
     !course_requested &&
+    !planbook_requested &&
     research_bootstrap_goal(goal)
 
   if standing_watch_goal(goal) {
@@ -71,7 +76,11 @@ pub async fn produce_task_batch(
     })
   }
 
-  if course_requested {
+  if planbook_requested {
+    for task in planbook_semantic_tasks(normalized_goal_id, goal) {
+      tasks.push(task)
+    }
+  } else if course_requested {
     for task in course_semantic_tasks(normalized_goal_id, goal) {
       tasks.push(task)
     }
@@ -142,11 +151,14 @@ pub async fn produce_task_batch(
     }
   }
 
-  if health.level != "healthy" ||
-    weak_coverage ||
-    notes.contains("plan") ||
-    notes.contains("roadmap") ||
-    notes.contains("next") {
+  if !planbook_requested &&
+    (
+      health.level != "healthy" ||
+      weak_coverage ||
+      notes.contains("plan") ||
+      notes.contains("roadmap") ||
+      notes.contains("next")
+    ) {
     tasks.push({
       id: "\{normalized_goal_id}-planning",
       title: "Refresh local planning surfaces",
@@ -178,6 +190,8 @@ pub async fn produce_task_batch(
     goal,
     summary: if bootstrap_research_goal {
       "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level} bootstrap_phases=\{tasks.length()}"
+    } else if planbook_requested {
+      "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level} planbook_phases=\{tasks.length()}"
     } else if course_requested {
       "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level} course_phases=\{tasks.length()}"
     } else {
@@ -1521,6 +1535,21 @@ test "standing watch goal detection stays generic" {
 }
 
 ///|
+test "planbook goal detection stays bounded to executable planning" {
+  assert_true(
+    planbook_goal("write an implementation plan with acceptance criteria"),
+  )
+  assert_true(planbook_goal("/ce: plan fix daemon supervision"))
+  assert_true(planbook_goal("create a repair packet for self-healing autonomy"))
+  assert_true(
+    planbook_goal("repair the self-healing autonomy loop and validate it"),
+  )
+  assert_true(!planbook_goal("research LLM training in very detail"))
+  assert_true(!planbook_goal("research self-healing agent literature"))
+  assert_true(!planbook_goal("create a beginner course on isometric maps"))
+}
+
+///|
 async test "produce task batch creates dedicated standing watch task" {
   let root = "/tmp/moonbook-bookapi-standing-watch"
   ignore(init_workspace(root))
@@ -1533,6 +1562,29 @@ async test "produce task batch creates dedicated standing watch task" {
   assert_true(batch.tasks[0].prompt.contains("skills/standing-watch/SKILL.md"))
   assert_true(batch.tasks[0].prompt.contains("standing_goal_decision"))
   assert_true(batch.tasks[0].target_pages.contains("history/standing-watch.md"))
+}
+
+///|
+async test "produce task batch routes executable plan goals to planbook" {
+  let root = "/tmp/moonbook-bookapi-planbook"
+  ignore(init_workspace(root))
+  let batch = produce_task_batch(
+    root, "write an implementation plan with acceptance criteria for live autonomy self-healing",
+  )
+  assert_true(batch.summary.contains("planbook_phases"))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "planbook_context" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "planbook_write" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "planbook_review" }))
+  assert_true(!batch.tasks.any(fn(task) { task.kind == "bootstrap_gather" }))
+  assert_true(!batch.tasks.any(fn(task) { task.kind == "planning" }))
+  let writer = batch.tasks
+    .iter()
+    .find_first(fn(task : BookTask) { task.kind == "planbook_write" })
+    .unwrap()
+  assert_true(writer.prompt.contains("skills/planbook/SKILL.md"))
+  assert_true(!writer.prompt.contains("skills/research-report/SKILL.md"))
+  assert_true(writer.target_pages.contains("../plans/"))
+  assert_true(writer.target_pages.contains("planning/execution-evidence.md"))
 }
 
 ///|
@@ -1640,6 +1692,38 @@ async test "standing watch context loads watch skill and marker contract" {
 }
 
 ///|
+async test "planbook worker context uses planbook contract not research or course" {
+  let root = "/tmp/moonbook-bookapi-planbook-context"
+  ignore(init_workspace(root))
+  let task = planbook_semantic_tasks(
+      "goal-planbook", "write an implementation plan with acceptance criteria",
+    )[1]
+  let context = hydrate_worker_context(root, task)
+  assert_true(@fsx.exists(root + "/plans/index.md"))
+  assert_true(@fsx.exists(root + "/wiki/planning/index.md"))
+  assert_true(@fsx.exists(root + "/wiki/planning/execution-evidence.md"))
+  assert_true(@fsx.exists(root + "/wiki/reviews/active-plan-review.md"))
+  assert_true(context.skill_paths.contains("skills/planbook/SKILL.md"))
+  assert_true(!context.skill_paths.contains("skills/research-report/SKILL.md"))
+  assert_true(!context.skill_paths.contains("skills/wiki-course/SKILL.md"))
+  assert_true(context.prompt.contains("Loaded skill body excerpts"))
+  assert_true(
+    context.output_contract.contains(
+      "This is a PlanBook task, not a research bootstrap task and not a course task.",
+    ),
+  )
+  assert_true(
+    context.output_contract.any(fn(line) { line.contains("planbook_decision") }),
+  )
+  assert_true(
+    !context.output_contract.any(fn(line) {
+      line.contains("For research bootstrap") ||
+      line.contains("Course artifacts should include")
+    }),
+  )
+}
+
+///|
 async test "catalog record defaults to book private memory scope" {
   let root = "/tmp/moonbook-bookapi-catalog"
   ignore(init_workspace(root))
@@ -1658,6 +1742,7 @@ async test "catalog skills include base harness skills" {
   assert_true(skills.contains("wiki-review"))
   assert_true(skills.contains("source-diarize"))
   assert_true(skills.contains("research-report"))
+  assert_true(skills.contains("planbook"))
   assert_true(skills.contains("standing-watch"))
   assert_true(skills.contains("query-promote"))
   assert_true(skills.contains("review-decision"))
@@ -2081,14 +2166,17 @@ async test "course worker context uses course contract not research bootstrap co
   let root = "/tmp/moonbook-bookapi-course-context"
   ignore(init_workspace(root))
   let task = course_semantic_tasks(
-    "goal-course",
-    "create a beginner course and workbook for Wenyu Valley tile-map game design",
-  )[1]
+      "goal-course", "create a beginner course and workbook for Wenyu Valley tile-map game design",
+    )[1]
   let context = hydrate_worker_context(root, task)
   assert_true(context.skill_paths.contains("skills/wiki-course/SKILL.md"))
   assert_true(!context.skill_paths.contains("skills/research-report/SKILL.md"))
   assert_true(context.prompt.contains("Loaded skill body excerpts"))
-  assert_true(context.output_contract.contains("This is a course task, not a research bootstrap task."))
+  assert_true(
+    context.output_contract.contains(
+      "This is a course task, not a research bootstrap task.",
+    ),
+  )
   assert_true(
     !context.output_contract.any(fn(line) {
       line.contains("For research bootstrap")
@@ -2099,8 +2187,7 @@ async test "course worker context uses course contract not research bootstrap co
 ///|
 test "course memory filter removes stale research-bootstrap operational records" {
   let filtered = filter_course_memory([
-    "- Research artifact contract not satisfied: Missing required artifacts.",
-    "- provider-review: Completed from research bootstrap dossier.",
+    "- Research artifact contract not satisfied: Missing required artifacts.", "- provider-review: Completed from research bootstrap dossier.",
     "- Course lesson artifact updated.",
   ])
   assert_eq(filtered, ["- Course lesson artifact updated."])

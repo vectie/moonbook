@@ -32,7 +32,9 @@ pub async fn hydrate_worker_context(
       working_memory
     },
     memory_summary,
-    output_contract: if course_task_kind(task.kind) {
+    output_contract: if planbook_task_kind(task.kind) {
+      planbook_provider_result_contract_lines()
+    } else if course_task_kind(task.kind) {
       course_provider_result_contract_lines()
     } else {
       provider_result_contract_lines()
@@ -80,11 +82,26 @@ fn course_provider_result_contract_lines() -> Array[String] {
     "Return exactly one JSON object.", "Do not output markdown fences or prose outside the JSON object.",
     "Use keys: task_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
     "Set task_id to the active provider task id.", "artifacts must be an array of workspace-relative output paths.",
-    "This is a course task, not a research bootstrap task.",
-    "Do not require research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, or marketing-brief.md unless the course prompt explicitly asks for them.",
+    "This is a course task, not a research bootstrap task.", "Do not require research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, or marketing-brief.md unless the course prompt explicitly asks for them.",
     "Course artifacts should include raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md when used as the workbook, and wiki/synthesis/beginner-course.md.",
     "The visible course must teach through lessons, examples, exercises, output artifacts, checkpoints, and common mistakes.",
     "Reject Deep Research Analysis, Verified Findings, source-audit headings, provider status, ReviewQueued state, run ids, and process logs as reader-facing course structure.",
+    "Use [] for empty arrays and null for missing target_page.",
+  ]
+}
+
+///|
+fn planbook_provider_result_contract_lines() -> Array[String] {
+  [
+    "Return exactly one JSON object.", "Do not output markdown fences or prose outside the JSON object.",
+    "Use keys: task_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
+    "Set task_id to the active provider task id.", "artifacts must include the durable plan path when a plan was written or updated.",
+    "This is a PlanBook task, not a research bootstrap task and not a course task.",
+    "Do not require research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, marketing-brief.md, course-outline.md, or beginner-course.md unless the plan explicitly names them as implementation artifacts.",
+    "The summary must include exactly one marker block with planbook_decision, plan_path, owner, and remaining_blockers.",
+    "Allowed planbook_decision values: ready_to_execute, needs_owner, needs_more_context, blocked.",
+    "Use remaining_blockers: none when there are no blockers; otherwise list concrete owner-scoped blockers.",
+    "A valid PlanBook result records executable acceptance criteria and validation commands, not generic completion prose.",
     "Use [] for empty arrays and null for missing target_page.",
   ]
 }
@@ -95,6 +112,9 @@ async fn task_prompt_with_material_hints(
   task : BookTask,
   terms : Array[String],
 ) -> String {
+  if planbook_task_kind(task.kind) {
+    return task.prompt + skill_body_excerpt_block(root, task)
+  }
   if standing_watch_task_kind(task.kind) {
     return task.prompt +
       standing_watch_context_block(root) +
@@ -134,6 +154,13 @@ fn course_task_kind(kind : String) -> Bool {
   kind == "course_workbook" ||
   kind == "course_project" ||
   kind == "course_review"
+}
+
+///|
+fn planbook_task_kind(kind : String) -> Bool {
+  kind == "planbook_context" ||
+  kind == "planbook_write" ||
+  kind == "planbook_review"
 }
 
 ///|
@@ -431,6 +458,21 @@ fn task_skill_names(task : BookTask) -> Array[String] {
         names.push("wiki-review")
         names.push("review-decision")
       }
+      "planbook_context" => {
+        names.push("planbook")
+        names.push("wiki-memory")
+        names.push("index-maintain")
+      }
+      "planbook_write" => {
+        names.push("planbook")
+        names.push("wiki-memory")
+        names.push("index-maintain")
+      }
+      "planbook_review" => {
+        names.push("planbook")
+        names.push("wiki-review")
+        names.push("review-decision")
+      }
       "review" => {
         names.push("wiki-review")
         names.push("review-decision")
@@ -520,6 +562,8 @@ fn skill_name_from_path(path : String) -> String {
     "wiki-memory"
   } else if normalized.contains("/skills/wiki-course/") {
     "wiki-course"
+  } else if normalized.contains("/skills/planbook/") {
+    "planbook"
   } else if normalized.contains("/skills/standing-watch/") {
     "standing-watch"
   } else if normalized.contains("/skills/research-report/") {

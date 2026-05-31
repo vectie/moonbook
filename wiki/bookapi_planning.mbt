@@ -28,6 +28,69 @@ fn course_goal(goal : String) -> Bool {
 }
 
 ///|
+fn planbook_goal(goal : String) -> Bool {
+  let notes = goal.to_lower()
+  notes.contains("planbook") ||
+  notes.contains("/ce: plan") ||
+  notes.contains("code plan") ||
+  notes.contains("implementation plan") ||
+  notes.contains("executable plan") ||
+  notes.contains("acceptance criteria") ||
+  notes.contains("repair packet") ||
+  (
+    (notes.contains("self-healing") || notes.contains("self healing")) &&
+    (
+      notes.contains("plan") ||
+      notes.contains("repair") ||
+      notes.contains("implement") ||
+      notes.contains("acceptance") ||
+      notes.contains("validate")
+    )
+  )
+}
+
+///|
+fn planbook_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] {
+  [
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "planbook_context",
+      "Collect bounded plan context",
+      100,
+      "Load `skills/planbook/SKILL.md`. Treat this as executable planning, not research and not a course. Read existing plans, planning wiki pages, keeper memory, recent validation evidence, and only the source files needed to make the plan executable. Record owner boundaries and unresolved gaps instead of hiding them with local workarounds.",
+      [
+        "../plans/", "planning/index.md", "planning/execution-evidence.md", "reviews/active-plan-review.md",
+        "../keeper/INSIGHTS.md",
+      ],
+      true,
+    ),
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "planbook_write",
+      "Write executable plan packet",
+      95,
+      "Load `skills/planbook/SKILL.md` only. Write or update one durable plan at `plans/<slug>/plan.md` plus `wiki/planning/index.md` and `wiki/planning/execution-evidence.md` when useful. The plan must include goal, problem, non-goals, owner boundaries, context read, proposed implementation, file map, acceptance criteria, validation commands, risks, rollback, and handoff notes. Revise the same plan in place instead of creating v1/v2/v3 sprawl.",
+      ["../plans/", "planning/index.md", "planning/execution-evidence.md"],
+      true,
+    ),
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "planbook_review",
+      "Review plan executability",
+      85,
+      "Load `skills/planbook/SKILL.md` and `skills/wiki-review/SKILL.md`. Review whether the plan is executable, owner boundaries are correct, acceptance criteria are testable, validation commands are realistic, and no research/course output shape leaked into the plan. Findings first; if clean, state residual risk.",
+      [
+        "../plans/", "planning/index.md", "planning/execution-evidence.md", "reviews/active-plan-review.md",
+      ],
+      false,
+    ),
+  ]
+}
+
+///|
 fn course_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] {
   [
     bootstrap_phase_task(
@@ -209,7 +272,15 @@ fn resolve_task_from_batch(
 ///|
 fn infer_task_kind_from_external_id(task_id : String) -> String? {
   let normalized = task_id.trim().to_lower()
-  if normalized.contains("bootstrap") || normalized.contains("ingest") {
+  if normalized.contains("planbook") {
+    if normalized.contains("context") {
+      Some("planbook_context")
+    } else if normalized.contains("review") {
+      Some("planbook_review")
+    } else {
+      Some("planbook_write")
+    }
+  } else if normalized.contains("bootstrap") || normalized.contains("ingest") {
     Some("ingest")
   } else if normalized.contains("review") {
     Some("review")
@@ -227,7 +298,15 @@ fn infer_task_kind_from_external_id(task_id : String) -> String? {
 ///|
 fn resolve_task_kind_from_external_id(task_id : String) -> String? {
   let normalized = task_id.trim().to_lower()
-  if normalized.contains("bootstrap") || normalized.contains("ingest") {
+  if normalized.contains("planbook") {
+    if normalized.contains("context") {
+      Some("planbook_context")
+    } else if normalized.contains("review") {
+      Some("planbook_review")
+    } else {
+      Some("planbook_write")
+    }
+  } else if normalized.contains("bootstrap") || normalized.contains("ingest") {
     Some("bootstrap_gather")
   } else if normalized.contains("material") ||
     normalized.contains("populate") ||

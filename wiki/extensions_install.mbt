@@ -104,7 +104,10 @@ async fn write_extension_file_if_missing(
 }
 
 ///|
-async fn write_generated_extension_file(path : String, content : String) -> Unit {
+async fn write_generated_extension_file(
+  path : String,
+  content : String,
+) -> Unit {
   @fsx.write_to_file(path, content, create=0o644)
 }
 

@@ -78,10 +78,12 @@ test "moonclaw jobs seed wiki profiles" {
   let text = moonclaw_jobs_text()
   assert_true(text.contains("\"wiki_ingest_controller\""))
   assert_true(text.contains("\"wiki_course_controller\""))
+  assert_true(text.contains("\"wiki_planbook_controller\""))
   assert_true(text.contains("\"wiki_gather_worker\""))
   assert_true(text.contains("\"wiki_query_controller\""))
   assert_true(text.contains("\"wiki_lint_controller\""))
   assert_true(text.contains("\"wiki_course_worker\""))
+  assert_true(text.contains("\"wiki_planbook_worker\""))
   assert_true(text.contains("\"wiki_revision_worker\""))
   assert_true(text.contains("\"wiki_review_worker\""))
 }
@@ -93,6 +95,9 @@ test "moonclaw jobs include role runtime metadata" {
   assert_true(text.contains("\"planning_layer\": \"domain\""))
   assert_true(text.contains("\"runtime_mode\": \"planner_only\""))
   assert_true(text.contains("\"output_contract\": \"keeper.plan.packet.v1\""))
+  assert_true(
+    text.contains("\"output_contract\": \"keeper.planbook.packet.v1\""),
+  )
   assert_true(text.contains("\"output_contract\": \"wiki.gather.result.v1\""))
 }
 
@@ -146,6 +151,26 @@ test "moonclaw course profile avoids research report injection" {
   assert_true(text.contains("Do not use research-report/SKILL.md"))
   assert_true(text.contains("raw/bootstrap/course-outline.md"))
   assert_true(text.contains("wiki/synthesis/beginner-course.md"))
+}
+
+///|
+test "moonclaw planbook profile avoids research and course injection" {
+  let text = moonclaw_jobs_text()
+  assert_true(text.contains("\"wiki_planbook_controller\""))
+  assert_true(text.contains("\"child_profile\": \"wiki_planbook_worker\""))
+  assert_true(text.contains("\"preferred_skills\": [\"planbook\"]"))
+  assert_true(text.contains("keeper.planbook.packet.v1"))
+  assert_true(text.contains("plans/<slug>/plan.md"))
+  assert_true(text.contains("\"implementation plan\""))
+  assert_true(text.contains("\"repair packet\""))
+  assert_true(!text.contains("\"plan\", \"implementation plan\""))
+  assert_true(!text.contains("\"repair\", \"acceptance criteria\""))
+  assert_true(!text.contains("\"self-healing\", \"code plan\""))
+  assert_true(text.contains("follow_up_gaps, and remaining_blockers"))
+  assert_true(text.contains("remaining_blockers: none"))
+  assert_true(
+    text.contains("Do not use research-report/SKILL.md or wiki-course/SKILL.md"),
+  )
 }
 
 ///|

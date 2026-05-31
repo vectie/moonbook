@@ -22,6 +22,12 @@ pub async fn init_workspace(
   let raw_bootstrap_dir = @path.Path(raw_dir)
     .join(@path.Path("bootstrap"))
     .to_string()
+  let plans_dir = @path.Path(normalized_root)
+    .join(@path.Path("plans"))
+    .to_string()
+  let plans_index_path = @path.Path(plans_dir)
+    .join(@path.Path("index.md"))
+    .to_string()
   let wiki_dir = @path.Path(normalized_root)
     .join(@path.Path("wiki"))
     .to_string()
@@ -73,6 +79,9 @@ pub async fn init_workspace(
   let synthesis_dir = @path.Path(wiki_dir)
     .join(@path.Path("synthesis"))
     .to_string()
+  let planning_dir = @path.Path(wiki_dir)
+    .join(@path.Path("planning"))
+    .to_string()
   let history_dir = @path.Path(wiki_dir).join(@path.Path("history")).to_string()
   let queries_dir = @path.Path(wiki_dir).join(@path.Path("queries")).to_string()
   let reviews_dir = @path.Path(wiki_dir).join(@path.Path("reviews")).to_string()
@@ -95,6 +104,12 @@ pub async fn init_workspace(
   let evidence_path = @path.Path(synthesis_dir)
     .join(@path.Path("evidence.md"))
     .to_string()
+  let planning_index_path = @path.Path(planning_dir)
+    .join(@path.Path("index.md"))
+    .to_string()
+  let planning_evidence_path = @path.Path(planning_dir)
+    .join(@path.Path("execution-evidence.md"))
+    .to_string()
   let journey_path = @path.Path(history_dir)
     .join(@path.Path("journey.md"))
     .to_string()
@@ -106,6 +121,9 @@ pub async fn init_workspace(
     .to_string()
   let approved_review_path = @path.Path(reviews_dir)
     .join(@path.Path("approved.md"))
+    .to_string()
+  let active_plan_review_path = @path.Path(reviews_dir)
+    .join(@path.Path("active-plan-review.md"))
     .to_string()
   let keeper_dir = @path.Path(normalized_root)
     .join(@path.Path("keeper"))
@@ -139,6 +157,9 @@ pub async fn init_workspace(
     .to_string()
   let course_skill_dir = @path.Path(skills_dir)
     .join(@path.Path("wiki-course"))
+    .to_string()
+  let planbook_skill_dir = @path.Path(skills_dir)
+    .join(@path.Path("planbook"))
     .to_string()
   let research_report_skill_dir = @path.Path(skills_dir)
     .join(@path.Path("research-report"))
@@ -200,11 +221,13 @@ pub async fn init_workspace(
   @fsx.make_directory(raw_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(raw_assets_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(raw_bootstrap_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(plans_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(site_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(wiki_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(entities_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(concepts_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(synthesis_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(planning_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(history_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(queries_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(reviews_dir, recursive=true, exists_ok=true)
@@ -220,6 +243,7 @@ pub async fn init_workspace(
   @fsx.make_directory(standing_watch_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(marketing_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(course_skill_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(planbook_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(research_report_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(source_diarize_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(entity_revise_skill_dir, recursive=true, exists_ok=true)
@@ -249,6 +273,7 @@ pub async fn init_workspace(
   write_if_missing(site_styles_path, site_styles_text())
   write_if_missing(site_script_path, site_script_text())
   write_if_missing(gitignore_path, gitignore_text())
+  write_if_missing(plans_index_path, plans_index_text())
   write_if_missing(summary_path, summary_text())
   write_if_missing(home_path, home_text())
   write_if_missing(index_path, index_text())
@@ -259,10 +284,13 @@ pub async fn init_workspace(
   write_if_missing(synthesis_map_path, synthesis_map_text())
   write_if_missing(observations_path, observations_text())
   write_if_missing(evidence_path, evidence_text())
+  write_if_missing(planning_index_path, planning_index_text())
+  write_if_missing(planning_evidence_path, planning_evidence_text())
   write_if_missing(journey_path, journey_text())
   write_if_missing(debug_journal_path, debug_journal_text())
   write_if_missing(pending_review_path, pending_review_text())
   write_if_missing(approved_review_path, approved_review_text())
+  write_if_missing(active_plan_review_path, active_plan_review_text())
   write_if_missing(keeper_memory_path, keeper_memory_text())
   write_if_missing(keeper_user_path, keeper_user_text())
   write_if_missing(keeper_working_path, keeper_working_text())
@@ -280,6 +308,7 @@ pub async fn init_workspace(
     marketing_skill_dir, "seed/wiki/skills/wiki-marketing",
   )
   copy_seed_tree_if_missing(course_skill_dir, "seed/wiki/skills/wiki-course")
+  copy_seed_tree_if_missing(planbook_skill_dir, "seed/wiki/skills/planbook")
   copy_seed_tree_if_missing(
     research_report_skill_dir, "seed/wiki/skills/research-report",
   )
@@ -419,9 +448,12 @@ fn summary_text() -> String {
   "- [Synthesis Map](./synthesis/map.md)\n" +
   "- [Observations](./synthesis/observations.md)\n" +
   "- [Evidence](./synthesis/evidence.md)\n" +
+  "- [Planning Index](./planning/index.md)\n" +
+  "- [Execution Evidence](./planning/execution-evidence.md)\n" +
   "- [Journey](./history/journey.md)\n" +
   "- [Debug Journal](./history/debug-journal.md)\n" +
   "- [Pending Review](./reviews/pending.md)\n" +
+  "- [Active Plan Review](./reviews/active-plan-review.md)\n" +
   "- [Approved Review](./reviews/approved.md)\n"
 }
 
@@ -432,6 +464,7 @@ fn home_text() -> String {
   "## Structure\n\n" +
   "- `../site/`: marketing website projection copied to `book/site/` during build\n" +
   "- `../raw/`: immutable source documents and attachments staged for ingest\n" +
+  "- `../plans/`: durable executable plans, acceptance criteria, and handoffs\n" +
   "- `./sources/`: durable source pages generated from raw material\n" +
   "- `./entities/`: maintained entity pages\n" +
   "- `./concepts/`: maintained concept pages\n" +
@@ -442,6 +475,8 @@ fn home_text() -> String {
   "- [Maintenance Plan](./synthesis/maintenance-plan.md): queued multi-page wiki revisions\n" +
   "- [Synthesis Map](./synthesis/map.md): coverage and hub view across the wiki\n" +
   "- [Observations](./synthesis/observations.md): persisted worker results and promoted observations\n" +
+  "- [Planning Index](./planning/index.md): executable plan catalog and current plan focus\n" +
+  "- [Execution Evidence](./planning/execution-evidence.md): validation commands and outcomes for plan-driven work\n" +
   "- [Journey](./history/journey.md): compact history of major runs, decisions, and open loops\n" +
   "- [Debug Journal](./history/debug-journal.md): detailed run-by-run material prep and debug notes\n" +
   "- [Pending Review](./reviews/pending.md): human review queue for contested or high-value updates\n" +
@@ -452,6 +487,11 @@ fn home_text() -> String {
   "3. `wiki/entities/` and `wiki/concepts/` hold maintained ontology coverage.\n" +
   "4. `wiki/queries/` stores durable analysis pages rather than leaving answers in chat.\n" +
   "5. `wiki/synthesis/` tracks overview, claims, maintenance, evidence, and observations.\n\n" +
+  "## PlanBook Layout\n\n" +
+  "1. `plans/` stores executable plans that can drive implementation.\n" +
+  "2. `wiki/planning/index.md` catalogs current plans, owners, acceptance criteria, and open gaps.\n" +
+  "3. `wiki/planning/execution-evidence.md` records validation evidence after work happens.\n" +
+  "4. `wiki/reviews/active-plan-review.md` tracks review findings for the active plan.\n\n" +
   "## Usage\n\n" +
   "1. Drop a source into `raw/`\n" +
   "2. Ask the LLM to ingest it into the wiki\n" +
@@ -473,6 +513,8 @@ fn index_text() -> String {
   "- [Synthesis Map](./synthesis/map.md): coverage and maintenance view across the maintained wiki\n" +
   "- [Observations](./synthesis/observations.md): persisted task results and promoted book observations\n" +
   "- [Evidence](./synthesis/evidence.md): support records for persisted results and reviewed knowledge\n" +
+  "- [Planning Index](./planning/index.md): plan catalog, owner boundaries, and open plan gaps\n" +
+  "- [Execution Evidence](./planning/execution-evidence.md): command results and validation notes for plan-driven work\n" +
   "- [Journey](./history/journey.md): compact operator-facing journey from earlier runs to the current book state\n" +
   "- [Debug Journal](./history/debug-journal.md): detailed keeper and worker debug trail for intermediate preparation quality\n" +
   "- [Pending Review](./reviews/pending.md): pending human review items\n" +
@@ -484,6 +526,7 @@ fn index_text() -> String {
   "- `./concepts/`: maintained concept pages\n" +
   "- `./queries/`: durable query notes and saved answers\n" +
   "- `./synthesis/`: overview, claims, maintenance plan, query insights, evidence, and observations\n" +
+  "- `../plans/` and `./planning/`: executable plans and validation evidence for code-plan or repair work\n" +
   "- `./history/`: compact journey plus detailed debug-journal pages generated from persisted work\n\n" +
   "## Entities\n\n" +
   "_None yet._\n\n" +
@@ -953,6 +996,36 @@ fn evidence_text() -> String {
 }
 
 ///|
+fn plans_index_text() -> String {
+  "# Plans\n\n" +
+  "Durable executable plans written by PlanBook tasks.\n\n" +
+  "## Current\n\n" +
+  "_None yet._\n\n" +
+  "## Completed\n\n" +
+  "_None yet._\n"
+}
+
+///|
+fn planning_index_text() -> String {
+  "# Planning Index\n\n" +
+  "Durable executable plans for implementation, repair, and self-healing work.\n\n" +
+  "## Active Plans\n\n" +
+  "_None yet._\n\n" +
+  "## Owner Boundaries\n\n" +
+  "_None yet._\n\n" +
+  "## Open Gaps\n\n" +
+  "_None yet._\n"
+}
+
+///|
+fn planning_evidence_text() -> String {
+  "# Execution Evidence\n\n" +
+  "Validation commands, outcomes, and handoff evidence for PlanBook-driven work.\n\n" +
+  "## Evidence\n\n" +
+  "_None yet._\n"
+}
+
+///|
 fn keeper_insights_text() -> String {
   "# Keeper Insights\n\n" +
   "Signals and suggested cleanups for Keeper-managed memory.\n\n" +
@@ -1009,6 +1082,10 @@ fn resolver_text() -> String {
   "  skill: `skills/wiki-course/SKILL.md`\n" +
   "  supporting_skills: `skills/wiki-query/SKILL.md`, `skills/wiki-marketing/SKILL.md`, `skills/query-promote/SKILL.md`\n" +
   "  load_first: `wiki/index.md`, `wiki/history/journey.md`, `wiki/synthesis/map.md`, `wiki/synthesis/evidence.md`, `site/index.html`\n" +
+  "- intent: planbook\n" +
+  "  skill: `skills/planbook/SKILL.md`\n" +
+  "  supporting_skills: `skills/wiki-memory/SKILL.md`, `skills/wiki-review/SKILL.md`, `skills/index-maintain/SKILL.md`\n" +
+  "  load_first: `plans/index.md`, `wiki/planning/index.md`, `wiki/planning/execution-evidence.md`, `wiki/reviews/active-plan-review.md`, `keeper/INSIGHTS.md`\n" +
   "- intent: research-report\n" +
   "  skill: `skills/research-report/SKILL.md`\n" +
   "  supporting_skills: `skills/wiki-ingest/SKILL.md`, `skills/source-diarize/SKILL.md`, `skills/synthesis-revise/SKILL.md`, `skills/claim-audit/SKILL.md`, `skills/wiki-marketing/SKILL.md`\n" +
@@ -1032,18 +1109,29 @@ fn approved_review_text() -> String {
 }
 
 ///|
+fn active_plan_review_text() -> String {
+  "# Active Plan Review\n\n" +
+  "Review findings for the active executable plan.\n\n" +
+  "## Findings\n\n" +
+  "_None yet._\n"
+}
+
+///|
 fn schema_text() -> String {
   "# Wiki Maintainer Instructions\n\n" +
   "This workspace is a persistent LLM-maintained wiki.\n\n" +
   "MoonBook is the thin harness. Skills carry the domain procedures. Keep deterministic indexing, bookkeeping, and safety in code. Keep judgment, synthesis, diarization, and revision planning in skill files.\n\n" +
   "## Layers\n\n" +
   "- `raw/`: immutable source documents. Read-only unless the user explicitly asks to organize files.\n" +
+  "- `plans/`: durable executable plans, acceptance criteria, validation commands, and handoffs.\n" +
   "- `wiki/`: maintained markdown knowledge base. The LLM owns updates here.\n" +
   "- `site/`: optional marketing website projection for presentation. Build copies it to `book/site/`.\n" +
   "- `wiki/index.md`: content catalog. Update it whenever pages are added or meaningfully changed.\n" +
   "- `wiki/log.md`: append-only activity log. Add one entry per ingest, query, or lint pass.\n\n" +
   "- `wiki/reviews/pending.md`: items that should be reviewed before being treated as trusted synthesis.\n" +
   "- `wiki/reviews/approved.md`: review items that have been accepted or resolved.\n\n" +
+  "- `wiki/planning/index.md`: current PlanBook catalog and owner boundaries.\n" +
+  "- `wiki/planning/execution-evidence.md`: validation evidence for plan-driven work.\n\n" +
   "- `wiki/synthesis/maintenance-plan.md`: queue of planned multi-page wiki revisions.\n\n" +
   "- `RESOLVER.md`: route tasks to the correct skill and context bundle.\n" +
   "- `ROUTINES.md`: shared harness routine, kept short.\n" +

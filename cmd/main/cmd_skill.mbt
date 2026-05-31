@@ -3,7 +3,7 @@
 
 async fn run_skill(args : Array[String]) -> Unit {
   match args {
-    ["hub", .. hub_args] => run_skill_hub(hub_args.to_array())
+    ["hub", .. hub_args] => run_skill_hub(hub_args.to_owned())
     ["list", root] => run_skill_list(root)
     ["list"] => run_skill_list(".")
     ["show", name, root] => run_skill_show(root, name)
@@ -51,7 +51,7 @@ async fn run_skill_hub(args : Array[String]) -> Unit {
         }
       "-p" | "--port" =>
         if index + 1 < args.length() {
-          port = @strconv.parse_int(args[index + 1]) catch {
+          port = @string.parse_int(args[index + 1][:], base=10) catch {
             _ => {
               println(
                 "moonbook skill hub usage: moonbook skill hub [root] [-n hostname] [-p port] [-o]",
