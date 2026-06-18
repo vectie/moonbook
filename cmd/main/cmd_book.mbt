@@ -105,6 +105,29 @@ async fn run_test(root : String) -> Unit {
 }
 
 ///|
+fn moonstat_startup_ready_message(base_url : String) -> String {
+  "Moonstat available at \{base_url}; documentation usage/statistics bridge enabled"
+}
+
+///|
+fn moonstat_startup_unavailable_message(
+  base_url : String,
+  error : String,
+) -> String {
+  "Moonstat unavailable at \{base_url}; continuing as standalone Moonbook: \{error}"
+}
+
+///|
+async fn print_moonstat_startup_status() -> Unit {
+  let client = @moonstat.discover()
+  match client.health() {
+    Ok(_) => println(moonstat_startup_ready_message(client.base_url()))
+    Err(error) =>
+      println(moonstat_startup_unavailable_message(client.base_url(), error))
+  }
+}
+
+///|
 async fn run_serve(args : Array[String]) -> Unit {
   let options = match @httpserve.parse_serve_args(args) {
     Some(options) => options
@@ -155,6 +178,11 @@ async fn run_serve(args : Array[String]) -> Unit {
   let serving_url = "http://\{options.hostname}:\{server.port()}"
   println("listening on \{serving_url}")
   @async.with_task_group(group => {
+    group.spawn_bg(
+      () => print_moonstat_startup_status(),
+      no_wait=true,
+      allow_failure=true,
+    )
     if options.open_browser {
       group.spawn_bg(
         () => open_browser(serving_url),

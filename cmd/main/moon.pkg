@@ -10,6 +10,7 @@ import {
   "vectie/moonbook/driver",
   "vectie/moonbook/core",
   "vectie/moonbook/wiki",
+  "vectie/moonbook/plugins/moonstat",
   "moonbitlang/x/path",
 }
 
