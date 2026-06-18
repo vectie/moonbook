@@ -6,19 +6,19 @@ pub struct BookConfig {
   language : String?
   multilingual : Bool
   description : String?
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub struct BuildConfig {
   build_dir : String
   create_missing : Bool
   use_default_preprocessors : Bool
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub struct RustConfig {
   edition : String?
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub struct Config {
@@ -27,7 +27,7 @@ pub struct Config {
   rust : RustConfig
   output : Json
   preprocessor : Json
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub fn default() -> Config {
@@ -160,11 +160,11 @@ pub fn Config::contains_key(self : Config, name : String) -> Bool {
 ///|
 pub fn Config::read(self : Config, name : String) -> Json? {
   match name.strip_prefix("output.") {
-    Some(key) => read_json_path(self.output, split_dotted_path(key.to_string()))
+    Some(key) => read_json_path(self.output, split_dotted_path(key.to_owned()))
     None =>
       match name.strip_prefix("preprocessor.") {
         Some(key) =>
-          read_json_path(self.preprocessor, split_dotted_path(key.to_string()))
+          read_json_path(self.preprocessor, split_dotted_path(key.to_owned()))
         None => None
       }
   }
@@ -178,7 +178,7 @@ pub fn Config::set(self : Config, name : String, value : Json) -> Config {
         ..self,
         output: write_json_path(
           self.output,
-          split_dotted_path(key.to_string()),
+          split_dotted_path(key.to_owned()),
           value,
         ),
       }
@@ -189,7 +189,7 @@ pub fn Config::set(self : Config, name : String, value : Json) -> Config {
             ..self,
             preprocessor: write_json_path(
               self.preprocessor,
-              split_dotted_path(key.to_string()),
+              split_dotted_path(key.to_owned()),
               value,
             ),
           }
@@ -217,7 +217,7 @@ pub fn Config::with_build_dir(self : Config, build_dir : String) -> Config {
 fn split_dotted_path(path : String) -> Array[String] {
   let parts : Array[String] = []
   for piece in path.split(".") {
-    let text = piece.to_string()
+    let text = piece.to_owned()
     if !text.is_empty() {
       parts.push(text)
     }
@@ -233,7 +233,7 @@ fn read_json_path(json : Json, path : Array[String]) -> Json? {
   match json {
     Object(object) =>
       match object.get(path[0]) {
-        Some(value) => read_json_path(value, path[1:].to_array())
+        Some(value) => read_json_path(value, path[1:].to_owned())
         None => None
       }
     _ => None
@@ -250,7 +250,7 @@ fn write_json_path(json : Json, path : Array[String], value : Json) -> Json {
     _ => {}
   }
   let key = path[0]
-  let tail = path[1:].to_array()
+  let tail = path[1:].to_owned()
   object[key] = match object.get(key) {
     Some(existing) => write_json_path(existing, tail, value)
     None => write_json_path(Json::object({}), tail, value)
@@ -263,12 +263,12 @@ fn parse_toml_like(src : String) -> Json raise {
   let mut root = Json::object({})
   let mut section : Array[String] = []
   for raw_line in src.split("\n") {
-    let line = trim_comment(raw_line.to_string()).trim().to_string()
+    let line = trim_comment(raw_line.to_owned()).trim().to_owned()
     if line.is_empty() {
       continue
     }
     if line.has_prefix("[") && line.has_suffix("]") {
-      let body = line[1:line.length() - 1].to_string()
+      let body = line[1:line.length() - 1].to_owned()
       section = split_dotted_path(body)
       continue
     }
@@ -279,8 +279,8 @@ fn parse_toml_like(src : String) -> Json raise {
     if equals <= 0 {
       continue
     }
-    let key = line[:equals].trim().to_string()
-    let value = parse_toml_value(line[equals + 1:].trim().to_string())
+    let key = line[:equals].trim().to_owned()
+    let value = parse_toml_value(line[equals + 1:].trim().to_owned())
     let path = section.copy()
     path.push(key)
     root = write_json_path(root, path, value)
@@ -307,7 +307,7 @@ fn trim_comment(line : String) -> String {
 ///|
 fn parse_toml_value(value : String) -> Json raise {
   if value.has_prefix("\"") && value.has_suffix("\"") && value.length() >= 2 {
-    return Json::string(value[1:value.length() - 1].to_string())
+    return Json::string(value[1:value.length() - 1].to_owned())
   }
   if value == "true" {
     return Json::boolean(true)
@@ -316,13 +316,13 @@ fn parse_toml_value(value : String) -> Json raise {
     return Json::boolean(false)
   }
   if value.has_prefix("[") && value.has_suffix("]") {
-    let items = value[1:value.length() - 1].to_string()
+    let items = value[1:value.length() - 1].to_owned()
     if items.trim().is_empty() {
       return Json::array([])
     }
     let result : Array[Json] = []
     for item in items.split(",") {
-      result.push(parse_toml_value(item.trim().to_string()))
+      result.push(parse_toml_value(item.trim().to_owned()))
     }
     return Json::array(result)
   }
@@ -333,7 +333,7 @@ fn parse_toml_value(value : String) -> Json raise {
 test "config dotted read and write" {
   let cfg = default().set("output.html.theme", Json::string("theme"))
   assert_true(cfg.contains_key("output.html.theme"))
-  assert_eq(cfg.read("output.html.theme"), Some(Json::string("theme")))
+  assert_true(cfg.read("output.html.theme") == Some(Json::string("theme")))
 }
 
 ///|
@@ -341,7 +341,7 @@ test "config parses simple toml" {
   let cfg = from_toml(
     "# comment\n[book]\ntitle = \"MoonBook\"\nauthors = [\"kq\"]\n[build]\nbuild-dir = \"dist\"\n",
   )
-  assert_eq(cfg.book.title, Some("MoonBook"))
-  assert_eq(cfg.book.authors, ["kq"])
-  assert_eq(cfg.build.build_dir, "dist")
+  assert_true(cfg.book.title == Some("MoonBook"))
+  assert_true(cfg.book.authors == ["kq"])
+  assert_true(cfg.build.build_dir == "dist")
 }

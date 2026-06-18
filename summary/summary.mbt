@@ -4,7 +4,7 @@ pub struct Summary {
   prefix_chapters : Array[SummaryItem]
   numbered_chapters : Array[SummaryItem]
   suffix_chapters : Array[SummaryItem]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct Link {
@@ -12,14 +12,14 @@ pub struct Link {
   location : String?
   number : @core.SectionNumber?
   nested_items : Array[SummaryItem]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub enum SummaryItem {
   Link(Link)
   Separator
   PartTitle(String)
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub fn parse_summary(summary : String) -> Summary raise {
@@ -32,8 +32,8 @@ pub fn parse_summary(summary : String) -> Summary raise {
   let mut in_suffix = false
   let mut current_numbers : Array[Int] = []
   for raw_line in summary.split("\n") {
-    let line = raw_line.to_string()
-    let trimmed = line.trim().to_string()
+    let line = raw_line.to_owned()
+    let trimmed = line.trim().to_owned()
     if trimmed.is_empty() {
       continue
     }
@@ -41,7 +41,7 @@ pub fn parse_summary(summary : String) -> Summary raise {
       continue
     }
     if title is None && trimmed.has_prefix("# ") {
-      title = Some(trimmed[2:].trim().to_string())
+      title = Some(trimmed[2:].trim().to_owned())
       continue
     }
     if trimmed.has_prefix("# ") {
@@ -53,7 +53,7 @@ pub fn parse_summary(summary : String) -> Summary raise {
         fail("Suffix chapters cannot be followed by a list")
       }
       seen_numbered = true
-      numbered_chapters.push(PartTitle(trimmed[2:].trim().to_string()))
+      numbered_chapters.push(PartTitle(trimmed[2:].trim().to_owned()))
       continue
     }
     if trimmed == "---" {
@@ -80,11 +80,7 @@ pub fn parse_summary(summary : String) -> Summary raise {
     }
     let bullet = trimmed.has_prefix("- ") || trimmed.has_prefix("* ")
     let depth = indent_depth(line)
-    let link_line = if bullet {
-      trimmed[2:].trim().to_string()
-    } else {
-      trimmed
-    }
+    let link_line = if bullet { trimmed[2:].trim().to_owned() } else { trimmed }
     let link = parse_link_line(link_line) catch { _ => continue }
     if bullet {
       seen_numbered = true
@@ -96,7 +92,7 @@ pub fn parse_summary(summary : String) -> Summary raise {
       }
       if stack.length() == depth {
         if current_numbers.length() > depth + 1 {
-          current_numbers = current_numbers[:depth + 1].to_array()
+          current_numbers = current_numbers[:depth + 1].to_owned()
         }
         let next = next_number(current_numbers, depth)
         current_numbers = next.copy()
@@ -150,7 +146,7 @@ fn parse_link_line(line : String) -> Link raise {
     Some(index) => index
     None => fail("missing ]")
   }
-  let after_name = line[close_name:].to_string()
+  let after_name = line[close_name:].to_owned()
   let open_path = match after_name.find("(") {
     Some(index) => close_name + index
     None => fail("missing (")
@@ -159,9 +155,9 @@ fn parse_link_line(line : String) -> Link raise {
     Some(index) => index
     None => fail("missing )")
   }
-  let location_text = line[open_path + 1:close_path].to_string()
+  let location_text = line[open_path + 1:close_path].to_owned()
   {
-    name: line[open_name + 1:close_name].to_string(),
+    name: line[open_name + 1:close_name].to_owned(),
     location: if location_text.is_empty() {
       None
     } else {
@@ -199,7 +195,7 @@ fn check_duplicate_files(
 ///|
 fn next_number(current : Array[Int], depth : Int) -> Array[Int] {
   let next = if current.length() > depth {
-    current[:depth + 1].to_array()
+    current[:depth + 1].to_owned()
   } else {
     current.copy()
   }
@@ -266,8 +262,8 @@ test "parse summary with parts and nesting" {
   let summary = parse_summary(
     "# Summary\n[Intro](intro.md)\n# Part One\n- [Chapter 1](chapter-1.md)\n  - [Section](section.md)\n",
   )
-  assert_eq(summary.prefix_chapters.length(), 1)
-  assert_eq(summary.numbered_chapters.length(), 2)
+  assert_true(summary.prefix_chapters.length() == 1)
+  assert_true(summary.numbered_chapters.length() == 2)
 }
 
 ///|
@@ -275,7 +271,7 @@ test "parse summary ignores subheaders inside numbered chapters" {
   let summary = parse_summary(
     "# Summary\n- [First](first.md)\n## Subheading\n- [Second](second.md)\n",
   )
-  assert_eq(summary.numbered_chapters.length(), 2)
+  assert_true(summary.numbered_chapters.length() == 2)
 }
 
 ///|
@@ -283,16 +279,20 @@ test "parse summary keeps numbering across parts and separators" {
   let summary = parse_summary(
     "# Summary\n- [First](first.md)\n---\n# Part Two\n- [Second](second.md)\n",
   )
-  assert_eq(summary.numbered_chapters.length(), 4)
+  assert_true(summary.numbered_chapters.length() == 4)
   match summary.numbered_chapters[0] {
     Link(link) =>
-      assert_eq(link.number.map(fn(number) { number.to_string() }), Some("1."))
+      assert_true(
+        link.number.map(fn(number) { number.to_string() }) == Some("1."),
+      )
     _ => fail("expected link")
   }
   assert_true(summary.numbered_chapters[1] is Separator)
   match summary.numbered_chapters[3] {
     Link(link) =>
-      assert_eq(link.number.map(fn(number) { number.to_string() }), Some("2."))
+      assert_true(
+        link.number.map(fn(number) { number.to_string() }) == Some("2."),
+      )
     _ => fail("expected link")
   }
 }
@@ -301,7 +301,7 @@ test "parse summary keeps numbering across parts and separators" {
 test "parse summary allows draft chapters with empty destinations" {
   let summary = parse_summary("# Summary\n- [Draft]()\n")
   match summary.numbered_chapters[0] {
-    Link(link) => assert_eq(link.location, None)
+    Link(link) => assert_true(link.location == None)
     _ => fail("expected a link")
   }
 }
@@ -313,8 +313,8 @@ test "parse summary allows parentheses in link labels" {
   )
   match summary.numbered_chapters[0] {
     Link(link) => {
-      assert_eq(link.name, "One Person Company (OPC)")
-      assert_eq(link.location, Some("./entities/opc.md"))
+      assert_true(link.name == "One Person Company (OPC)")
+      assert_true(link.location == Some("./entities/opc.md"))
     }
     _ => fail("expected a link")
   }
@@ -322,11 +322,9 @@ test "parse summary allows parentheses in link labels" {
 
 ///|
 test "parse summary rejects duplicate files" {
-  let err = try? parse_summary(
-    "# Summary\n- [A](./a.md)\n  - [Again](./a.md)\n",
-  )
-  match err {
-    Err(_) => ()
-    Ok(_) => fail("expected duplicate-file failure")
+  try parse_summary("# Summary\n- [A](./a.md)\n  - [Again](./a.md)\n") catch {
+    _ => ()
+  } noraise {
+    _ => fail("expected duplicate-file failure")
   }
 }

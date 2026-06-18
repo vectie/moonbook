@@ -134,7 +134,7 @@ pub async fn catalog_record(root : String) -> BookCatalogRecord {
 
 ///|
 fn book_identity(root : String) -> String {
-  @path.Path(@pathx.normalize(root)).basename().to_string()
+  @path.Path(@pathx.normalize(root)).basename().to_owned()
 }
 
 ///|
@@ -143,14 +143,14 @@ async fn catalog_name(root : String) -> String {
     .join(@path.Path("book.toml"))
     .to_string()
   if @fsx.exists(path) {
-    let config = try? @core.from_toml(@fsx.read_file(path))
-    match config {
-      Ok(config) =>
+    try @core.from_toml(@fsx.read_file(path)) catch {
+      _ => ()
+    } noraise {
+      config =>
         match config.book.title {
           Some(title) if !title.trim().is_empty() => return title
           _ => ()
         }
-      Err(_) => ()
     }
   }
   "MoonBook / \{book_identity(root)}"
@@ -163,7 +163,7 @@ async fn catalog_purpose(root : String) -> String {
     .to_string()
   if @fsx.exists(home_path) {
     for raw in @fsx.read_file(home_path).split("\n") {
-      let line = raw.trim().to_string()
+      let line = raw.trim().to_owned()
       if !line.is_empty() &&
         !line.has_prefix("#") &&
         !line.has_prefix("- ") &&
@@ -241,9 +241,9 @@ async fn policy_lines(root : String) -> Array[String] {
       continue
     }
     for raw in @fsx.read_file(path).split("\n") {
-      let line = raw.trim().to_string()
+      let line = raw.trim().to_owned()
       if line.has_prefix("- ") {
-        lines.push(line.strip_prefix("- ").unwrap_or(line).to_string())
+        lines.push(line.strip_prefix("- ").unwrap_or(line).to_owned())
         if lines.length() >= 6 {
           break
         }
@@ -269,7 +269,7 @@ async fn routine_lines(root : String) -> Array[String] {
   let lines : Array[String] = []
   if @fsx.exists(path) {
     for raw in @fsx.read_file(path).split("\n") {
-      let line = raw.trim().to_string()
+      let line = raw.trim().to_owned()
       if line.has_prefix("1.") ||
         line.has_prefix("2.") ||
         line.has_prefix("3.") ||
@@ -283,7 +283,7 @@ async fn routine_lines(root : String) -> Array[String] {
     .to_string()
   if @fsx.exists(resolver) {
     for raw in @fsx.read_file(resolver).split("\n") {
-      let line = raw.trim().to_string()
+      let line = raw.trim().to_owned()
       if line.has_prefix("- intent:") {
         lines.push(line)
       }
@@ -309,7 +309,7 @@ async fn count_markdown_under(wiki_dir : String, child : String) -> Int {
   }
   let mut count = 0
   for page in collect_markdown_pages(path) {
-    if @path.Path(page).basename().to_string() != "SUMMARY.md" {
+    if @path.Path(page).basename().to_owned() != "SUMMARY.md" {
       count += 1
     }
   }
@@ -331,7 +331,7 @@ fn count_low_confidence_claims(content : String) -> Int {
 fn count_heading_entries(content : String) -> Int {
   let mut count = 0
   for raw in content.split("\n") {
-    if raw.to_string().has_prefix("### ") {
+    if raw.to_owned().has_prefix("### ") {
       count += 1
     }
   }

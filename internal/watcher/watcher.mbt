@@ -5,19 +5,19 @@ pub struct WatchOptions {
   dest_dir : String?
   open_browser : Bool
   watcher_kind : String
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub struct WatchFilter {
   root : String
   patterns : Array[String]
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub enum WatcherKind {
   Poll
   Native
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub fn parse_watcher_kind(text : String) -> WatcherKind? {
@@ -33,7 +33,7 @@ pub struct FileState {
   path : String
   kind : String
   mtime : Int64
-} derive(Show, ToJson, Eq, Compare)
+} derive(Debug, ToJson, Eq, Compare)
 
 ///|
 pub fn parse_watch_args(args : Array[String]) -> WatchOptions? {
@@ -184,7 +184,7 @@ pub async fn load_watch_filter(book_root : String) -> WatchFilter? {
 fn parse_gitignore_patterns(contents : String) -> Array[String] {
   let patterns : Array[String] = []
   for raw_line in contents.split("\n") {
-    let trimmed = raw_line.to_string().trim().to_string()
+    let trimmed = raw_line.to_owned().trim().to_owned()
     if trimmed.is_empty() || trimmed.has_prefix("#") {
       continue
     }
@@ -202,7 +202,7 @@ fn is_ignored_path(path : String, filter : WatchFilter?) -> Bool {
       let relative = if normalized_path == root {
         "."
       } else if normalized_path.has_prefix(root + "/") {
-        normalized_path[root.length() + 1:].to_string()
+        normalized_path[root.length() + 1:].to_owned()
       } else {
         return false
       }
@@ -246,14 +246,14 @@ fn gitignore_matches(pattern : String, relative_path : String) -> Bool {
 
 ///|
 fn normalize_gitignore_pattern(pattern : String) -> String {
-  let trimmed = pattern.trim().to_string()
+  let trimmed = pattern.trim().to_owned()
   let trimmed = if trimmed.has_prefix("/") {
-    trimmed[1:].to_string()
+    trimmed[1:].to_owned()
   } else {
     trimmed
   }
   if trimmed.has_suffix("/") {
-    trimmed[:trimmed.length() - 1].to_string()
+    trimmed[:trimmed.length() - 1].to_owned()
   } else {
     trimmed
   }
@@ -263,7 +263,7 @@ fn normalize_gitignore_pattern(pattern : String) -> String {
 fn basename_candidates(path : String) -> Array[String] {
   let candidates : Array[String] = [path]
   match path.rev_find("/") {
-    Some(index) => candidates.push(path[index + 1:].to_string())
+    Some(index) => candidates.push(path[index + 1:].to_owned())
     None => ()
   }
   candidates
@@ -320,14 +320,14 @@ fn file_kind_name(kind : @fs.FileKind) -> String {
 
 ///|
 test "parse watch args supports optional root" {
-  assert_eq(parse_watch_args([]).unwrap().root, ".")
-  assert_eq(parse_watch_args(["/tmp/book"]).unwrap().root, "/tmp/book")
+  assert_true(parse_watch_args([]).unwrap().root == ".")
+  assert_true(parse_watch_args(["/tmp/book"]).unwrap().root == "/tmp/book")
   let with_dest = parse_watch_args(["/tmp/book", "-d", "dist"]).unwrap()
-  assert_eq(with_dest.dest_dir, Some("dist"))
+  assert_true(with_dest.dest_dir == Some("dist"))
   let with_open = parse_watch_args(["--open"]).unwrap()
   assert_true(with_open.open_browser)
   let with_native = parse_watch_args(["--watcher", "native"]).unwrap()
-  assert_eq(with_native.watcher_kind, "native")
+  assert_true(with_native.watcher_kind == "native")
   assert_true(parse_watch_args(["--watcher", "other"]) is None)
   assert_true(parse_watch_args(["a", "b"]) is None)
 }
@@ -342,14 +342,15 @@ test "changed paths detects adds removes and updates" {
     "a.md": { path: "a.md", kind: "regular", mtime: 2L },
     "c.md": { path: "c.md", kind: "regular", mtime: 1L },
   }
-  assert_eq(changed_paths(previous, current), ["a.md", "b.md", "c.md"])
+  assert_true(changed_paths(previous, current) == ["a.md", "b.md", "c.md"])
 }
 
 ///|
 test "parse gitignore patterns skips comments and blanks" {
-  assert_eq(parse_gitignore_patterns("# comment\n\nbook/\n*.tmp\n"), [
-    "book/", "*.tmp",
-  ])
+  assert_true(
+    parse_gitignore_patterns("# comment\n\nbook/\n*.tmp\n") ==
+    ["book/", "*.tmp"],
+  )
 }
 
 ///|

@@ -3,6 +3,7 @@ package "vectie/moonbook/internal/httpserve"
 
 import {
   "moonbitlang/async/http",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -22,7 +23,7 @@ pub struct ServeOptions {
   dest_dir : String?
   open_browser : Bool
   watcher_kind : String
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct Server {
   server : @http.Server

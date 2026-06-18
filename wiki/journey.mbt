@@ -6,7 +6,7 @@ struct JourneyEntry {
   status : String
   evidence_id : String
   highlights : Array[String]
-} derive(Show, Eq)
+} derive(Debug, Eq)
 
 ///|
 fn journey_relative_page() -> String {
@@ -235,10 +235,10 @@ fn bootstrap_cluster_key(task_id : String) -> String {
       "-review_finalize", "-ingest-followup", "-bootstrap-ingest", "-bootstrap-ingest-followup",
     ] {
     if normalized.has_suffix(suffix) {
-      return normalized[:normalized.length() - suffix.length()].to_string()
+      return normalized[:normalized.length() - suffix.length()].to_owned()
     }
   }
-  normalized.to_string()
+  normalized.to_owned()
 }
 
 ///|
@@ -349,9 +349,9 @@ async fn recent_journey_entries(
 ///|
 fn parse_journey_header(block : String) -> String {
   for raw in block.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.has_prefix("### ") {
-      return line[4:].trim().to_string()
+      return line[4:].trim().to_owned()
     }
   }
   ""
@@ -360,7 +360,7 @@ fn parse_journey_header(block : String) -> String {
 ///|
 fn journey_block_field(block : String, prefix : String) -> String? {
   for raw in block.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.has_prefix(prefix) {
       if prefix.has_suffix("`") {
         return Some(
@@ -369,10 +369,10 @@ fn journey_block_field(block : String, prefix : String) -> String? {
           .unwrap_or(line)
           .strip_suffix("`")
           .unwrap_or(line)
-          .to_string(),
+          .to_owned(),
         )
       }
-      return Some(line.strip_prefix(prefix).unwrap_or(line).to_string())
+      return Some(line.strip_prefix(prefix).unwrap_or(line).to_owned())
     }
   }
   None
@@ -383,7 +383,7 @@ fn journey_block_list(block : String, header : String) -> Array[String] {
   let items : Array[String] = []
   let mut collecting = false
   for raw in block.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line == header {
       collecting = true
       continue
@@ -392,7 +392,7 @@ fn journey_block_list(block : String, header : String) -> Array[String] {
       break
     }
     if collecting && line.has_prefix("  - ") {
-      items.push(line.strip_prefix("  - ").unwrap_or(line).to_string())
+      items.push(line.strip_prefix("  - ").unwrap_or(line).to_owned())
     }
   }
   items

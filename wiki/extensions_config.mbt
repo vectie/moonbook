@@ -27,8 +27,8 @@ fn moontown_manifest_text() -> String {
 ///|
 fn moontown_book_text(root : String) -> String {
   "{\n" +
-  "  \"id\": \"\{escape_json_string(@path.Path(root).basename().to_string())}\",\n" +
-  "  \"name\": \"\{escape_json_string(@path.Path(root).basename().to_string())}\",\n" +
+  "  \"id\": \"\{escape_json_string(@path.Path(root).basename().to_owned())}\",\n" +
+  "  \"name\": \"\{escape_json_string(@path.Path(root).basename().to_owned())}\",\n" +
   "  \"purpose\": \"Persistent per-domain MoonBook workspace.\",\n" +
   "  \"workspace_root\": \"\{escape_json_string(root)}\",\n" +
   "  \"kind\": \"moonbook-domain-harness\",\n" +

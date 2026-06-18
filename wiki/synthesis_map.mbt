@@ -168,7 +168,7 @@ fn count_list_entries(content : String, section_header : String) -> Int {
     if in_section && line.has_prefix("## ") {
       break
     }
-    if in_section && line.trim().to_string().has_prefix("- ") {
+    if in_section && line.trim().to_owned().has_prefix("- ") {
       count += 1
     }
   }

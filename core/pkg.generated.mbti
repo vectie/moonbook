@@ -2,6 +2,7 @@
 package "vectie/moonbook/core"
 
 import {
+  "moonbitlang/core/debug",
   "moonbitlang/core/json",
 }
 
@@ -31,7 +32,7 @@ pub fn new_with_items(Array[BookItem]) -> Book
 // Types and methods
 pub struct Book {
   items : Array[BookItem]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 pub fn Book::chapters(Self) -> Array[Chapter]
 pub fn Book::for_each_chapter_mut(Self, (Chapter) -> Chapter) -> Self
 pub fn Book::for_each_mut(Self, (BookItem) -> BookItem) -> Self
@@ -45,19 +46,19 @@ pub struct BookConfig {
   language : String?
   multilingual : Bool
   description : String?
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub enum BookItem {
   Chapter(Chapter)
   Separator
   PartTitle(String)
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct BuildConfig {
   build_dir : String
   create_missing : Bool
   use_default_preprocessors : Bool
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct Chapter {
   name : String
@@ -67,7 +68,7 @@ pub struct Chapter {
   path : String?
   source_path : String?
   parent_names : Array[String]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 pub fn Chapter::display(Self) -> String
 pub fn Chapter::is_draft_chapter(Self) -> Bool
 pub fn Chapter::new(String, String, String, Array[String]) -> Self
@@ -79,7 +80,7 @@ pub struct Config {
   rust : RustConfig
   output : Json
   preprocessor : Json
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 pub fn Config::contains_key(Self, String) -> Bool
 pub fn Config::read(Self, String) -> Json?
 pub fn Config::set(Self, String, Json) -> Self
@@ -87,11 +88,11 @@ pub fn Config::with_build_dir(Self, String) -> Self
 
 pub struct RustConfig {
   edition : String?
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct SectionNumber {
   items : Array[Int]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 pub fn SectionNumber::new(Array[Int]) -> Self
 pub fn SectionNumber::to_string(Self) -> String
 

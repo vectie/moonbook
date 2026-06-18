@@ -7,7 +7,7 @@ pub struct WikiWorkspace {
   config_path : String
   summary_path : String
   build_dir : String
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub async fn init_workspace(
@@ -387,7 +387,7 @@ async fn copy_seed_tree(
     @fs.FileKind::Directory => {
       @fsx.make_directory(destination_path, recursive=true, exists_ok=true)
       for child in @fsx.list_directory(source_path) {
-        let child_name = @path.Path(child).basename().to_string()
+        let child_name = @path.Path(child).basename().to_owned()
         copy_seed_tree(
           child,
           @path.Path(destination_path).join(@path.Path(child_name)).to_string(),

@@ -31,7 +31,7 @@ async fn collect_skill_records(root : String) -> Array[SkillRecord] {
       if !(is_directory(extension_dir) catch { _ => false }) {
         continue
       }
-      let extension_name = @path.Path(extension_dir).basename().to_string()
+      let extension_name = @path.Path(extension_dir).basename().to_owned()
       let skills_dir = @path.Path(extension_dir)
         .join(@path.Path("skills"))
         .to_string()
@@ -177,13 +177,13 @@ async fn collect_missing_reference_paths(
 
 ///|
 fn parse_skill_metadata(skill_dir : String, text : String) -> (String, String) {
-  let fallback_name = @path.Path(skill_dir).basename().to_string()
+  let fallback_name = @path.Path(skill_dir).basename().to_owned()
   let mut name = fallback_name
   let mut description = ""
   let mut in_frontmatter = false
   let mut frontmatter_seen = false
   for line in text.split("\n") {
-    let trimmed = line.trim().to_string()
+    let trimmed = line.trim().to_owned()
     if trimmed == "---" {
       if !frontmatter_seen {
         in_frontmatter = true
@@ -210,7 +210,7 @@ fn parse_skill_metadata(skill_dir : String, text : String) -> (String, String) {
 fn collect_reference_paths(skill_dir : String, text : String) -> Array[String] {
   let references = []
   for line_view in text.split("\n") {
-    let line = line_view.to_string()
+    let line = line_view.to_owned()
     let mut start = 0
     while start < line.length() {
       match line[start:].find("references/") {
@@ -244,13 +244,13 @@ fn read_reference_token(line : String, start : Int) -> String {
     }
     end += 1
   }
-  line[start:end].to_string()
+  line[start:end].to_owned()
 }
 
 ///|
 fn frontmatter_value(line : String) -> String {
   match line.find(":") {
-    Some(index) => line[index + 1:].trim().to_string()
+    Some(index) => line[index + 1:].trim().to_owned()
     None => ""
   }
 }
@@ -262,7 +262,7 @@ fn strip_wrapping_quotes(text : String) -> String {
       (text[0] == '"' && text[text.length() - 1] == '"') ||
       (text[0] == '\'' && text[text.length() - 1] == '\'')
     ) {
-    text[1:text.length() - 1].to_string()
+    text[1:text.length() - 1].to_owned()
   } else {
     text
   }

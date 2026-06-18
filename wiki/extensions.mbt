@@ -4,7 +4,7 @@ pub struct ExtensionInstallResult {
   extension : String
   manifest_path : String
   installed_files : Array[String]
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub fn supported_extensions() -> Array[String] {
@@ -63,7 +63,7 @@ async fn unique_extension_test_root_with_attempt(
 
 ///|
 test "supported extensions includes moonclaw" {
-  assert_eq(supported_extensions(), ["moonclaw", "moontown"])
+  assert_true(supported_extensions() == ["moonclaw", "moontown"])
 }
 
 ///|

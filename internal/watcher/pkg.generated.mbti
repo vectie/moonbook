@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "vectie/moonbook/internal/watcher"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub fn changed_paths(Map[String, FileState], Map[String, FileState]) -> Array[String]
 
@@ -23,12 +27,12 @@ pub struct FileState {
   path : String
   kind : String
   mtime : Int64
-} derive(Compare, Eq, Show, ToJson)
+} derive(Compare, Eq, ToJson, @debug.Debug)
 
 pub struct WatchFilter {
   root : String
   patterns : Array[String]
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct WatchOptions {
   root : String
@@ -36,12 +40,12 @@ pub struct WatchOptions {
   dest_dir : String?
   open_browser : Bool
   watcher_kind : String
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub enum WatcherKind {
   Poll
   Native
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 // Type aliases
 

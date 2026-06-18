@@ -759,7 +759,7 @@ async fn research_artifact_text(root : String, relative : String) -> String {
 ///|
 fn first_research_line(content : String) -> String {
   for raw in content.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.is_empty() || line == "---" || line.has_prefix("```") {
       continue
     }
@@ -934,9 +934,9 @@ fn result_stage_is_bootstrap_like(result : BookResult) -> Bool {
 
 ///|
 fn normalize_result_workspace_path(path : String) -> String {
-  let normalized = path.trim().to_string()
+  let normalized = path.trim().to_owned()
   if normalized.has_prefix("wiki/") {
-    normalized[5:].to_string()
+    normalized[5:].to_owned()
   } else if normalized.has_prefix("keeper/") {
     normalized
   } else {
@@ -1492,12 +1492,12 @@ fn standing_watch_summary_field(
 ) -> String {
   let prefix = key + ":"
   for raw in summary.split("\n") {
-    let mut line = raw.trim().to_string()
+    let mut line = raw.trim().to_owned()
     if line.has_prefix("- ") {
-      line = line[2:].trim().to_string()
+      line = line[2:].trim().to_owned()
     }
     if line.to_lower().has_prefix(prefix) {
-      return line[prefix.length():].trim().to_string()
+      return line[prefix.length():].trim().to_owned()
     }
   }
   fallback
@@ -2190,7 +2190,7 @@ test "course memory filter removes stale research-bootstrap operational records"
     "- Research artifact contract not satisfied: Missing required artifacts.", "- provider-review: Completed from research bootstrap dossier.",
     "- Course lesson artifact updated.",
   ])
-  assert_eq(filtered, ["- Course lesson artifact updated."])
+  assert_true(filtered == ["- Course lesson artifact updated."])
 }
 
 ///|

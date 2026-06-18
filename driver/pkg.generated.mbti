@@ -2,6 +2,7 @@
 package "vectie/moonbook/driver"
 
 import {
+  "moonbitlang/core/debug",
   "vectie/moonbook/core",
   "vectie/moonbook/summary",
 }
@@ -24,19 +25,19 @@ pub struct CleanStats {
   files_removed : Int
   directories_removed : Int
   bytes_removed : Int
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct MDBook {
   root : String
   config : @core.Config
   book : @core.Book
   summary : @summary.Summary
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 pub async fn MDBook::build(Self) -> Unit
 pub fn MDBook::count_rust_code_blocks(Self) -> Int
 pub fn MDBook::iter(Self) -> Array[@core.BookItem]
 
-type UiClientConfig derive(Show, ToJson)
+type UiClientConfig derive(ToJson, @debug.Debug)
 
 // Type aliases
 

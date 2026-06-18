@@ -225,7 +225,7 @@ fn relative_to_root(path : String, root : String) -> String {
   if normalized_path == normalized_root {
     "."
   } else if normalized_path.has_prefix(normalized_root + "/") {
-    normalized_path[normalized_root.length() + 1:].to_string()
+    normalized_path[normalized_root.length() + 1:].to_owned()
   } else {
     normalized_path
   }
@@ -267,7 +267,7 @@ fn split_segments(path : String) -> Array[String] {
     return parts
   }
   for piece in normalized.split("/") {
-    let text = piece.to_string()
+    let text = piece.to_owned()
     if !text.is_empty() && text != "." {
       parts.push(text)
     }
@@ -296,11 +296,11 @@ fn slugify_title(title : String) -> String {
   let slug = builder
     .to_string()
     .trim()
-    .to_string()
+    .to_owned()
     .replace(old="--", new="-")
     .to_string()
   let slug = if slug.has_suffix("-") {
-    slug[:slug.length() - 1].to_string()
+    slug[:slug.length() - 1].to_owned()
   } else {
     slug
   }
@@ -329,12 +329,12 @@ async fn unique_source_slug(sources_dir : String, slug : String) -> String {
 
 ///|
 fn file_stem(path : String) -> String {
-  let base = @path.Path(path).basename().to_string()
-  let ext = @pathx.ext(base).to_string()
+  let base = @path.Path(path).basename().to_owned()
+  let ext = @pathx.ext(base).to_owned()
   if ext.is_empty() {
     base
   } else {
-    base[:base.length() - ext.length()].to_string()
+    base[:base.length() - ext.length()].to_owned()
   }
 }
 
@@ -349,7 +349,7 @@ fn escape_link_label(text : String) -> String {
 
 ///|
 fn is_text_source(path : String) -> Bool {
-  match @pathx.ext(path).to_string().to_lower() {
+  match @pathx.ext(path).to_owned().to_lower() {
     ".md"
     | ".markdown"
     | ".txt"

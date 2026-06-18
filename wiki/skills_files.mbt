@@ -23,12 +23,12 @@ fn skill_candidate_dir(root : String, name : String) -> String {
 
 ///|
 fn parse_skill_selector(name : String) -> (String, String?) {
-  let normalized = name.trim().to_lower().to_string()
+  let normalized = name.trim().to_lower().to_owned()
   match normalized.find("@") {
     Some(index) =>
       (
-        normalized[:index].to_string(),
-        Some(normalized[index + 1:].trim().to_string()),
+        normalized[:index].to_owned(),
+        Some(normalized[index + 1:].trim().to_owned()),
       )
     None => (normalized, None)
   }
@@ -43,7 +43,7 @@ async fn copy_skill_tree(
     @fs.FileKind::Directory => {
       @fsx.make_directory(destination_path, recursive=true, exists_ok=true)
       for child in @fsx.list_directory(source_path) {
-        let child_name = @path.Path(child).basename().to_string()
+        let child_name = @path.Path(child).basename().to_owned()
         copy_skill_tree(
           child,
           @path.Path(destination_path).join(@path.Path(child_name)).to_string(),
@@ -68,7 +68,7 @@ async fn copy_skill_tree_replace(
     @fs.FileKind::Directory => {
       @fsx.make_directory(destination_path, recursive=true, exists_ok=true)
       for child in @fsx.list_directory(source_path) {
-        let child_name = @path.Path(child).basename().to_string()
+        let child_name = @path.Path(child).basename().to_owned()
         copy_skill_tree_replace(
           child,
           @path.Path(destination_path).join(@path.Path(child_name)).to_string(),
@@ -102,7 +102,7 @@ fn skill_slug(name : String) -> String {
   }
   let slug = builder.to_string()
   if slug.has_suffix("-") {
-    slug[0:slug.length() - 1].to_string()
+    slug[0:slug.length() - 1].to_owned()
   } else {
     slug
   }

@@ -3,13 +3,13 @@ pub struct LintFinding {
   kind : String
   path : String?
   message : String
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub struct LintResult {
   findings : Array[LintFinding]
   report : String
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub async fn lint_wiki(root : String) -> LintResult {
@@ -50,7 +50,7 @@ pub async fn lint_wiki(root : String) -> LintResult {
     let index_reference = relative_page
       .strip_prefix("wiki/")
       .unwrap_or(relative_page)
-      .to_string()
+      .to_owned()
     if !index_text.contains(relative_page) &&
       !index_text.contains(index_reference) &&
       !index_text.contains("./" + index_reference) {
@@ -147,8 +147,8 @@ async fn scan_lint_pages(path : String, pages : Array[String]) -> Unit {
         scan_lint_pages(child, pages)
       }
     @fs.FileKind::Regular =>
-      if @pathx.ext(path).to_string() == ".md" &&
-        @path.Path(path).basename().to_string() != "SUMMARY.md" {
+      if @pathx.ext(path).to_owned() == ".md" &&
+        @path.Path(path).basename().to_owned() != "SUMMARY.md" {
         pages.push(path)
       }
     _ => ()
@@ -200,7 +200,7 @@ fn extract_markdown_links(markdown : String) -> Array[String] {
           match markdown[close_index + 2:].find(")") {
             Some(end) => {
               links.push(
-                markdown[close_index + 2:close_index + 2 + end].to_string(),
+                markdown[close_index + 2:close_index + 2 + end].to_owned(),
               )
               i = close_index + end + 3
             }
@@ -229,7 +229,7 @@ fn normalize_page_link(current_dir : String, link : String) -> String {
 ///|
 fn strip_link_anchor(link : String) -> String {
   match link.find("#") {
-    Some(index) => link[:index].to_string()
+    Some(index) => link[:index].to_owned()
     None => link
   }
 }
@@ -304,7 +304,7 @@ fn stale_wording_findings(contents : Map[String, String]) -> Array[LintFinding] 
   for path in contents.keys() {
     let content = contents[path]
     for raw in content.split("\n") {
-      let line = raw.trim().to_string()
+      let line = raw.trim().to_owned()
       if line.is_empty() || line.has_prefix("#") || line.has_prefix("- ") {
         continue
       }
@@ -470,7 +470,7 @@ fn claim_blocks(content : String) -> Array[Array[String]] {
   let blocks : Array[Array[String]] = []
   let mut current : Array[String] = []
   for raw in content.split("\n") {
-    let line = raw.to_string()
+    let line = raw.to_owned()
     if line.has_prefix("### ") && !current.is_empty() {
       let snapshot : Array[String] = []
       for item in current {
@@ -497,7 +497,7 @@ fn claim_blocks(content : String) -> Array[Array[String]] {
 fn claim_block_field(lines : Array[String], prefix : String) -> String? {
   for line in lines {
     if line.has_prefix(prefix) && line.has_suffix("`") {
-      return Some(line[prefix.length():line.length() - 1].to_string())
+      return Some(line[prefix.length():line.length() - 1].to_owned())
     }
   }
   None
@@ -514,14 +514,14 @@ priv struct Claim {
 fn extract_claims(path : String, content : String) -> Array[Claim] {
   let claims : Array[Claim] = []
   for raw in content.split("\n") {
-    let line = strip_inline_markup(raw.trim().to_string())
+    let line = strip_inline_markup(raw.trim().to_owned())
     if line.is_empty() || line.has_prefix("#") || line.has_prefix("- ") {
       continue
     }
     match line.find(" is ") {
       Some(index) => {
-        let subject = line[:index].trim().to_string()
-        let predicate = cleanup_predicate(line[index + 4:].to_string())
+        let subject = line[:index].trim().to_owned()
+        let predicate = cleanup_predicate(line[index + 4:].to_owned())
         if likely_claim_subject(subject) && likely_claim_predicate(predicate) {
           claims.push({ subject, predicate, path })
         }
@@ -541,7 +541,7 @@ fn cleanup_predicate(text : String) -> String {
     .to_string()
     .replace(old="?", new="")
     .to_string()
-  cleaned.trim().to_string()
+  cleaned.trim().to_owned()
 }
 
 ///|
@@ -551,7 +551,7 @@ fn likely_claim_subject(text : String) -> Bool {
   }
   let mut words = 0
   for piece in text.split(" ") {
-    if !piece.to_string().is_empty() {
+    if !piece.to_owned().is_empty() {
       words += 1
     }
   }
@@ -591,7 +591,7 @@ fn contains_explicit_year(text : String) -> Bool {
 ///|
 fn clamp_line(text : String) -> String {
   if text.length() > 120 {
-    text[:120].to_string() + "..."
+    text[:120].to_owned() + "..."
   } else {
     text
   }
@@ -637,13 +637,13 @@ test "extract markdown links finds page targets" {
   let links = extract_markdown_links(
     "[One](./a.md) and [Two](../b.md#x) and [Skip](https://example.com)",
   )
-  assert_eq(links, ["./a.md", "../b.md#x", "https://example.com"])
+  assert_true(links == ["./a.md", "../b.md#x", "https://example.com"])
 }
 
 ///|
 test "normalize page link resolves relative page paths" {
-  assert_eq(
-    normalize_page_link("wiki/sources", "../queries/x.md"),
+  assert_true(
+    normalize_page_link("wiki/sources", "../queries/x.md") ==
     "wiki/queries/x.md",
   )
 }
@@ -653,9 +653,10 @@ test "index placeholder detection reports empty sections" {
   let placeholders = index_placeholders(
     "## Entities\n\n_None yet._\n\n## Sources\n\n_None yet._\n",
   )
-  assert_eq(placeholders, [
-    "Entities section is still empty", "Sources section is still empty",
-  ])
+  assert_true(
+    placeholders ==
+    ["Entities section is still empty", "Sources section is still empty"],
+  )
 }
 
 ///|
@@ -663,8 +664,8 @@ test "stale wording finds time-sensitive lines without dates" {
   let findings = stale_wording_findings({
     "wiki/page.md": "The latest version is stable.\n",
   })
-  assert_eq(findings.length(), 1)
-  assert_eq(findings[0].kind, "stale-wording")
+  assert_true(findings.length() == 1)
+  assert_true(findings[0].kind == "stale-wording")
 }
 
 ///|
@@ -673,8 +674,8 @@ test "contradiction findings detect conflicting simple claims" {
     "wiki/a.md": "Alpha is red.\n",
     "wiki/b.md": "Alpha is blue.\n",
   })
-  assert_eq(findings.length(), 1)
-  assert_eq(findings[0].kind, "contradictory-claim")
+  assert_true(findings.length() == 1)
+  assert_true(findings[0].kind == "contradictory-claim")
 }
 
 ///|
@@ -684,7 +685,7 @@ test "missing concept page findings suggest absent concept pages" {
     "wiki/synthesis/overview.md": "Runtime confidence.\n",
   })
   assert_true(findings.length() >= 1)
-  assert_eq(findings[0].kind, "missing-concept-page")
+  assert_true(findings[0].kind == "missing-concept-page")
 }
 
 ///|
@@ -694,7 +695,7 @@ test "weak synthesis findings detect uncovered source" {
     "wiki/synthesis/overview.md": "# Overview\n\n",
     "wiki/synthesis/claims.md": "# Claims\n\n",
   })
-  assert_eq(findings.length(), 2)
+  assert_true(findings.length() == 2)
 }
 
 ///|
@@ -706,6 +707,6 @@ test "review queue findings flag low confidence claims not queued" {
     "- Status: `active`\n",
     "wiki/reviews/pending.md": "# Pending Review\n\n## Items\n\n_None yet._\n",
   })
-  assert_eq(findings.length(), 1)
-  assert_eq(findings[0].kind, "unreviewed-low-confidence-claim")
+  assert_true(findings.length() == 1)
+  assert_true(findings[0].kind == "unreviewed-low-confidence-claim")
 }

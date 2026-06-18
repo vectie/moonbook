@@ -2,6 +2,7 @@
 package "vectie/moonbook/html"
 
 import {
+  "moonbitlang/core/debug",
   "vectie/moonbook/core",
 }
 
@@ -18,7 +19,7 @@ pub struct RenderContext {
   build_dir : String
   config : @core.Config
   book : @core.Book
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 // Type aliases
 

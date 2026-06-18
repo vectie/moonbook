@@ -78,12 +78,12 @@ fn parse_marketing_brief(
   let mut current_title = ""
   let mut seen_section = false
   for raw in content.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.is_empty() {
       continue
     }
     if line.has_prefix("# ") {
-      headline = clean_marketing_text(line[2:].trim().to_string())
+      headline = clean_marketing_text(line[2:].trim().to_owned())
       continue
     }
     if line.has_prefix("## ") {
@@ -96,12 +96,12 @@ fn parse_marketing_brief(
         body_parts.clear()
         bullets.clear()
       }
-      current_title = clean_marketing_text(line[3:].trim().to_string())
+      current_title = clean_marketing_text(line[3:].trim().to_owned())
       seen_section = true
       continue
     }
     if line.has_prefix("### ") {
-      let subtitle = clean_marketing_text(line[4:].trim().to_string())
+      let subtitle = clean_marketing_text(line[4:].trim().to_owned())
       if seen_section {
         bullets.push(subtitle)
       } else {
@@ -110,7 +110,7 @@ fn parse_marketing_brief(
       continue
     }
     if line.has_prefix("- ") {
-      let item = clean_marketing_text(line[2:].trim().to_string())
+      let item = clean_marketing_text(line[2:].trim().to_owned())
       if seen_section {
         bullets.push(item)
       } else {
@@ -272,7 +272,7 @@ fn clean_marketing_text(text : String) -> String {
     .replace_all(old="`", new="")
     .to_string()
     .trim(chars="# ")
-    .to_string()
+    .to_owned()
   sanitize_marketing_surface_text(clean_report_text(stripped))
 }
 
@@ -315,7 +315,7 @@ fn sanitize_marketing_surface_text(text : String) -> String {
   .replace_all(old="  ", new=" ")
   .to_string()
   .trim()
-  .to_string()
+  .to_owned()
 }
 
 ///|
@@ -479,13 +479,13 @@ async fn ui_research_report(
 fn parse_research_evidence_rows(content : String) -> Array[ResearchEvidenceRow] {
   let rows : Array[ResearchEvidenceRow] = []
   for raw in content.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if !line.has_prefix("|") || line.contains("---") {
       continue
     }
     let cells = line
       .split("|")
-      .map(fn(part) { part.trim().to_string() })
+      .map(fn(part) { part.trim().to_owned() })
       .to_array()
     if cells.length() < 5 {
       continue
@@ -742,7 +742,7 @@ fn research_evidence_refs(text : String, prefix : String) -> Array[String] {
     .replace_all(old="]", new=" ")
     .replace_all(old="`", new=" ")
   for token in normalized.split(" ") {
-    let item = token.trim().trim(chars=".:").to_string()
+    let item = token.trim().trim(chars=".:").to_owned()
     if item.length() < 2 || !item.has_prefix(prefix) {
       continue
     }
@@ -880,13 +880,13 @@ fn clean_report_text(text : String) -> String {
   .replace_all(old="status=fetched", new="")
   .to_string()
   .trim()
-  .to_string()
+  .to_owned()
 }
 
 ///|
 fn marker_tail(text : String, marker : String) -> String? {
   match text.find(marker) {
-    Some(index) => Some(text[index + marker.length():].trim().to_string())
+    Some(index) => Some(text[index + marker.length():].trim().to_owned())
     None => None
   }
 }
@@ -918,7 +918,7 @@ fn markdown_paragraphs(content : String) -> Array[String] {
   let chunks : Array[String] = []
   let current : Array[String] = []
   for raw in content.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.is_empty() {
       if !current.is_empty() {
         chunks.push(current.join(" "))
@@ -933,7 +933,7 @@ fn markdown_paragraphs(content : String) -> Array[String] {
       continue
     }
     let cleaned = if line.has_prefix("#") {
-      line.replace(old="#", new="").to_string().trim().to_string()
+      line.replace(old="#", new="").to_string().trim().to_owned()
     } else {
       line
     }
@@ -963,10 +963,10 @@ fn clamp_text(text : String, max_len : Int) -> String {
       builder.write_char(ch)
       count += 1
     }
-    let mut clipped = builder.to_string().trim().to_string()
+    let mut clipped = builder.to_string().trim().to_owned()
     match clipped.rev_find(" ") {
       Some(index) if index > max_len / 2 =>
-        clipped = clipped[:index].trim().to_string()
+        clipped = clipped[:index].trim().to_owned()
       _ => ()
     }
     clipped + "..."
@@ -1002,7 +1002,7 @@ fn markdown_excerpt(content : String, max_len : Int) -> String {
   let parts : Array[String] = []
 
   for raw in content.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.is_empty() ||
       line.has_prefix("#") ||
       line.has_prefix("|") ||

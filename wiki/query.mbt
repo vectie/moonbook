@@ -5,7 +5,7 @@ pub struct QueryResult {
   citations : Array[String]
   saved_page : String?
   related_pages : Array[String]
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 priv struct QueryMatch {
@@ -91,8 +91,8 @@ async fn scan_markdown_pages(path : String, pages : Array[String]) -> Unit {
 ///|
 fn is_queryable_page(path : String) -> Bool {
   let normalized = @pathx.normalize(path)
-  let base = @path.Path(normalized).basename().to_string()
-  @pathx.ext(normalized).to_string() == ".md" &&
+  let base = @path.Path(normalized).basename().to_owned()
+  @pathx.ext(normalized).to_owned() == ".md" &&
   base != "SUMMARY.md" &&
   base != "Home.md" &&
   base != "index.md" &&
@@ -183,7 +183,7 @@ fn occurrence_count(text : String, pattern : String) -> Int {
 ///|
 fn matching_excerpt(content : String, terms : Array[String]) -> String {
   for raw in content.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.is_empty() || line.has_prefix("#") {
       continue
     }
@@ -202,7 +202,7 @@ fn clamp_excerpt(text : String) -> String {
   if text.is_empty() {
     "No excerpt available."
   } else if text.length() > 220 {
-    text[:220].to_string() + "..."
+    text[:220].to_owned() + "..."
   } else {
     text
   }
@@ -304,7 +304,7 @@ async fn save_query_answer(
     "query",
     "wiki/" + relative_page,
     citations.map(citation => {
-      citation.strip_prefix("wiki/").unwrap_or(citation).to_string()
+      citation.strip_prefix("wiki/").unwrap_or(citation).to_owned()
     }),
     [
       "candidate insight: \{query_insight_summary(answer)}",
@@ -345,7 +345,7 @@ async fn propagate_query_signals(
     let page_relative = citation
       .strip_prefix("wiki/")
       .unwrap_or(citation)
-      .to_string()
+      .to_owned()
     if !page_relative.has_prefix("entities/") &&
       !page_relative.has_prefix("concepts/") &&
       !page_relative.has_prefix("sources/") {
@@ -540,7 +540,7 @@ async fn queue_query_review(
     "- Candidate pages: `" +
     citations
     .map(citation => {
-      citation.strip_prefix("wiki/").unwrap_or(citation).to_string()
+      citation.strip_prefix("wiki/").unwrap_or(citation).to_owned()
     })
     .join(", ") +
     "`\n",
@@ -564,7 +564,7 @@ async fn queue_query_review(
 ///|
 fn query_insight_summary(answer : String) -> String {
   for raw in answer.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.is_empty() || line.has_prefix("#") || line.has_prefix("- ") {
       continue
     }
@@ -601,7 +601,7 @@ fn query_terms(question : String) -> Array[String] {
     .to_string()
   let terms : Array[String] = []
   for piece in cleaned.split(" ") {
-    let text = piece.trim().to_string()
+    let text = piece.trim().to_owned()
     if text.length() >= 2 {
       terms.push(text)
     }
@@ -611,7 +611,7 @@ fn query_terms(question : String) -> Array[String] {
 
 ///|
 test "query terms normalizes punctuation" {
-  assert_eq(query_terms("Alpha, beta? A!"), ["alpha", "beta"])
+  assert_true(query_terms("Alpha, beta? A!") == ["alpha", "beta"])
 }
 
 ///|

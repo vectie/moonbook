@@ -4,14 +4,14 @@ pub struct ReviewItem {
   kind : String
   title : String
   status : String
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub struct ReviewActionResult {
   review_id : String
   action : String
   promoted_pages : Array[String]
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub async fn list_pending_reviews(root : String) -> Array[ReviewItem] {
@@ -254,7 +254,7 @@ async fn maybe_apply_query_review(
     let page_relative = citation
       .strip_prefix("wiki/")
       .unwrap_or(citation)
-      .to_string()
+      .to_owned()
     if !page_relative.has_prefix("entities/") &&
       !page_relative.has_prefix("concepts/") &&
       !page_relative.has_prefix("sources/") {
@@ -327,12 +327,12 @@ fn review_citations(block : String) -> Array[String] {
     return citations
   }
   for piece in raw.split(", ") {
-    let text = piece.trim().to_string()
+    let text = piece.trim().to_owned()
     if text.is_empty() {
       continue
     }
-    let stripped = text.strip_prefix("`").unwrap_or(text).to_string()
-    citations.push(stripped.strip_suffix("`").unwrap_or(stripped).to_string())
+    let stripped = text.strip_prefix("`").unwrap_or(text).to_owned()
+    citations.push(stripped.strip_suffix("`").unwrap_or(stripped).to_owned())
   }
   citations
 }
@@ -340,7 +340,7 @@ fn review_citations(block : String) -> Array[String] {
 ///|
 fn query_page_relative(link_field : String) -> String {
   match link_field.find("](./") {
-    Some(index) => link_field[index + 4:link_field.length() - 1].to_string()
+    Some(index) => link_field[index + 4:link_field.length() - 1].to_owned()
     None => "queries/unknown.md"
   }
 }

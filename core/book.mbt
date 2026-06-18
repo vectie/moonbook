@@ -4,14 +4,14 @@ pub let mdbook_version : String = "0.5.2"
 ///|
 pub struct Book {
   items : Array[BookItem]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub enum BookItem {
   Chapter(Chapter)
   Separator
   PartTitle(String)
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct Chapter {
@@ -22,12 +22,12 @@ pub struct Chapter {
   path : String?
   source_path : String?
   parent_names : Array[String]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct SectionNumber {
   items : Array[Int]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub fn new() -> Book {

@@ -343,7 +343,7 @@ async fn load_not_found_markdown(
 ///|
 fn strip_utf8_bom_text(text : String) -> String {
   if text.has_prefix("\u{feff}") {
-    text[1:].to_string()
+    text[1:].to_owned()
   } else {
     text
   }
@@ -418,7 +418,7 @@ fn relative_href(from_path : String, to_path : String) -> String {
 fn path_dirname(path : String) -> String {
   let normalized = @pathx.normalize(path)
   match normalized.rev_find("/") {
-    Some(index) => normalized[:index].to_string()
+    Some(index) => normalized[:index].to_owned()
     None => "."
   }
 }
@@ -432,7 +432,7 @@ fn split_path_segments(path : String) -> Array[String] {
     normalized
     .split("/")
     .filter(fn(segment) { !segment.is_empty() && segment != "." })
-    .map(fn(segment) { segment.to_string() })
+    .map(fn(segment) { segment.to_owned() })
     .to_array()
   }
 }

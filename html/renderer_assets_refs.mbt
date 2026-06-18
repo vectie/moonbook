@@ -12,7 +12,7 @@ fn collect_markdown_assets(markdown : String) -> Array[String] {
           match markdown[close_index + 2:].find(")") {
             Some(end) => {
               assets.push(
-                markdown[close_index + 2:close_index + 2 + end].to_string(),
+                markdown[close_index + 2:close_index + 2 + end].to_owned(),
               )
               i = close_index + end + 3
             }
@@ -28,7 +28,7 @@ fn collect_markdown_assets(markdown : String) -> Array[String] {
           match markdown[close_index + 2:].find(")") {
             Some(end) => {
               assets.push(
-                markdown[close_index + 2:close_index + 2 + end].to_string(),
+                markdown[close_index + 2:close_index + 2 + end].to_owned(),
               )
               i = close_index + end + 3
             }
@@ -82,7 +82,7 @@ fn collect_html_attribute_values(html : String, attr : String) -> Array[String] 
         let value_start = start + offset + pattern.length()
         match html[value_start:].find("\"") {
           Some(end) => {
-            values.push(html[value_start:value_start + end].to_string())
+            values.push(html[value_start:value_start + end].to_owned())
             start = value_start + end + 1
           }
           None => break
@@ -99,14 +99,14 @@ fn split_link_references(markdown : String) -> (String, Map[String, String]) {
   let body : Array[String] = []
   let references : Map[String, String] = {}
   for raw_line in markdown.split("\n") {
-    let line = raw_line.to_string()
-    let trimmed = line.trim().to_string()
+    let line = raw_line.to_owned()
+    let trimmed = line.trim().to_owned()
     if trimmed.has_prefix("[") {
       match trimmed.find("]:") {
         Some(index) =>
           if index > 1 && trimmed[1] != '^' {
-            let name = trimmed[1:index].trim().to_lower().to_string()
-            let value = trimmed[index + 2:].trim().to_string()
+            let name = trimmed[1:index].trim().to_lower().to_owned()
+            let value = trimmed[index + 2:].trim().to_owned()
             if !name.is_empty() && !value.is_empty() {
               references[name] = value
             } else {
@@ -129,13 +129,13 @@ fn split_footnotes(markdown : String) -> (String, Array[(String, String)]) {
   let body : Array[String] = []
   let footnotes : Array[(String, String)] = []
   for raw_line in markdown.split("\n") {
-    let line = raw_line.to_string()
-    let trimmed = line.trim().to_string()
+    let line = raw_line.to_owned()
+    let trimmed = line.trim().to_owned()
     if trimmed.has_prefix("[^") {
       match trimmed.find("]:") {
         Some(index) => {
-          let name = trimmed[2:index].to_string()
-          let content = trimmed[index + 2:].trim().to_string()
+          let name = trimmed[2:index].to_owned()
+          let content = trimmed[index + 2:].trim().to_owned()
           footnotes.push((name, content))
         }
         None => body.push(line)

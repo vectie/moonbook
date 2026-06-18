@@ -39,22 +39,22 @@ fn StructuredClaim::kind(self : StructuredClaim) -> String {
 fn claim_relationship_target(
   claim : StructuredClaim,
 ) -> (String, String, String)? {
-  let predicate = claim.predicate.trim().to_string()
+  let predicate = claim.predicate.trim().to_owned()
   let lowered = predicate.to_lower()
   if lowered.has_prefix("supports ") {
-    let target = predicate[9:].trim().to_string()
+    let target = predicate[9:].trim().to_owned()
     return Some(relationship_target_tuple("supports", target))
   }
   if lowered.has_prefix("uses ") {
-    let target = predicate[5:].trim().to_string()
+    let target = predicate[5:].trim().to_owned()
     return Some(relationship_target_tuple("uses", target))
   }
   if lowered.has_prefix("improves ") {
-    let target = predicate[9:].trim().to_string()
+    let target = predicate[9:].trim().to_owned()
     return Some(relationship_target_tuple("improves", target))
   }
   if lowered.has_prefix("keeps ") {
-    let target = predicate[6:].trim().to_string()
+    let target = predicate[6:].trim().to_owned()
     return Some(relationship_target_tuple("keeps", target))
   }
   if looks_like_entity_name(predicate) {
@@ -287,7 +287,7 @@ fn remove_index_entry(content : String, relative_page : String) -> String {
     if line.has_prefix("- [") && line.contains(link_marker) {
       continue
     }
-    kept.push(line.to_string())
+    kept.push(line.to_owned())
   }
   kept.join("\n")
 }
@@ -316,7 +316,7 @@ fn collect_index_section_entries(
   let entries : Array[String] = []
   let mut in_target = false
   for raw in content.split("\n") {
-    let line = raw.to_string()
+    let line = raw.to_owned()
     if line == target_header {
       in_target = true
       continue
@@ -343,7 +343,7 @@ fn rewrite_index_section(
   let mut skipping_target = false
   let mut inserted = false
   for raw in lines {
-    let line = raw.to_string()
+    let line = raw.to_owned()
     if line == target_header {
       if !inserted {
         insert_index_section_block(rebuilt, target_header, entries)
@@ -391,7 +391,7 @@ fn normalize_markdown_spacing(content : String) -> String {
   let normalized : Array[String] = []
   let mut blank_run = 0
   for raw in content.split("\n") {
-    let line = raw.to_string()
+    let line = raw.to_owned()
     if line.trim().is_empty() {
       if blank_run == 0 {
         normalized.push("")
@@ -449,7 +449,7 @@ fn summarize_source(title : String, content : String) -> String {
   if cleaned.is_empty() {
     "Source ingested. Open the raw file for details."
   } else if cleaned.length() > 320 {
-    cleaned[:320].to_string() + "..."
+    cleaned[:320].to_owned() + "..."
   } else {
     cleaned
   }
@@ -459,7 +459,7 @@ fn summarize_source(title : String, content : String) -> String {
 fn first_meaningful_line(title : String, content : String) -> String {
   let mut in_fence = false
   for raw in content.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.has_prefix("```") {
       in_fence = !in_fence
       continue
@@ -505,7 +505,7 @@ fn is_weak_summary_line(title : String, line : String) -> Bool {
 fn excerpt_source(content : String, max_lines : Int) -> String {
   let lines : Array[String] = []
   for raw in content.split("\n") {
-    let line = raw.to_string()
+    let line = raw.to_owned()
     if lines.length() >= max_lines {
       break
     }
@@ -517,13 +517,13 @@ fn excerpt_source(content : String, max_lines : Int) -> String {
 ///|
 fn first_markdown_heading(content : String) -> String {
   for raw in content.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.has_prefix("#") {
       let mut index = 0
       while index < line.length() && line[index] == '#' {
         index += 1
       }
-      let title = line[index:].trim().to_string()
+      let title = line[index:].trim().to_owned()
       if !title.is_empty() {
         return strip_inline_markup(title)
       }
@@ -535,7 +535,7 @@ fn first_markdown_heading(content : String) -> String {
 ///|
 fn first_nonempty_line(content : String) -> String {
   for raw in content.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if !line.is_empty() {
       return line
     }
@@ -694,7 +694,7 @@ fn find_claim_field(
       break
     }
     if in_block && line.has_prefix(prefix) && line.has_suffix("`") {
-      return Some(line[prefix.length():line.length() - 1].to_string())
+      return Some(line[prefix.length():line.length() - 1].to_owned())
     }
   }
   None
@@ -816,7 +816,7 @@ fn insert_claim_source_entry(
 fn lines_array(content : String) -> Array[String] {
   let lines : Array[String] = []
   for raw in content.split("\n") {
-    lines.push(raw.to_string())
+    lines.push(raw.to_owned())
   }
   lines
 }
@@ -831,7 +831,7 @@ fn append_list_entry(
     .strip_prefix("## ")
     .unwrap_or(section_header)
     .trim()
-    .to_string()
+    .to_owned()
   let entries = collect_index_section_entries(content, section_title)
   let merged = if entries.contains(entry) {
     entries
@@ -850,7 +850,7 @@ fn append_section_block(
   block : String,
 ) -> String {
   let cleaned = content.replace(old="_None yet._\n", new="").to_string()
-  if content.contains(block.trim().to_string()) {
+  if content.contains(block.trim().to_owned()) {
     return cleaned
   }
   if cleaned.contains(section_header + "\n\n") {
@@ -936,7 +936,7 @@ fn extract_candidate_concepts(content : String) -> Array[String] {
 fn extract_claim_statements(content : String) -> Array[String] {
   let claims : Array[String] = []
   for raw in content.split("\n") {
-    let line = strip_inline_markup(raw.trim().to_string())
+    let line = strip_inline_markup(raw.trim().to_owned())
     if line.is_empty() || line.has_prefix("#") || line.has_prefix("- ") {
       continue
     }
@@ -971,9 +971,9 @@ fn parse_structured_claim(statement : String) -> StructuredClaim? {
   match lowered.find(" integrates with ") {
     Some(index) =>
       Some({
-        subject: normalize_entity_name(statement[:index].trim().to_string()),
+        subject: normalize_entity_name(statement[:index].trim().to_owned()),
         predicate: normalize_claim_fragment(
-          statement[index + 17:].trim().to_string(),
+          statement[index + 17:].trim().to_owned(),
         ),
         confidence: "medium",
       })
@@ -981,9 +981,9 @@ fn parse_structured_claim(statement : String) -> StructuredClaim? {
       match lowered.find(" keeps ") {
         Some(index) =>
           Some({
-            subject: normalize_entity_name(statement[:index].trim().to_string()),
+            subject: normalize_entity_name(statement[:index].trim().to_owned()),
             predicate: "keeps " +
-            normalize_claim_fragment(statement[index + 7:].trim().to_string()),
+            normalize_claim_fragment(statement[index + 7:].trim().to_owned()),
             confidence: "low",
           })
         None =>
@@ -991,11 +991,11 @@ fn parse_structured_claim(statement : String) -> StructuredClaim? {
             Some(index) =>
               Some({
                 subject: normalize_entity_name(
-                  statement[:index].trim().to_string(),
+                  statement[:index].trim().to_owned(),
                 ),
                 predicate: "improves " +
                 normalize_claim_fragment(
-                  statement[index + 10:].trim().to_string(),
+                  statement[index + 10:].trim().to_owned(),
                 ),
                 confidence: "low",
               })
@@ -1004,11 +1004,11 @@ fn parse_structured_claim(statement : String) -> StructuredClaim? {
                 Some(index) =>
                   Some({
                     subject: normalize_entity_name(
-                      statement[:index].trim().to_string(),
+                      statement[:index].trim().to_owned(),
                     ),
                     predicate: "supports " +
                     normalize_claim_fragment(
-                      statement[index + 10:].trim().to_string(),
+                      statement[index + 10:].trim().to_owned(),
                     ),
                     confidence: "medium",
                   })
@@ -1017,11 +1017,11 @@ fn parse_structured_claim(statement : String) -> StructuredClaim? {
                     Some(index) =>
                       Some({
                         subject: normalize_entity_name(
-                          statement[:index].trim().to_string(),
+                          statement[:index].trim().to_owned(),
                         ),
                         predicate: "uses " +
                         normalize_claim_fragment(
-                          statement[index + 6:].trim().to_string(),
+                          statement[index + 6:].trim().to_owned(),
                         ),
                         confidence: "medium",
                       })
@@ -1030,10 +1030,10 @@ fn parse_structured_claim(statement : String) -> StructuredClaim? {
                         Some(index) =>
                           Some({
                             subject: normalize_entity_name(
-                              statement[:index].trim().to_string(),
+                              statement[:index].trim().to_owned(),
                             ),
                             predicate: normalize_claim_fragment(
-                              statement[index + 4:].trim().to_string(),
+                              statement[index + 4:].trim().to_owned(),
                             ),
                             confidence: "medium",
                           })
@@ -1103,17 +1103,17 @@ fn normalize_claim_fragment(text : String) -> String {
 
 ///|
 fn clean_phrase(text : String) -> String {
-  strip_surrounding_punctuation(text.trim().to_string())
+  strip_surrounding_punctuation(text.trim().to_owned())
 }
 
 ///|
 fn strip_leading_determiner(text : String) -> String {
   if text.has_prefix("The ") {
-    text[4:].to_string()
+    text[4:].to_owned()
   } else if text.has_prefix("A ") {
-    text[2:].to_string()
+    text[2:].to_owned()
   } else if text.has_prefix("An ") {
-    text[3:].to_string()
+    text[3:].to_owned()
   } else {
     text
   }
@@ -1129,7 +1129,7 @@ fn strip_surrounding_punctuation(text : String) -> String {
   while end > start && is_trimmable_punctuation(text[end - 1]) {
     end -= 1
   }
-  text[start:end].trim().to_string()
+  text[start:end].trim().to_owned()
 }
 
 ///|

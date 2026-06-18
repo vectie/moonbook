@@ -4,19 +4,19 @@ pub struct MDBook {
   config : @core.Config
   book : @core.Book
   summary : @summary.Summary
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub struct CleanStats {
   files_removed : Int
   directories_removed : Int
   bytes_removed : Int
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 struct UiClientConfig {
   live_reload_endpoint : String?
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub async fn load(book_root : String) -> MDBook {
@@ -205,7 +205,7 @@ async fn copy_directory_tree(
 ) -> Unit {
   ensure_dir(destination_dir)
   for entry in @fsx.list_directory(source_dir) {
-    let basename = @path.Path(entry).basename().to_string()
+    let basename = @path.Path(entry).basename().to_owned()
     let destination = @path.Path(destination_dir)
       .join(@path.Path(basename))
       .to_string()
@@ -341,7 +341,7 @@ fn resolve_chapter_paths(
     let normalized_location = @pathx.normalize(location)
     let relative = match
       normalized_location.strip_prefix(normalized_src + "/") {
-      Some(path) => path.to_string()
+      Some(path) => path.to_owned()
       None => normalized_location
     }
     (normalized_location, relative)
@@ -392,8 +392,8 @@ fn preprocess_chapter(chapter : @core.Chapter) -> @core.Chapter {
 ///|
 fn normalize_readme_path(path : String) -> String {
   let base = @path.Path(path)
-  let ext = @pathx.ext(path).to_string()
-  let stem = base.basename().to_string().replace(old=ext, new="").to_string()
+  let ext = @pathx.ext(path).to_owned()
+  let stem = base.basename().to_owned().replace(old=ext, new="").to_string()
   if stem.to_lower() == "readme" {
     @pathx.join(@pathx.dirname(path), "index" + ext)
   } else {
@@ -438,7 +438,7 @@ async fn ensure_dir(path : String) -> Unit {
 
 ///|
 async fn ensure_parent_dir(path : String) -> Unit {
-  let parent = @pathx.dirname(path).to_string()
+  let parent = @pathx.dirname(path).to_owned()
   if parent != "." && parent != path {
     ensure_dir(parent)
   }
@@ -494,9 +494,9 @@ fn config_to_toml(config : @core.Config) -> String {
 ///|
 fn fenced_code_block_count(content : String, language : String) -> Int {
   let mut count = 0
-  let lines = content.split("\n").map(fn(line) { line.to_string() }).to_array()
+  let lines = content.split("\n").map(fn(line) { line.to_owned() }).to_array()
   for line in lines {
-    let trimmed = line.trim().to_string()
+    let trimmed = line.trim().to_owned()
     if trimmed == "```" + language || trimmed == "```" + language + ",ignore" {
       count += 1
     }
@@ -511,7 +511,7 @@ fn strip_utf8_bom(content : String) -> String {
     bytes[0] == 0xEF &&
     bytes[1] == 0xBB &&
     bytes[2] == 0xBF {
-    content[3:].to_string()
+    content[3:].to_owned()
   } else {
     content
   }
@@ -551,9 +551,9 @@ fn collect_clean_stats(path : String) -> CleanStats raise {
 
 ///|
 test "normalize readme paths to index" {
-  assert_eq(normalize_readme_path("./README.md"), "index.md")
-  assert_eq(normalize_readme_path("guide/ReadMe.md"), "guide/index.md")
-  assert_eq(normalize_readme_path("./chapter_1.md"), "./chapter_1.md")
+  assert_true(normalize_readme_path("./README.md") == "index.md")
+  assert_true(normalize_readme_path("guide/ReadMe.md") == "guide/index.md")
+  assert_true(normalize_readme_path("./chapter_1.md") == "./chapter_1.md")
 }
 
 ///|
@@ -574,11 +574,11 @@ test "preprocess book rewrites chapter paths but preserves source paths" {
   )
   let book = @core.new_with_items([@core.item_chapter(chapter)])
   let chapters = preprocess_book(book).chapters()
-  assert_eq(chapters.length(), 2)
-  assert_eq(chapters[0].path, Some("index.md"))
-  assert_eq(chapters[0].source_path, Some("./README.md"))
-  assert_eq(chapters[1].path, Some("guide/index.md"))
-  assert_eq(chapters[1].source_path, Some("guide/README.md"))
+  assert_true(chapters.length() == 2)
+  assert_true(chapters[0].path == Some("index.md"))
+  assert_true(chapters[0].source_path == Some("./README.md"))
+  assert_true(chapters[1].path == Some("guide/index.md"))
+  assert_true(chapters[1].source_path == Some("guide/README.md"))
 }
 
 ///|
@@ -595,8 +595,8 @@ test "load chapter from absolute path stores source path relative to src dir" {
     src_dir,
     [],
   )
-  assert_eq(chapter.path, Some("summary.mbt"))
-  assert_eq(chapter.source_path, Some("summary.mbt"))
+  assert_true(chapter.path == Some("summary.mbt"))
+  assert_true(chapter.source_path == Some("summary.mbt"))
   assert_true(chapter.content.contains("pub struct Summary"))
 }
 
@@ -615,14 +615,14 @@ test "load chapter preserves separators and nested parent names" {
     src_dir,
     [],
   )
-  assert_eq(chapter.sub_items.length(), 3)
+  assert_true(chapter.sub_items.length() == 3)
   match chapter.sub_items[0] {
-    Chapter(nested) => assert_eq(nested.parent_names, ["Driver"])
+    Chapter(nested) => assert_true(nested.parent_names == ["Driver"])
     _ => fail("expected nested chapter")
   }
   assert_true(chapter.sub_items[1] is Separator)
   match chapter.sub_items[2] {
-    Chapter(nested) => assert_eq(nested.parent_names, ["Driver"])
+    Chapter(nested) => assert_true(nested.parent_names == ["Driver"])
     _ => fail("expected nested chapter")
   }
 }

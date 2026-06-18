@@ -134,7 +134,7 @@ async fn copy_extension_seed_tree(
     @fs.FileKind::Directory => {
       @fsx.make_directory(destination_path, recursive=true, exists_ok=true)
       for child in @fsx.list_directory(source_path) {
-        let child_name = @path.Path(child).basename().to_string()
+        let child_name = @path.Path(child).basename().to_owned()
         copy_extension_seed_tree(
           child,
           @path.Path(destination_path).join(@path.Path(child_name)).to_string(),

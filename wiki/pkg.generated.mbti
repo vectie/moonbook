@@ -2,6 +2,7 @@
 package "vectie/moonbook/wiki"
 
 import {
+  "moonbitlang/core/debug",
   "moonbitlang/core/json",
 }
 
@@ -75,7 +76,7 @@ pub struct BookCatalogRecord {
   memory_scope : String
   tags : Array[String]
   skills : Array[String]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct BookGoalAcceptance {
   goal_id : String
@@ -83,7 +84,7 @@ pub struct BookGoalAcceptance {
   reason : String
   task_count : Int
   summary : String
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct BookHealthReport {
   level : String
@@ -102,7 +103,7 @@ pub struct BookHealthReport {
   evidence_count : Int
   substantive_coverage_ready : Bool
   issues : Array[String]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct BookResult {
   task_id : String
@@ -111,7 +112,7 @@ pub struct BookResult {
   memory_candidates : Array[MemoryCandidate]
   requires_review : Bool
   notify_town : Bool
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct BookStateSummary {
   book_id : String
@@ -133,7 +134,7 @@ pub struct BookStateSummary {
   evidence_count : Int
   substantive_coverage_ready : Bool
   summary : String
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct BookTask {
   id : String
@@ -143,21 +144,21 @@ pub struct BookTask {
   priority : Int
   requires_review : Bool
   target_pages : Array[String]
-} derive(Eq, Show, ToJson, @json.FromJson)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub struct BookTaskBatch {
   goal_id : String
   goal : String
   summary : String
   tasks : Array[BookTask]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct ExtensionInstallResult {
   root : String
   extension : String
   manifest_path : String
   installed_files : Array[String]
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct IngestResult {
   page_path : String
@@ -166,20 +167,20 @@ pub struct IngestResult {
   imported : Bool
   related_pages : Array[String]
   keeper_packet_path : String
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
-type JourneyEntry derive(Eq, Show)
+type JourneyEntry derive(Eq, @debug.Debug)
 
 pub struct LintFinding {
   kind : String
   path : String?
   message : String
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct LintResult {
   findings : Array[LintFinding]
   report : String
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct MemoryCandidate {
   kind : String
@@ -187,7 +188,7 @@ pub struct MemoryCandidate {
   detail : String
   durable : Bool
   target_page : String?
-} derive(Eq, Show, ToJson, @json.FromJson)
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub struct PersistResultOutcome {
   log_path : String
@@ -195,7 +196,7 @@ pub struct PersistResultOutcome {
   review_queued : Bool
   notify_town : Bool
   evidence_id : String
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct QueryResult {
   question : String
@@ -203,20 +204,20 @@ pub struct QueryResult {
   citations : Array[String]
   saved_page : String?
   related_pages : Array[String]
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct ReviewActionResult {
   review_id : String
   action : String
   promoted_pages : Array[String]
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct ReviewItem {
   review_id : String
   kind : String
   title : String
   status : String
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct SkillCompareResult {
   root : String
@@ -234,7 +235,7 @@ pub struct SkillCompareResult {
   first_change_line : Int?
   selected_excerpt : Array[String]
   baseline_excerpt : Array[String]
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct SkillDoctorReport {
   root : String
@@ -245,15 +246,15 @@ pub struct SkillDoctorReport {
   duplicate_names : Array[String]
   missing_reference_paths : Array[String]
   warnings : Array[String]
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
-type SkillHubDebug derive(Show, ToJson, @json.FromJson)
+type SkillHubDebug derive(ToJson, @debug.Debug, @json.FromJson)
 
-type SkillHubRecord derive(Show, ToJson, @json.FromJson)
+type SkillHubRecord derive(ToJson, @debug.Debug, @json.FromJson)
 
 type SkillHubRollbackRequest derive(@json.FromJson)
 
-type SkillHubRootStatus derive(Show, ToJson, @json.FromJson)
+type SkillHubRootStatus derive(ToJson, @debug.Debug, @json.FromJson)
 
 type SkillHubSaveRequest derive(@json.FromJson)
 
@@ -262,9 +263,9 @@ pub struct SkillHubServeOptions {
   hostname : String
   port : Int
   open_browser : Bool
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
-type SkillHubState derive(Show, ToJson, @json.FromJson)
+type SkillHubState derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct SkillInstallResult {
   root : String
@@ -272,7 +273,7 @@ pub struct SkillInstallResult {
   destination_path : String
   source_path : String?
   action : String
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct SkillRecord {
   id : String
@@ -287,9 +288,9 @@ pub struct SkillRecord {
   overrides : Array[String]
   shadowed_by : Array[String]
   line_count : Int
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
-type SkillSnapshotRecord derive(Show, ToJson, @json.FromJson)
+type SkillSnapshotRecord derive(ToJson, @debug.Debug, @json.FromJson)
 
 type SkillSyncManifest derive(ToJson)
 
@@ -301,14 +302,14 @@ pub struct SkillSyncResult {
   selected_path : String
   baseline_path : String
   summary : String
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct UiChapterLink {
   title : String
   href : String
   source_path : String
   number : String
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiJourneyItem {
   title : String
@@ -316,39 +317,39 @@ pub struct UiJourneyItem {
   status : String
   summary : String
   highlights : Array[String]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiMarketingBrief {
   source_path : String
   headline : String
   lede : String
   sections : Array[UiMarketingSection]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiMarketingSection {
   title : String
   body : String
   bullets : Array[String]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiMetric {
   label : String
   value : String
   note : String
   tone : String
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiPanelItem {
   title : String
   detail : String
   meta : String
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiResearchReportSection {
   title : String
   detail : String
   evidence : String
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiSkillDiagnostics {
   total_count : Int
@@ -361,7 +362,7 @@ pub struct UiSkillDiagnostics {
   duplicate_names : Array[String]
   missing_reference_paths : Array[String]
   warnings : Array[String]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiSkillItem {
   key : String
@@ -388,7 +389,7 @@ pub struct UiSkillItem {
   compare_selected_excerpt : Array[String]
   compare_baseline_excerpt : Array[String]
   content : String
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiState {
   root : String
@@ -411,18 +412,18 @@ pub struct UiState {
   research_long_report : String
   research_report : Array[UiResearchReportSection]
   synthesis_preview : String
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiStatusChip {
   label : String
   tone : String
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiWorkflowItem {
   title : String
   detail : String
   status : String
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct WikiWorkspace {
   root : String
@@ -432,7 +433,7 @@ pub struct WikiWorkspace {
   config_path : String
   summary_path : String
   build_dir : String
-} derive(Show, ToJson)
+} derive(ToJson, @debug.Debug)
 
 pub struct WorkerContextBundle {
   book_id : String
@@ -448,7 +449,7 @@ pub struct WorkerContextBundle {
   working_memory : Array[String]
   memory_summary : String
   output_contract : Array[String]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 // Type aliases
 

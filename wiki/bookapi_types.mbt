@@ -10,7 +10,7 @@ pub struct BookTask {
   priority : Int
   requires_review : Bool
   target_pages : Array[String]
-} derive(Show, Eq, ToJson, FromJson)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 pub struct BookTaskBatch {
@@ -18,7 +18,7 @@ pub struct BookTaskBatch {
   goal : String
   summary : String
   tasks : Array[BookTask]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct BookGoalAcceptance {
@@ -27,7 +27,7 @@ pub struct BookGoalAcceptance {
   reason : String
   task_count : Int
   summary : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct WorkerContextBundle {
@@ -44,7 +44,7 @@ pub struct WorkerContextBundle {
   working_memory : Array[String]
   memory_summary : String
   output_contract : Array[String]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct MemoryCandidate {
@@ -53,7 +53,7 @@ pub struct MemoryCandidate {
   detail : String
   durable : Bool
   target_page : String?
-} derive(Show, Eq, ToJson, FromJson)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 pub struct BookResult {
@@ -63,7 +63,7 @@ pub struct BookResult {
   memory_candidates : Array[MemoryCandidate]
   requires_review : Bool
   notify_town : Bool
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct PersistResultOutcome {
@@ -72,7 +72,7 @@ pub struct PersistResultOutcome {
   review_queued : Bool
   notify_town : Bool
   evidence_id : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct BookStateSummary {
@@ -95,7 +95,7 @@ pub struct BookStateSummary {
   evidence_count : Int
   substantive_coverage_ready : Bool
   summary : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct BookHealthReport {
@@ -115,7 +115,7 @@ pub struct BookHealthReport {
   evidence_count : Int
   substantive_coverage_ready : Bool
   issues : Array[String]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct BookCatalogRecord {
@@ -126,7 +126,7 @@ pub struct BookCatalogRecord {
   memory_scope : String
   tags : Array[String]
   skills : Array[String]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 priv struct SourceCoverageSummary {

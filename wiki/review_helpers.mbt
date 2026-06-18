@@ -30,14 +30,14 @@ fn parse_review_blocks(content : String) -> Array[ReviewBlock] {
 fn build_review_block(block : String) -> ReviewBlock {
   let lines = lines_array(block)
   let header = lines[0]
-  let label = header.strip_prefix("### ").unwrap_or(header).to_string()
+  let label = header.strip_prefix("### ").unwrap_or(header).to_owned()
   let separator = label.find(" | ")
   let kind = match separator {
-    Some(index) => label[:index].to_string()
+    Some(index) => label[:index].to_owned()
     None => label
   }
   let title = match separator {
-    Some(index) => label[index + 3:].to_string()
+    Some(index) => label[index + 3:].to_owned()
     None => label
   }
   let review_id = find_review_field(block, "- Review ID: `").unwrap_or(
@@ -54,12 +54,12 @@ fn fallback_review_id(kind : String, title : String) -> String {
 ///|
 fn find_review_field(block : String, prefix : String) -> String? {
   for raw in block.split("\n") {
-    let line = raw.to_string()
+    let line = raw.to_owned()
     if line.has_prefix(prefix) {
       if line.has_suffix("`") {
-        return Some(line[prefix.length():line.length() - 1].to_string())
+        return Some(line[prefix.length():line.length() - 1].to_owned())
       }
-      return Some(line[prefix.length():].trim().to_string())
+      return Some(line[prefix.length():].trim().to_owned())
     }
   }
   None
@@ -131,7 +131,7 @@ fn append_review_resolution(block : String, action : String) -> String {
   if block.contains(resolution) {
     block
   } else {
-    block.trim().to_string() + "\n" + resolution + "\n"
+    block.trim().to_owned() + "\n" + resolution + "\n"
   }
 }
 
@@ -139,14 +139,14 @@ fn append_review_resolution(block : String, action : String) -> String {
 fn claim_summaries_from_review_block(block : String) -> Array[StructuredClaim] {
   let claims : Array[StructuredClaim] = []
   for raw in block.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if !line.has_prefix("- ") && !line.has_prefix("  - ") {
       continue
     }
     let entry = line
       .strip_prefix("- ")
       .unwrap_or(line.strip_prefix("  - ").unwrap_or(line))
-      .to_string()
+      .to_owned()
     match parse_review_claim_summary(entry) {
       Some(claim) => claims.push(claim)
       None => ()
@@ -162,11 +162,11 @@ fn parse_review_claim_summary(line : String) -> StructuredClaim? {
       match line.find(" [") {
         Some(confidence_start) =>
           Some({
-            subject: line[:index].trim().to_string(),
-            predicate: line[index + 4:confidence_start].trim().to_string(),
+            subject: line[:index].trim().to_owned(),
+            predicate: line[index + 4:confidence_start].trim().to_owned(),
             confidence: line[confidence_start + 2:line.length() - 1]
             .trim()
-            .to_string(),
+            .to_owned(),
           })
         None => None
       }
@@ -180,14 +180,14 @@ fn durable_candidates_from_review_block(
 ) -> Array[MemoryCandidate] {
   let candidates : Array[MemoryCandidate] = []
   for raw in block.split("\n") {
-    let line = raw.to_string()
+    let line = raw.to_owned()
     if !line.has_prefix("  - ") {
       continue
     }
-    let entry = line.strip_prefix("  - ").unwrap_or(line).to_string()
+    let entry = line.strip_prefix("  - ").unwrap_or(line).to_owned()
     let parts : Array[String] = []
     for part in entry.split(" | ") {
-      parts.push(part.trim().to_string())
+      parts.push(part.trim().to_owned())
     }
     if parts.length() < 4 {
       continue
@@ -306,5 +306,5 @@ test "durable candidates from review block decode entries" {
   let candidates = durable_candidates_from_review_block(block)
   assert_eq(candidates.length(), 1)
   assert_eq(candidates[0].title, "Insight")
-  assert_eq(candidates[0].target_page, Some("concepts/insight.md"))
+  assert_true(candidates[0].target_page == Some("concepts/insight.md"))
 }

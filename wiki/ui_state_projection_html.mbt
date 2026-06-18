@@ -196,7 +196,7 @@ fn marketing_hero_panel(
 
 ///|
 fn marketing_brief_section_card(section : UiMarketingSection) -> String {
-  let body = section.body.trim().to_string()
+  let body = section.body.trim().to_owned()
   let bullets = if section.bullets.is_empty() {
     ""
   } else {
@@ -262,7 +262,7 @@ fn markdown_report_html(markdown : String) -> String {
   let mut heading_index = 0
   let mut in_list = false
   while index < lines.length() {
-    let line = lines[index].trim().to_string()
+    let line = lines[index].trim().to_owned()
     if line.is_empty() {
       if in_list {
         html.push("</ul>")
@@ -279,7 +279,7 @@ fn markdown_report_html(markdown : String) -> String {
       let code : Array[String] = []
       index += 1
       while index < lines.length() && !lines[index].trim().has_prefix("```") {
-        code.push(lines[index].to_string())
+        code.push(lines[index].to_owned())
         index += 1
       }
       let rendered_code = escape_html(code.join("\n"))
@@ -295,7 +295,7 @@ fn markdown_report_html(markdown : String) -> String {
       let code : Array[String] = []
       index += 1
       while index < lines.length() && !lines[index].trim().has_prefix("```") {
-        code.push(lines[index].to_string())
+        code.push(lines[index].to_owned())
         index += 1
       }
       let rendered_code = escape_html(code.join("\n"))
@@ -312,7 +312,7 @@ fn markdown_report_html(markdown : String) -> String {
       }
       let table_lines : Array[String] = []
       while index < lines.length() && lines[index].trim().has_prefix("|") {
-        table_lines.push(lines[index].trim().to_string())
+        table_lines.push(lines[index].trim().to_owned())
         index += 1
       }
       html.push(markdown_table_html(table_lines))
@@ -323,7 +323,7 @@ fn markdown_report_html(markdown : String) -> String {
         html.push("<ul>")
         in_list = true
       }
-      html.push("<li>\{inline_markdown_html(line[2:].trim().to_string())}</li>")
+      html.push("<li>\{inline_markdown_html(line[2:].trim().to_owned())}</li>")
       index += 1
       continue
     }
@@ -334,15 +334,15 @@ fn markdown_report_html(markdown : String) -> String {
     if line.has_prefix("# ") {
       heading_index += 1
       html.push(
-        "<h2 id=\"report-sec-\{heading_index}\">\{inline_markdown_html(line[2:].trim().to_string())}</h2>",
+        "<h2 id=\"report-sec-\{heading_index}\">\{inline_markdown_html(line[2:].trim().to_owned())}</h2>",
       )
     } else if line.has_prefix("## ") {
       heading_index += 1
       html.push(
-        "<h3 id=\"report-sec-\{heading_index}\">\{inline_markdown_html(line[3:].trim().to_string())}</h3>",
+        "<h3 id=\"report-sec-\{heading_index}\">\{inline_markdown_html(line[3:].trim().to_owned())}</h3>",
       )
     } else if line.has_prefix("### ") {
-      html.push("<h4>\{inline_markdown_html(line[4:].trim().to_string())}</h4>")
+      html.push("<h4>\{inline_markdown_html(line[4:].trim().to_owned())}</h4>")
     } else {
       html.push("<p>\{inline_markdown_html(line)}</p>")
     }
@@ -359,13 +359,13 @@ fn report_toc_html(markdown : String) -> String {
   let links : Array[String] = []
   let mut heading_index = 0
   for raw in markdown.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.has_prefix("# ") || line.has_prefix("## ") {
       heading_index += 1
       let title = if line.has_prefix("## ") {
-        line[3:].trim().to_string()
+        line[3:].trim().to_owned()
       } else {
-        line[2:].trim().to_string()
+        line[2:].trim().to_owned()
       }
       if !title.is_empty() && links.length() < 14 {
         links.push(
@@ -392,7 +392,7 @@ fn markdown_table_html(lines : Array[String]) -> String {
     }
     let cells = raw
       .split("|")
-      .map(fn(part) { part.trim().to_string() })
+      .map(fn(part) { part.trim().to_owned() })
       .to_array()
     let visible : Array[String] = []
     for cell in cells {
@@ -440,7 +440,7 @@ async fn marketing_update_note(root : String) -> String {
   }
   let lines = @fsx.read_file(log_path).split("\n").to_array()
   for index = lines.length() - 1; index >= 0; index = index - 1 {
-    let line = lines[index].trim().to_string()
+    let line = lines[index].trim().to_owned()
     if line.has_prefix("## [") {
       return line
     }

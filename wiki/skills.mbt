@@ -7,13 +7,13 @@ pub async fn list_skills(root : String) -> Array[SkillRecord] {
 
 ///|
 pub async fn find_skill(root : String, name : String) -> SkillRecord? {
-  let normalized = name.trim().to_lower().to_string()
+  let normalized = name.trim().to_lower().to_owned()
   let records = list_skills(root)
   for record in records {
     let record_name = record.name.to_lower().to_string()
     let basename = @path.Path(record.path)
       .basename()
-      .to_string()
+      .to_owned()
       .to_lower()
       .to_string()
     if record_name == normalized || basename == normalized {
@@ -77,9 +77,9 @@ pub async fn install_skill(root : String, name : String) -> SkillInstallResult {
       continue
     }
     let record_name = record.name.to_lower().to_string()
-    let basename = @path.Path(@pathx.dirname(record.path).to_string())
+    let basename = @path.Path(@pathx.dirname(record.path).to_owned())
       .basename()
-      .to_string()
+      .to_owned()
       .to_lower()
       .to_string()
     let extension_matches = match extension_filter {
@@ -123,7 +123,7 @@ pub async fn install_skill(root : String, name : String) -> SkillInstallResult {
   guard !@fsx.exists(destination_dir) else {
     fail("workspace skill already exists at \{destination_dir}")
   }
-  let source_dir = @pathx.dirname(record.path).to_string()
+  let source_dir = @pathx.dirname(record.path).to_owned()
   copy_skill_tree(source_dir, destination_dir)
   {
     root: normalized_root,
@@ -268,11 +268,11 @@ pub async fn sync_skill(root : String, name : String) -> SkillSyncResult {
     .to_string()
   @fsx.make_directory(candidate_dir, recursive=true, exists_ok=true)
   copy_skill_tree_replace(
-    @pathx.dirname(selected.path).to_string(),
+    @pathx.dirname(selected.path).to_owned(),
     selected_dir,
   )
   copy_skill_tree_replace(
-    @pathx.dirname(baseline.path).to_string(),
+    @pathx.dirname(baseline.path).to_owned(),
     baseline_dir,
   )
   @fsx.write_to_file(
@@ -322,9 +322,12 @@ test "collect reference paths extracts bundled references" {
   let refs = collect_reference_paths(
     "/tmp/skill", "- `references/raw-first-contract.md`\n- use `references/bootstrap-examples.md`\n",
   )
-  assert_eq(refs, [
-    "/tmp/skill/references/bootstrap-examples.md", "/tmp/skill/references/raw-first-contract.md",
-  ])
+  assert_true(
+    refs ==
+    [
+      "/tmp/skill/references/bootstrap-examples.md", "/tmp/skill/references/raw-first-contract.md",
+    ],
+  )
 }
 
 ///|

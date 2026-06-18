@@ -6,7 +6,7 @@ pub struct ServeOptions {
   dest_dir : String?
   open_browser : Bool
   watcher_kind : String
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub let live_reload_token_file : String = ".moonbook-livereload"
@@ -48,7 +48,9 @@ pub fn parse_serve_args(args : Array[String]) -> ServeOptions? {
         }
       "-p" | "--port" =>
         if index + 1 < args.length() {
-          port = @strconv.parse_int(args[index + 1]) catch { _ => return None }
+          port = @string.parse_int(args[index + 1][:], base=10) catch {
+            _ => return None
+          }
           index += 2
         } else {
           return None
@@ -164,7 +166,7 @@ async fn handle_file_request(
 fn resolve_request_path(root : String, request_path : StringView) -> String? {
   let relative = match request_path {
     "/" => "index.html"
-    ['/', .. path] => path.to_string()
+    ['/', .. path] => path.to_owned()
     _ => return None
   }
   let normalized = @pathx.normalize(relative)
@@ -332,22 +334,22 @@ fn content_type(path : String) -> String {
 ///|
 test "serve args parser handles defaults and flags" {
   let defaults = parse_serve_args(["./book"]).unwrap()
-  assert_eq(defaults.root, "./book")
-  assert_eq(defaults.hostname, "localhost")
-  assert_eq(defaults.port, 3000)
-  assert_eq(defaults.dest_dir, None)
+  assert_true(defaults.root == "./book")
+  assert_true(defaults.hostname == "localhost")
+  assert_true(defaults.port == 3000)
+  assert_true(defaults.dest_dir == None)
   assert_false(defaults.open_browser)
-  assert_eq(defaults.watcher_kind, "poll")
+  assert_true(defaults.watcher_kind == "poll")
   let explicit = parse_serve_args(["./book", "-n", "127.0.0.1", "-p", "8001"]).unwrap()
-  assert_eq(explicit.root, "./book")
-  assert_eq(explicit.hostname, "127.0.0.1")
-  assert_eq(explicit.port, 8001)
+  assert_true(explicit.root == "./book")
+  assert_true(explicit.hostname == "127.0.0.1")
+  assert_true(explicit.port == 8001)
   let with_dest = parse_serve_args(["./book", "-d", "dist"]).unwrap()
-  assert_eq(with_dest.dest_dir, Some("dist"))
+  assert_true(with_dest.dest_dir == Some("dist"))
   let with_open = parse_serve_args(["./book", "--open"]).unwrap()
   assert_true(with_open.open_browser)
   let with_native = parse_serve_args(["./book", "--watcher", "native"]).unwrap()
-  assert_eq(with_native.watcher_kind, "native")
+  assert_true(with_native.watcher_kind == "native")
   assert_true(parse_serve_args(["./book", "--watcher", "other"]) is None)
   assert_true(parse_serve_args(["-p"]) is None)
   assert_true(parse_serve_args(["./book", "--port", "bad"]) is None)
@@ -355,21 +357,21 @@ test "serve args parser handles defaults and flags" {
 
 ///|
 test "normalize localhost bind host" {
-  assert_eq(normalize_bind_host("localhost"), "127.0.0.1")
-  assert_eq(normalize_bind_host("127.0.0.1"), "127.0.0.1")
+  assert_true(normalize_bind_host("localhost") == "127.0.0.1")
+  assert_true(normalize_bind_host("127.0.0.1") == "127.0.0.1")
 }
 
 ///|
 test "resolve request path normalizes and rejects traversal" {
-  assert_eq(
-    resolve_request_path("/tmp/moonbook-serve", "/"),
+  assert_true(
+    resolve_request_path("/tmp/moonbook-serve", "/") ==
     Some("/tmp/moonbook-serve/index.html"),
   )
-  assert_eq(
-    resolve_request_path("/tmp/moonbook-serve", "/nested/page.html"),
+  assert_true(
+    resolve_request_path("/tmp/moonbook-serve", "/nested/page.html") ==
     Some("/tmp/moonbook-serve/nested/page.html"),
   )
-  assert_eq(resolve_request_path("/tmp/moonbook-serve", "/../secret"), None)
+  assert_true(resolve_request_path("/tmp/moonbook-serve", "/../secret") == None)
 }
 
 ///|
@@ -381,5 +383,7 @@ test "live reload path matching accepts relative and absolute endpoint values" {
 
 ///|
 test "live reload events use sse framing" {
-  assert_eq(live_reload_event("reload", "42"), "event: reload\ndata: 42\n\n")
+  assert_true(
+    live_reload_event("reload", "42") == "event: reload\ndata: 42\n\n",
+  )
 }

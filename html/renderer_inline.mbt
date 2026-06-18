@@ -21,7 +21,7 @@ fn render_inline_with_refs(
     } else if i + 1 < text.length() && text[i] == '[' && text[i + 1] == '^' {
       match text[i + 2:].find("]") {
         Some(end) => {
-          let name = text[i + 2:i + 2 + end].to_string()
+          let name = text[i + 2:i + 2 + end].to_owned()
           let id = slugify_heading(name)
           builder.write_string(
             "<sup class=\"footnote-reference\"><a href=\"#footnote-\{id}\" id=\"fr-\{id}\">\{escape_html(name)}</a></sup>",
@@ -36,7 +36,7 @@ fn render_inline_with_refs(
     } else if text[i] == '`' {
       match text[i + 1:].find("`") {
         Some(end) => {
-          let code = text[i + 1:i + 1 + end].to_string()
+          let code = text[i + 1:i + 1 + end].to_owned()
           builder.write_string("<code>\{escape_html(code)}</code>")
           i = i + end + 2
         }
@@ -48,7 +48,7 @@ fn render_inline_with_refs(
     } else if i + 1 < text.length() && text[i] == '*' && text[i + 1] == '*' {
       match text[i + 2:].find("**") {
         Some(end) => {
-          let content = text[i + 2:i + 2 + end].to_string()
+          let content = text[i + 2:i + 2 + end].to_owned()
           builder.write_string(
             "<strong>\{render_inline_with_refs(content, references)}</strong>",
           )
@@ -62,7 +62,7 @@ fn render_inline_with_refs(
     } else if i + 1 < text.length() && text[i] == '_' && text[i + 1] == '_' {
       match text[i + 2:].find("__") {
         Some(end) => {
-          let content = text[i + 2:i + 2 + end].to_string()
+          let content = text[i + 2:i + 2 + end].to_owned()
           builder.write_string(
             "<strong>\{render_inline_with_refs(content, references)}</strong>",
           )
@@ -76,7 +76,7 @@ fn render_inline_with_refs(
     } else if text[i] == '*' {
       match text[i + 1:].find("*") {
         Some(end) => {
-          let content = text[i + 1:i + 1 + end].to_string()
+          let content = text[i + 1:i + 1 + end].to_owned()
           builder.write_string(
             "<em>\{render_inline_with_refs(content, references)}</em>",
           )
@@ -90,7 +90,7 @@ fn render_inline_with_refs(
     } else if text[i] == '_' {
       match find_single_emphasis_end(text, i + 1, '_') {
         Some(end) => {
-          let content = text[i + 1:end].to_string()
+          let content = text[i + 1:end].to_owned()
           builder.write_string(
             "<em>\{render_inline_with_refs(content, references)}</em>",
           )
@@ -107,8 +107,8 @@ fn render_inline_with_refs(
           let close_index = i + 1 + mid
           match text[close_index + 2:].find(")") {
             Some(end) => {
-              let label = text[i + 1:close_index].to_string()
-              let href = text[close_index + 2:close_index + 2 + end].to_string()
+              let label = text[i + 1:close_index].to_owned()
+              let href = text[close_index + 2:close_index + 2 + end].to_owned()
               let fixed_href = fix_link(href)
               builder.write_string(
                 "<a href=\"\{escape_html(fixed_href)}\">\{render_inline_with_refs(label, references)}</a>",
@@ -124,7 +124,7 @@ fn render_inline_with_refs(
         None =>
           match text[i + 1:].find("]") {
             Some(end) => {
-              let label = text[i + 1:i + 1 + end].to_string()
+              let label = text[i + 1:i + 1 + end].to_owned()
               let key = label.to_lower()
               match references.get(key) {
                 Some(href) => {
@@ -152,8 +152,8 @@ fn render_inline_with_refs(
           let close_index = i + 2 + mid
           match text[close_index + 2:].find(")") {
             Some(end) => {
-              let alt = text[i + 2:close_index].to_string()
-              let src = text[close_index + 2:close_index + 2 + end].to_string()
+              let alt = text[i + 2:close_index].to_owned()
+              let src = text[close_index + 2:close_index + 2 + end].to_owned()
               let fixed_src = fix_link(src)
               builder.write_string(
                 "<img src=\"\{escape_html(fixed_src)}\" alt=\"\{escape_html(alt)}\">",
@@ -174,14 +174,14 @@ fn render_inline_with_refs(
     } else if text[i] == '<' {
       match text[i:].find(">") {
         Some(end) => {
-          let tag = text[i + 1:i + end].to_string()
+          let tag = text[i + 1:i + end].to_owned()
           if is_autolink(tag) {
             let fixed_href = fix_link(tag)
             builder.write_string(
               "<a href=\"\{escape_html(fixed_href)}\">\{escape_html(tag)}</a>",
             )
           } else {
-            let html = text[i:i + end + 1].to_string()
+            let html = text[i:i + end + 1].to_owned()
             builder.write_string(rewrite_html_attributes(html))
           }
           i = i + end + 1
@@ -214,7 +214,7 @@ fn inline_text_content(
     } else if i + 1 < text.length() && text[i] == '[' && text[i + 1] == '^' {
       match text[i + 2:].find("]") {
         Some(end) => {
-          builder.write_string(text[i + 2:i + 2 + end].to_string())
+          builder.write_string(text[i + 2:i + 2 + end].to_owned())
           i = i + end + 3
         }
         None => {
@@ -225,7 +225,7 @@ fn inline_text_content(
     } else if text[i] == '`' {
       match text[i + 1:].find("`") {
         Some(end) => {
-          builder.write_string(text[i + 1:i + 1 + end].to_string())
+          builder.write_string(text[i + 1:i + 1 + end].to_owned())
           i = i + end + 2
         }
         None => {
@@ -238,11 +238,11 @@ fn inline_text_content(
         (text[i] == '*' && text[i + 1] == '*') ||
         (text[i] == '_' && text[i + 1] == '_')
       ) {
-      let delimiter = text[i:i + 2].to_string()
+      let delimiter = text[i:i + 2].to_owned()
       match text[i + 2:].find(delimiter) {
         Some(end) => {
           builder.write_string(
-            inline_text_content(text[i + 2:i + 2 + end].to_string(), references),
+            inline_text_content(text[i + 2:i + 2 + end].to_owned(), references),
           )
           i = i + end + 4
         }
@@ -252,7 +252,7 @@ fn inline_text_content(
         }
       }
     } else if text[i] == '*' || text[i] == '_' {
-      let delimiter = text[i:i + 1].to_string()
+      let delimiter = text[i:i + 1].to_owned()
       let closing = if text[i] == '_' {
         find_single_emphasis_end(text, i + 1, '_')
       } else {
@@ -264,12 +264,12 @@ fn inline_text_content(
       match closing {
         Some(end) => {
           builder.write_string(
-            inline_text_content(text[i + 1:end].to_string(), references),
+            inline_text_content(text[i + 1:end].to_owned(), references),
           )
           i = end + 1
         }
         None => {
-          builder.write_string(text[i:i + 1].to_string())
+          builder.write_string(text[i:i + 1].to_owned())
           i += 1
         }
       }
@@ -277,7 +277,7 @@ fn inline_text_content(
       match text[i + 2:].find("](") {
         Some(mid) => {
           let close_index = i + 2 + mid
-          builder.write_string(text[i + 2:close_index].to_string())
+          builder.write_string(text[i + 2:close_index].to_owned())
           match text[close_index + 2:].find(")") {
             Some(end) => i = close_index + end + 3
             None => i += 1
@@ -293,7 +293,7 @@ fn inline_text_content(
         Some(mid) => {
           let close_index = i + 1 + mid
           builder.write_string(
-            inline_text_content(text[i + 1:close_index].to_string(), references),
+            inline_text_content(text[i + 1:close_index].to_owned(), references),
           )
           match text[close_index + 2:].find(")") {
             Some(end) => i = close_index + end + 3
@@ -303,7 +303,7 @@ fn inline_text_content(
         None =>
           match text[i + 1:].find("]") {
             Some(end) => {
-              let label = text[i + 1:i + 1 + end].to_string()
+              let label = text[i + 1:i + 1 + end].to_owned()
               let key = label.to_lower()
               match references.get(key) {
                 Some(_) => {
@@ -325,7 +325,7 @@ fn inline_text_content(
     } else if text[i] == '<' {
       match text[i:].find(">") {
         Some(end) => {
-          let tag = text[i + 1:i + end].to_string()
+          let tag = text[i + 1:i + end].to_owned()
           if is_autolink(tag) {
             builder.write_string(tag)
           }
@@ -361,7 +361,7 @@ fn scalar_width(text : String, index : Int) -> Int {
 
 ///|
 fn current_scalar(text : String, index : Int) -> String {
-  text[index:index + scalar_width(text, index)].to_string()
+  text[index:index + scalar_width(text, index)].to_owned()
 }
 
 ///|
@@ -413,8 +413,8 @@ fn fix_link(link : String) -> String {
   }
   match link.find("#") {
     Some(index) => {
-      let base = link[:index].to_string()
-      let anchor = link[index:].to_string()
+      let base = link[:index].to_owned()
+      let anchor = link[index:].to_owned()
       fix_link_path(base) + anchor
     }
     None => fix_link_path(link)
@@ -434,7 +434,7 @@ fn should_preserve_link(link : String) -> Bool {
 ///|
 fn fix_link_path(path : String) -> String {
   if path.has_suffix(".md") {
-    path[:path.length() - 3].to_string() + ".html"
+    path[:path.length() - 3].to_owned() + ".html"
   } else {
     path
   }
@@ -457,7 +457,7 @@ fn is_local_asset(path : String) -> Bool {
 ///|
 fn strip_link_anchor(path : String) -> String {
   match path.find("#") {
-    Some(index) => path[:index].to_string()
+    Some(index) => path[:index].to_owned()
     None => path
   }
 }

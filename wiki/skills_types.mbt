@@ -15,7 +15,7 @@ pub struct SkillRecord {
   overrides : Array[String]
   shadowed_by : Array[String]
   line_count : Int
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub struct SkillDoctorReport {
@@ -27,7 +27,7 @@ pub struct SkillDoctorReport {
   duplicate_names : Array[String]
   missing_reference_paths : Array[String]
   warnings : Array[String]
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub struct SkillInstallResult {
@@ -36,7 +36,7 @@ pub struct SkillInstallResult {
   destination_path : String
   source_path : String?
   action : String
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub struct SkillCompareResult {
@@ -55,7 +55,7 @@ pub struct SkillCompareResult {
   first_change_line : Int?
   selected_excerpt : Array[String]
   baseline_excerpt : Array[String]
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub struct SkillSyncResult {
@@ -66,7 +66,7 @@ pub struct SkillSyncResult {
   selected_path : String
   baseline_path : String
   summary : String
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 struct SkillSyncManifest {

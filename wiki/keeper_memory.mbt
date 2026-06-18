@@ -241,7 +241,7 @@ fn trim_first_entry(entries : Array[String]) -> Unit {
 fn keeper_entries(content : String) -> Array[String] {
   let entries : Array[String] = []
   for raw in content.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.has_prefix("- ") {
       entries.push(line)
     }
@@ -345,9 +345,9 @@ fn keeper_compact_text(text : String) -> String {
     .replace(old="\n", new=" ")
     .replace(old="\r", new=" ")
     .trim()
-    .to_string()
+    .to_owned()
   if normalized.length() > 180 {
-    normalized[:180].to_string() + "..."
+    normalized[:180].to_owned() + "..."
   } else {
     normalized
   }
@@ -363,7 +363,7 @@ test "keeper bounded entries dedupe and cap" {
     "Keeper Memory",
     "desc",
   )
-  assert_eq(entries, ["- beta", "- alpha", "- gamma"])
+  assert_true(entries == ["- beta", "- alpha", "- gamma"])
 }
 
 ///|

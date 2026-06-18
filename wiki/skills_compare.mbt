@@ -9,9 +9,9 @@ fn resolve_skill_selector(
   let matches : Array[SkillRecord] = []
   for record in records {
     let record_name = record.name.to_lower().to_string()
-    let basename = @path.Path(@pathx.dirname(record.path).to_string())
+    let basename = @path.Path(@pathx.dirname(record.path).to_owned())
       .basename()
-      .to_string()
+      .to_owned()
       .to_lower()
       .to_string()
     let extension_matches = match extension_filter {
@@ -93,11 +93,11 @@ fn summarize_skill_diff(
 ) -> SkillDiffSummary {
   let selected_lines : Array[String] = []
   for line in selected_text.split("\n") {
-    selected_lines.push(line.to_string())
+    selected_lines.push(line.to_owned())
   }
   let baseline_lines : Array[String] = []
   for line in baseline_text.split("\n") {
-    baseline_lines.push(line.to_string())
+    baseline_lines.push(line.to_owned())
   }
   let compared_line_count = if selected_lines.length() < baseline_lines.length() {
     selected_lines.length()
@@ -166,7 +166,7 @@ fn excerpt_lines(
 ) -> Array[String] {
   let lines : Array[String] = []
   for line in text.split("\n") {
-    lines.push(line.to_string())
+    lines.push(line.to_owned())
   }
   let start = if anchor_line - 1 <= 0 { 0 } else { anchor_line - 1 }
   let end = if start + radius > lines.length() {

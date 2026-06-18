@@ -34,8 +34,8 @@ fn render_markdown_with_refs(
   let mut in_code_block = false
 
   for raw_line in markdown.split("\n") {
-    let line = raw_line.to_string()
-    let trimmed = line.trim().to_string()
+    let line = raw_line.to_owned()
+    let trimmed = line.trim().to_owned()
     if trimmed.has_prefix("```") {
       flush_paragraph_with_refs(builder, paragraph, references)
       flush_lists_with_refs(builder, list_stack, references)
@@ -54,7 +54,7 @@ fn render_markdown_with_refs(
       } else {
         in_code_block = true
         let (language, modifiers) = parse_code_info(
-          trimmed[3:].trim().to_string(),
+          trimmed[3:].trim().to_owned(),
         )
         code_language = language
         code_modifiers = modifiers
@@ -119,7 +119,7 @@ fn render_markdown_with_refs(
       table_header = flush_table_with_refs(
         builder, table_header, table_rows, references,
       )
-      quote_lines.push(trimmed[2:].trim().to_string())
+      quote_lines.push(trimmed[2:].trim().to_owned())
       continue
     }
     let indent = list_indent(line)
@@ -134,7 +134,7 @@ fn render_markdown_with_refs(
         indent,
         false,
         1,
-        trimmed[2:].trim().to_string(),
+        trimmed[2:].trim().to_owned(),
       )
       continue
     }
@@ -172,7 +172,7 @@ fn render_markdown_with_refs(
         table_header = flush_table_with_refs(
           builder, table_header, table_rows, references,
         )
-        let text = trimmed[level + 1:].trim().to_string()
+        let text = trimmed[level + 1:].trim().to_owned()
         let id = unique_heading_id(
           inline_text_content(text, references),
           heading_ids,
@@ -207,7 +207,7 @@ fn render_markdown_with_refs(
 fn parse_code_info(info : String) -> (String, Array[String]) {
   let parts = info
     .split(",")
-    .map(fn(part) { part.trim().to_string() })
+    .map(fn(part) { part.trim().to_owned() })
     .filter(fn(part) { !part.is_empty() })
     .to_array()
   if parts.is_empty() {
@@ -299,7 +299,7 @@ fn code_hidelines_prefix(
 ) -> String {
   for modifier in modifiers {
     if modifier.has_prefix("hidelines=") {
-      return modifier["hidelines=".length():].to_string()
+      return modifier["hidelines=".length():].to_owned()
     }
   }
   if language == "rust" {
@@ -322,10 +322,10 @@ fn remove_hidden_prefix(line : String, prefix : String) -> String? {
   if prefix.is_empty() {
     return None
   }
-  let trimmed = line.trim_start().to_string()
+  let trimmed = line.trim_start().to_owned()
   let indent_len = line.length() - trimmed.length()
   if trimmed.has_prefix(prefix) {
-    Some(line[:indent_len].to_string() + trimmed[prefix.length():].to_string())
+    Some(line[:indent_len].to_owned() + trimmed[prefix.length():].to_owned())
   } else {
     None
   }
@@ -333,11 +333,11 @@ fn remove_hidden_prefix(line : String, prefix : String) -> String? {
 
 ///|
 fn render_rust_code_line(line : String) -> String {
-  let trimmed = line.trim_start().to_string()
+  let trimmed = line.trim_start().to_owned()
   let indent_len = line.length() - trimmed.length()
-  let indent = line[:indent_len].to_string()
+  let indent = line[:indent_len].to_owned()
   if trimmed.has_prefix("##") {
-    return escape_html(indent + trimmed[1:].to_string())
+    return escape_html(indent + trimmed[1:].to_owned())
   }
   if trimmed.has_prefix("#[") {
     return escape_html(line)
@@ -351,11 +351,11 @@ fn render_rust_code_line(line : String) -> String {
     } else if trimmed.has_prefix("#!") {
       indent + trimmed
     } else if trimmed.has_prefix("# ") {
-      indent + trimmed[2:].to_string()
+      indent + trimmed[2:].to_owned()
     } else if trimmed.has_prefix("#[") {
       line
     } else {
-      indent + trimmed[1:].to_string()
+      indent + trimmed[1:].to_owned()
     }
     return "<span class=\"boring\">\{escape_html(content)}</span>"
   }
@@ -367,7 +367,7 @@ fn strip_duplicate_leading_title(
   markdown : String,
   chapter : @core.Chapter,
 ) -> String {
-  let lines = markdown.split("\n").map(fn(line) { line.to_string() }).to_array()
+  let lines = markdown.split("\n").map(fn(line) { line.to_owned() }).to_array()
   if lines.is_empty() {
     return markdown
   }
@@ -378,10 +378,10 @@ fn strip_duplicate_leading_title(
   if first_content >= lines.length() {
     return markdown
   }
-  let trimmed = lines[first_content].trim().to_string()
+  let trimmed = lines[first_content].trim().to_owned()
   match heading_level(trimmed) {
     Some(level) => {
-      let title = trimmed[level + 1:].trim().to_string()
+      let title = trimmed[level + 1:].trim().to_owned()
       if title == chapter.name || title == chapter.display() {
         lines[first_content + 1:].join("\n")
       } else {
@@ -521,9 +521,9 @@ fn render_list_item_with_refs(
 ///|
 fn parse_task_list_item(item : String) -> (Bool, String)? {
   if item.has_prefix("[ ] ") {
-    Some((false, item[4:].to_string()))
+    Some((false, item[4:].to_owned()))
   } else if item.has_prefix("[x] ") || item.has_prefix("[X] ") {
-    Some((true, item[4:].to_string()))
+    Some((true, item[4:].to_owned()))
   } else {
     None
   }
@@ -601,7 +601,7 @@ fn is_table_separator(line : String) -> Bool {
     return false
   }
   for piece in pieces {
-    let trimmed = piece.trim().to_string()
+    let trimmed = piece.trim().to_owned()
     if trimmed.is_empty() {
       return false
     }
@@ -618,7 +618,7 @@ fn is_table_separator(line : String) -> Bool {
 fn parse_table_row(line : String) -> Array[String] {
   line
   .split("|")
-  .map(fn(piece) { piece.trim().to_string() })
+  .map(fn(piece) { piece.trim().to_owned() })
   .filter(fn(piece) { !piece.is_empty() })
   .to_array()
 }
@@ -630,7 +630,7 @@ fn parse_table_alignments(line : String) -> Array[String] {
 
 ///|
 fn parse_alignment_piece(piece : String) -> String {
-  let trimmed = piece.trim().to_string()
+  let trimmed = piece.trim().to_owned()
   let left = trimmed.has_prefix(":")
   let right = trimmed.has_suffix(":")
   if left && right {
@@ -662,7 +662,7 @@ fn ordered_list_item(line : String) -> (Int, String)? {
   match dot_index {
     Some(index) =>
       if index + 1 < line.length() && line[index + 1] == ' ' {
-        Some((number, line[index + 2:].trim().to_string()))
+        Some((number, line[index + 2:].trim().to_owned()))
       } else {
         None
       }
@@ -727,7 +727,7 @@ fn slugify_heading(text : String) -> String {
   if slug.is_empty() {
     ""
   } else if slug[slug.length() - 1] == '-' {
-    slug[:slug.length() - 1].to_string()
+    slug[:slug.length() - 1].to_owned()
   } else {
     slug
   }

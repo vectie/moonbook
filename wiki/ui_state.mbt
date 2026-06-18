@@ -2,7 +2,7 @@
 pub struct UiStatusChip {
   label : String
   tone : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct UiMetric {
@@ -10,21 +10,21 @@ pub struct UiMetric {
   value : String
   note : String
   tone : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct UiWorkflowItem {
   title : String
   detail : String
   status : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct UiPanelItem {
   title : String
   detail : String
   meta : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct UiJourneyItem {
@@ -33,7 +33,7 @@ pub struct UiJourneyItem {
   status : String
   summary : String
   highlights : Array[String]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct UiChapterLink {
@@ -41,7 +41,7 @@ pub struct UiChapterLink {
   href : String
   source_path : String
   number : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct UiSkillDiagnostics {
@@ -55,7 +55,7 @@ pub struct UiSkillDiagnostics {
   duplicate_names : Array[String]
   missing_reference_paths : Array[String]
   warnings : Array[String]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct UiSkillItem {
@@ -83,14 +83,14 @@ pub struct UiSkillItem {
   compare_selected_excerpt : Array[String]
   compare_baseline_excerpt : Array[String]
   content : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct UiResearchReportSection {
   title : String
   detail : String
   evidence : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 priv struct ResearchEvidenceRow {
@@ -106,7 +106,7 @@ pub struct UiMarketingSection {
   title : String
   body : String
   bullets : Array[String]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct UiMarketingBrief {
@@ -114,7 +114,7 @@ pub struct UiMarketingBrief {
   headline : String
   lede : String
   sections : Array[UiMarketingSection]
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub struct UiState {
@@ -138,7 +138,7 @@ pub struct UiState {
   research_long_report : String
   research_report : Array[UiResearchReportSection]
   synthesis_preview : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 pub async fn generate_ui_state(root : String) -> UiState {
@@ -242,15 +242,15 @@ pub async fn write_ui_state(root : String, output_path : String) -> String {
 async fn ui_project_title(root : String) -> String {
   let catalog = catalog_name(root).trim()
   if !catalog.is_empty() && catalog != "LLM Wiki" {
-    return catalog.to_string()
+    return catalog.to_owned()
   }
   match ui_research_title(root) {
     Some(title) if !title.trim().is_empty() => return title
     _ => ()
   }
-  let leaf = @path.Path(@pathx.normalize(root)).basename().to_string()
+  let leaf = @path.Path(@pathx.normalize(root)).basename().to_owned()
   if leaf.has_prefix("research-") {
-    return titleize_topic_slug(leaf[9:].to_string())
+    return titleize_topic_slug(leaf[9:].to_owned())
   }
   titleize_topic_slug(leaf)
 }
@@ -281,9 +281,9 @@ async fn ui_research_title(root : String) -> String? {
 ///|
 fn first_projection_markdown_heading(markdown : String) -> String? {
   for raw in markdown.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.has_prefix("# ") {
-      return Some(line[2:].trim().to_string())
+      return Some(line[2:].trim().to_owned())
     }
   }
   None
@@ -291,7 +291,7 @@ fn first_projection_markdown_heading(markdown : String) -> String? {
 
 ///|
 fn normalize_research_projection_title(title : String) -> String {
-  let mut normalized = title.trim().to_string()
+  let mut normalized = title.trim().to_owned()
   for
     suffix in [
       ": Deep Research Analysis", " - Deep Research Analysis", " Deep Research Analysis",
@@ -300,7 +300,7 @@ fn normalize_research_projection_title(title : String) -> String {
     if normalized.has_suffix(suffix) {
       normalized = normalized[:normalized.length() - suffix.length()]
         .trim()
-        .to_string()
+        .to_owned()
     }
   }
   let lower = normalized.to_lower()
@@ -341,7 +341,7 @@ fn ui_project_summary(
 fn titleize_topic_slug(slug : String) -> String {
   let words : Array[String] = []
   for raw in slug.replace(old="_", new="-").to_string().split("-") {
-    let token = raw.trim().to_string()
+    let token = raw.trim().to_owned()
     if token.is_empty() {
       continue
     }
@@ -349,7 +349,7 @@ fn titleize_topic_slug(slug : String) -> String {
       words.push("LLM")
     } else {
       words.push(
-        token[:1].to_upper().to_string() + token[1:].to_lower().to_string(),
+        token[:1].to_upper().to_owned() + token[1:].to_lower().to_owned(),
       )
     }
   }
@@ -406,9 +406,9 @@ fn compact_task_label(text : String) -> String {
   } else if !lane.is_empty() {
     lane
   } else if normalized.has_prefix("goal-") {
-    normalized[5:].to_string()
+    normalized[5:].to_owned()
   } else {
-    normalized.to_string()
+    normalized.to_owned()
   }
   let cleaned = rebuilt.replace(old="_", new=" ").to_string()
   let titled = titleize_topic_slug(
@@ -422,7 +422,7 @@ fn clamp_label(text : String, max_len : Int) -> String {
   if text.length() <= max_len {
     text
   } else {
-    text[:max_len - 1].to_string() + "…"
+    text[:max_len - 1].to_owned() + "…"
   }
 }
 
@@ -822,7 +822,7 @@ async fn ui_chapter_links(root : String) -> Array[UiChapterLink] {
   let items : Array[UiChapterLink] = []
   let mut number = 1
   for raw in @fsx.read_file(summary_path).split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if !line.has_prefix("- [") {
       continue
     }
@@ -968,11 +968,11 @@ fn summary_link_parts(line : String) -> (String, String)? {
       if line.has_suffix(")") {
         Some(
           (
-            line[3:split].to_string(),
+            line[3:split].to_owned(),
             line[split + 2:line.length() - 1]
             .strip_prefix("./")
             .unwrap_or(line[split + 2:line.length() - 1])
-            .to_string(),
+            .to_owned(),
           ),
         )
       } else {
@@ -985,7 +985,7 @@ fn summary_link_parts(line : String) -> (String, String)? {
 ///|
 fn markdown_href_to_html(href : String) -> String {
   if href.has_suffix(".md") {
-    href[:href.length() - 3].to_string() + ".html"
+    href[:href.length() - 3].to_owned() + ".html"
   } else {
     href
   }
@@ -1002,7 +1002,7 @@ async fn ui_synthesis_preview(root : String) -> String {
   }
   let lines : Array[String] = []
   for raw in @fsx.read_file(map_path).split("\n") {
-    let line = raw.to_string()
+    let line = raw.to_owned()
     if line.trim().is_empty() {
       continue
     }

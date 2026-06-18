@@ -6,7 +6,7 @@ pub struct IngestResult {
   imported : Bool
   related_pages : Array[String]
   keeper_packet_path : String
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 priv struct IngestKeeperProposal {
@@ -229,7 +229,7 @@ async fn import_source_file(raw_dir : String, source_path : String) -> String {
   let imported_dir = @path.Path(raw_dir)
     .join(@path.Path("imported"))
     .to_string()
-  let basename = @path.Path(source_path).basename().to_string()
+  let basename = @path.Path(source_path).basename().to_owned()
   let destination = unique_import_path(imported_dir, basename)
   @fsx.write_bytes(destination, @fsx.read_bytes(source_path), create=0o644)
   destination
@@ -237,11 +237,11 @@ async fn import_source_file(raw_dir : String, source_path : String) -> String {
 
 ///|
 async fn unique_import_path(imported_dir : String, basename : String) -> String {
-  let ext = @pathx.ext(basename).to_string()
+  let ext = @pathx.ext(basename).to_owned()
   let stem = if ext.is_empty() {
     basename
   } else {
-    basename[:basename.length() - ext.length()].to_string()
+    basename[:basename.length() - ext.length()].to_owned()
   }
   let mut index = 0
   while true {
@@ -288,7 +288,7 @@ async fn validate_ingestable_source(path : String) -> Unit {
 
 ///|
 async fn source_rejection_reason(path : String) -> String? {
-  let basename = @path.Path(path).basename().to_string()
+  let basename = @path.Path(path).basename().to_owned()
   let lowered = basename.to_lower()
   if basename.is_blank() {
     return Some("missing file name")
@@ -300,7 +300,7 @@ async fn source_rejection_reason(path : String) -> String? {
     return Some("workspace placeholder files are not ingestable sources")
   }
   if is_text_source(path) {
-    if @fsx.read_file(path).trim().to_string().is_blank() {
+    if @fsx.read_file(path).trim().to_owned().is_blank() {
       return Some("empty text files are not ingestable sources")
     }
   } else if @fsx.read_bytes(path).length() == 0 {

@@ -2,6 +2,7 @@
 package "vectie/moonbook/summary"
 
 import {
+  "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "vectie/moonbook/core",
 }
@@ -17,20 +18,20 @@ pub struct Link {
   location : String?
   number : @core.SectionNumber?
   nested_items : Array[SummaryItem]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct Summary {
   title : String?
   prefix_chapters : Array[SummaryItem]
   numbered_chapters : Array[SummaryItem]
   suffix_chapters : Array[SummaryItem]
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub enum SummaryItem {
   Link(Link)
   Separator
   PartTitle(String)
-} derive(Show, ToJson, @json.FromJson)
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 // Type aliases
 

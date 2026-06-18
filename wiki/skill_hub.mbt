@@ -4,7 +4,7 @@ pub struct SkillHubServeOptions {
   hostname : String
   port : Int
   open_browser : Bool
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub fn make_skill_hub_serve_options(
@@ -29,7 +29,7 @@ struct SkillHubRecord {
   content : String
   snapshot_count : Int
   mtime : Int64
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 struct SkillHubRootStatus {
@@ -37,7 +37,7 @@ struct SkillHubRootStatus {
   category : String
   exists : Bool
   hit_count : Int
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 struct SkillHubState {
@@ -50,7 +50,7 @@ struct SkillHubState {
   roots : Array[SkillHubRootStatus]
   skills : Array[SkillHubRecord]
   generated_at : Int
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 struct SkillHubDebug {
@@ -64,7 +64,7 @@ struct SkillHubDebug {
   errors : Array[String]
   duration_ms : Int
   generated_at : Int
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 struct SkillSnapshotRecord {
@@ -73,7 +73,7 @@ struct SkillSnapshotRecord {
   created_at : Int
   summary : String
   content_path : String
-} derive(Show, ToJson, FromJson)
+} derive(Debug, ToJson, FromJson)
 
 ///|
 struct SkillHubSaveRequest {
@@ -331,7 +331,7 @@ fn skill_hub_scan_roots(root : String) -> Array[SkillHubScanRoot] {
       path: @path.Path(current).join(@path.Path(".claude/skills")).to_string(),
       category: "cwd-claude",
     })
-    let parent = @pathx.dirname(current).to_string()
+    let parent = @pathx.dirname(current).to_owned()
     if parent == current {
       break
     }
@@ -351,7 +351,7 @@ fn skill_hub_extra_paths() -> Array[String] {
     match @sys.get_env_var(key) {
       Some(text) =>
         for piece in text.replace(old=",", new=":").split(":") {
-          let path = piece.to_string().trim().to_string()
+          let path = piece.to_owned().trim().to_owned()
           if !path.is_empty() && !values.contains(path) {
             values.push(path)
           }
@@ -386,7 +386,7 @@ async fn collect_skill_hub_records_from_root(
   }
   match kind {
     @fs.FileKind::Directory => {
-      let base = @path.Path(path).basename().to_string()
+      let base = @path.Path(path).basename().to_owned()
       if base == "skills" {
         for child in @fsx.list_directory(path) {
           let child_kind = @fs.kind(child, follow_symlink=false) catch {
@@ -396,7 +396,7 @@ async fn collect_skill_hub_records_from_root(
             @fs.FileKind::Directory =>
               @path.Path(child).join(@path.Path("SKILL.md")).to_string()
             _ =>
-              if @path.Path(child).basename().to_string() == "SKILL.md" {
+              if @path.Path(child).basename().to_owned() == "SKILL.md" {
                 child
               } else {
                 continue
@@ -438,7 +438,7 @@ async fn collect_skill_hub_records_from_root(
 
 ///|
 fn should_descend_skill_hub_dir(path : String) -> Bool {
-  let base = @path.Path(path).basename().to_string()
+  let base = @path.Path(path).basename().to_owned()
   ![
     ".git", "node_modules", "_build", "book", ".moonbook-skill-hub", ".DS_Store",
   ].contains(base)
@@ -679,7 +679,7 @@ async fn[T : @json.FromJson] parse_skill_hub_json(body : &@io.Reader) -> T {
 ///|
 fn strip_query(path : String) -> String {
   match path.find("?") {
-    Some(index) => path[:index].to_string()
+    Some(index) => path[:index].to_owned()
     None => path
   }
 }
@@ -689,11 +689,11 @@ fn query_value(path : String, key : String) -> String? {
   match path.find("?") {
     Some(index) => {
       for piece in path[index + 1:].split("&") {
-        let entry = piece.to_string()
+        let entry = piece.to_owned()
         match entry.find("=") {
           Some(split) =>
             if entry[:split] == key {
-              return Some(entry[split + 1:].to_string())
+              return Some(entry[split + 1:].to_owned())
             }
           None => ()
         }

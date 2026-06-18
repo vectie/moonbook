@@ -220,7 +220,7 @@ async fn skill_body_excerpt_block(root : String, task : BookTask) -> String {
     builder.write_string("\n### `\{relative}`\n")
     let mut line_count = 0
     for raw in @fsx.read_file(absolute).split("\n") {
-      let line = raw.to_string()
+      let line = raw.to_owned()
       if line.trim().is_empty() && line_count > 24 {
         continue
       }
@@ -539,9 +539,9 @@ async fn skill_markdown_paths(root : String) -> Array[String] {
 ///|
 fn parse_skill_name(content : String, fallback : String) -> String {
   for raw in content.split("\n") {
-    let line = raw.trim().to_string()
+    let line = raw.trim().to_owned()
     if line.has_prefix("name:") {
-      return line.strip_prefix("name:").unwrap_or(line).trim().to_string()
+      return line.strip_prefix("name:").unwrap_or(line).trim().to_owned()
     }
   }
   fallback
@@ -589,7 +589,7 @@ fn skill_name_from_path(path : String) -> String {
   } else if normalized.contains("/skills/review-decision/") {
     "review-decision"
   } else {
-    @path.Path(normalized).basename().to_string()
+    @path.Path(normalized).basename().to_owned()
   }
 }
 
@@ -624,7 +624,7 @@ async fn select_context_pages(
     let relative = relative_to_root(path, workspace.root)
       .strip_prefix("wiki/")
       .unwrap_or(relative_to_root(path, workspace.root))
-      .to_string()
+      .to_owned()
     if selected.contains(relative) {
       continue
     }

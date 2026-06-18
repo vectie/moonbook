@@ -4,7 +4,7 @@ pub struct RenderContext {
   build_dir : String
   config : @core.Config
   book : @core.Book
-} derive(Show, ToJson)
+} derive(Debug, ToJson)
 
 ///|
 pub fn new_render_context(
@@ -100,7 +100,7 @@ async fn ensure_dir(path : String) -> Unit {
 
 ///|
 async fn ensure_parent_dir(path : String) -> Unit {
-  let parent = @pathx.dirname(path).to_string()
+  let parent = @pathx.dirname(path).to_owned()
   if parent != "." && parent != path {
     ensure_dir(parent)
   }
@@ -211,13 +211,14 @@ async fn copy_static_assets(
 
 ///|
 test "relative href handles nested chapter paths" {
-  assert_eq(relative_href("index.html", "guide/index.html"), "guide/index.html")
-  assert_eq(
-    relative_href("guide/index.html", "chapter_1.html"),
-    "../chapter_1.html",
+  assert_true(
+    relative_href("index.html", "guide/index.html") == "guide/index.html",
   )
-  assert_eq(
-    relative_href("guide/intro.html", "guide/deep/topic.html"),
+  assert_true(
+    relative_href("guide/index.html", "chapter_1.html") == "../chapter_1.html",
+  )
+  assert_true(
+    relative_href("guide/intro.html", "guide/deep/topic.html") ==
     "deep/topic.html",
   )
 }
@@ -281,7 +282,7 @@ test "chapter body strips duplicate leading title" {
     source_path=Some("chapter_1.md"),
   )
   let body = render_chapter_body(chapter)
-  assert_eq(body.split("<h1>").to_array().length(), 2)
+  assert_true(body.split("<h1>").to_array().length() == 2)
   assert_true(body.contains("<p>Hello</p>"))
 }
 
@@ -326,7 +327,7 @@ test "inline text content handles escaped emoji" {
   let text = inline_text_content("\\🦞 [ref]", {
     "ref": "https://example.com",
   })
-  assert_eq(text, "🦞 ref")
+  assert_true(text == "🦞 ref")
 }
 
 ///|
@@ -418,17 +419,16 @@ test "collect markdown assets includes raw html src values" {
   let assets = collect_markdown_assets(
     "<img src=\"images/pic.png\"> <a href=\"chapter.md\">chapter</a>",
   )
-  assert_eq(assets, ["images/pic.png", "chapter.md"])
+  assert_true(assets == ["images/pic.png", "chapter.md"])
 }
 
 ///|
 test "non-file URL schemes are preserved and not treated as local assets" {
-  assert_eq(
-    fix_link("data:image/svg+xml;base64,abc"),
-    "data:image/svg+xml;base64,abc",
+  assert_true(
+    fix_link("data:image/svg+xml;base64,abc") == "data:image/svg+xml;base64,abc",
   )
-  assert_eq(fix_link("javascript:void(0)"), "javascript:void(0)")
-  assert_eq(fix_link("tel:+86123456"), "tel:+86123456")
+  assert_true(fix_link("javascript:void(0)") == "javascript:void(0)")
+  assert_true(fix_link("tel:+86123456") == "tel:+86123456")
   assert_false(is_local_asset("data:image/svg+xml;base64,abc"))
   assert_false(is_local_asset("javascript:void(0)"))
   assert_false(is_local_asset("tel:+86123456"))
@@ -438,9 +438,9 @@ test "non-file URL schemes are preserved and not treated as local assets" {
 test "split footnotes separates definitions from body" {
   let (body, footnotes) = split_footnotes("Hello[^1]\n\n[^1]: Footnote text\n")
   assert_true(body.contains("Hello[^1]"))
-  assert_eq(footnotes.length(), 1)
-  assert_eq(footnotes[0].0, "1")
-  assert_eq(footnotes[0].1, "Footnote text")
+  assert_true(footnotes.length() == 1)
+  assert_true(footnotes[0].0 == "1")
+  assert_true(footnotes[0].1 == "Footnote text")
 }
 
 ///|
@@ -461,8 +461,8 @@ test "render chapter body renders footnote references and definitions" {
 ///|
 test "parse code info splits language and modifiers" {
   let (language, modifiers) = parse_code_info("rust,ignore,editable")
-  assert_eq(language, "rust")
-  assert_eq(modifiers, ["ignore", "editable"])
+  assert_true(language == "rust")
+  assert_true(modifiers == ["ignore", "editable"])
 }
 
 ///|
@@ -524,14 +524,14 @@ test "render markdown applies rust hideline rules" {
 
 ///|
 test "parse task list item detects checked and unchecked markers" {
-  assert_eq(parse_task_list_item("[ ] todo"), Some((false, "todo")))
-  assert_eq(parse_task_list_item("[x] done"), Some((true, "done")))
-  assert_eq(parse_task_list_item("plain"), None)
+  assert_true(parse_task_list_item("[ ] todo") == Some((false, "todo")))
+  assert_true(parse_task_list_item("[x] done") == Some((true, "done")))
+  assert_true(parse_task_list_item("plain") == None)
 }
 
 ///|
 test "ordered list item parses explicit start number" {
-  assert_eq(ordered_list_item("3. third"), Some((3, "third")))
+  assert_true(ordered_list_item("3. third") == Some((3, "third")))
 }
 
 ///|
@@ -560,7 +560,7 @@ test "collect markdown assets finds image sources" {
   let assets = collect_markdown_assets(
     "![One](images/one.png) and ![Two](./nested/two.jpg)",
   )
-  assert_eq(assets, ["images/one.png", "./nested/two.jpg"])
+  assert_true(assets == ["images/one.png", "./nested/two.jpg"])
 }
 
 ///|
@@ -568,9 +568,10 @@ test "collect markdown assets finds normal file links" {
   let assets = collect_markdown_assets(
     "[Config](downloads/openclaw-config.json) and [Archive](./downloads/package.zip#latest)",
   )
-  assert_eq(assets, [
-    "downloads/openclaw-config.json", "./downloads/package.zip#latest",
-  ])
+  assert_true(
+    assets ==
+    ["downloads/openclaw-config.json", "./downloads/package.zip#latest"],
+  )
 }
 
 ///|
@@ -583,17 +584,17 @@ test "html page links are not treated as copyable local assets" {
 ///|
 test "404 path helpers support default custom and disabled cases" {
   let default_cfg = @core.default()
-  assert_eq(not_found_input_path(default_cfg), Some("404.md"))
-  assert_eq(not_found_output_path(default_cfg), Some("404.html"))
+  assert_true(not_found_input_path(default_cfg) == Some("404.md"))
+  assert_true(not_found_output_path(default_cfg) == Some("404.html"))
   let custom_cfg = default_cfg.set(
     "output.html.input-404",
     Json::string("not-found.md"),
   )
-  assert_eq(not_found_input_path(custom_cfg), Some("not-found.md"))
-  assert_eq(not_found_output_path(custom_cfg), Some("not-found.html"))
+  assert_true(not_found_input_path(custom_cfg) == Some("not-found.md"))
+  assert_true(not_found_output_path(custom_cfg) == Some("not-found.html"))
   let disabled_cfg = default_cfg.set("output.html.input-404", Json::string(""))
-  assert_eq(not_found_input_path(disabled_cfg), None)
-  assert_eq(not_found_output_path(disabled_cfg), None)
+  assert_true(not_found_input_path(disabled_cfg) == None)
+  assert_true(not_found_output_path(disabled_cfg) == None)
 }
 
 ///|
@@ -634,9 +635,9 @@ test "configured html assets are exposed for copying" {
   let config = @core.default()
     .set("output.html.additional-css", ["theme/custom.css"].to_json())
     .set("output.html.additional-js", ["scripts/book.js"].to_json())
-  assert_eq(configured_html_assets(config), [
-    "theme/custom.css", "scripts/book.js",
-  ])
+  assert_true(
+    configured_html_assets(config) == ["theme/custom.css", "scripts/book.js"],
+  )
 }
 
 ///|
@@ -644,9 +645,9 @@ test "renderer text falls back and supports ui overrides" {
   let config = @core.default()
     .set("output.html.ui.copy", Json::string("复制"))
     .set("output.html.ui.previous", Json::string("上一页"))
-  assert_eq(renderer_text(config, "copy", "Copy"), "复制")
-  assert_eq(renderer_text(config, "previous", "Previous"), "上一页")
-  assert_eq(renderer_text(config, "next", "Next"), "Next")
+  assert_true(renderer_text(config, "copy", "Copy") == "复制")
+  assert_true(renderer_text(config, "previous", "Previous") == "上一页")
+  assert_true(renderer_text(config, "next", "Next") == "Next")
 }
 
 ///|
@@ -693,7 +694,7 @@ test "context title supports configurable default title" {
     "output.html.ui.default-title",
     Json::string("Docs"),
   )
-  assert_eq(context_title(config), "Docs")
+  assert_true(context_title(config) == "Docs")
 }
 
 ///|
