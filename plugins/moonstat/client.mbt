@@ -51,8 +51,27 @@ pub async fn discover() -> Client {
 }
 
 ///|
+pub async fn discover_from_suite_status() -> Client? {
+  let home = @sys.get_env_var("HOME").unwrap_or(".")
+  let status_path = home + "/.moonsuite/suite-status.json"
+  let content = @fs.read_file(status_path).text() catch { _ => "" }
+  if content.is_empty() {
+    return None
+  }
+  let parsed = @json.parse(content) catch { _ => Json::null() }
+  moonstat_base_url_from_status(parsed).map(fn(base_url) {
+    Client::{ base_url, }
+  })
+}
+
+///|
 pub fn Client::base_url(self : Client) -> String {
   self.base_url
+}
+
+///|
+pub fn Client::route_openclaw_chat_url(self : Client) -> String {
+  self.base_url + "/openclaw/v1/chat/completions"
 }
 
 ///|
@@ -151,6 +170,41 @@ pub async fn Client::get_text(
   } else {
     Err("HTTP \{response.code}")
   }
+}
+
+///|
+pub async fn Client::post(
+  self : Client,
+  path : String,
+  body : Json,
+) -> Result[Json, String] {
+  let url = self.base_url + path
+  let client = @http.Client::new(url, headers={
+    "Content-Type": "application/json",
+  }) catch {
+    err => return Err("client error: \{err}")
+  }
+  defer client.close()
+  let response = client.post("", body.stringify()) catch {
+    err => return Err("request error: \{err}")
+  }
+  if response.code == 200 {
+    let body = client.read_all().text() catch {
+        err => return Err("read error: \{err}")
+      }
+    let parsed = @json.parse(body) catch { _ => return Err("parse error") }
+    Ok(parsed)
+  } else {
+    Err("HTTP \{response.code}")
+  }
+}
+
+///|
+pub async fn Client::route_openclaw_chat(
+  self : Client,
+  body : Json,
+) -> Result[Json, String] {
+  self.post("/openclaw/v1/chat/completions", body)
 }
 
 ///|
