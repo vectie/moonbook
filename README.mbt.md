@@ -35,7 +35,7 @@ It is designed for:
 - 🧠 bounded Keeper memory for active, user, and working context
 - 🧠 wiki ingest/query/review/lint flows
 - 🔌 optional runtime integration through extension packs
-- 🏙️ optional `moontown` add-on for town-to-book orchestration without changing the core wiki contract
+- 🏙️ optional `moontown` extension runtime for town-to-book orchestration without changing the core wiki contract
 
 ## ✨ What MoonBook Feels Like
 
@@ -75,7 +75,7 @@ MoonBook is strongest when you want one local system to handle:
 - `2026-04-15`: added an optional `site/` authored website layer for wiki workspaces, plus a dedicated marketing routine/skill boundary, and taught the build pipeline to publish it into `book/site/` alongside the rendered book and wiki
 - `2026-04-19`: clarified the website split so `site/index.html` stays a standalone repo-owned source page while the live generated projections are emitted separately into `book/site/generated/`
 - `2026-04-05`: split wiki maintenance internals into dedicated workspace, maintenance-plan, and review-helper files; tightened summary dedupe by page path; cleaned entity/concept/claim normalization; updated the docs to reflect the refactored wiki package layout
-- `2026-04-08`: added an extension API surface for `accept_goal`, `produce_task_batch`, `hydrate_worker_context`, `persist_result`, `summarize_state`, and `report_health`, plus an optional `moontown` extension pack so MoonBook can act as a per-domain harness without losing its standalone wiki behavior
+- `2026-04-08`: added an extension API surface for `accept_goal`, `produce_task_batch`, `hydrate_worker_context`, `persist_result`, `summarize_state`, and `report_health`, plus a `moontown` extension runtime so MoonBook can act as a per-domain harness without losing its standalone wiki behavior
 - `2026-04-05`: added wiki review lifecycle commands with pending/approved queues, maintenance-plan updates, query-signal propagation, stronger claim status/support/confidence handling, and review-queue lint checks
 - `2026-04-05`: deepened wiki ingest so sources now update related entity pages, concept pages, relationship sections, synthesis pages, and a structured claims register instead of only generating source summaries
 - `2026-04-05`: refactored MoonClaw integration into an explicit extension-pack model so wiki workspaces stay agent-agnostic by default
@@ -155,7 +155,7 @@ MoonBook is strongest when you want one local system to handle:
   - crowded Keeper memory and missing evidence capture
 - 🔌 extension-based add-ons with `moonclaw` and `moontown` packs
 - 🧱 workspace-owned source semantics so placeholder files like `.gitkeep` do not become durable source pages
-- 🏙️ optional `moontown` add-on that exposes a town-facing extension API over the same workspace
+- 🏙️ optional `moontown` extension runtime that exposes a town-facing extension API over the same workspace
 - 🧠 Keeper memory bootstrap with `keeper/MEMORY.md`, `keeper/USER.md`, `keeper/WORKING.md`, and `keeper/POLICY.md`
 - 🧾 evidence tracking in `wiki/synthesis/evidence.md` for persisted worker results and review outcomes
 - 🗺️ synthesis coverage tracking in `wiki/synthesis/map.md`

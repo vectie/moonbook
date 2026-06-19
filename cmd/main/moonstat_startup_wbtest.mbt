@@ -1,8 +1,8 @@
 ///|
-test "moonstat startup messages describe documentation bridge and standalone fallback" {
+test "moonstat startup messages describe suite telemetry and standalone mode" {
   assert_eq(
     moonstat_startup_ready_message("http://127.0.0.1:15721"),
-    "Moonstat available at http://127.0.0.1:15721; documentation usage/statistics bridge enabled",
+    "Moonstat available at http://127.0.0.1:15721; suite telemetry endpoint enabled",
   )
   assert_eq(
     moonstat_startup_unavailable_message(

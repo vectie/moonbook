@@ -12,7 +12,7 @@ project as the target product.
   `book load`, `book test`, and `book clean`
 - first wiki bootstrap flow with `moonbook wiki init`
 - first extension-based runtime integration flow with `moonbook wiki enable`
-- optional `moontown` add-on for a town-facing extension API boundary
+- optional `moontown` extension runtime for town-facing book orchestration
 - `moontown`-aligned catalog export for persisted town bootstrap
 - first wiki ingest/query/review/lint flows
 - reusable extension API flow with `moonbook wiki extension`
@@ -99,8 +99,8 @@ High-value next steps:
    enforcement across more page families
 3. make research-envelope materialization smarter about source IDs, entity
    relationships, and contradiction-aware synthesis
-4. turn the `moontown` add-on from a manifest bridge into a stronger town/book
-   integration contract
+4. strengthen the `moontown` extension runtime around explicit town/book
+   readiness, event, and review contracts
 5. turn the seeded MoonClaw wiki job profiles into a real domain workflow pack
 6. continue renderer coverage with MoonBook-native rendering tests
 

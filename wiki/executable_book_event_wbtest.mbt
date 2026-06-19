@@ -108,12 +108,19 @@ async test "persist result writes MoonBook executable event files" {
   assert_true(outcome.executable_event.accepted)
   assert_eq(outcome.executable_event.event_type, "knowledge_accepted")
   assert_true(outcome.executable_event_path.has_prefix(".moonbook/events/"))
-  assert_eq(outcome.latest_executable_event_path, ".moonbook/events/latest.json")
+  assert_eq(
+    outcome.latest_executable_event_path,
+    ".moonbook/events/latest.json",
+  )
   let event_text = @fsx.read_file(root + "/" + outcome.executable_event_path)
-  assert_true(event_text.contains("\"protocol\": \"moonbook.executable_event.v1\""))
+  assert_true(
+    event_text.contains("\"protocol\": \"moonbook.executable_event.v1\""),
+  )
   assert_true(event_text.contains("\"accepted\": true"))
   let latest_text = @fsx.read_file(
     root + "/" + outcome.latest_executable_event_path,
   )
-  assert_true(latest_text.contains("\"id\": \"\{outcome.executable_event.id}\""))
+  assert_true(
+    latest_text.contains("\"id\": \"\{outcome.executable_event.id}\""),
+  )
 }

@@ -106,7 +106,7 @@ async fn run_test(root : String) -> Unit {
 
 ///|
 fn moonstat_startup_ready_message(base_url : String) -> String {
-  "Moonstat available at \{base_url}; documentation usage/statistics bridge enabled"
+  "Moonstat available at \{base_url}; suite telemetry endpoint enabled"
 }
 
 ///|
