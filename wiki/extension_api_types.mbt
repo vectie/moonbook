@@ -298,6 +298,34 @@ pub struct KnowledgeBundle {
 } derive(Debug, ToJson, FromJson)
 
 ///|
+pub fn book_state_contract() -> String {
+  "moonbook.book_state.v1"
+}
+
+///|
+pub struct BookStatePaths {
+  knowledge_manifest : String
+  generated_knowledge_bundle : String
+  generated_graph : String
+  latest_event : String
+  review_queue : String
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub struct BookStateSnapshot {
+  contract : String
+  book_id : String
+  root : String
+  generated_at : Int
+  catalog : BookCatalogRecord
+  summary : BookStateSummary
+  health : BookHealthReport
+  knowledge : KnowledgeBundle
+  latest_event : ExecutableBookEvent?
+  paths : BookStatePaths
+} derive(Debug, ToJson, FromJson)
+
+///|
 priv struct SourceCoverageSummary {
   total_count : Int
   candidate_count : Int

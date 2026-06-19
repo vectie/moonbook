@@ -796,7 +796,7 @@ For project reports, include a fact sheet if evidence supports at least three fa
 | --- | --- | --- |
 | Primary language | MoonBit | W1 |
 | Repository | `vectie/moonbook` | W1 |
-| Upstream inspiration | `rust-lang/mdBook` | L1, W2 |
+| Native contract | `moonbook.book_state.v1` | L1, W2 |
 ```
 
 Facts should be near the top, after the executive summary or ecosystem context. If reliable metrics are absent, do not fabricate them.

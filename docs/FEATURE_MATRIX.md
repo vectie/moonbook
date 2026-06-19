@@ -27,6 +27,7 @@ Implemented commands:
 - `moonbook wiki enable <extension> [root]`
 - `moonbook wiki ingest [root] <source>`
 - `moonbook wiki query [root] <question> [--save]`
+- `moonbook wiki state [root]`
 - `moonbook wiki bundle [root]`
 - `moonbook wiki graph [root]`
 - `moonbook wiki extension accept [root] <goal>`
@@ -34,6 +35,7 @@ Implemented commands:
 - `moonbook wiki extension context [root] <goal> [--task <task-id>]`
 - `moonbook wiki extension persist [root] <result.json>`
 - `moonbook wiki extension catalog [root]`
+- `moonbook wiki extension state [root]`
 - `moonbook wiki extension summary [root]`
 - `moonbook wiki extension health [root]`
 - `moonbook wiki review list [root]`
@@ -92,9 +94,10 @@ Implemented behaviors:
 - `skill hub` is positioned as “manage skills across this machine” rather than only “inspect skills in this workspace”
 - `pack list` reports currently supported extension packs
 - generated marketing projection renders skill-authored product copy from `raw/bootstrap/marketing-brief.md`, `wiki/synthesis/marketing.md`, or `site/marketing.md` instead of hard-coded sales claims
+- `wiki state` writes `.moonbook/state.json` using the native `moonbook.book_state.v1` contract
 - `wiki bundle` writes `book/knowledge/manifest.json`, `book/knowledge/graph.json`, and `book/knowledge/pages.json` using the native `moonbook.knowledge_bundle.v1` contract
 - `wiki graph` prints the current durable page graph as JSON
-- generated site output writes `book/site/generated/knowledge-bundle.json` and `book/site/generated/graph.json` for suite consumers
+- generated site output writes `book/site/generated/book-state.json`, `book/site/generated/knowledge-bundle.json`, and `book/site/generated/graph.json` for suite consumers
 - durable page records include MoonBook type, title, summary, review status, source quality, tags, and outbound links
 - generated marketing projection keeps debug state, research evidence, review pressure, and journey details out of the sales page and routes those details to wiki, journal, course, and skill surfaces
 - generated research report includes executive summary, topic explanation, architecture, runtime model, memory/state, cross-project relationship, comparative positioning, maturity/gaps, and evidence-table sections

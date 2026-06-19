@@ -120,7 +120,7 @@ state from pages, logs, or sidecar hints.
 
 MoonBook also publishes a compact product contract named
 `moonbook.knowledge_bundle.v1`. This is the stable read model for Moondesk,
-Moontown, MoonClaw adapters, and future suite tools when they need current book
+Moontown, MoonClaw clients, and future suite tools when they need current book
 state without scraping markdown or rendered HTML.
 
 The bundle contains:
@@ -138,3 +138,24 @@ The bundle contains:
 
 This is a MoonBook-native feature. The value is a clear, small, inspectable
 contract that preserves MoonBook's richer executable-book semantics.
+
+## Native Book State Snapshot
+
+MoonBook also publishes `moonbook.book_state.v1`, a higher-level state snapshot
+for consumers that need one file instead of multiple probes.
+
+`moonbook wiki state [root]` writes `.moonbook/state.json`. Build/serve
+projection also writes `book/site/generated/book-state.json`.
+
+The snapshot contains:
+
+- catalog identity
+- current summary and health
+- the embedded `moonbook.knowledge_bundle.v1`
+- the latest executable-book event when present
+- canonical paths for the review queue, generated graph, generated bundle, and
+  latest event
+
+Suite tools should prefer this snapshot for dashboards and routing decisions,
+then drill into the knowledge bundle only when they need page-level records or
+graph edges.

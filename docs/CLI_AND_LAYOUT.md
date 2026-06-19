@@ -257,6 +257,24 @@ Prints a JSON summary of current book-local state.
 
 Prints a JSON health report for the book.
 
+### `moon run cmd/main -- wiki extension state [root]`
+
+Prints the current `moonbook.book_state.v1` snapshot as JSON for extension
+runtimes that want a read-only state probe without writing `.moonbook/state.json`.
+
+### `moon run cmd/main -- wiki state [root]`
+
+Writes `.moonbook/state.json` using the native `moonbook.book_state.v1`
+contract.
+
+The snapshot is the preferred suite-facing read model. It contains:
+
+1. catalog identity
+2. current summary and health
+3. the current `moonbook.knowledge_bundle.v1`
+4. the latest executable-book event when present
+5. canonical paths for generated bundle, graph, review queue, and latest event
+
 ### `moon run cmd/main -- wiki bundle [root]`
 
 Writes the native MoonBook knowledge package for the current wiki workspace:
@@ -618,6 +636,8 @@ Created by `moonbook wiki init`:
   generated skill manager view built from workspace, core-seed, and extension-seed skill inventory
 - `book/site/generated/skills-state.json`
   machine-readable skill inventory and diagnostics snapshot used by the generated skill manager
+- `book/site/generated/book-state.json`
+  generated-site copy of the current `moonbook.book_state.v1` snapshot
 - `book/site/generated/knowledge-bundle.json`
   generated-site copy of the current `moonbook.knowledge_bundle.v1` contract
 - `book/site/generated/graph.json`
@@ -628,6 +648,8 @@ Created by `moonbook wiki init`:
   standalone graph written by `wiki bundle`
 - `book/knowledge/pages.json`
   typed durable page records written by `wiki bundle`
+- `.moonbook/state.json`
+  standalone book-state snapshot written by `wiki state`
 - `wiki/history/journey.md`
   compact operator timeline distilled from persisted book results
 - `wiki/history/debug-journal.md`

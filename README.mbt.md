@@ -8,7 +8,9 @@ MoonBook is a MoonBit-native executable book and wiki workspace for durable sour
 
 In the wider Moon architecture, MoonBook is the executable book: MoonWiki edits what the book says, MoonCode edits what the book can do, and MoonClaw executes bounded work. See [Executable Book Boundary](docs/EXECUTABLE_BOOK_BOUNDARY.md).
 
-The project is also motivated by [karpathy/llm-wiki.md](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f): the idea that raw sources should accumulate into a persistent, maintained markdown wiki rather than being rediscovered from scratch at query time.
+MoonBook treats a book as a live workspace: raw sources, durable wiki pages,
+review queues, generated projections, executable events, and book-owned tools
+are one native product surface rather than separate documentation scripts.
 
 Current wiki workspaces use a raw-first bootstrap flow:
 
@@ -65,7 +67,7 @@ MoonBook is strongest when you want one local system to handle:
 
 ## News
 
-- `2026-06-19`: added the native `moonbook.knowledge_bundle.v1` export, generated graph files, `wiki bundle`, `wiki graph`, and lint checks for missing MoonBook page metadata so Moondesk, Moontown, and MoonClaw can consume book state through one concise contract instead of scraping wiki pages
+- `2026-06-19`: added the native `moonbook.book_state.v1` snapshot plus `moonbook.knowledge_bundle.v1`, generated graph files, `wiki state`, `wiki bundle`, `wiki graph`, and lint checks for missing MoonBook page metadata so suite tools can consume book state through concise MoonBook contracts instead of scraping wiki pages
 - `2026-04-22`: tightened the MoonBook/MoonClaw boundary so MoonClaw returns raw research envelopes while MoonBook owns durable wiki materialization, source quality/readiness classification, generated research-report projection, and a static `research-report` skill for article-quality synthesis
 - `2026-04-22`: made `book/site/index.html` open the live generated marketing projection so readers no longer land on the generic authored source-site shell after build
 - `2026-04-17`: added `skill hub` as a dedicated live backend for managing skills across the machine, with whole-machine scan roots, in-browser editing, automatic snapshots, rollback, `/api/debug`, and SSE-driven refresh
@@ -93,9 +95,10 @@ MoonBook is strongest when you want one local system to handle:
 - 🧱 HTML rendering with sidebar navigation, breadcrumbs, previous/next links, local asset copying, code-block handling, tables, footnotes, raw HTML passthrough, and GitHub-style markdown layout cues
 - 🌐 optional repo-owned `site/` source website that is copied into `book/site/` during build and serve
 - ✨ generated live marketing projection emitted into `book/site/generated/` from a skill-authored `marketing-brief.md`, keeping product copy out of renderer code
+- 🧭 native book-state snapshot through `moonbook wiki state [root]`, writing `.moonbook/state.json`
 - 🧩 native knowledge bundle export through `moonbook wiki bundle [root]`, writing `book/knowledge/manifest.json`, `graph.json`, and `pages.json`
 - 🕸️ native graph projection through `moonbook wiki graph [root]` and generated `book/site/generated/graph.json`
-- 📦 generated `book/site/generated/knowledge-bundle.json` so suite apps can read current book state through a stable MoonBook contract
+- 📦 generated `book/site/generated/book-state.json` plus `knowledge-bundle.json` so suite apps can read current book state through stable MoonBook contracts
 - 🔎 generated research-report projection with executive summary, architecture/runtime/memory sections, relationships, maturity gaps, and evidence table derived from `raw/bootstrap/` plus wiki synthesis pages
 - 🧾 seeded `skills/research-report/SKILL.md` that tells keepers how to turn `research-question`, `source-screen`, `evidence-matrix`, local sources, and synthesis briefs into reader-facing reports without dumping raw table rows
 - 🧭 generated journal view emitted into `book/site/generated/journal.html` from live journey and workspace state
@@ -213,6 +216,7 @@ moon run cmd/main -- wiki extension catalog ./research-wiki
 moon run cmd/main -- wiki ingest ./research-wiki ./raw/article.md
 moon run cmd/main -- wiki extension tasks ./research-wiki "refresh synthesis for new source"
 moon run cmd/main -- wiki query ./research-wiki "retrieval synthesis" --save
+moon run cmd/main -- wiki state ./research-wiki
 moon run cmd/main -- wiki bundle ./research-wiki
 moon run cmd/main -- wiki graph ./research-wiki
 moon run cmd/main -- wiki review list ./research-wiki
@@ -224,7 +228,8 @@ moon run cmd/main -- build ./research-wiki
 # optional: open ./research-wiki/book/site/generated/journal.html for the generated journal view
 # optional: open ./research-wiki/book/site/generated/course.html for the generated course view
 # optional: open ./research-wiki/book/site/generated/skills.html for the generated skill manager
-# optional: inspect ./research-wiki/book/site/generated/knowledge-bundle.json and graph.json for suite consumers
+# optional: inspect ./research-wiki/.moonbook/state.json for the standalone book-state snapshot
+# optional: inspect ./research-wiki/book/site/generated/book-state.json, knowledge-bundle.json, and graph.json for suite consumers
 moon run cmd/main -- skill hub ./research-wiki -n 127.0.0.1 -p 3456
 ```
 
@@ -256,7 +261,7 @@ moon test wiki
 
 MoonBook already handles a large local vertical slice, but it still lacks the full renderer surface expected of a production executable-book system: theme/search/print output, websocket live reload, a true native watcher backend, external renderer/preprocessor execution under MoonBook-owned contracts, and broader markdown/HTML edge-case coverage.
 
-On the wiki side, MoonBook now has a real persistent workspace loop with init+enable+ingest+query+review+lint+serve, bounded Keeper memory, evidence capture for persisted results, a maintained synthesis map, staged durable promotion through review, and a book-local planning task surface. It still stops short of a full domain-tuned wiki-maintainer brain: claim handling is still heuristic, synthesis planning is still lighter than a full claim graph, and the deeper MoonClaw workflow pack still needs to become the preferred operational path rather than just an optional extension.
+On the wiki side, MoonBook now has a real persistent workspace loop with init+enable+ingest+query+review+lint+serve, bounded Keeper memory, evidence capture for persisted results, a maintained synthesis map, staged durable promotion through review, and a book-local planning task surface. It still stops short of a full domain-tuned wiki-maintainer brain: claim handling is still heuristic, synthesis planning is still lighter than a full claim graph, and extension runtimes still need stronger use of the native book-state and executable-event contracts.
 
 MoonBook also now exposes an extension API surface intended for town-level orchestrators like `moontown`, including a machine-readable catalog export for the persisted town bootstrap path. That integration stays optional and file-based. A plain MoonBook workspace still builds, serves, and behaves as a standalone wiki without requiring any external control plane.
 

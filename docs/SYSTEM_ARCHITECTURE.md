@@ -81,7 +81,7 @@ The wiki path builds on the same rendering/build infrastructure, but introduces 
 - `wiki/extension_api.mbt`
   town-facing extension API entrypoints, standing-watch task selection, and result persistence orchestration
 - `wiki/extension_api_types.mbt`
-  public Extension API contracts shared with town/worker adapters
+  public Extension API contracts shared with town/worker clients
 - `wiki/extension_api_planning.mbt`
   goal decomposition, semantic bootstrap task planning, and external task resolution helpers
 - `wiki/extension_api_context.mbt`
@@ -90,6 +90,8 @@ The wiki path builds on the same rendering/build infrastructure, but introduces 
   catalog export, summary, health, coverage tiers, and readiness checks
 - `wiki/knowledge_bundle.mbt`
   native `moonbook.knowledge_bundle.v1` export, typed durable-page records, and graph extraction for suite consumers
+- `wiki/book_state.mbt`
+  native `moonbook.book_state.v1` snapshot that composes catalog, health, latest event, and knowledge bundle for suite consumers
 - `wiki/keeper_memory.mbt`
   bounded Keeper memory bootstrap, recall snapshots, and result-sync rules
 - `wiki/contracts.mbt`
@@ -138,7 +140,7 @@ This layer is responsible for:
 - tracking lightweight claims and review queues
 - refreshing Keeper self-maintenance hints under `keeper/INSIGHTS.md`
 - saving query results back into the wiki
-- exporting a concise typed knowledge bundle under `book/knowledge/` and `book/site/generated/`
+- exporting concise typed book-state and knowledge contracts under `.moonbook/`, `book/knowledge/`, and `book/site/generated/`
 - exposing a graph of durable pages and markdown links without forcing consumers to scrape rendered HTML
 - exposing the wiki as a normal MoonBook build/serve target
 
@@ -179,6 +181,9 @@ Important wiki subdirectories:
 
 Generated consumer surfaces:
 
+- `.moonbook/state.json`
+  native `moonbook.book_state.v1` snapshot for current book identity, health,
+  readiness, latest event, and knowledge bundle
 - `book/knowledge/manifest.json`
   native `moonbook.knowledge_bundle.v1` package manifest for the current book state
 - `book/knowledge/graph.json`
@@ -186,7 +191,9 @@ Generated consumer surfaces:
 - `book/knowledge/pages.json`
   typed page records with title, summary, review status, source quality, tags, and outbound links
 - `book/site/generated/knowledge-bundle.json`
-  generated-site copy of the same bundle for Moondesk, Moontown, and MoonClaw adapters
+  generated-site copy of the same bundle for Moondesk, Moontown, and MoonClaw clients
+- `book/site/generated/book-state.json`
+  generated-site copy of the current book-state snapshot for browser and desktop clients
 - `book/site/generated/graph.json`
   generated-site graph projection for browser or desktop consumers
 

@@ -11,6 +11,8 @@ pub async fn accept_goal(String, String, goal_id? : String?) -> BookGoalAcceptan
 
 pub async fn approve_review(String, String) -> ReviewActionResult
 
+pub fn book_state_contract() -> String
+
 pub async fn catalog_record(String) -> BookCatalogRecord
 
 pub async fn compare_skill(String, String) -> SkillCompareResult
@@ -26,6 +28,8 @@ pub async fn enable_extension(String, String) -> ExtensionInstallResult
 pub fn executable_book_event_protocol() -> String
 
 pub async fn find_skill(String, String) -> SkillRecord?
+
+pub async fn generate_book_state_snapshot(String) -> BookStateSnapshot
 
 pub async fn generate_knowledge_bundle(String) -> KnowledgeBundle
 
@@ -70,6 +74,10 @@ pub async fn summarize_state(String) -> BookStateSummary
 pub fn supported_extensions() -> Array[String]
 
 pub async fn sync_skill(String, String) -> SkillSyncResult
+
+pub async fn write_book_state_snapshot(String) -> String
+
+pub async fn write_generated_book_state(String, String) -> String
 
 pub async fn write_generated_knowledge_bundle(String, String) -> String
 
@@ -128,6 +136,27 @@ pub struct BookResult {
   notify_town : Bool
 } derive(ToJson, @debug.Debug, @json.FromJson)
 pub fn BookResult::to_executable_book_event(Self, book_id~ : String, evidence_id? : String?, run_id? : String?, review_path? : String?) -> ExecutableBookEvent
+
+pub struct BookStatePaths {
+  knowledge_manifest : String
+  generated_knowledge_bundle : String
+  generated_graph : String
+  latest_event : String
+  review_queue : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct BookStateSnapshot {
+  contract : String
+  book_id : String
+  root : String
+  generated_at : Int
+  catalog : BookCatalogRecord
+  summary : BookStateSummary
+  health : BookHealthReport
+  knowledge : KnowledgeBundle
+  latest_event : ExecutableBookEvent?
+  paths : BookStatePaths
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct BookStateSummary {
   book_id : String

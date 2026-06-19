@@ -524,8 +524,8 @@ understand the value quickly.
 
 State what the product is in buyer language.
 
-Do not begin with "MoonBook is a MoonBit rewrite...". That belongs in docs, not
-marketing.
+Do not begin with origin-story or rewrite framing. Buyer-facing marketing should
+start from the product outcome, not from what earlier tools inspired it.
 
 Example:
 
