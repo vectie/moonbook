@@ -66,13 +66,138 @@ pub struct BookResult {
 } derive(Debug, ToJson, FromJson)
 
 ///|
+pub fn decode_book_result_payload(value : Json) -> BookResult raise {
+  @json.from_json(value) catch {
+    _ => decode_book_result_envelope(value)
+  }
+}
+
+///|
+pub fn decode_book_result_payload_text(text : String) -> BookResult raise {
+  decode_book_result_payload(@json.parse(text))
+}
+
+///|
+fn decode_book_result_envelope(value : Json) -> BookResult raise {
+  match value {
+    Object(fields) =>
+      match fields.get("book_result") {
+        Some(Object(_) as nested) =>
+          @json.from_json(nested) catch {
+            error =>
+              fail(
+                "invalid book_result envelope: nested book_result is not a BookResult: \{error}",
+              )
+          }
+        _ =>
+          fail(
+            "invalid book result payload: expected BookResult or envelope with object field book_result",
+          )
+      }
+    _ =>
+      fail(
+        "invalid book result payload: expected BookResult or envelope with object field book_result",
+      )
+  }
+}
+
+///|
 pub struct PersistResultOutcome {
   log_path : String
   updated_pages : Array[String]
   review_queued : Bool
   notify_town : Bool
   evidence_id : String
+  executable_event_path : String
+  latest_executable_event_path : String
+  executable_event : ExecutableBookEvent
 } derive(Debug, ToJson, FromJson)
+
+///|
+pub fn executable_book_event_protocol() -> String {
+  "moonbook.executable_event.v1"
+}
+
+///|
+pub struct ExecutableBookEvent {
+  protocol : String
+  id : String
+  source : String
+  book_id : String
+  task_id : String
+  run_id : String?
+  event_type : String
+  accepted : Bool
+  requires_review : Bool
+  notify_town : Bool
+  summary : String
+  artifacts : Array[String]
+  evidence_id : String?
+  review_path : String?
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub fn ExecutableBookEvent::new(
+  id~ : String,
+  book_id~ : String,
+  task_id~ : String,
+  summary~ : String,
+  artifacts? : Array[String] = [],
+  run_id? : String? = None,
+  event_type? : String = "knowledge_accepted",
+  accepted? : Bool = true,
+  requires_review? : Bool = false,
+  notify_town? : Bool = false,
+  evidence_id? : String? = None,
+  review_path? : String? = None,
+) -> ExecutableBookEvent {
+  {
+    protocol: executable_book_event_protocol(),
+    id,
+    source: "moonbook",
+    book_id,
+    task_id,
+    run_id,
+    event_type,
+    accepted,
+    requires_review,
+    notify_town,
+    summary,
+    artifacts,
+    evidence_id,
+    review_path,
+  }
+}
+
+///|
+pub fn BookResult::to_executable_book_event(
+  self : BookResult,
+  book_id~ : String,
+  evidence_id? : String? = None,
+  run_id? : String? = None,
+  review_path? : String? = None,
+) -> ExecutableBookEvent {
+  let evidence_part = evidence_id.unwrap_or(self.task_id)
+  let event_type = if self.requires_review {
+    "review_required"
+  } else {
+    "knowledge_accepted"
+  }
+  ExecutableBookEvent::new(
+    id="book-event-\{book_id}-\{evidence_part}",
+    book_id~,
+    task_id=self.task_id,
+    summary=self.summary,
+    artifacts=self.artifacts,
+    run_id~,
+    event_type~,
+    accepted=!self.requires_review,
+    requires_review=self.requires_review,
+    notify_town=self.notify_town,
+    evidence_id~,
+    review_path~,
+  )
+}
 
 ///|
 pub struct BookStateSummary {
@@ -126,6 +251,50 @@ pub struct BookCatalogRecord {
   memory_scope : String
   tags : Array[String]
   skills : Array[String]
+} derive(Debug, ToJson, FromJson)
+
+///|
+pub fn knowledge_bundle_contract() -> String {
+  "moonbook.knowledge_bundle.v1"
+}
+
+///|
+pub struct KnowledgePageRecord {
+  path : String
+  moonbook_type : String
+  title : String
+  summary : String
+  review_status : String
+  source_quality : String
+  tags : Array[String]
+  outbound_links : Array[String]
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub struct KnowledgeGraphEdge {
+  from : String
+  to : String
+  label : String
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub struct KnowledgeGraph {
+  nodes : Array[KnowledgePageRecord]
+  edges : Array[KnowledgeGraphEdge]
+} derive(Debug, ToJson, FromJson)
+
+///|
+pub struct KnowledgeBundle {
+  contract : String
+  book_id : String
+  root : String
+  generated_at : Int
+  summary : BookStateSummary
+  health : BookHealthReport
+  pages : Array[KnowledgePageRecord]
+  graph : KnowledgeGraph
+  review_queue_path : String
+  event_protocol : String
 } derive(Debug, ToJson, FromJson)
 
 ///|

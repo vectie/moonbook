@@ -70,6 +70,15 @@ pub async fn lint_wiki(root : String) -> LintResult {
         })
       }
     }
+    let content = @fsx.read_file(absolute)
+    if metadata_required_knowledge_page(relative_page) &&
+      !has_moonbook_metadata_block(content) {
+      findings.push({
+        kind: "missing-moonbook-metadata",
+        path: Some(relative_page),
+        message: "durable page should declare a MoonBook metadata block with moonbook_type, title, summary, review_status, and updated_at",
+      })
+    }
   }
 
   for placeholder in index_placeholders(index_text) {
@@ -185,7 +194,9 @@ async fn page_content_map(
 ) -> Map[String, String] {
   let contents : Map[String, String] = {}
   for path in page_paths {
-    contents[relative_to_root(path, root)] = @fsx.read_file(path)
+    contents[relative_to_root(path, root)] = strip_moonbook_metadata_block(
+      @fsx.read_file(path),
+    )
   }
   contents
 }
@@ -226,6 +237,23 @@ fn normalize_page_link(current_dir : String, link : String) -> String {
   } else {
     @pathx.normalize(plain)
   }
+}
+
+///|
+fn has_moonbook_metadata_block(content : String) -> Bool {
+  let trimmed = content.trim().to_owned()
+  trimmed.has_prefix("---") &&
+  trimmed.contains("moonbook_type:") &&
+  trimmed.contains("review_status:")
+}
+
+///|
+fn metadata_required_knowledge_page(relative_page : String) -> Bool {
+  relative_page.has_prefix("wiki/sources/") ||
+  relative_page.has_prefix("wiki/entities/") ||
+  relative_page.has_prefix("wiki/concepts/") ||
+  relative_page.has_prefix("wiki/queries/") ||
+  relative_page.has_prefix("wiki/methods/")
 }
 
 ///|

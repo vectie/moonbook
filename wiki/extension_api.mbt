@@ -395,6 +395,19 @@ pub async fn persist_result(
     normalized_result,
     reconciled_pages,
   )
+  let review_path = if review_queued {
+    Some("wiki/reviews/pending.md")
+  } else {
+    None
+  }
+  let executable_event = normalized_result.to_executable_book_event(
+    book_id=book_identity(root),
+    evidence_id=Some(evidence_id),
+    review_path~,
+  )
+  let (executable_event_path, latest_executable_event_path) = write_executable_book_event(
+    workspace, executable_event,
+  )
   {
     log_path: moonbook_wiki_path(workspace.wiki_dir)
     .join(moonbook_wiki_path("log.md"))
@@ -403,7 +416,38 @@ pub async fn persist_result(
     review_queued,
     notify_town: normalized_result.notify_town,
     evidence_id,
+    executable_event_path,
+    latest_executable_event_path,
+    executable_event,
   }
+}
+
+///|
+async fn write_executable_book_event(
+  workspace : Paths,
+  event : ExecutableBookEvent,
+) -> (String, String) {
+  let events_dir = moonbook_wiki_path(workspace.root)
+    .join(moonbook_wiki_path(".moonbook/events"))
+    .to_string()
+  @fsx.make_directory(events_dir, recursive=true, exists_ok=true)
+  let event_path = moonbook_wiki_path(events_dir)
+    .join(moonbook_wiki_path("\{slugify_title(event.id)}.json"))
+    .to_string()
+  let latest_path = moonbook_wiki_path(events_dir)
+    .join(moonbook_wiki_path("latest.json"))
+    .to_string()
+  let json = event.to_json().stringify(indent=2)
+  @fsx.write_to_file(event_path, json, create=0o644)
+  @fsx.write_to_file(
+    latest_path,
+    event.to_json().stringify(indent=2),
+    create=0o644,
+  )
+  (
+    relative_to_root(event_path, workspace.root),
+    relative_to_root(latest_path, workspace.root),
+  )
 }
 
 ///|

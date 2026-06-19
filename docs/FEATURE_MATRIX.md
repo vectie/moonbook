@@ -27,6 +27,8 @@ Implemented commands:
 - `moonbook wiki enable <extension> [root]`
 - `moonbook wiki ingest [root] <source>`
 - `moonbook wiki query [root] <question> [--save]`
+- `moonbook wiki bundle [root]`
+- `moonbook wiki graph [root]`
 - `moonbook wiki extension accept [root] <goal>`
 - `moonbook wiki extension tasks [root] <goal>`
 - `moonbook wiki extension context [root] <goal> [--task <task-id>]`
@@ -90,6 +92,10 @@ Implemented behaviors:
 - `skill hub` is positioned as “manage skills across this machine” rather than only “inspect skills in this workspace”
 - `pack list` reports currently supported extension packs
 - generated marketing projection renders skill-authored product copy from `raw/bootstrap/marketing-brief.md`, `wiki/synthesis/marketing.md`, or `site/marketing.md` instead of hard-coded sales claims
+- `wiki bundle` writes `book/knowledge/manifest.json`, `book/knowledge/graph.json`, and `book/knowledge/pages.json` using the native `moonbook.knowledge_bundle.v1` contract
+- `wiki graph` prints the current durable page graph as JSON
+- generated site output writes `book/site/generated/knowledge-bundle.json` and `book/site/generated/graph.json` for suite consumers
+- durable page records include MoonBook type, title, summary, review status, source quality, tags, and outbound links
 - generated marketing projection keeps debug state, research evidence, review pressure, and journey details out of the sales page and routes those details to wiki, journal, course, and skill surfaces
 - generated research report includes executive summary, topic explanation, architecture, runtime model, memory/state, cross-project relationship, comparative positioning, maturity/gaps, and evidence-table sections
 - generated research report synthesizes parsed evidence rows into readable sections instead of pasting raw markdown table rows into article prose
@@ -142,7 +148,7 @@ Implemented behaviors:
 - `wiki extension tasks` emits a dedicated planning task when health or goal wording indicates planning pressure
 - `wiki extension context` returns a machine-readable worker context bundle derived from book-local policy, Keeper memory, routines, and relevance-ranked durable pages
 - `wiki extension context` hydrates standing-watch tasks with `skills/standing-watch/SKILL.md`, prior watch decisions, baseline counts, and a marker-output contract
-- `wiki extension persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, records evidence in `wiki/synthesis/evidence.md`, syncs non-durable memory candidates into Keeper memory, promotes immediately-safe durable candidates into target pages, stages review-gated durable candidates, refreshes `keeper/INSIGHTS.md`, updates the maintenance plan, and can queue review
+- `wiki extension persist` accepts a JSON `BookResult` or MoonClaw `mooncode-book-result` envelope, appends it to `wiki/synthesis/observations.md`, records evidence in `wiki/synthesis/evidence.md`, syncs non-durable memory candidates into Keeper memory, promotes immediately-safe durable candidates into target pages, stages review-gated durable candidates, refreshes `keeper/INSIGHTS.md`, updates the maintenance plan, and can queue review
 - `wiki extension persist` records standing-watch results into `wiki/history/standing-watch.md` when the summary includes the required decision, source-count, fact-count, changed-page, and `book_changed` markers
 - `wiki extension persist` treats no-change and failed standing-watch cycles as operational records, not evidence progress, unless the result reports durable page or review changes
 - `wiki extension persist` materializes complete raw research envelopes into durable source/entity/concept/synthesis pages, including recovery from generic provider completion text when all required `raw/bootstrap/` artifacts exist
@@ -166,6 +172,7 @@ Implemented behaviors:
 - `wiki lint` detects review backlog growth from multiple active low-confidence claims
 - `wiki lint` detects crowded Keeper memory
 - `wiki lint` detects missing evidence capture when observations exist without evidence records
+- `wiki lint` detects durable pages missing a MoonBook metadata block with `moonbook_type` and `review_status`
 - `wiki lint` appends a lint pass to `wiki/log.md`
 - `watch` performs an initial build, then polls for source/config changes
 - `watch` supports `--dest-dir`

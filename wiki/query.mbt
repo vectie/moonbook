@@ -385,8 +385,20 @@ fn saved_query_text(
   citations : Array[String],
 ) -> String {
   let builder = StringBuilder::new()
+  let now = "\{@async.now().to_int()}"
+  builder.write_string(
+    moonbook_metadata_block(
+      "query",
+      "Query: \{question}",
+      query_insight_summary(answer),
+      "pending-review",
+      "not-source",
+      ["query", "insight"],
+      now,
+    ),
+  )
   builder.write_string("# Query: \{question}\n\n")
-  builder.write_string("- Saved at: `\{@async.now().to_int()}`\n")
+  builder.write_string("- Saved at: `\{now}`\n")
   if !citations.is_empty() {
     builder.write_string("- Citations:\n")
     for citation in citations {

@@ -6,6 +6,10 @@ async fn run_wiki(args : Array[String]) -> Unit {
     ["extension", .. extension_args] =>
       run_wiki_extension(extension_args.to_owned())
     ["keeper", .. keeper_args] => run_wiki_keeper(keeper_args.to_owned())
+    ["bundle", root] => run_wiki_bundle(root)
+    ["bundle"] => run_wiki_bundle(".")
+    ["graph", root] => run_wiki_graph(root)
+    ["graph"] => run_wiki_graph(".")
     ["enable", extension, root] => run_wiki_enable(root, extension)
     ["enable", extension] => run_wiki_enable(".", extension)
     ["lint", root] => run_wiki_lint(root)
@@ -18,7 +22,7 @@ async fn run_wiki(args : Array[String]) -> Unit {
     ["init"] => run_wiki_init(".")
     _ =>
       println(
-        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki lint [root]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki keeper submit [root] <packet.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]\nmoonbook wiki extension accept [root] <goal>\nmoonbook wiki extension tasks [root] <goal>\nmoonbook wiki extension context [root] <goal> [--task <task-id>]\nmoonbook wiki extension persist [root] <result.json>\nmoonbook wiki extension summary [root]\nmoonbook wiki extension health [root]",
+        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki bundle [root]\nmoonbook wiki graph [root]\nmoonbook wiki lint [root]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki keeper submit [root] <packet.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]\nmoonbook wiki extension accept [root] <goal>\nmoonbook wiki extension tasks [root] <goal>\nmoonbook wiki extension context [root] <goal> [--task <task-id>]\nmoonbook wiki extension persist [root] <result.json>\nmoonbook wiki extension summary [root]\nmoonbook wiki extension health [root]",
       )
   }
 }
@@ -100,6 +104,28 @@ async fn run_wiki_lint(root : String) -> Unit {
     }
   }
   println(result.report)
+}
+
+///|
+async fn run_wiki_bundle(root : String) -> Unit {
+  let path = @wiki.write_knowledge_bundle(root) catch {
+    error => {
+      println("moonbook wiki bundle failed: \{error}")
+      return
+    }
+  }
+  println("knowledge bundle: \{path}")
+}
+
+///|
+async fn run_wiki_graph(root : String) -> Unit {
+  let bundle = @wiki.generate_knowledge_bundle(root) catch {
+    error => {
+      println("moonbook wiki graph failed: \{error}")
+      return
+    }
+  }
+  print_json(bundle.graph)
 }
 
 ///|
@@ -322,7 +348,7 @@ async fn run_wiki_extension_persist(root : String, path : String) -> Unit {
       return
     }
   }
-  let result : @wiki.BookResult = @json.from_json(@json.parse(text)) catch {
+  let result = @wiki.decode_book_result_payload_text(text) catch {
     error => {
       println("moonbook wiki extension persist failed: \{error}")
       return

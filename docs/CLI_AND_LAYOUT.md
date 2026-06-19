@@ -226,7 +226,7 @@ Hydrates a worker-ready context bundle:
 
 Persists a machine-readable worker result back into the book:
 
-1. reads a JSON `BookResult`
+1. reads a JSON `BookResult`, or a MoonClaw `mooncode-book-result` envelope with a nested `book_result`
 2. appends it to `wiki/synthesis/observations.md`
 3. records a support entry in `wiki/synthesis/evidence.md`
 4. syncs non-durable memory candidates into bounded Keeper memory files
@@ -256,6 +256,27 @@ Prints a JSON summary of current book-local state.
 ### `moon run cmd/main -- wiki extension health [root]`
 
 Prints a JSON health report for the book.
+
+### `moon run cmd/main -- wiki bundle [root]`
+
+Writes the native MoonBook knowledge package for the current wiki workspace:
+
+1. computes current summary and health
+2. scans durable pages under `wiki/sources/`, `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, `wiki/methods/`, and `wiki/planning/`
+3. infers typed page records with title, summary, review status, source quality, tags, and outbound links
+4. builds a graph from markdown links between durable pages
+5. writes:
+   - `book/knowledge/manifest.json`
+   - `book/knowledge/graph.json`
+   - `book/knowledge/pages.json`
+
+The contract is `moonbook.knowledge_bundle.v1`. It is a MoonBook-native product
+contract for suite consumers.
+
+### `moon run cmd/main -- wiki graph [root]`
+
+Prints only the current `KnowledgeGraph` JSON for quick inspection and suite
+debugging.
 
 ### `moon run cmd/main -- wiki ingest [root] <source>`
 
@@ -597,6 +618,16 @@ Created by `moonbook wiki init`:
   generated skill manager view built from workspace, core-seed, and extension-seed skill inventory
 - `book/site/generated/skills-state.json`
   machine-readable skill inventory and diagnostics snapshot used by the generated skill manager
+- `book/site/generated/knowledge-bundle.json`
+  generated-site copy of the current `moonbook.knowledge_bundle.v1` contract
+- `book/site/generated/graph.json`
+  generated durable page graph for browser/desktop consumers
+- `book/knowledge/manifest.json`
+  standalone knowledge package manifest written by `wiki bundle`
+- `book/knowledge/graph.json`
+  standalone graph written by `wiki bundle`
+- `book/knowledge/pages.json`
+  typed durable page records written by `wiki bundle`
 - `wiki/history/journey.md`
   compact operator timeline distilled from persisted book results
 - `wiki/history/debug-journal.md`

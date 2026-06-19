@@ -57,10 +57,13 @@ MoonBook is strongest when you want one local system to handle:
 - 🌐 a marketing-oriented website projection for demos and launches
 - 🧭 a journey layer that turns noisy runs into a readable operator timeline
 - 🎓 a course layer that teaches the workspace in plain language
+- 🧩 a typed MoonBook knowledge bundle for suite consumers
+- 🕸️ a generated graph of durable pages and cross-links
 - 🤝 runtime-agnostic wiki workspaces without hard-coupling to one agent
 
 ## News
 
+- `2026-06-19`: added the native `moonbook.knowledge_bundle.v1` export, generated graph files, `wiki bundle`, `wiki graph`, and lint checks for missing MoonBook page metadata so Moondesk, Moontown, and MoonClaw can consume book state through one concise contract instead of scraping wiki pages
 - `2026-05-18`: added MoonBook-side standing-watch support for 24/7 topic monitoring: seeded `skills/standing-watch/SKILL.md`, dedicated `standing-watch` book tasks, worker context with baseline/history, result marker contracts, and durable `wiki/history/standing-watch.md` decision records
 - `2026-04-22`: tightened the MoonBook/MoonClaw boundary so MoonClaw returns raw research envelopes while MoonBook owns durable wiki materialization, source quality/readiness classification, generated research-report projection, and a static `research-report` skill for article-quality synthesis
 - `2026-04-22`: made `book/site/index.html` open the live generated marketing projection so readers no longer land on the generic authored source-site shell after build
@@ -87,6 +90,9 @@ MoonBook is strongest when you want one local system to handle:
 - 🧱 HTML rendering with sidebar navigation, breadcrumbs, previous/next links, local asset copying, code-block handling, tables, footnotes, raw HTML passthrough, and GitHub-style markdown layout cues
 - 🌐 optional repo-owned `site/` source website that is copied into `book/site/` during build and serve
 - ✨ generated live marketing projection emitted into `book/site/generated/` from a skill-authored `marketing-brief.md`, keeping product copy out of renderer code
+- 🧩 native knowledge bundle export through `moonbook wiki bundle [root]`, writing `book/knowledge/manifest.json`, `graph.json`, and `pages.json`
+- 🕸️ native graph projection through `moonbook wiki graph [root]` and generated `book/site/generated/graph.json`
+- 📦 generated `book/site/generated/knowledge-bundle.json` so suite apps can read current book state through a stable MoonBook contract
 - 🔎 generated research-report projection with executive summary, architecture/runtime/memory sections, relationships, maturity gaps, and evidence table derived from `raw/bootstrap/` plus wiki synthesis pages
 - 🧾 seeded `skills/research-report/SKILL.md` that tells keepers how to turn `research-question`, `source-screen`, `evidence-matrix`, local sources, and synthesis briefs into reader-facing reports without dumping raw table rows
 - 🕰️ seeded `skills/standing-watch/SKILL.md` for recurring topic checks that compare new evidence against the current book baseline and emit machine-readable decision, source-count, fact-count, changed-page, and `book_changed` markers
@@ -189,6 +195,8 @@ moon run cmd/main -- wiki init ./research-wiki
 moon run cmd/main -- wiki enable moonclaw ./research-wiki
 moon run cmd/main -- wiki ingest ./research-wiki ./raw/article.md
 moon run cmd/main -- wiki query ./research-wiki "retrieval synthesis" --save
+moon run cmd/main -- wiki bundle ./research-wiki
+moon run cmd/main -- wiki graph ./research-wiki
 moon run cmd/main -- wiki extension tasks ./research-wiki "standing-watch: periodically check latest sources about one person company and update only when there is a meaningful delta"
 moon run cmd/main -- wiki review list ./research-wiki
 moon run cmd/main -- wiki review approve ./research-wiki <review-id>
@@ -199,6 +207,7 @@ moon run cmd/main -- build ./research-wiki
 # optional: open ./research-wiki/book/site/generated/journal.html for the generated journal view
 # optional: open ./research-wiki/book/site/generated/course.html for the generated course view
 # optional: open ./research-wiki/book/site/generated/skills.html for the generated skill manager
+# optional: inspect ./research-wiki/book/site/generated/knowledge-bundle.json and graph.json for suite consumers
 moon run cmd/main -- skill hub ./research-wiki -n 127.0.0.1 -p 3456
 ```
 

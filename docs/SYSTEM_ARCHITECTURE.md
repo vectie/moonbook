@@ -88,6 +88,8 @@ The wiki path builds on the same rendering/build infrastructure, but introduces 
   worker-context hydration, skill resolution, standing-watch baseline prompts, source hints, and memory/context selection
 - `wiki/extension_api_state.mbt`
   catalog export, summary, health, coverage tiers, and readiness checks
+- `wiki/knowledge_bundle.mbt`
+  native `moonbook.knowledge_bundle.v1` export, typed durable-page records, and graph extraction for suite consumers
 - `wiki/keeper_memory.mbt`
   bounded Keeper memory bootstrap, recall snapshots, and result-sync rules
 - `wiki/contracts.mbt`
@@ -136,6 +138,8 @@ This layer is responsible for:
 - tracking lightweight claims and review queues
 - refreshing Keeper self-maintenance hints under `keeper/INSIGHTS.md`
 - saving query results back into the wiki
+- exporting a concise typed knowledge bundle under `book/knowledge/` and `book/site/generated/`
+- exposing a graph of durable pages and markdown links without forcing consumers to scrape rendered HTML
 - exposing the wiki as a normal MoonBook build/serve target
 
 ## Workspace Contract
@@ -172,6 +176,23 @@ Important wiki subdirectories:
 - `wiki/reviews/`
 - `wiki/synthesis/observations.md`
 - `wiki/synthesis/evidence.md`
+
+Generated consumer surfaces:
+
+- `book/knowledge/manifest.json`
+  native `moonbook.knowledge_bundle.v1` package manifest for the current book state
+- `book/knowledge/graph.json`
+  durable page graph derived from maintained markdown links
+- `book/knowledge/pages.json`
+  typed page records with title, summary, review status, source quality, tags, and outbound links
+- `book/site/generated/knowledge-bundle.json`
+  generated-site copy of the same bundle for Moondesk, Moontown, and MoonClaw adapters
+- `book/site/generated/graph.json`
+  generated-site graph projection for browser or desktop consumers
+
+The bundle is MoonBook's own compact product contract: file-based enough to be
+inspectable, typed enough for agents and UI, and extensible enough for
+executable artifacts.
 
 ## Extension Boundary
 

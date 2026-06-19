@@ -517,6 +517,7 @@ pub async fn write_marketing_projection(
     skills_projection_html(state, updated_note),
     create=0o644,
   )
+  let _ = write_generated_knowledge_bundle(root, generated_dir)
   @fsx.write_to_file(styles_path, marketing_projection_styles(), create=0o644)
   @fsx.write_to_file(script_path, marketing_projection_script(), create=0o644)
   index_path

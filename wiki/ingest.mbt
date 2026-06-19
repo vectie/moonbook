@@ -345,6 +345,15 @@ async fn source_page_text(
     let source_type = detect_source_type(title, stored_raw_path, content)
     let scope = detect_source_scope(title, stored_raw_path, content)
     let signals = detect_source_signals(title, stored_raw_path, content)
+    moonbook_metadata_block(
+      "source",
+      title,
+      overview,
+      "accepted",
+      "verified",
+      ["source", "evidence"],
+      now,
+    ) +
     "# \{title}\n\n" +
     "- Raw source: [\{relative_raw}](\{raw_link})\n" +
     "- Source type: \{source_type}\n" +
@@ -356,6 +365,15 @@ async fn source_page_text(
     "## Extract\n\n" +
     "```text\n\{excerpt}\n```\n"
   } else {
+    moonbook_metadata_block(
+      "source",
+      title,
+      "Binary source ingested. Review the raw file directly.",
+      "accepted",
+      "verified",
+      ["source", "evidence"],
+      now,
+    ) +
     "# \{title}\n\n" +
     "- Raw source: [\{relative_raw}](\{raw_link})\n" +
     "- Ingested at: `\{now}`\n\n" +
