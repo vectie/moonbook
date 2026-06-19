@@ -46,11 +46,11 @@ pub async fn report_health(root : String) -> BookHealthReport {
   refresh_workspace_projections(root)
   let workspace = workspace_paths(root)
   let pending = list_pending_reviews(root)
-  let claims_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("synthesis/claims.md"))
+  let claims_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("synthesis/claims.md"))
     .to_string()
-  let maintenance_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("synthesis/maintenance-plan.md"))
+  let maintenance_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("synthesis/maintenance-plan.md"))
     .to_string()
   let low_confidence = count_low_confidence_claims(
     if @fsx.exists(claims_path) {
@@ -134,13 +134,13 @@ pub async fn catalog_record(root : String) -> BookCatalogRecord {
 
 ///|
 fn book_identity(root : String) -> String {
-  @path.Path(@pathx.normalize(root)).basename().to_owned()
+  moonbook_wiki_path(@pathx.normalize(root)).basename().to_owned()
 }
 
 ///|
 async fn catalog_name(root : String) -> String {
-  let path = @path.Path(@pathx.normalize(root))
-    .join(@path.Path("book.toml"))
+  let path = moonbook_wiki_path(@pathx.normalize(root))
+    .join(moonbook_wiki_path("book.toml"))
     .to_string()
   if @fsx.exists(path) {
     try @core.from_toml(@fsx.read_file(path)) catch {
@@ -158,8 +158,8 @@ async fn catalog_name(root : String) -> String {
 
 ///|
 async fn catalog_purpose(root : String) -> String {
-  let home_path = @path.Path(@pathx.normalize(root))
-    .join(@path.Path("wiki/Home.md"))
+  let home_path = moonbook_wiki_path(@pathx.normalize(root))
+    .join(moonbook_wiki_path("wiki/Home.md"))
     .to_string()
   if @fsx.exists(home_path) {
     for raw in @fsx.read_file(home_path).split("\n") {
@@ -177,8 +177,8 @@ async fn catalog_purpose(root : String) -> String {
 
 ///|
 async fn catalog_memory_scope(root : String) -> String {
-  let wiki_config = @path.Path(@pathx.normalize(root))
-    .join(@path.Path("wiki.toml"))
+  let wiki_config = moonbook_wiki_path(@pathx.normalize(root))
+    .join(moonbook_wiki_path("wiki.toml"))
     .to_string()
   if @fsx.exists(wiki_config) &&
     @fsx.read_file(wiki_config).to_lower().contains("task_ephemeral") {
@@ -232,8 +232,12 @@ async fn catalog_skills(root : String) -> Array[String] {
 async fn policy_lines(root : String) -> Array[String] {
   let normalized = @pathx.normalize(root)
   let candidate_paths = [
-    @path.Path(normalized).join(@path.Path("keeper/POLICY.md")).to_string(),
-    @path.Path(normalized).join(@path.Path("AGENTS.md")).to_string(),
+    moonbook_wiki_path(normalized)
+    .join(moonbook_wiki_path("keeper/POLICY.md"))
+    .to_string(),
+    moonbook_wiki_path(normalized)
+    .join(moonbook_wiki_path("AGENTS.md"))
+    .to_string(),
   ]
   let lines : Array[String] = []
   for path in candidate_paths {
@@ -265,7 +269,9 @@ async fn policy_lines(root : String) -> Array[String] {
 ///|
 async fn routine_lines(root : String) -> Array[String] {
   let normalized = @pathx.normalize(root)
-  let path = @path.Path(normalized).join(@path.Path("ROUTINES.md")).to_string()
+  let path = moonbook_wiki_path(normalized)
+    .join(moonbook_wiki_path("ROUTINES.md"))
+    .to_string()
   let lines : Array[String] = []
   if @fsx.exists(path) {
     for raw in @fsx.read_file(path).split("\n") {
@@ -278,8 +284,8 @@ async fn routine_lines(root : String) -> Array[String] {
       }
     }
   }
-  let resolver = @path.Path(normalized)
-    .join(@path.Path("RESOLVER.md"))
+  let resolver = moonbook_wiki_path(normalized)
+    .join(moonbook_wiki_path("RESOLVER.md"))
     .to_string()
   if @fsx.exists(resolver) {
     for raw in @fsx.read_file(resolver).split("\n") {
@@ -294,7 +300,7 @@ async fn routine_lines(root : String) -> Array[String] {
   }
   if lines.is_empty() {
     [
-      "1. read index first", "2. work inside this book boundary", "3. persist durable knowledge carefully",
+      "1. read index first", "2. work inside this extension boundary", "3. persist durable knowledge carefully",
     ]
   } else {
     lines
@@ -303,13 +309,15 @@ async fn routine_lines(root : String) -> Array[String] {
 
 ///|
 async fn count_markdown_under(wiki_dir : String, child : String) -> Int {
-  let path = @path.Path(wiki_dir).join(@path.Path(child)).to_string()
+  let path = moonbook_wiki_path(wiki_dir)
+    .join(moonbook_wiki_path(child))
+    .to_string()
   if !@fsx.exists(path) {
     return 0
   }
   let mut count = 0
   for page in collect_markdown_pages(path) {
-    if @path.Path(page).basename().to_owned() != "SUMMARY.md" {
+    if moonbook_wiki_path(page).basename().to_owned() != "SUMMARY.md" {
       count += 1
     }
   }
@@ -390,7 +398,9 @@ fn has_bootstrap_materialization(
 
 ///|
 async fn summarize_source_coverage(wiki_dir : String) -> SourceCoverageSummary {
-  let sources_dir = @path.Path(wiki_dir).join(@path.Path("sources")).to_string()
+  let sources_dir = moonbook_wiki_path(wiki_dir)
+    .join(moonbook_wiki_path("sources"))
+    .to_string()
   if !@fsx.exists(sources_dir) {
     return {
       total_count: 0,

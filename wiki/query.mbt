@@ -79,11 +79,11 @@ async fn scan_markdown_pages(path : String, pages : Array[String]) -> Unit {
     return
   }
   match @fs.kind(path, follow_symlink=false) {
-    @fs.FileKind::Directory =>
+    Directory =>
       for child in @fsx.list_directory(path) {
         scan_markdown_pages(child, pages)
       }
-    @fs.FileKind::Regular => if is_queryable_page(path) { pages.push(path) }
+    Regular => if is_queryable_page(path) { pages.push(path) }
     _ => ()
   }
 }
@@ -91,7 +91,7 @@ async fn scan_markdown_pages(path : String, pages : Array[String]) -> Unit {
 ///|
 fn is_queryable_page(path : String) -> Bool {
   let normalized = @pathx.normalize(path)
-  let base = @path.Path(normalized).basename().to_owned()
+  let base = moonbook_wiki_path(normalized).basename().to_owned()
   @pathx.ext(normalized).to_owned() == ".md" &&
   base != "SUMMARY.md" &&
   base != "Home.md" &&
@@ -255,20 +255,22 @@ async fn save_query_answer(
   answer : String,
   citations : Array[String],
 ) -> (String, Array[String]) {
-  let queries_dir = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("queries"))
+  let queries_dir = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("queries"))
     .to_string()
   @fsx.make_directory(queries_dir, recursive=true, exists_ok=true)
   let slug = unique_source_slug(queries_dir, slugify_title(question))
   let relative_page = "queries/\{slug}.md"
-  let page_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
+  let page_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative_page))
     .to_string()
   let page = saved_query_text(question, answer, citations)
   @fsx.write_to_file(page_path, page, create=0o644)
   update_summary(workspace.summary_path, "Query: \{question}", relative_page)
   update_analysis_index(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     question,
     relative_page,
   )
@@ -323,7 +325,9 @@ async fn save_query_answer(
     related_pages.push(insights_page)
   }
   append_query_log(
-    @path.Path(workspace.wiki_dir).join(@path.Path("log.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("log.md"))
+    .to_string(),
     question,
     relative_page,
     related_pages,
@@ -351,8 +355,8 @@ async fn propagate_query_signals(
       !page_relative.has_prefix("sources/") {
       continue
     }
-    let page_path = @path.Path(workspace.root)
-      .join(@path.Path(citation))
+    let page_path = moonbook_wiki_path(workspace.root)
+      .join(moonbook_wiki_path(citation))
       .to_string()
     if !@fsx.exists(page_path) {
       continue
@@ -451,11 +455,13 @@ async fn update_query_insights(
   answer : String,
 ) -> String {
   let relative_page = "synthesis/query-insights.md"
-  let page_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
+  let page_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative_page))
     .to_string()
   @fsx.make_directory(
-    @path.Path(workspace.wiki_dir).join(@path.Path("synthesis")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("synthesis"))
+    .to_string(),
     recursive=true,
     exists_ok=true,
   )
@@ -488,7 +494,9 @@ async fn update_query_insights(
   @fsx.write_to_file(page_path, updated, create=0o644)
   update_summary(workspace.summary_path, "Query Insights", relative_page)
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Core Pages",
     "Query Insights",
     relative_page,
@@ -509,8 +517,8 @@ async fn queue_query_review(
     return ""
   }
   let relative_page = "reviews/pending.md"
-  let page_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
+  let page_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative_page))
     .to_string()
   let query_link = relative_from_page(
     "wiki/" + relative_page,
@@ -552,7 +560,9 @@ async fn queue_query_review(
   @fsx.write_to_file(page_path, updated, create=0o644)
   update_summary(workspace.summary_path, "Pending Review", relative_page)
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Core Pages",
     "Pending Review",
     relative_page,

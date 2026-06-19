@@ -1,6 +1,6 @@
 # Feature Matrix
 
-This document tracks the currently implemented moonbook behavior. It is intentionally concrete and case-oriented so new compatibility work can extend it without guessing what already exists.
+This document tracks the currently implemented moonbook behavior. It is intentionally concrete and case-oriented so new book, wiki, and extension work can extend it without guessing what already exists.
 
 ## CLI
 
@@ -21,28 +21,24 @@ Implemented commands:
 - `moonbook skill scaffold <name> [root]`
 - `moonbook skill doctor [root]`
 - `moonbook doctor [root]`
-- `moonbook init [root]`
 - `moonbook build [root]`
 - `moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]`
 - `moonbook wiki init [root]`
 - `moonbook wiki enable <extension> [root]`
 - `moonbook wiki ingest [root] <source>`
 - `moonbook wiki query [root] <question> [--save]`
-- `moonbook wiki book accept [root] <goal>`
-- `moonbook wiki book tasks [root] <goal>`
-- `moonbook wiki book context [root] <goal> [--task <task-id>]`
-- `moonbook wiki book persist [root] <result.json>`
-- `moonbook wiki book catalog [root]`
-- `moonbook wiki book summary [root]`
-- `moonbook wiki book health [root]`
+- `moonbook wiki extension accept [root] <goal>`
+- `moonbook wiki extension tasks [root] <goal>`
+- `moonbook wiki extension context [root] <goal> [--task <task-id>]`
+- `moonbook wiki extension persist [root] <result.json>`
+- `moonbook wiki extension catalog [root]`
+- `moonbook wiki extension summary [root]`
+- `moonbook wiki extension health [root]`
 - `moonbook wiki review list [root]`
 - `moonbook wiki review approve [root] <review-id>`
 - `moonbook wiki review reject [root] <review-id>`
 - `moonbook wiki lint [root]`
 - `moonbook watch [root] [-d dest-dir] [-o] [--watcher poll|native]`
-- `moonbook load [root]`
-- `moonbook test [root]`
-- `moonbook clean [root]`
 - `moonbook version`
 
 Implemented behaviors:
@@ -76,7 +72,7 @@ Implemented behaviors:
 - `skill hub` exposes `GET /api/state`, `GET /api/debug`, `GET /api/snapshots`, `POST /api/save`, `POST /api/rollback`, and `GET /api/events`
 - `skill hub` pushes live refresh notifications over SSE when watched skill files change
 - `serve --watcher native` currently falls back to the poll backend with an explicit notice
-- `wiki init` scaffolds `raw/`, `wiki/`, `AGENTS.md`, `wiki.toml`, and a MoonBook-compatible `book.toml`
+- `wiki init` scaffolds `raw/`, `wiki/`, `AGENTS.md`, `wiki.toml`, and a MoonBook `book.toml`
 - `wiki init` scaffolds `raw/bootstrap/` for raw-first bootstrap source packets
 - `wiki init` keeps the core workspace agent-agnostic
 - `wiki init` scaffolds a `site/` marketing website projection with `index.html`, `styles.css`, and `app.js`
@@ -109,11 +105,11 @@ Implemented behaviors:
 - `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`
 - `wiki enable moonclaw` seeds `KEEPER.md` plus `skills/wiki-maintainer/SKILL.md` and `skills/wiki-review/SKILL.md` from static repo templates
 - `wiki enable moonclaw` seeds role-aware controller/worker profiles with explicit `role_runtime` envelopes aligned to MoonClaw's planner substrate
-- `wiki enable moonclaw` seeds `.moonclaw/providers.json` with the provider-task target name `moonbook`
+- `wiki enable moonclaw` seeds `.moonclaw/providers.json` with the MoonClaw provider target name `moonbook`
 - `wiki enable moonclaw` now decomposes ingest work into gather, material-prep, inspect, plan, revise, review, and finalize stages instead of jumping straight into a monolithic inspect step
 - `wiki enable moonclaw` now uses a raw-first bootstrap flow where workers complete `raw/bootstrap/research-question.md`, `search-log.md`, `source-screen.md`, `local-sources.md`, `evidence-matrix.md`, `synthesis-brief.md`, `deep-report.md`, and `marketing-brief.md`
 - `wiki enable moonclaw` now treats MoonClaw as the research/artifact executor and MoonBook as the durable `wiki/*` materialization owner
-- `wiki enable moontown` installs an optional town-facing book API manifest and guide without changing the core wiki contract
+- `wiki enable moontown` installs an optional town-facing extension API manifest and guide without changing the core wiki contract
 - `wiki enable moontown` records an extension manifest under `.moonbook/extensions/moontown.json`
 - `wiki ingest` imports sources into `raw/imported/` when needed
 - `wiki ingest` rejects hidden placeholders, empty files, and `.gitkeep`-style scaffolding as non-substantive sources
@@ -140,20 +136,20 @@ Implemented behaviors:
 - `wiki query --save` updates `wiki/synthesis/maintenance-plan.md`
 - `wiki query --save` can queue pending review items for promoting saved answers into maintained wiki pages
 - `wiki query --save` updates `wiki/SUMMARY.md`, `wiki/index.md`, and `wiki/log.md`
-- `wiki book accept` returns a machine-readable goal acceptance summary
-- `wiki book tasks` returns a machine-readable local task batch for a town-issued goal
-- `wiki book tasks` emits a dedicated `standing-watch` task for recurring 24/7 topic checks instead of hardcoding one topic or mixing the pass with bootstrap fanout
-- `wiki book tasks` emits a dedicated planning task when health or goal wording indicates planning pressure
-- `wiki book context` returns a machine-readable worker context bundle derived from book-local policy, Keeper memory, routines, and relevance-ranked durable pages
-- `wiki book context` hydrates standing-watch tasks with `skills/standing-watch/SKILL.md`, prior watch decisions, baseline counts, and a marker-output contract
-- `wiki book persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, records evidence in `wiki/synthesis/evidence.md`, syncs non-durable memory candidates into Keeper memory, promotes immediately-safe durable candidates into target pages, stages review-gated durable candidates, refreshes `keeper/INSIGHTS.md`, updates the maintenance plan, and can queue review
-- `wiki book persist` records standing-watch results into `wiki/history/standing-watch.md` when the summary includes the required decision, source-count, fact-count, changed-page, and `book_changed` markers
-- `wiki book persist` treats no-change and failed standing-watch cycles as operational records, not evidence progress, unless the result reports durable page or review changes
-- `wiki book persist` materializes complete raw research envelopes into durable source/entity/concept/synthesis pages, including recovery from generic provider completion text when all required `raw/bootstrap/` artifacts exist
-- `wiki book persist` also appends a detailed classification entry to `wiki/history/debug-journal.md`, including artifacts, memory candidates, and explicit notes when a result was only administrative
-- `wiki book catalog` returns a machine-readable town catalog record with id, purpose, workspace root, memory scope, tags, and skills
-- `wiki book summary` returns page/review counts plus Keeper/evidence counts and a compact state summary
-- `wiki book health` returns backlog, low-confidence claim, crowded-working-memory, and missing-evidence health signals for the book
+- `wiki extension accept` returns a machine-readable goal acceptance summary
+- `wiki extension tasks` returns a machine-readable local task batch for a town-issued goal
+- `wiki extension tasks` emits a dedicated `standing-watch` task for recurring 24/7 topic checks instead of hardcoding one topic or mixing the pass with bootstrap fanout
+- `wiki extension tasks` emits a dedicated planning task when health or goal wording indicates planning pressure
+- `wiki extension context` returns a machine-readable worker context bundle derived from book-local policy, Keeper memory, routines, and relevance-ranked durable pages
+- `wiki extension context` hydrates standing-watch tasks with `skills/standing-watch/SKILL.md`, prior watch decisions, baseline counts, and a marker-output contract
+- `wiki extension persist` accepts a JSON `BookResult`, appends it to `wiki/synthesis/observations.md`, records evidence in `wiki/synthesis/evidence.md`, syncs non-durable memory candidates into Keeper memory, promotes immediately-safe durable candidates into target pages, stages review-gated durable candidates, refreshes `keeper/INSIGHTS.md`, updates the maintenance plan, and can queue review
+- `wiki extension persist` records standing-watch results into `wiki/history/standing-watch.md` when the summary includes the required decision, source-count, fact-count, changed-page, and `book_changed` markers
+- `wiki extension persist` treats no-change and failed standing-watch cycles as operational records, not evidence progress, unless the result reports durable page or review changes
+- `wiki extension persist` materializes complete raw research envelopes into durable source/entity/concept/synthesis pages, including recovery from generic provider completion text when all required `raw/bootstrap/` artifacts exist
+- `wiki extension persist` also appends a detailed classification entry to `wiki/history/debug-journal.md`, including artifacts, memory candidates, and explicit notes when a result was only administrative
+- `wiki extension catalog` returns a machine-readable town catalog record with id, purpose, workspace root, memory scope, tags, and skills
+- `wiki extension summary` returns page/review counts plus Keeper/evidence counts and a compact state summary
+- `wiki extension health` returns backlog, low-confidence claim, crowded-working-memory, and missing-evidence health signals for the book
 - `wiki review list` enumerates pending review ids/kinds/status/titles
 - `wiki review approve` moves items from pending to approved, promotes approved changes into synthesis/claims/pages, updates linked evidence status, refreshes the synthesis map, and refreshes Keeper insights
 - `wiki review approve` promotes approved query insights into cited entity/concept/source pages
@@ -342,7 +338,7 @@ Implemented code-block metadata:
 - language class, for example `language-rust`
 - modifier classes, for example `ignore editable`
 
-Implemented mdBook-style code-block rendering:
+Implemented MoonBook code-block rendering:
 
 - Rust blocks render as playground blocks by default
 - `noplayground` disables playground wrapping
@@ -366,15 +362,15 @@ Implemented raw HTML handling:
 
 Not implemented yet:
 
-- full mdBook theme system
+- complete MoonBook theme system
 - search index and search UI
 - print renderer/output
 - live reload websocket for `serve`
 - true native filesystem watcher backend
-- `test` parity with upstream mdBook behavior
+- stronger `book test` rendered-output behavior
 - external preprocessors and renderers
-- full `book.toml` compatibility
-- complete CommonMark/pulldown-cmark parity
+- complete MoonBook config coverage
+- complete markdown edge-case coverage
 - redirect generation
 - full built-in theme asset pipeline
 - complete Rabbita UI integration with live built-book state

@@ -4,7 +4,9 @@
 async fn ui_research_artifacts(root : String) -> Array[UiPanelItem] {
   let items : Array[UiPanelItem] = []
   for spec in research_artifact_specs() {
-    let path = @path.Path(root).join(@path.Path(spec.path)).to_string()
+    let path = moonbook_wiki_path(root)
+      .join(moonbook_wiki_path(spec.path))
+      .to_string()
     if @fsx.exists(path) {
       items.push({
         title: spec.title,
@@ -28,7 +30,9 @@ async fn ui_research_brief(root : String) -> String {
     relative in [
       "raw/bootstrap/synthesis-brief.md", "raw/bootstrap/evidence-matrix.md",
     ] {
-    let path = @path.Path(root).join(@path.Path(relative)).to_string()
+    let path = moonbook_wiki_path(root)
+      .join(moonbook_wiki_path(relative))
+      .to_string()
     if @fsx.exists(path) {
       return @fsx.read_file(path)
     }
@@ -42,7 +46,9 @@ async fn ui_marketing_brief(root : String) -> UiMarketingBrief {
     relative in [
       "wiki/synthesis/marketing.md", "raw/bootstrap/marketing-brief.md", "site/marketing.md",
     ] {
-    let path = @path.Path(root).join(@path.Path(relative)).to_string()
+    let path = moonbook_wiki_path(root)
+      .join(moonbook_wiki_path(relative))
+      .to_string()
     if @fsx.exists(path) {
       return parse_marketing_brief(relative, @fsx.read_file(path))
     }
@@ -321,7 +327,9 @@ fn sanitize_marketing_surface_text(text : String) -> String {
 ///|
 async fn ui_research_long_report(root : String) -> String {
   for relative in ["wiki/synthesis/report.md", "raw/bootstrap/deep-report.md"] {
-    let path = @path.Path(root).join(@path.Path(relative)).to_string()
+    let path = moonbook_wiki_path(root)
+      .join(moonbook_wiki_path(relative))
+      .to_string()
     if @fsx.exists(path) {
       return @fsx.read_file(path)
     }
@@ -447,7 +455,7 @@ async fn ui_research_report(
       evidence: report_evidence_from_rows(
         evidence_rows,
         [
-          "mdbook", "openclaw", "maria", "compare", "comparison", "rewrite", "motivated",
+          "renderer", "agent", "runtime", "compare", "comparison", "boundary", "motivated",
         ],
         source_screen + "\n" + evidence,
         "comparison",
@@ -656,7 +664,7 @@ fn research_comparison_summary(
   let selected = select_evidence_rows(
     rows,
     [
-      "mdbook", "openclaw", "maria", "compare", "comparison", "rewrite", "motivated",
+      "renderer", "agent", "runtime", "compare", "comparison", "boundary", "motivated",
     ],
     2,
   )
@@ -766,7 +774,9 @@ fn research_evidence_refs(text : String, prefix : String) -> Array[String] {
 
 ///|
 async fn read_workspace_text(root : String, relative : String) -> String {
-  let path = @path.Path(root).join(@path.Path(relative)).to_string()
+  let path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path(relative))
+    .to_string()
   if @fsx.exists(path) {
     @fsx.read_file(path)
   } else {

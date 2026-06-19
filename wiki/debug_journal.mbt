@@ -6,14 +6,16 @@ fn debug_journal_relative_page() -> String {
 ///|
 async fn ensure_debug_journal_page(workspace : Paths) -> String {
   let relative = debug_journal_relative_page()
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   if !@fsx.exists(absolute) {
     @fsx.write_to_file(absolute, debug_journal_text(), create=0o644)
     update_summary(workspace.summary_path, "Debug Journal", relative)
     update_index_section(
-      @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+      moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path("index.md"))
+      .to_string(),
       "Core Pages",
       "Debug Journal",
       relative,
@@ -41,8 +43,8 @@ async fn append_debug_journal_entry(
   bootstrap_cluster_complete : Bool,
 ) -> String {
   let relative = ensure_debug_journal_page(workspace)
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   let current = @fsx.read_file(absolute)
   let block = debug_journal_entry_block(

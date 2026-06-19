@@ -135,16 +135,14 @@ async fn handle_skill_hub_request(
 ) -> Unit {
   let path = request.path
   match (request.meth, strip_query(path)) {
-    (@http.RequestMethod::Get, "/") => send_html(conn, skill_hub_html())
-    (@http.RequestMethod::Get, "/app.js") =>
-      send_javascript(conn, skill_hub_script())
-    (@http.RequestMethod::Get, "/styles.css") =>
-      send_css(conn, skill_hub_styles())
-    (@http.RequestMethod::Get, "/api/state") =>
+    (Get, "/") => send_html(conn, skill_hub_html())
+    (Get, "/app.js") => send_javascript(conn, skill_hub_script())
+    (Get, "/styles.css") => send_css(conn, skill_hub_styles())
+    (Get, "/api/state") =>
       send_json(conn, read_skill_hub_state(root).to_json().stringify(indent=2))
-    (@http.RequestMethod::Get, "/api/debug") =>
+    (Get, "/api/debug") =>
       send_json(conn, read_skill_hub_debug(root).to_json().stringify(indent=2))
-    (@http.RequestMethod::Get, "/api/snapshots") => {
+    (Get, "/api/snapshots") => {
       let path = decode_query_value(
         query_value(request.path, "path").unwrap_or(""),
       )
@@ -153,15 +151,14 @@ async fn handle_skill_hub_request(
         list_skill_snapshots(root, path).to_json().stringify(indent=2),
       )
     }
-    (@http.RequestMethod::Get, "/api/events") =>
-      send_skill_hub_events(conn, root)
-    (@http.RequestMethod::Post, "/api/save") => {
+    (Get, "/api/events") => send_skill_hub_events(conn, root)
+    (Post, "/api/save") => {
       let payload : SkillHubSaveRequest = parse_skill_hub_json(body)
       save_skill_hub_content(root, payload)
       refresh_skill_hub_state(root)
       send_json(conn, "{\"ok\":true}")
     }
-    (@http.RequestMethod::Post, "/api/rollback") => {
+    (Post, "/api/rollback") => {
       let payload : SkillHubRollbackRequest = parse_skill_hub_json(body)
       rollback_skill_hub_snapshot(root, payload.path, payload.snapshot_id)
       refresh_skill_hub_state(root)
@@ -291,23 +288,33 @@ fn skill_hub_scan_roots(root : String) -> Array[SkillHubScanRoot] {
   let cwd = @env.current_dir().unwrap_or(root)
   let roots : Array[SkillHubScanRoot] = []
   roots.push({
-    path: @path.Path(root).join(@path.Path("skills")).to_string(),
+    path: moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("skills"))
+    .to_string(),
     category: "workspace",
   })
   roots.push({
-    path: @path.Path(root).join(@path.Path("seed/wiki/skills")).to_string(),
+    path: moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("seed/wiki/skills"))
+    .to_string(),
     category: "repo-seed",
   })
   roots.push({
-    path: @path.Path(home).join(@path.Path(".claude/skills")).to_string(),
+    path: moonbook_wiki_path(home)
+    .join(moonbook_wiki_path(".claude/skills"))
+    .to_string(),
     category: "claude-global",
   })
   roots.push({
-    path: @path.Path(home).join(@path.Path(".claude/plugins")).to_string(),
+    path: moonbook_wiki_path(home)
+    .join(moonbook_wiki_path(".claude/plugins"))
+    .to_string(),
     category: "claude-plugins",
   })
   roots.push({
-    path: @path.Path(home).join(@path.Path(".claude/projects")).to_string(),
+    path: moonbook_wiki_path(home)
+    .join(moonbook_wiki_path(".claude/projects"))
+    .to_string(),
     category: "claude-projects",
   })
   for
@@ -316,7 +323,7 @@ fn skill_hub_scan_roots(root : String) -> Array[SkillHubScanRoot] {
       "repos", "src",
     ] {
     roots.push({
-      path: @path.Path(home).join(@path.Path(dir)).to_string(),
+      path: moonbook_wiki_path(home).join(moonbook_wiki_path(dir)).to_string(),
       category: "common-dev",
     })
   }
@@ -324,11 +331,15 @@ fn skill_hub_scan_roots(root : String) -> Array[SkillHubScanRoot] {
   let mut depth = 0
   while depth < 4 {
     roots.push({
-      path: @path.Path(current).join(@path.Path("skills")).to_string(),
+      path: moonbook_wiki_path(current)
+      .join(moonbook_wiki_path("skills"))
+      .to_string(),
       category: "cwd-skills",
     })
     roots.push({
-      path: @path.Path(current).join(@path.Path(".claude/skills")).to_string(),
+      path: moonbook_wiki_path(current)
+      .join(moonbook_wiki_path(".claude/skills"))
+      .to_string(),
       category: "cwd-claude",
     })
     let parent = @pathx.dirname(current).to_owned()
@@ -385,18 +396,20 @@ async fn collect_skill_hub_records_from_root(
     }
   }
   match kind {
-    @fs.FileKind::Directory => {
-      let base = @path.Path(path).basename().to_owned()
+    Directory => {
+      let base = moonbook_wiki_path(path).basename().to_owned()
       if base == "skills" {
         for child in @fsx.list_directory(path) {
           let child_kind = @fs.kind(child, follow_symlink=false) catch {
             _ => continue
           }
           let skill_path = match child_kind {
-            @fs.FileKind::Directory =>
-              @path.Path(child).join(@path.Path("SKILL.md")).to_string()
+            Directory =>
+              moonbook_wiki_path(child)
+              .join(moonbook_wiki_path("SKILL.md"))
+              .to_string()
             _ =>
-              if @path.Path(child).basename().to_owned() == "SKILL.md" {
+              if moonbook_wiki_path(child).basename().to_owned() == "SKILL.md" {
                 child
               } else {
                 continue
@@ -438,7 +451,7 @@ async fn collect_skill_hub_records_from_root(
 
 ///|
 fn should_descend_skill_hub_dir(path : String) -> Bool {
-  let base = @path.Path(path).basename().to_owned()
+  let base = moonbook_wiki_path(path).basename().to_owned()
   ![
     ".git", "node_modules", "_build", "book", ".moonbook-skill-hub", ".DS_Store",
   ].contains(base)
@@ -461,32 +474,36 @@ fn skill_hub_record_id(path : String) -> String {
 
 ///|
 fn skill_hub_state_dir(root : String) -> String {
-  @path.Path(root).join(@path.Path(".moonbook-skill-hub")).to_string()
+  moonbook_wiki_path(root)
+  .join(moonbook_wiki_path(".moonbook-skill-hub"))
+  .to_string()
 }
 
 ///|
 fn skill_hub_state_path(root : String) -> String {
-  @path.Path(skill_hub_state_dir(root))
-  .join(@path.Path("state.json"))
+  moonbook_wiki_path(skill_hub_state_dir(root))
+  .join(moonbook_wiki_path("state.json"))
   .to_string()
 }
 
 ///|
 fn skill_hub_debug_path(root : String) -> String {
-  @path.Path(skill_hub_state_dir(root))
-  .join(@path.Path("debug.json"))
+  moonbook_wiki_path(skill_hub_state_dir(root))
+  .join(moonbook_wiki_path("debug.json"))
   .to_string()
 }
 
 ///|
 fn skill_hub_version_path(root : String) -> String {
-  @path.Path(skill_hub_state_dir(root)).join(@path.Path("version")).to_string()
+  moonbook_wiki_path(skill_hub_state_dir(root))
+  .join(moonbook_wiki_path("version"))
+  .to_string()
 }
 
 ///|
 fn skill_hub_snapshot_root(root : String) -> String {
-  @path.Path(skill_hub_state_dir(root))
-  .join(@path.Path("snapshots"))
+  moonbook_wiki_path(skill_hub_state_dir(root))
+  .join(moonbook_wiki_path("snapshots"))
   .to_string()
 }
 
@@ -537,16 +554,16 @@ async fn list_skill_snapshots(
   root : String,
   path : String,
 ) -> Array[SkillSnapshotRecord] {
-  let dir = @path.Path(skill_hub_snapshot_root(root))
-    .join(@path.Path(skill_hub_record_id(path)))
+  let dir = moonbook_wiki_path(skill_hub_snapshot_root(root))
+    .join(moonbook_wiki_path(skill_hub_record_id(path)))
     .to_string()
   if !@fsx.exists(dir) {
     return []
   }
   let items : Array[SkillSnapshotRecord] = []
   for child in @fsx.list_directory(dir) {
-    let manifest = @path.Path(child)
-      .join(@path.Path("snapshot.json"))
+    let manifest = moonbook_wiki_path(child)
+      .join(moonbook_wiki_path("snapshot.json"))
       .to_string()
     if @fsx.exists(manifest) {
       let json = @json.parse(@fsx.read_file(manifest)) catch { _ => continue }
@@ -564,14 +581,16 @@ async fn create_skill_snapshot(
   summary : String,
 ) -> SkillSnapshotRecord {
   let id = @async.now().to_int().to_string()
-  let dir = @path.Path(skill_hub_snapshot_root(root))
-    .join(@path.Path(skill_hub_record_id(path)))
-    .join(@path.Path(id))
+  let dir = moonbook_wiki_path(skill_hub_snapshot_root(root))
+    .join(moonbook_wiki_path(skill_hub_record_id(path)))
+    .join(moonbook_wiki_path(id))
     .to_string()
   @fsx.make_directory(dir, recursive=true, exists_ok=true)
-  let content_path = @path.Path(dir).join(@path.Path("SKILL.md")).to_string()
-  let manifest_path = @path.Path(dir)
-    .join(@path.Path("snapshot.json"))
+  let content_path = moonbook_wiki_path(dir)
+    .join(moonbook_wiki_path("SKILL.md"))
+    .to_string()
+  let manifest_path = moonbook_wiki_path(dir)
+    .join(moonbook_wiki_path("snapshot.json"))
     .to_string()
   @fsx.write_to_file(content_path, @fsx.read_file(path), create=0o644)
   let record : SkillSnapshotRecord = {

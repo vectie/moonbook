@@ -1,5 +1,5 @@
 ///|
-pub let mdbook_version : String = "0.5.2"
+pub let moonbook_version : String = "0.5.2"
 
 ///|
 pub struct Book {

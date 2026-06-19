@@ -177,8 +177,8 @@ async fn standing_watch_context_block(root : String) -> String {
   let workspace = workspace_paths(root)
   let state = summarize_state(root)
   let health = report_health(root)
-  let watch_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("history/standing-watch.md"))
+  let watch_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("history/standing-watch.md"))
     .to_string()
   let previous = if @fsx.exists(watch_path) {
     clamp_excerpt(@fsx.read_file(watch_path))
@@ -212,7 +212,9 @@ async fn skill_body_excerpt_block(root : String, task : BookTask) -> String {
     if relative == "RESOLVER.md" {
       continue
     }
-    let absolute = @path.Path(normalized).join(@path.Path(relative)).to_string()
+    let absolute = moonbook_wiki_path(normalized)
+      .join(moonbook_wiki_path(relative))
+      .to_string()
     if !@fsx.exists(absolute) {
       builder.write_string("- `\{relative}`: missing from workspace.\n")
       continue
@@ -260,7 +262,9 @@ async fn bootstrap_source_hint_lines(
   let base = bootstrap_source_search_root(root)
   let hints : Array[String] = []
   for repo in selected_terms {
-    let repo_dir = @path.Path(base).join(@path.Path(repo)).to_string()
+    let repo_dir = moonbook_wiki_path(base)
+      .join(moonbook_wiki_path(repo))
+      .to_string()
     if !@fsx.exists(repo_dir) {
       continue
     }
@@ -275,39 +279,54 @@ async fn bootstrap_source_hint_lines(
 ///|
 async fn bootstrap_source_search_root(root : String) -> String {
   for relative in ["..", "../..", "../../..", "../../../..", "../../../../.."] {
-    let candidate = @path.Path(root)
-      .join(@path.Path(relative))
+    let candidate = moonbook_wiki_path(root)
+      .join(moonbook_wiki_path(relative))
       .normalize()
       .to_string()
     if @fsx.exists(
-        @path.Path(candidate).join(@path.Path("moontown")).to_string(),
+        moonbook_wiki_path(candidate)
+        .join(moonbook_wiki_path("moontown"))
+        .to_string(),
       ) ||
       @fsx.exists(
-        @path.Path(candidate).join(@path.Path("moonclaw")).to_string(),
+        moonbook_wiki_path(candidate)
+        .join(moonbook_wiki_path("moonclaw"))
+        .to_string(),
       ) ||
       @fsx.exists(
-        @path.Path(candidate).join(@path.Path("moonbook")).to_string(),
+        moonbook_wiki_path(candidate)
+        .join(moonbook_wiki_path("moonbook"))
+        .to_string(),
       ) {
       return candidate
     }
   }
   let current = @env.current_dir().unwrap_or(root)
-  let current_parent = @path.Path(current)
-    .join(@path.Path(".."))
+  let current_parent = moonbook_wiki_path(current)
+    .join(moonbook_wiki_path(".."))
     .normalize()
     .to_string()
   if @fsx.exists(
-      @path.Path(current_parent).join(@path.Path("moontown")).to_string(),
+      moonbook_wiki_path(current_parent)
+      .join(moonbook_wiki_path("moontown"))
+      .to_string(),
     ) ||
     @fsx.exists(
-      @path.Path(current_parent).join(@path.Path("moonclaw")).to_string(),
+      moonbook_wiki_path(current_parent)
+      .join(moonbook_wiki_path("moonclaw"))
+      .to_string(),
     ) ||
     @fsx.exists(
-      @path.Path(current_parent).join(@path.Path("moonbook")).to_string(),
+      moonbook_wiki_path(current_parent)
+      .join(moonbook_wiki_path("moonbook"))
+      .to_string(),
     ) {
     current_parent
   } else {
-    @path.Path(root).join(@path.Path("..")).normalize().to_string()
+    moonbook_wiki_path(root)
+    .join(moonbook_wiki_path(".."))
+    .normalize()
+    .to_string()
   }
 }
 
@@ -318,7 +337,9 @@ async fn bootstrap_repo_candidate_files(repo_dir : String) -> Array[String] {
     relative in [
       "README.md", "README.mbt.md", "AGENTS.md", "moon.mod.json", "cmd/main/main.mbt",
     ] {
-    let absolute = @path.Path(repo_dir).join(@path.Path(relative)).to_string()
+    let absolute = moonbook_wiki_path(repo_dir)
+      .join(moonbook_wiki_path(relative))
+      .to_string()
     if @fsx.exists(absolute) {
       files.push(absolute)
     }
@@ -333,15 +354,15 @@ async fn resolve_skill_paths(root : String, task : BookTask) -> Array[String] {
   let candidates = task_skill_names(task)
   for name in candidates {
     ensure_seed_skill_available(normalized, name)
-    let path = @path.Path(normalized)
-      .join(@path.Path("skills/\{name}/SKILL.md"))
+    let path = moonbook_wiki_path(normalized)
+      .join(moonbook_wiki_path("skills/\{name}/SKILL.md"))
       .to_string()
     if @fsx.exists(path) {
       selected.push(relative_to_root(path, normalized))
     }
   }
-  let resolver = @path.Path(normalized)
-    .join(@path.Path("RESOLVER.md"))
+  let resolver = moonbook_wiki_path(normalized)
+    .join(moonbook_wiki_path("RESOLVER.md"))
     .to_string()
   if @fsx.exists(resolver) {
     selected.push(relative_to_root(resolver, normalized))
@@ -351,17 +372,17 @@ async fn resolve_skill_paths(root : String, task : BookTask) -> Array[String] {
 
 ///|
 async fn ensure_seed_skill_available(root : String, name : String) -> Unit {
-  let destination = @path.Path(root)
-    .join(@path.Path("skills/\{name}"))
+  let destination = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("skills/\{name}"))
     .to_string()
-  let skill_path = @path.Path(destination)
-    .join(@path.Path("SKILL.md"))
+  let skill_path = moonbook_wiki_path(destination)
+    .join(moonbook_wiki_path("SKILL.md"))
     .to_string()
   if @fsx.exists(skill_path) {
     return
   }
-  let source = @path.Path(seed_module_root())
-    .join(@path.Path("seed/wiki/skills/\{name}"))
+  let source = moonbook_wiki_path(seed_module_root())
+    .join(moonbook_wiki_path("seed/wiki/skills/\{name}"))
     .to_string()
   if !@fsx.exists(source) {
     return
@@ -516,17 +537,17 @@ fn task_skill_names(task : BookTask) -> Array[String] {
 
 ///|
 async fn skill_markdown_paths(root : String) -> Array[String] {
-  let dir = @path.Path(@pathx.normalize(root))
-    .join(@path.Path("skills"))
+  let dir = moonbook_wiki_path(@pathx.normalize(root))
+    .join(moonbook_wiki_path("skills"))
     .to_string()
   let paths : Array[String] = []
   if !@fsx.exists(dir) {
     return paths
   }
   for child in @fsx.list_directory(dir) {
-    let candidate = @path.Path(dir)
-      .join(@path.Path(child))
-      .join(@path.Path("SKILL.md"))
+    let candidate = moonbook_wiki_path(dir)
+      .join(moonbook_wiki_path(child))
+      .join(moonbook_wiki_path("SKILL.md"))
       .to_string()
     if @fsx.exists(candidate) {
       paths.push(candidate)
@@ -589,7 +610,7 @@ fn skill_name_from_path(path : String) -> String {
   } else if normalized.contains("/skills/review-decision/") {
     "review-decision"
   } else {
-    @path.Path(normalized).basename().to_owned()
+    moonbook_wiki_path(normalized).basename().to_owned()
   }
 }
 

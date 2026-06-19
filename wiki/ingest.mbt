@@ -39,37 +39,51 @@ priv struct IngestGatherLane {
 pub async fn ingest_source(root : String, source_path : String) -> IngestResult {
   let workspace = workspace_paths(root)
   @fsx.make_directory(
-    @path.Path(workspace.wiki_dir).join(@path.Path("sources")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("sources"))
+    .to_string(),
     recursive=true,
     exists_ok=true,
   )
   @fsx.make_directory(
-    @path.Path(workspace.wiki_dir).join(@path.Path("entities")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("entities"))
+    .to_string(),
     recursive=true,
     exists_ok=true,
   )
   @fsx.make_directory(
-    @path.Path(workspace.wiki_dir).join(@path.Path("concepts")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("concepts"))
+    .to_string(),
     recursive=true,
     exists_ok=true,
   )
   @fsx.make_directory(
-    @path.Path(workspace.wiki_dir).join(@path.Path("synthesis")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("synthesis"))
+    .to_string(),
     recursive=true,
     exists_ok=true,
   )
   @fsx.make_directory(
-    @path.Path(workspace.wiki_dir).join(@path.Path("queries")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("queries"))
+    .to_string(),
     recursive=true,
     exists_ok=true,
   )
   @fsx.make_directory(
-    @path.Path(workspace.wiki_dir).join(@path.Path("reviews")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("reviews"))
+    .to_string(),
     recursive=true,
     exists_ok=true,
   )
   @fsx.make_directory(
-    @path.Path(workspace.raw_dir).join(@path.Path("imported")).to_string(),
+    moonbook_wiki_path(workspace.raw_dir)
+    .join(moonbook_wiki_path("imported"))
+    .to_string(),
     recursive=true,
     exists_ok=true,
   )
@@ -89,12 +103,14 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
   let title = detect_source_title(stored_raw_path)
   let relative_raw = relative_to_root(stored_raw_path, workspace.root)
   let slug = unique_source_slug(
-    @path.Path(workspace.wiki_dir).join(@path.Path("sources")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("sources"))
+    .to_string(),
     suggest_source_slug(title, stored_raw_path),
   )
   let relative_page = "sources/\{slug}.md"
-  let page_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
+  let page_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative_page))
     .to_string()
   let page_body = source_page_text(
     title, relative_raw, relative_page, stored_raw_path,
@@ -110,13 +126,17 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
 
   update_summary(workspace.summary_path, title, relative_page)
   update_index(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     title,
     relative_page,
     stored_raw_path,
   )
   append_log(
-    @path.Path(workspace.wiki_dir).join(@path.Path("log.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("log.md"))
+    .to_string(),
     title,
     relative_raw,
     relative_page,
@@ -135,16 +155,16 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
 
 ///|
 fn resolve_input_source(source_path : String) -> String {
-  if @path.Path(source_path).is_absolute() {
-    @path.Path(source_path).normalize().to_string()
+  if moonbook_wiki_path(source_path).is_absolute() {
+    moonbook_wiki_path(source_path).normalize().to_string()
   } else {
     match @env.current_dir() {
       Some(current_dir) =>
-        @path.Path(current_dir)
-        .join(@path.Path(source_path))
+        moonbook_wiki_path(current_dir)
+        .join(moonbook_wiki_path(source_path))
         .normalize()
         .to_string()
-      None => @path.Path(source_path).normalize().to_string()
+      None => moonbook_wiki_path(source_path).normalize().to_string()
     }
   }
 }
@@ -226,10 +246,10 @@ fn is_under_root(path : String, root : String) -> Bool {
 
 ///|
 async fn import_source_file(raw_dir : String, source_path : String) -> String {
-  let imported_dir = @path.Path(raw_dir)
-    .join(@path.Path("imported"))
+  let imported_dir = moonbook_wiki_path(raw_dir)
+    .join(moonbook_wiki_path("imported"))
     .to_string()
-  let basename = @path.Path(source_path).basename().to_owned()
+  let basename = moonbook_wiki_path(source_path).basename().to_owned()
   let destination = unique_import_path(imported_dir, basename)
   @fsx.write_bytes(destination, @fsx.read_bytes(source_path), create=0o644)
   destination
@@ -250,8 +270,8 @@ async fn unique_import_path(imported_dir : String, basename : String) -> String 
     } else {
       "\{stem}-\{index}\{ext}"
     }
-    let candidate = @path.Path(imported_dir)
-      .join(@path.Path(candidate_name))
+    let candidate = moonbook_wiki_path(imported_dir)
+      .join(moonbook_wiki_path(candidate_name))
       .to_string()
     if !@fsx.exists(candidate) {
       return candidate
@@ -288,7 +308,7 @@ async fn validate_ingestable_source(path : String) -> Unit {
 
 ///|
 async fn source_rejection_reason(path : String) -> String? {
-  let basename = @path.Path(path).basename().to_owned()
+  let basename = moonbook_wiki_path(path).basename().to_owned()
   let lowered = basename.to_lower()
   if basename.is_blank() {
     return Some("missing file name")
@@ -377,7 +397,7 @@ async fn update_index(
     "Sources",
     escape_link_label(title),
     relative_page,
-    "source page for `\{@path.Path(stored_raw_path).basename()}`",
+    "source page for `\{moonbook_wiki_path(stored_raw_path).basename()}`",
   )
 }
 
@@ -470,13 +490,13 @@ async fn emit_ingest_keeper_packet(
   source_relative_page : String,
   related_pages : Array[String],
 ) -> String {
-  let jobs_dir = @path.Path(workspace.root)
-    .join(@path.Path("keeper/jobs"))
+  let jobs_dir = moonbook_wiki_path(workspace.root)
+    .join(moonbook_wiki_path("keeper/jobs"))
     .to_string()
   @fsx.make_directory(jobs_dir, recursive=true, exists_ok=true)
   let slug = file_stem(source_relative_page)
-  let packet_path = @path.Path(jobs_dir)
-    .join(@path.Path("ingest-\{slug}.json"))
+  let packet_path = moonbook_wiki_path(jobs_dir)
+    .join(moonbook_wiki_path("ingest-\{slug}.json"))
     .to_string()
   let notes = ingest_packet_notes(stored_raw_path, source_relative_page)
   let packet : IngestKeeperProposal = {
@@ -650,7 +670,7 @@ test "relative link from page reaches raw source" {
 
 ///|
 test "detect source title prefers markdown heading" {
-  let tmp = "/Users/kq/Workspace/moonbook/wiki-title-test.md"
+  let tmp = "/tmp/moonbook-wiki-title-test.md"
   ignore(tmp)
   let title = first_markdown_heading("# Demo Title\n\nBody\n")
   assert_eq(title, "Demo Title")
@@ -659,18 +679,18 @@ test "detect source title prefers markdown heading" {
 ///|
 test "extract candidate entities uses titlecase phrases" {
   let entities = extract_candidate_entities(
-    "OpenClaw Deploy Guide", "OpenClaw connects to MoonClaw runtime.\nMoonClaw stores workspace state.\n",
+    "MoonDesk Deploy Guide", "MoonDesk connects to MoonClaw runtime.\nMoonClaw stores workspace state.\n",
   )
-  assert_true(entities.contains("OpenClaw"))
+  assert_true(entities.contains("MoonDesk"))
   assert_true(entities.contains("MoonClaw"))
 }
 
 ///|
 test "extract candidate entities keeps known lowercase runtime names" {
   let entities = extract_candidate_entities(
-    "OpenClaw guide", "openclaw works with feishu feishu and powershell powershell on windows",
+    "MoonClaw guide", "moonclaw works with feishu feishu and powershell powershell on windows",
   )
-  assert_true(entities.contains("OpenClaw"))
+  assert_true(entities.contains("MoonClaw"))
   assert_true(entities.contains("Feishu"))
   assert_true(entities.contains("PowerShell"))
 }
@@ -695,7 +715,7 @@ test "extract candidate concepts keeps salient words even without repetition" {
 ///|
 test "extract candidate concepts prefers canonical operational concepts" {
   let concepts = extract_candidate_concepts(
-    "Install OpenClaw with npm, restart the gateway, and verify Feishu channel status on macOS.",
+    "Install MoonClaw with npm, restart the gateway, and verify Feishu channel status on macOS.",
   )
   assert_true(concepts.contains("installation methods"))
   assert_true(concepts.contains("gateway operations"))
@@ -705,17 +725,17 @@ test "extract candidate concepts prefers canonical operational concepts" {
 ///|
 test "summarize source skips related-page boilerplate" {
   let summary = summarize_source(
-    "在Windows操作系统中手动部署OpenClaw", "# 在Windows操作系统中手动部署OpenClaw\n\n相关页面：[查看 macOS 安装说明](./macos.md)\n\n在PowerShell中执行如下命令，安装最新版本的OpenClaw。\n",
+    "在Windows操作系统中手动部署MoonClaw", "# 在Windows操作系统中手动部署MoonClaw\n\n相关页面：[查看 macOS 安装说明](./macos.md)\n\n在PowerShell中执行如下命令，安装最新版本的MoonClaw。\n",
   )
   assert_eq(
-    summary, "在PowerShell中执行如下命令，安装最新版本的OpenClaw。",
+    summary, "在PowerShell中执行如下命令，安装最新版本的MoonClaw。",
   )
 }
 
 ///|
 test "detect source scope prefers title over incidental cross links" {
   let scope = detect_source_scope(
-    "在Windows操作系统中手动部署OpenClaw", "README.md", "相关页面：[查看 macOS 安装说明](./macos.md)\n\n在PowerShell中执行如下命令。",
+    "在Windows操作系统中手动部署MoonClaw", "README.md", "相关页面：[查看 macOS 安装说明](./macos.md)\n\n在PowerShell中执行如下命令。",
   )
   assert_eq(scope, "Windows; installation and onboarding")
 }
@@ -723,7 +743,7 @@ test "detect source scope prefers title over incidental cross links" {
 ///|
 test "extract claim statements keeps simple grounded lines" {
   let claims = extract_claim_statements(
-    "OpenClaw integrates with MoonClaw runtime.\nThe system improves synthesis.\n",
+    "MoonDesk integrates with MoonClaw runtime.\nThe system improves synthesis.\n",
   )
   assert_eq(claims.length(), 2)
 }
@@ -731,9 +751,9 @@ test "extract claim statements keeps simple grounded lines" {
 ///|
 test "parse structured claim extracts subject predicate and confidence" {
   let claim = parse_structured_claim(
-    "OpenClaw integrates with MoonClaw runtime.",
+    "MoonDesk integrates with MoonClaw runtime.",
   ).unwrap()
-  assert_eq(claim.subject, "OpenClaw")
+  assert_eq(claim.subject, "MoonDesk")
   assert_eq(claim.confidence, "medium")
 }
 
@@ -741,7 +761,7 @@ test "parse structured claim extracts subject predicate and confidence" {
 test "upsert claim block accumulates support" {
   let content = "# Claims Register\n\n## Claims\n\n_None yet._\n"
   let claim = {
-    subject: "OpenClaw",
+    subject: "MoonDesk",
     predicate: "MoonClaw runtime",
     confidence: "medium",
   }
@@ -780,8 +800,8 @@ test "rewrite index section collapses duplicate source headings" {
 async test "ingest rejects placeholder raw artifacts" {
   let root = "/tmp/moonbook-ingest-reject-dotfile"
   ignore(init_workspace(root))
-  let placeholder = @path.Path(root)
-    .join(@path.Path("raw/assets/.gitkeep"))
+  let placeholder = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("raw/assets/.gitkeep"))
     .to_string()
   @fsx.write_to_file(placeholder, "", create=0o644)
   let mut message = ""
@@ -796,10 +816,12 @@ async test "ingest rejects placeholder raw artifacts" {
 async test "ingest leaves ontology revision to follow-up skills" {
   let root = "/tmp/moonbook-ingest-thin-harness"
   ignore(init_workspace(root))
-  let source = @path.Path(root).join(@path.Path("raw/demo.md")).to_string()
+  let source = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("raw/demo.md"))
+    .to_string()
   @fsx.write_to_file(
     source,
-    "# Demo Source\n\nOpenClaw integrates with Feishu.\n\nGateway restart is required after config changes.\n",
+    "# Demo Source\n\nMoonDesk integrates with Feishu.\n\nGateway restart is required after config changes.\n",
     create=0o644,
   )
   let result = ingest_source(root, source)
@@ -808,7 +830,7 @@ async test "ingest leaves ontology revision to follow-up skills" {
   assert_true(result.related_pages.contains("synthesis/claims.md"))
   assert_true(result.keeper_packet_path.contains("/keeper/jobs/ingest-"))
   assert_true(@fsx.exists(result.keeper_packet_path))
-  assert_true(!@fsx.exists(root + "/wiki/entities/openclaw.md"))
+  assert_true(!@fsx.exists(root + "/wiki/entities/moondesk.md"))
   assert_true(!@fsx.exists(root + "/wiki/concepts/gateway-operations.md"))
   let plan = @fsx.read_file(root + "/wiki/synthesis/maintenance-plan.md")
   assert_true(plan.contains("skill-followup: source-diarize"))

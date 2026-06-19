@@ -9,7 +9,7 @@ fn context_title(config : @core.Config) -> String {
 fn chapter_output_path(chapter : @core.Chapter) -> String {
   match chapter.path {
     Some(path) =>
-      @path.Path(path)
+      moonbook_html_path(path)
       .normalize()
       .to_string()
       .replace(old=".md", new=".html")
@@ -233,8 +233,8 @@ async fn render_not_found_page(
     render_not_found_head(context.config) +
     render_not_found_assets(context.config),
   )
-  let dest_path = @path.Path(context.build_dir)
-    .join(@path.Path(output_path))
+  let dest_path = moonbook_html_path(context.build_dir)
+    .join(moonbook_html_path(output_path))
     .to_string()
   ensure_parent_dir(dest_path)
   write_text_file(dest_path, page)
@@ -327,7 +327,9 @@ async fn load_not_found_markdown(
 ) -> String? {
   match not_found_input_path(config) {
     Some(path) => {
-      let source_path = @path.Path(src_root).join(@path.Path(path)).to_string()
+      let source_path = moonbook_html_path(src_root)
+        .join(moonbook_html_path(path))
+        .to_string()
       if @fsx.exists(source_path) {
         Some(strip_utf8_bom_text(@fsx.read_file(source_path)))
       } else if path == "404.md" {

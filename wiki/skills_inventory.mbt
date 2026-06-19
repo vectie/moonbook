@@ -3,8 +3,8 @@
 
 async fn collect_skill_records(root : String) -> Array[SkillRecord] {
   let records = []
-  let workspace_skills_dir = @path.Path(root)
-    .join(@path.Path("skills"))
+  let workspace_skills_dir = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("skills"))
     .to_string()
   push_skill_records(
     records,
@@ -16,24 +16,26 @@ async fn collect_skill_records(root : String) -> Array[SkillRecord] {
     ),
   )
   let module_root = skill_module_root()
-  let seed_core_dir = @path.Path(module_root)
-    .join(@path.Path("seed/wiki/skills"))
+  let seed_core_dir = moonbook_wiki_path(module_root)
+    .join(moonbook_wiki_path("seed/wiki/skills"))
     .to_string()
   push_skill_records(
     records,
     collect_skill_dir_records(seed_core_dir, "seed-core", "repo-seed", None),
   )
-  let extension_seed_root = @path.Path(module_root)
-    .join(@path.Path("seed/extensions"))
+  let extension_seed_root = moonbook_wiki_path(module_root)
+    .join(moonbook_wiki_path("seed/extensions"))
     .to_string()
   if @fsx.exists(extension_seed_root) {
     for extension_dir in @fsx.list_directory(extension_seed_root) {
       if !(is_directory(extension_dir) catch { _ => false }) {
         continue
       }
-      let extension_name = @path.Path(extension_dir).basename().to_owned()
-      let skills_dir = @path.Path(extension_dir)
-        .join(@path.Path("skills"))
+      let extension_name = moonbook_wiki_path(extension_dir)
+        .basename()
+        .to_owned()
+      let skills_dir = moonbook_wiki_path(extension_dir)
+        .join(moonbook_wiki_path("skills"))
         .to_string()
       push_skill_records(
         records,
@@ -75,7 +77,9 @@ async fn collect_skill_dir_records(
     if !(is_directory(entry) catch { _ => false }) {
       continue
     }
-    let skill_path = @path.Path(entry).join(@path.Path("SKILL.md")).to_string()
+    let skill_path = moonbook_wiki_path(entry)
+      .join(moonbook_wiki_path("SKILL.md"))
+      .to_string()
     if !@fsx.exists(skill_path) {
       continue
     }
@@ -177,7 +181,7 @@ async fn collect_missing_reference_paths(
 
 ///|
 fn parse_skill_metadata(skill_dir : String, text : String) -> (String, String) {
-  let fallback_name = @path.Path(skill_dir).basename().to_owned()
+  let fallback_name = moonbook_wiki_path(skill_dir).basename().to_owned()
   let mut name = fallback_name
   let mut description = ""
   let mut in_frontmatter = false
@@ -217,8 +221,8 @@ fn collect_reference_paths(skill_dir : String, text : String) -> Array[String] {
         Some(index) => {
           let absolute_index = start + index
           let path = read_reference_token(line, absolute_index)
-          let full_path = @path.Path(skill_dir)
-            .join(@path.Path(path))
+          let full_path = moonbook_wiki_path(skill_dir)
+            .join(moonbook_wiki_path(path))
             .to_string()
           if !references.contains(full_path) {
             references.push(full_path)
@@ -271,7 +275,7 @@ fn strip_wrapping_quotes(text : String) -> String {
 ///|
 async fn is_directory(path : String) -> Bool {
   match @fs.kind(path, follow_symlink=false) {
-    @fs.FileKind::Directory => true
+    Directory => true
     _ => false
   }
 }

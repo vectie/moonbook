@@ -7,17 +7,17 @@ fn skill_module_root() -> String {
 
 ///|
 fn workspace_skill_dir(root : String, name : String) -> String {
-  @path.Path(root)
-  .join(@path.Path("skills"))
-  .join(@path.Path(skill_slug(name)))
+  moonbook_wiki_path(root)
+  .join(moonbook_wiki_path("skills"))
+  .join(moonbook_wiki_path(skill_slug(name)))
   .to_string()
 }
 
 ///|
 fn skill_candidate_dir(root : String, name : String) -> String {
-  @path.Path(root)
-  .join(@path.Path("skill-candidates"))
-  .join(@path.Path(skill_slug(name)))
+  moonbook_wiki_path(root)
+  .join(moonbook_wiki_path("skill-candidates"))
+  .join(moonbook_wiki_path(skill_slug(name)))
   .to_string()
 }
 
@@ -40,13 +40,15 @@ async fn copy_skill_tree(
   destination_path : String,
 ) -> Unit {
   match @fs.kind(source_path, follow_symlink=false) {
-    @fs.FileKind::Directory => {
+    Directory => {
       @fsx.make_directory(destination_path, recursive=true, exists_ok=true)
       for child in @fsx.list_directory(source_path) {
-        let child_name = @path.Path(child).basename().to_owned()
+        let child_name = moonbook_wiki_path(child).basename().to_owned()
         copy_skill_tree(
           child,
-          @path.Path(destination_path).join(@path.Path(child_name)).to_string(),
+          moonbook_wiki_path(destination_path)
+          .join(moonbook_wiki_path(child_name))
+          .to_string(),
         )
       }
     }
@@ -65,13 +67,15 @@ async fn copy_skill_tree_replace(
   destination_path : String,
 ) -> Unit {
   match @fs.kind(source_path, follow_symlink=false) {
-    @fs.FileKind::Directory => {
+    Directory => {
       @fsx.make_directory(destination_path, recursive=true, exists_ok=true)
       for child in @fsx.list_directory(source_path) {
-        let child_name = @path.Path(child).basename().to_owned()
+        let child_name = moonbook_wiki_path(child).basename().to_owned()
         copy_skill_tree_replace(
           child,
-          @path.Path(destination_path).join(@path.Path(child_name)).to_string(),
+          moonbook_wiki_path(destination_path)
+          .join(moonbook_wiki_path(child_name))
+          .to_string(),
         )
       }
     }

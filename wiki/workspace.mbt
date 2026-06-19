@@ -9,12 +9,14 @@ priv struct Paths {
 ///|
 fn workspace_paths(root : String) -> Paths {
   let normalized_root = @pathx.normalize(root)
-  let raw_dir = @path.Path(normalized_root).join(@path.Path("raw")).to_string()
-  let wiki_dir = @path.Path(normalized_root)
-    .join(@path.Path("wiki"))
+  let raw_dir = moonbook_wiki_path(normalized_root)
+    .join(moonbook_wiki_path("raw"))
     .to_string()
-  let summary_path = @path.Path(wiki_dir)
-    .join(@path.Path("SUMMARY.md"))
+  let wiki_dir = moonbook_wiki_path(normalized_root)
+    .join(moonbook_wiki_path("wiki"))
+    .to_string()
+  let summary_path = moonbook_wiki_path(wiki_dir)
+    .join(moonbook_wiki_path("SUMMARY.md"))
     .to_string()
   { root: normalized_root, raw_dir, wiki_dir, summary_path }
 }

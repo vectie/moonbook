@@ -16,8 +16,8 @@ pub struct ReviewActionResult {
 ///|
 pub async fn list_pending_reviews(root : String) -> Array[ReviewItem] {
   let workspace = workspace_paths(root)
-  let pending_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("reviews/pending.md"))
+  let pending_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("reviews/pending.md"))
     .to_string()
   let content = if @fsx.exists(pending_path) {
     @fsx.read_file(pending_path)
@@ -61,11 +61,11 @@ async fn apply_review_action(
   let workspace = workspace_paths(root)
   let pending_relative = "reviews/pending.md"
   let approved_relative = "reviews/approved.md"
-  let pending_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(pending_relative))
+  let pending_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(pending_relative))
     .to_string()
-  let approved_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(approved_relative))
+  let approved_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(approved_relative))
     .to_string()
   let pending = if @fsx.exists(pending_path) {
     @fsx.read_file(pending_path)
@@ -148,7 +148,9 @@ async fn apply_review_action(
     promoted_pages.push(plan_relative)
   }
   append_review_log(
-    @path.Path(workspace.wiki_dir).join(@path.Path("log.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("log.md"))
+    .to_string(),
     block.review_id,
     action,
     promoted_pages,
@@ -174,8 +176,8 @@ async fn maybe_apply_claim_review(
     return ""
   }
   let relative_page = "synthesis/claims.md"
-  let claims_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
+  let claims_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative_page))
     .to_string()
   if !@fsx.exists(claims_path) {
     return ""
@@ -225,8 +227,8 @@ async fn maybe_apply_query_review(
     return []
   }
   let relative_page = "synthesis/overview.md"
-  let overview_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
+  let overview_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative_page))
     .to_string()
   if !@fsx.exists(overview_path) {
     return []
@@ -260,8 +262,8 @@ async fn maybe_apply_query_review(
       !page_relative.has_prefix("sources/") {
       continue
     }
-    let page_path = @path.Path(workspace.wiki_dir)
-      .join(@path.Path(page_relative))
+    let page_path = moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path(page_relative))
       .to_string()
     if !@fsx.exists(page_path) {
       continue

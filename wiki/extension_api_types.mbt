@@ -1,5 +1,5 @@
 ///|
-// Public Book API data contracts and package-local coverage summaries.
+// Public Extension API data contracts and package-local coverage summaries.
 
 ///|
 pub struct BookTask {

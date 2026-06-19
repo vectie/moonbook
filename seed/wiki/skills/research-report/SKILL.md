@@ -308,7 +308,7 @@ with evidence-backed analysis.
 
 Good section paragraph:
 
-> MoonClaw's provider-task bridge is the runtime boundary that lets a book-local
+> MoonClaw's provider runtime boundary lets a book-local
 > provider shape domain work while MoonClaw keeps execution, artifacts, lineage,
 > and review signaling generic. The evidence is concrete: the provider task
 > result schema carries `task_id`, `summary`, `artifacts`, `memory_candidates`,
@@ -877,3 +877,20 @@ If blocked, return a concise blocker:
 ```
 
 Never return a generic success message when the report is not materialized.
+
+## Exploration Quality Contract
+
+Every run should improve the book's ability to answer deeper and broader
+questions about its topic.
+
+- Go deeper: explain the mechanism, evidence chain, confidence boundary,
+  contradiction, or internal dependency that makes the result true, weak, or
+  blocked.
+- Go broader: connect the result to adjacent entities, concepts, source pages,
+  downstream decisions, and book-maintenance consequences.
+- Generate new questions: record follow-up questions that would change the
+  answer, expose missing evidence, or open a useful next investigation.
+- Generate new directions: name the next durable page, review item, experiment,
+  comparison, or synthesis update that should grow from this work.
+- Prefer longer meaningful text over short status output when evidence exists:
+  give enough context that a future keeper can resume without the chat history.

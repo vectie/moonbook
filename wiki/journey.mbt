@@ -16,14 +16,16 @@ fn journey_relative_page() -> String {
 ///|
 async fn ensure_journey_page(workspace : Paths) -> String {
   let relative = journey_relative_page()
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   if !@fsx.exists(absolute) {
     @fsx.write_to_file(absolute, journey_text(), create=0o644)
     update_summary(workspace.summary_path, "Journey", relative)
     update_index_section(
-      @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+      moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path("index.md"))
+      .to_string(),
       "Core Pages",
       "Journey",
       relative,
@@ -56,8 +58,8 @@ async fn append_journey_entry(
     []
   }
   let relative = ensure_journey_page(workspace)
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   let current = @fsx.read_file(absolute)
   let block = journey_entry_block(
@@ -297,8 +299,8 @@ async fn recent_journey_entries(
   limit? : Int = 4,
 ) -> Array[JourneyEntry] {
   let workspace = workspace_paths(root)
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(journey_relative_page()))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(journey_relative_page()))
     .to_string()
   if !@fsx.exists(absolute) {
     return []

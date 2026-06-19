@@ -274,9 +274,9 @@ test "build review block falls back to derived id" {
 ///|
 test "parse review claim summary decodes structured line" {
   let claim = parse_review_claim_summary(
-    "OpenClaw -> MoonClaw runtime [medium]",
+    "MoonDesk -> MoonClaw runtime [medium]",
   ).unwrap()
-  assert_eq(claim.subject, "OpenClaw")
+  assert_eq(claim.subject, "MoonDesk")
   assert_eq(claim.predicate, "MoonClaw runtime")
   assert_eq(claim.confidence, "medium")
 }

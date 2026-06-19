@@ -19,7 +19,7 @@ fn moontown_manifest_text() -> String {
   "  \"kind\": \"town-control-plane\",\n" +
   "  \"entry\": {\n" +
   "    \"book\": \"moontown.book.json\",\n" +
-  "    \"guide\": \"BOOK_API.md\"\n" +
+  "    \"guide\": \"EXTENSION_API.md\"\n" +
   "  }\n" +
   "}\n"
 }
@@ -27,27 +27,27 @@ fn moontown_manifest_text() -> String {
 ///|
 fn moontown_book_text(root : String) -> String {
   "{\n" +
-  "  \"id\": \"\{escape_json_string(@path.Path(root).basename().to_owned())}\",\n" +
-  "  \"name\": \"\{escape_json_string(@path.Path(root).basename().to_owned())}\",\n" +
+  "  \"id\": \"\{escape_json_string(moonbook_wiki_path(root).basename().to_owned())}\",\n" +
+  "  \"name\": \"\{escape_json_string(moonbook_wiki_path(root).basename().to_owned())}\",\n" +
   "  \"purpose\": \"Persistent per-domain MoonBook workspace.\",\n" +
   "  \"workspace_root\": \"\{escape_json_string(root)}\",\n" +
-  "  \"kind\": \"moonbook-domain-harness\",\n" +
-  "  \"catalog_export\": \"moon run cmd/main -- wiki book catalog \{escape_json_string(root)}\",\n" +
+  "  \"kind\": \"moonbook-extension-api\",\n" +
+  "  \"catalog_export\": \"moon run cmd/main -- wiki extension catalog \{escape_json_string(root)}\",\n" +
   "  \"apis\": {\n" +
-  "    \"accept_goal\": \"moon run cmd/main -- wiki book accept \{escape_json_string(root)} <goal>\",\n" +
-  "    \"produce_task_batch\": \"moon run cmd/main -- wiki book tasks \{escape_json_string(root)} <goal>\",\n" +
-  "    \"hydrate_worker_context\": \"moon run cmd/main -- wiki book context \{escape_json_string(root)} <goal> [--task <task-id>]\",\n" +
-  "    \"persist_result\": \"moon run cmd/main -- wiki book persist \{escape_json_string(root)} <result.json>\",\n" +
-  "    \"summarize_state\": \"moon run cmd/main -- wiki book summary \{escape_json_string(root)}\",\n" +
-  "    \"report_health\": \"moon run cmd/main -- wiki book health \{escape_json_string(root)}\"\n" +
+  "    \"accept_goal\": \"moon run cmd/main -- wiki extension accept \{escape_json_string(root)} <goal>\",\n" +
+  "    \"produce_task_batch\": \"moon run cmd/main -- wiki extension tasks \{escape_json_string(root)} <goal>\",\n" +
+  "    \"hydrate_worker_context\": \"moon run cmd/main -- wiki extension context \{escape_json_string(root)} <goal> [--task <task-id>]\",\n" +
+  "    \"persist_result\": \"moon run cmd/main -- wiki extension persist \{escape_json_string(root)} <result.json>\",\n" +
+  "    \"summarize_state\": \"moon run cmd/main -- wiki extension summary \{escape_json_string(root)}\",\n" +
+  "    \"report_health\": \"moon run cmd/main -- wiki extension health \{escape_json_string(root)}\"\n" +
   "  }\n" +
   "}\n"
 }
 
 ///|
-fn book_api_text() -> String {
-  "# Book API\n\n" +
-  "This workspace exposes MoonBook's domain-harness surface for town-level orchestration.\n\n" +
+fn extension_api_text() -> String {
+  "# Extension API\n\n" +
+  "This workspace exposes MoonBook's extension API surface for town-level orchestration.\n\n" +
   "## Town-facing operations\n\n" +
   "- `accept_goal`\n" +
   "- `produce_task_batch`\n" +
@@ -55,7 +55,7 @@ fn book_api_text() -> String {
   "- `persist_result`\n" +
   "- `summarize_state`\n" +
   "- `report_health`\n\n" +
-  "These should be treated as the town-to-book boundary. Worker execution still belongs to MoonClaw.\n"
+  "These should be treated as the town-to-extension boundary. Worker execution still belongs to MoonClaw.\n"
 }
 
 ///|
@@ -77,10 +77,10 @@ fn moonclaw_providers_text(root : String) -> String {
   ("[\n" +
   "  {\n" +
   "    \"name\": \"moonbook\",\n" +
-  "    \"title\": \"MoonBook Book Harness\",\n" +
-  "    \"description\": \"MoonBook provider-task bridge for domain-local workspace logic.\",\n" +
+  "    \"title\": \"MoonBook Extension API\",\n" +
+  "    \"description\": \"MoonBook provider runtime boundary for domain-local book logic.\",\n" +
   "    \"kind\": \"task-provider\",\n" +
-  "    \"capabilities\": [\"provider\", \"extension\", \"provider.task\", \"extension.task\", \"bookapi\", \"moonbook.bookapi\"],\n" +
+  "    \"capabilities\": [\"provider\", \"extension\", \"provider.task\", \"extension.task\"],\n" +
   "    \"metadata\": {\n" +
   "      \"command\": \"moon\",\n" +
   "      \"args\": [\"run\", \"cmd/main\", \"--\"],\n" +

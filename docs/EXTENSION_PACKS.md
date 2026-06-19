@@ -60,19 +60,19 @@ Installed files by pack:
 - `moontown`
   - `.moonbook/extensions/moontown.json`
   - `moontown.book.json`
-  - `BOOK_API.md`
+  - `EXTENSION_API.md`
 
 The `moontown` pack is aligned to Moontown's current persisted bootstrap shape:
 
-- MoonBook can export a catalog-style record with `moonbook wiki book catalog`
-- `moontown.book.json` advertises both that catalog export and the town-to-book API commands
+- MoonBook can export a catalog-style record with `moonbook wiki extension catalog`
+- `moontown.book.json` advertises both that catalog export and the town-to-extension API commands
 
 The `moonclaw` pack is aligned to MoonClaw's current role substrate:
 
 - controller profiles carry explicit `role_runtime` planner envelopes
 - gather/review workers carry explicit execution envelopes
 - MoonBook owns the lead/review policy files and skill docs that make the embedded planner feel book-specific
-- MoonBook seeds `.moonclaw/providers.json` with the provider-task target name `moonbook`
+- MoonBook seeds `.moonclaw/providers.json` with the MoonClaw provider target name `moonbook`
 - MoonClaw is expected to return a strict research envelope under `raw/bootstrap/`; MoonBook decides what becomes durable `wiki/sources/`, `wiki/entities/`, `wiki/concepts/`, and synthesis pages
 
 The exact set depends on the pack installer, but the important boundary is that these files are added by `wiki enable`, not by `wiki init`.
@@ -129,4 +129,4 @@ What is still missing:
 
 - richer pack metadata
 - stronger validation of pack contents
-- clearer compatibility/versioning rules between MoonBook and extension packs
+- clearer version contracts between MoonBook and extension packs

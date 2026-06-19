@@ -12,7 +12,7 @@ Current commands:
 - `moonbook wiki enable`
 - `moonbook wiki ingest`
 - `moonbook wiki query`
-- `moonbook wiki book`
+- `moonbook wiki extension`
 - `moonbook wiki review`
 - `moonbook wiki lint`
 
@@ -56,7 +56,7 @@ This creates:
 ```bash
 moon run cmd/main -- wiki enable moonclaw ./research-wiki
 moon run cmd/main -- wiki enable moontown ./research-wiki
-moon run cmd/main -- wiki book catalog ./research-wiki
+moon run cmd/main -- wiki extension catalog ./research-wiki
 ```
 
 This is optional. It installs runtime-specific files without changing the core workspace contract.
@@ -86,8 +86,8 @@ Standing watch is the MoonBook-side half of 24/7 monitoring.
 Moontown schedules and supervises the loop; MoonBook owns the book-local baseline decision.
 
 ```bash
-moon run cmd/main -- wiki book tasks ./research-wiki "standing-watch: periodically check latest sources about one person company and update only when there is a meaningful delta"
-moon run cmd/main -- wiki book context ./research-wiki "standing-watch: periodically check latest sources about one person company and update only when there is a meaningful delta"
+moon run cmd/main -- wiki extension tasks ./research-wiki "standing-watch: periodically check latest sources about one person company and update only when there is a meaningful delta"
+moon run cmd/main -- wiki extension context ./research-wiki "standing-watch: periodically check latest sources about one person company and update only when there is a meaningful delta"
 ```
 
 Current standing-watch behavior:
@@ -141,22 +141,22 @@ Current query behavior:
 - updates `wiki/synthesis/maintenance-plan.md`
 - can queue a review item for later promotion
 
-### 6. Book Harness APIs
+### 6. Extension API
 
-For town-level orchestration, MoonBook can expose a machine-readable book boundary:
+For town-level orchestration, MoonBook can expose a machine-readable extension boundary:
 
 ```bash
-moon run cmd/main -- wiki book tasks ./research-wiki "refresh synthesis for recent ingest"
-moon run cmd/main -- wiki book context ./research-wiki "refresh synthesis for recent ingest" --task goal-refresh-synthesis
-moon run cmd/main -- wiki book summary ./research-wiki
-moon run cmd/main -- wiki book health ./research-wiki
+moon run cmd/main -- wiki extension tasks ./research-wiki "refresh synthesis for recent ingest"
+moon run cmd/main -- wiki extension context ./research-wiki "refresh synthesis for recent ingest" --task goal-refresh-synthesis
+moon run cmd/main -- wiki extension summary ./research-wiki
+moon run cmd/main -- wiki extension health ./research-wiki
 ```
 
-Current book-harness behavior:
+Current extension API behavior:
 
 - exports a catalog record for persisted town bootstrap
 - accepts town-style goals into book-local planning
-- produces local tasks inside the book boundary
+- produces local tasks inside the extension boundary
 - hydrates worker context from book policy, routines, Keeper memory, and durable wiki pages
 - hydrates standing-watch tasks with book baseline, prior watch decisions, and the seeded standing-watch skill
 - hydrates bootstrap ingest with explicit local repo source hints and `raw/bootstrap/` staging expectations

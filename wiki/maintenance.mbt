@@ -8,8 +8,8 @@ async fn ensure_maintenance_plan_entry(
   notes : Array[String],
 ) -> String {
   let relative_page = "synthesis/maintenance-plan.md"
-  let plan_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
+  let plan_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative_page))
     .to_string()
   let existing = if @fsx.exists(plan_path) {
     @fsx.read_file(plan_path)
@@ -43,7 +43,9 @@ async fn ensure_maintenance_plan_entry(
   @fsx.write_to_file(plan_path, updated, create=0o644)
   update_summary(workspace.summary_path, "Maintenance Plan", relative_page)
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Core Pages",
     "Maintenance Plan",
     relative_page,

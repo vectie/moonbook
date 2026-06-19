@@ -103,8 +103,8 @@ async fn ensure_synthesis_overview(
   claims : Array[String],
 ) -> String {
   let relative_page = "synthesis/overview.md"
-  let page_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
+  let page_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative_page))
     .to_string()
   let source_link = relative_from_page(
     "wiki/" + relative_page,
@@ -138,7 +138,9 @@ async fn ensure_synthesis_overview(
   @fsx.write_to_file(page_path, updated, create=0o644)
   update_summary(workspace.summary_path, "Overview", relative_page)
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Core Pages",
     "Overview",
     relative_page,
@@ -155,8 +157,8 @@ async fn ensure_claims_register(
   claims : Array[StructuredClaim],
 ) -> String {
   let relative_page = "synthesis/claims.md"
-  let page_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
+  let page_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative_page))
     .to_string()
   let source_link = relative_from_page(
     "wiki/" + relative_page,
@@ -177,7 +179,9 @@ async fn ensure_claims_register(
   @fsx.write_to_file(page_path, updated, create=0o644)
   update_summary(workspace.summary_path, "Claims Register", relative_page)
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Core Pages",
     "Claims Register",
     relative_page,
@@ -194,8 +198,8 @@ async fn ensure_claim_review_items(
   claims : Array[StructuredClaim],
 ) -> String {
   let contested = contested_claims(
-    @path.Path(workspace.wiki_dir)
-    .join(@path.Path("synthesis/claims.md"))
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("synthesis/claims.md"))
     .to_string(),
     claims,
   )
@@ -203,8 +207,8 @@ async fn ensure_claim_review_items(
     return ""
   }
   let relative_page = "reviews/pending.md"
-  let page_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative_page))
+  let page_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative_page))
     .to_string()
   let source_link = relative_from_page(
     "wiki/" + relative_page,
@@ -234,7 +238,9 @@ async fn ensure_claim_review_items(
   @fsx.write_to_file(page_path, updated, create=0o644)
   update_summary(workspace.summary_path, "Pending Review", relative_page)
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Core Pages",
     "Pending Review",
     relative_page,
@@ -1073,7 +1079,6 @@ fn candidate_titlecase_phrases(text : String) -> Array[String] {
 fn normalize_entity_name(text : String) -> String {
   let cleaned = strip_leading_determiner(clean_phrase(text))
   match cleaned.to_lower() {
-    "openclaw" => "OpenClaw"
     "moonclaw" => "MoonClaw"
     "moontown" => "Moontown"
     "feishu" => "Feishu"
@@ -1280,7 +1285,6 @@ fn detect_known_entities(title : String, content : String) -> Array[String] {
   let lowered = (title + "\n" + content).to_lower()
   let ranked : Array[(String, Int)] = []
   let known : Array[(String, String)] = [
-    ("openclaw", "OpenClaw"),
     ("moonclaw", "MoonClaw"),
     ("moontown", "Moontown"),
     ("feishu", "Feishu"),

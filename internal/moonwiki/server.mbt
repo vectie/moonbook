@@ -137,8 +137,7 @@ async fn handle_file_request(
   live_reload_endpoint? : String? = None,
 ) -> Unit {
   let root = @pathx.normalize(root)
-  guard method_ is @http.RequestMethod::Get ||
-    method_ is @http.RequestMethod::Head else {
+  guard method_ is Get || method_ is Head else {
     send_status(conn, 405, "Method Not Allowed", "Method Not Allowed\n")
     return
   }
@@ -241,7 +240,7 @@ async fn send_live_reload(
     "connection": "keep-alive",
     "x-accel-buffering": "no",
   })
-  if method_ is @http.RequestMethod::Head {
+  if method_ is Head {
     conn.end_response()
     return
   }
@@ -291,7 +290,7 @@ async fn send_file(
   conn.send_response(code, reason, extra_headers={
     "content-type": content_type(path),
   })
-  if method_ is @http.RequestMethod::Head {
+  if method_ is Head {
     conn.end_response()
     return
   }

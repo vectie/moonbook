@@ -59,7 +59,7 @@ async fn run_build(root : String) -> Unit {
 async fn run_init(root : String) -> Unit {
   let book = @driver.init_book(root, create_gitignore=true) catch {
     error => {
-      println("moonbook init failed: \{error}")
+      println("moonbook book init failed: \{error}")
       return
     }
   }
@@ -72,7 +72,7 @@ async fn run_init(root : String) -> Unit {
 async fn run_clean(root : String) -> Unit {
   let stats = @driver.clean_book(root) catch {
     error => {
-      println("moonbook clean failed: \{error}")
+      println("moonbook book clean failed: \{error}")
       return
     }
   }
@@ -85,7 +85,7 @@ async fn run_clean(root : String) -> Unit {
 async fn run_load(root : String) -> Unit {
   let book = @driver.load(root) catch {
     error => {
-      println("moonbook load failed: \{error}")
+      println("moonbook book load failed: \{error}")
       return
     }
   }
@@ -96,7 +96,7 @@ async fn run_load(root : String) -> Unit {
 async fn run_test(root : String) -> Unit {
   let book = @driver.load(root) catch {
     error => {
-      println("moonbook test failed: \{error}")
+      println("moonbook book test failed: \{error}")
       return
     }
   }
@@ -129,7 +129,7 @@ async fn print_moonstat_startup_status() -> Unit {
 
 ///|
 async fn run_serve(args : Array[String]) -> Unit {
-  let options = match @httpserve.parse_serve_args(args) {
+  let options = match @moonwiki.parse_serve_args(args) {
     Some(options) => options
     None => {
       println(
@@ -168,7 +168,7 @@ async fn run_serve(args : Array[String]) -> Unit {
   let build_dir = @driver.resolved_build_dir(options.root, book.config)
   let watch_filter = @watcher.load_watch_filter(options.root)
   write_live_reload_token(build_dir)
-  let server = @httpserve.Server::new(options.hostname, options.port) catch {
+  let server = @moonwiki.Server::new(options.hostname, options.port) catch {
     error => {
       println("moonbook serve failed: \{error}")
       return
@@ -200,11 +200,11 @@ async fn run_serve(args : Array[String]) -> Unit {
       no_wait=true,
       allow_failure=true,
     )
-    let src_dir = @path.Path(options.root)
-      .join(@path.Path(book.config.book.src))
+    let src_dir = moonbook_cmd_path(options.root)
+      .join(moonbook_cmd_path(book.config.book.src))
       .to_string()
-    let config_path = @path.Path(options.root)
-      .join(@path.Path("book.toml"))
+    let config_path = moonbook_cmd_path(options.root)
+      .join(moonbook_cmd_path("book.toml"))
       .to_string()
     let watch_paths = [src_dir, config_path]
     @watcher.rebuild_on_change(watch_paths, filter=watch_filter, async fn(
@@ -259,11 +259,11 @@ async fn run_watch(args : Array[String]) -> Unit {
       return
     }
   }
-  let src_dir = @path.Path(options.root)
-    .join(@path.Path(book.config.book.src))
+  let src_dir = moonbook_cmd_path(options.root)
+    .join(moonbook_cmd_path(book.config.book.src))
     .to_string()
-  let config_path = @path.Path(options.root)
-    .join(@path.Path("book.toml"))
+  let config_path = moonbook_cmd_path(options.root)
+    .join(moonbook_cmd_path("book.toml"))
     .to_string()
   let watch_paths = [src_dir, config_path]
   let watch_filter = @watcher.load_watch_filter(options.root)
@@ -274,10 +274,10 @@ async fn run_watch(args : Array[String]) -> Unit {
     }
   }
   if options.open_browser {
-    let index_path = @path.Path(
+    let index_path = moonbook_cmd_path(
         @driver.resolved_build_dir(options.root, book.config),
       )
-      .join(@path.Path("index.html"))
+      .join(moonbook_cmd_path("index.html"))
       .to_string()
     if @fsx.exists(index_path) {
       open_browser(index_path)
@@ -329,37 +329,25 @@ fn print_usage() -> Unit {
   println("moonbook wiki ingest [root] <source>")
   println("moonbook wiki query [root] <question> [--save]")
   println("moonbook wiki lint [root]")
-  println("moonbook wiki book accept [root] <goal>")
-  println("moonbook wiki book tasks [root] <goal>")
-  println("moonbook wiki book context [root] <goal> [--task <task-id>]")
-  println("moonbook wiki book persist [root] <result.json>")
-  println("moonbook wiki book catalog [root]")
-  println("moonbook wiki book summary [root]")
-  println("moonbook wiki book health [root]")
+  println("moonbook wiki extension accept [root] <goal>")
+  println("moonbook wiki extension tasks [root] <goal>")
+  println("moonbook wiki extension context [root] <goal> [--task <task-id>]")
+  println("moonbook wiki extension persist [root] <result.json>")
+  println("moonbook wiki extension catalog [root]")
+  println("moonbook wiki extension summary [root]")
+  println("moonbook wiki extension health [root]")
   println("moonbook build [root]")
   println(
     "moonbook serve [root] [-n hostname] [-p port] [-d dest-dir] [-o] [--watcher poll|native]",
   )
   println("moonbook watch [root] [-d dest-dir] [-o] [--watcher poll|native]")
-  println(
-    "moonbook init [root]                  # compatibility alias for `moonbook book init`",
-  )
-  println(
-    "moonbook clean [root]                 # compatibility alias for `moonbook book clean`",
-  )
-  println(
-    "moonbook load [root]                  # compatibility alias for `moonbook book load`",
-  )
-  println(
-    "moonbook test [root]                  # compatibility alias for `moonbook book test`",
-  )
   println("moonbook version")
 }
 
 ///|
 async fn write_live_reload_token(build_dir : String) -> Unit {
-  let token_path = @path.Path(build_dir)
-    .join(@path.Path(@httpserve.live_reload_token_file))
+  let token_path = moonbook_cmd_path(build_dir)
+    .join(moonbook_cmd_path(@moonwiki.live_reload_token_file))
     .to_string()
   let token = "\{@async.now().to_int()}"
   @fsx.write_to_file(token_path, token, create=0o666) catch {
@@ -396,13 +384,13 @@ fn build_watch_config(
 
 ///|
 fn resolve_cli_dest_dir(dest_dir : String) -> String {
-  if @path.Path(dest_dir).is_absolute() {
-    @path.Path(dest_dir).normalize().to_string()
+  if moonbook_cmd_path(dest_dir).is_absolute() {
+    moonbook_cmd_path(dest_dir).normalize().to_string()
   } else {
     match @env.current_dir() {
       Some(current_dir) =>
-        @path.Path(current_dir)
-        .join(@path.Path(dest_dir))
+        moonbook_cmd_path(current_dir)
+        .join(moonbook_cmd_path(dest_dir))
         .normalize()
         .to_string()
       None => dest_dir

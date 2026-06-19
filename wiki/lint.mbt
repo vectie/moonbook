@@ -19,8 +19,8 @@ pub async fn lint_wiki(root : String) -> LintResult {
     relative_to_root(path, workspace.root)
   })
   let summary_text = @fsx.read_file(workspace.summary_path)
-  let index_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("index.md"))
+  let index_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
     .to_string()
   let index_text = @fsx.read_file(index_path)
   let findings : Array[LintFinding] = []
@@ -31,8 +31,8 @@ pub async fn lint_wiki(root : String) -> LintResult {
   let tracked_pages = builtin_tracked_pages()
 
   for relative_page in relative_pages {
-    let absolute = @path.Path(workspace.root)
-      .join(@path.Path(relative_page))
+    let absolute = moonbook_wiki_path(workspace.root)
+      .join(moonbook_wiki_path(relative_page))
       .to_string()
     if tracked_pages.contains(relative_page) {
       continue
@@ -103,7 +103,9 @@ pub async fn lint_wiki(root : String) -> LintResult {
 
   let report = lint_report(findings)
   append_lint_log(
-    @path.Path(workspace.wiki_dir).join(@path.Path("log.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("log.md"))
+    .to_string(),
     findings.length(),
   )
   { findings, report }
@@ -119,11 +121,11 @@ priv struct LintPaths {
 ///|
 fn lint_paths(root : String) -> LintPaths {
   let normalized_root = @pathx.normalize(root)
-  let wiki_dir = @path.Path(normalized_root)
-    .join(@path.Path("wiki"))
+  let wiki_dir = moonbook_wiki_path(normalized_root)
+    .join(moonbook_wiki_path("wiki"))
     .to_string()
-  let summary_path = @path.Path(wiki_dir)
-    .join(@path.Path("SUMMARY.md"))
+  let summary_path = moonbook_wiki_path(wiki_dir)
+    .join(moonbook_wiki_path("SUMMARY.md"))
     .to_string()
   { root: normalized_root, wiki_dir, summary_path }
 }
@@ -142,13 +144,13 @@ async fn scan_lint_pages(path : String, pages : Array[String]) -> Unit {
     return
   }
   match @fs.kind(path, follow_symlink=false) {
-    @fs.FileKind::Directory =>
+    Directory =>
       for child in @fsx.list_directory(path) {
         scan_lint_pages(child, pages)
       }
-    @fs.FileKind::Regular =>
+    Regular =>
       if @pathx.ext(path).to_owned() == ".md" &&
-        @path.Path(path).basename().to_owned() != "SUMMARY.md" {
+        moonbook_wiki_path(path).basename().to_owned() != "SUMMARY.md" {
         pages.push(path)
       }
     _ => ()
@@ -163,7 +165,7 @@ async fn inbound_link_counts(
   let counts : Map[String, Int] = {}
   for path in page_paths {
     let current_relative = relative_to_root(path, root)
-    let current_dir = @path.Path(current_relative).dirname().to_string()
+    let current_dir = moonbook_wiki_path(current_relative).dirname().to_string()
     let content = @fsx.read_file(path)
     for link in extract_markdown_links(content) {
       if !link.has_suffix(".md") {

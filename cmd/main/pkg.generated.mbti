@@ -6,7 +6,7 @@ package "vectie/moonbook/cmd/main"
 // Errors
 
 // Types and methods
-type ParsedWikiBookGoalArgs
+type ParsedWikiExtensionGoalArgs
 
 type ParsedWikiKeeperSubmitArgs
 

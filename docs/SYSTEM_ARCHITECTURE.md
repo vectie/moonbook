@@ -2,10 +2,10 @@
 
 MoonBook has two major product layers in one repo:
 
-- the mdBook-compatible book toolchain
+- the MoonBook rendering toolchain
 - the persistent wiki workspace layer
 
-They share rendering/build/serve infrastructure, but they are not the same subsystem.
+They share rendering/build/serve infrastructure, but they are not the same subsystem. In the wider Moon architecture, MoonBook is also the durable executable book: MoonWiki edits prose/knowledge, MoonCode edits executable behavior, and MoonClaw executes bounded work. See [EXECUTABLE_BOOK_BOUNDARY.md](EXECUTABLE_BOOK_BOUNDARY.md).
 
 ## Layered View
 
@@ -20,7 +20,7 @@ markdown books / wiki workspaces
 
 ## Book Toolchain
 
-The mdBook-style path is centered around these packages:
+The book-rendering path is centered around these packages:
 
 - `core/`
   core data model and config access
@@ -78,20 +78,20 @@ The wiki path builds on the same rendering/build infrastructure, but introduces 
   wiki-first retrieval, saved query pages, and query-signal propagation
 - `wiki/review.mbt`
   review lifecycle commands
-- `wiki/bookapi.mbt`
-  town-facing book harness entrypoints, standing-watch task selection, and result persistence orchestration
-- `wiki/bookapi_types.mbt`
-  public Book API contracts shared with town/worker adapters
-- `wiki/bookapi_planning.mbt`
+- `wiki/extension_api.mbt`
+  town-facing extension API entrypoints, standing-watch task selection, and result persistence orchestration
+- `wiki/extension_api_types.mbt`
+  public Extension API contracts shared with town/worker adapters
+- `wiki/extension_api_planning.mbt`
   goal decomposition, semantic bootstrap task planning, and external task resolution helpers
-- `wiki/bookapi_context.mbt`
+- `wiki/extension_api_context.mbt`
   worker-context hydration, skill resolution, standing-watch baseline prompts, source hints, and memory/context selection
-- `wiki/bookapi_state.mbt`
+- `wiki/extension_api_state.mbt`
   catalog export, summary, health, coverage tiers, and readiness checks
 - `wiki/keeper_memory.mbt`
   bounded Keeper memory bootstrap, recall snapshots, and result-sync rules
 - `wiki/contracts.mbt`
-  shared research-bootstrap artifact and provider handoff contracts used by Book API and worker context generation
+  shared research-bootstrap artifact and provider handoff contracts used by Extension API and worker context generation
 - `wiki/keeper_evidence.mbt`
   persisted-result evidence records and evidence-status updates
 - `wiki/keeper_insights.mbt`
@@ -191,7 +191,7 @@ Current extension packs:
 The current `moontown` alignment is intentionally additive:
 
 - MoonBook exports a catalog-style book record for town bootstrap
-- MoonBook exposes optional book-harness commands for planning, hydration, persistence, summary, and health
+- MoonBook exposes optional extension API commands for planning, hydration, persistence, summary, and health
 - MoonBook owns standing-watch baseline decisions for recurring goals, including source/fact accounting and `book_changed` classification, while Moontown owns scheduling/supervision and MoonClaw owns execution
 - MoonBook does not take over town scheduling or worker execution
 

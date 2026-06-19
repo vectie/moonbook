@@ -25,7 +25,9 @@ async fn run_doctor(args : Array[String]) -> Unit {
   } else {
     println("skill status: attention needed")
   }
-  if @fsx.exists(@path.Path(root).join(@path.Path("wiki")).to_string()) {
+  if @fsx.exists(
+      moonbook_cmd_path(root).join(moonbook_cmd_path("wiki")).to_string(),
+    ) {
     let health = @wiki.report_health(root) catch {
       error => {
         println("wiki health failed: \{error}")

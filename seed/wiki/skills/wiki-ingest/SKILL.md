@@ -778,3 +778,20 @@ The goal is not to return a success-shaped JSON object.
 The goal is to return a complete, auditable research envelope that MoonBook can turn into a better wiki.
 
 If the phases cannot produce grounded research artifacts, stop early and say so.
+
+## Exploration Quality Contract
+
+Every run should improve the book's ability to answer deeper and broader
+questions about its topic.
+
+- Go deeper: explain the mechanism, evidence chain, confidence boundary,
+  contradiction, or internal dependency that makes the result true, weak, or
+  blocked.
+- Go broader: connect the result to adjacent entities, concepts, source pages,
+  downstream decisions, and book-maintenance consequences.
+- Generate new questions: record follow-up questions that would change the
+  answer, expose missing evidence, or open a useful next investigation.
+- Generate new directions: name the next durable page, review item, experiment,
+  comparison, or synthesis update that should grow from this work.
+- Prefer longer meaningful text over short status output when evidence exists:
+  give enough context that a future keeper can resume without the chat history.

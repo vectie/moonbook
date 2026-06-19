@@ -432,8 +432,8 @@ fn inline_markdown_html(text : String) -> String {
 ///|
 async fn marketing_update_note(root : String) -> String {
   let workspace = workspace_paths(root)
-  let log_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("log.md"))
+  let log_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("log.md"))
     .to_string()
   if !@fsx.exists(log_path) {
     return "No log available."

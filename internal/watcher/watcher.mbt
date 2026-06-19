@@ -112,7 +112,7 @@ async fn scan_path(
   }
   let kind = @fs.kind(path, follow_symlink=false)
   match kind {
-    @fs.FileKind::Directory =>
+    Directory =>
       for child in @fsx.list_directory(path) {
         scan_path(child, states, filter)
       }
@@ -307,14 +307,14 @@ fn glob_matches_from(
 ///|
 fn file_kind_name(kind : @fs.FileKind) -> String {
   match kind {
-    @fs.FileKind::Unknown => "unknown"
-    @fs.FileKind::Regular => "regular"
-    @fs.FileKind::Directory => "directory"
-    @fs.FileKind::SymLink => "symlink"
-    @fs.FileKind::Socket => "socket"
-    @fs.FileKind::Pipe => "pipe"
-    @fs.FileKind::BlockDevice => "block-device"
-    @fs.FileKind::CharDevice => "char-device"
+    Unknown => "unknown"
+    Regular => "regular"
+    Directory => "directory"
+    SymLink => "symlink"
+    Socket => "socket"
+    Pipe => "pipe"
+    BlockDevice => "block-device"
+    CharDevice => "char-device"
   }
 }
 

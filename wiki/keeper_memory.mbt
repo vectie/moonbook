@@ -17,13 +17,23 @@ priv struct KeeperSnapshot {
 ///|
 fn keeper_paths(root : String) -> KeeperPaths {
   let normalized_root = @pathx.normalize(root)
-  let dir = @path.Path(normalized_root).join(@path.Path("keeper")).to_string()
+  let dir = moonbook_wiki_path(normalized_root)
+    .join(moonbook_wiki_path("keeper"))
+    .to_string()
   {
     dir,
-    memory_path: @path.Path(dir).join(@path.Path("MEMORY.md")).to_string(),
-    user_path: @path.Path(dir).join(@path.Path("USER.md")).to_string(),
-    working_path: @path.Path(dir).join(@path.Path("WORKING.md")).to_string(),
-    policy_path: @path.Path(dir).join(@path.Path("POLICY.md")).to_string(),
+    memory_path: moonbook_wiki_path(dir)
+    .join(moonbook_wiki_path("MEMORY.md"))
+    .to_string(),
+    user_path: moonbook_wiki_path(dir)
+    .join(moonbook_wiki_path("USER.md"))
+    .to_string(),
+    working_path: moonbook_wiki_path(dir)
+    .join(moonbook_wiki_path("WORKING.md"))
+    .to_string(),
+    policy_path: moonbook_wiki_path(dir)
+    .join(moonbook_wiki_path("POLICY.md"))
+    .to_string(),
   }
 }
 

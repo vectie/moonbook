@@ -236,7 +236,7 @@ fn relative_from_page(
   page_relative : String,
   target_relative : String,
 ) -> String {
-  let from_dir = @path.Path(page_relative).dirname().to_string()
+  let from_dir = moonbook_wiki_path(page_relative).dirname().to_string()
   let from_parts = split_segments(from_dir)
   let to_parts = split_segments(target_relative)
   let mut shared = 0
@@ -316,8 +316,8 @@ async fn unique_source_slug(sources_dir : String, slug : String) -> String {
   let mut index = 0
   while true {
     let candidate = if index == 0 { slug } else { "\{slug}-\{index}" }
-    let path = @path.Path(sources_dir)
-      .join(@path.Path(candidate + ".md"))
+    let path = moonbook_wiki_path(sources_dir)
+      .join(moonbook_wiki_path(candidate + ".md"))
       .to_string()
     if !@fsx.exists(path) {
       return candidate
@@ -329,7 +329,7 @@ async fn unique_source_slug(sources_dir : String, slug : String) -> String {
 
 ///|
 fn file_stem(path : String) -> String {
-  let base = @path.Path(path).basename().to_owned()
+  let base = moonbook_wiki_path(path).basename().to_owned()
   let ext = @pathx.ext(base).to_owned()
   if ext.is_empty() {
     base

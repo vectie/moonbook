@@ -11,15 +11,7 @@ async fn main {
     ["build"] => run_build(".")
     ["serve", .. serve_args] => run_serve(serve_args.to_owned())
     ["watch", .. watch_args] => run_watch(watch_args.to_owned())
-    ["init", root] => run_init(root)
-    ["init"] => run_init(".")
-    ["clean", root] => run_clean(root)
-    ["clean"] => run_clean(".")
-    ["load", root] => run_load(root)
-    ["load"] => run_load(".")
-    ["test", root] => run_test(root)
-    ["test"] => run_test(".")
-    ["version"] => println(@core.mdbook_version)
+    ["version"] => println(@core.moonbook_version)
     _ => print_usage()
   }
 }

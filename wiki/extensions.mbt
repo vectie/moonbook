@@ -19,8 +19,8 @@ pub async fn enable_extension(
   let normalized_root = @pathx.normalize(root)
   let normalized_extension = extension.trim().to_lower()
   let supported = supported_extensions().join(", ")
-  let extensions_dir = @path.Path(normalized_root)
-    .join(@path.Path(".moonbook/extensions"))
+  let extensions_dir = moonbook_wiki_path(normalized_root)
+    .join(moonbook_wiki_path(".moonbook/extensions"))
     .to_string()
   @fsx.make_directory(extensions_dir, recursive=true, exists_ok=true)
   match normalized_extension {
@@ -180,7 +180,7 @@ test "moonclaw providers text seeds moonbook provider target" {
   assert_true(text.contains("\"kind\": \"task-provider\""))
   assert_true(
     text.contains(
-      "\"capabilities\": [\"provider\", \"extension\", \"provider.task\", \"extension.task\", \"bookapi\", \"moonbook.bookapi\"]",
+      "\"capabilities\": [\"provider\", \"extension\", \"provider.task\", \"extension.task\"]",
     ),
   )
   assert_true(text.contains("\"workspace_root\": \"/tmp/wiki\""))
@@ -190,13 +190,13 @@ test "moonclaw providers text seeds moonbook provider target" {
 test "moontown manifest declares book and guide entrypoints" {
   let text = moontown_manifest_text()
   assert_true(text.contains("\"book\": \"moontown.book.json\""))
-  assert_true(text.contains("\"guide\": \"BOOK_API.md\""))
+  assert_true(text.contains("\"guide\": \"EXTENSION_API.md\""))
 }
 
 ///|
-test "moontown book text declares book harness apis" {
+test "moontown book text declares extension API commands" {
   let text = moontown_book_text("/tmp/wiki")
-  assert_true(text.contains("\"kind\": \"moonbook-domain-harness\""))
+  assert_true(text.contains("\"kind\": \"moonbook-extension-api\""))
   assert_true(text.contains("\"catalog_export\""))
   assert_true(text.contains("\"accept_goal\""))
   assert_true(text.contains("\"persist_result\""))

@@ -6,8 +6,8 @@ fn evidence_relative_page() -> String {
 ///|
 async fn ensure_evidence_page(workspace : Paths) -> String {
   let relative = evidence_relative_page()
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   if !@fsx.exists(absolute) {
     @fsx.write_to_file(
@@ -17,7 +17,9 @@ async fn ensure_evidence_page(workspace : Paths) -> String {
     )
     update_summary(workspace.summary_path, "Evidence", relative)
     update_index_section(
-      @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+      moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path("index.md"))
+      .to_string(),
       "Core Pages",
       "Evidence",
       relative,
@@ -33,8 +35,8 @@ async fn append_result_evidence(
   result : BookResult,
 ) -> String {
   let relative = ensure_evidence_page(workspace)
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   let current = @fsx.read_file(absolute)
   let evidence_id = "EV-\{slugify_title(result.task_id)}-\{@async.now().to_int()}"
@@ -76,8 +78,8 @@ async fn update_evidence_status(
   note : String,
 ) -> String {
   let relative = ensure_evidence_page(workspace)
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   let current = @fsx.read_file(absolute)
   let next = replace_evidence_field(
@@ -93,8 +95,8 @@ async fn update_evidence_status(
 ///|
 async fn count_evidence_entries(root : String) -> Int {
   let workspace = workspace_paths(root)
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(evidence_relative_page()))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(evidence_relative_page()))
     .to_string()
   if !@fsx.exists(absolute) {
     return 0

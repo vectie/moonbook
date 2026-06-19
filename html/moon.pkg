@@ -4,3 +4,5 @@ import {
   "vectie/moonbook/core",
   "moonbitlang/x/path",
 }
+
+supported_targets = "native"

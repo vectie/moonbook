@@ -11,7 +11,7 @@ pub async fn find_skill(root : String, name : String) -> SkillRecord? {
   let records = list_skills(root)
   for record in records {
     let record_name = record.name.to_lower().to_string()
-    let basename = @path.Path(record.path)
+    let basename = moonbook_wiki_path(record.path)
       .basename()
       .to_owned()
       .to_lower()
@@ -77,7 +77,7 @@ pub async fn install_skill(root : String, name : String) -> SkillInstallResult {
       continue
     }
     let record_name = record.name.to_lower().to_string()
-    let basename = @path.Path(@pathx.dirname(record.path).to_owned())
+    let basename = moonbook_wiki_path(@pathx.dirname(record.path).to_owned())
       .basename()
       .to_owned()
       .to_lower()
@@ -147,17 +147,21 @@ pub async fn scaffold_skill(root : String, name : String) -> SkillInstallResult 
   }
   @fsx.make_directory(destination_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(
-    @path.Path(destination_dir).join(@path.Path("references")).to_string(),
+    moonbook_wiki_path(destination_dir)
+    .join(moonbook_wiki_path("references"))
+    .to_string(),
     recursive=true,
     exists_ok=true,
   )
   @fsx.make_directory(
-    @path.Path(destination_dir).join(@path.Path("agents")).to_string(),
+    moonbook_wiki_path(destination_dir)
+    .join(moonbook_wiki_path("agents"))
+    .to_string(),
     recursive=true,
     exists_ok=true,
   )
-  let skill_path = @path.Path(destination_dir)
-    .join(@path.Path("SKILL.md"))
+  let skill_path = moonbook_wiki_path(destination_dir)
+    .join(moonbook_wiki_path("SKILL.md"))
     .to_string()
   let display_name = skill_slug(name)
   @fsx.write_to_file(
@@ -257,14 +261,14 @@ pub async fn sync_skill(root : String, name : String) -> SkillSyncResult {
   })
   let compare = compare_skill(normalized_root, name)
   let candidate_dir = skill_candidate_dir(normalized_root, selected.name)
-  let selected_dir = @path.Path(candidate_dir)
-    .join(@path.Path("workspace"))
+  let selected_dir = moonbook_wiki_path(candidate_dir)
+    .join(moonbook_wiki_path("workspace"))
     .to_string()
-  let baseline_dir = @path.Path(candidate_dir)
-    .join(@path.Path("baseline"))
+  let baseline_dir = moonbook_wiki_path(candidate_dir)
+    .join(moonbook_wiki_path("baseline"))
     .to_string()
-  let manifest_path = @path.Path(candidate_dir)
-    .join(@path.Path("SYNC.json"))
+  let manifest_path = moonbook_wiki_path(candidate_dir)
+    .join(moonbook_wiki_path("SYNC.json"))
     .to_string()
   @fsx.make_directory(candidate_dir, recursive=true, exists_ok=true)
   copy_skill_tree_replace(

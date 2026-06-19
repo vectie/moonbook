@@ -21,7 +21,7 @@ pub fn item_part_title(String) -> BookItem
 
 pub fn item_separator() -> BookItem
 
-pub let mdbook_version : String
+pub let moonbook_version : String
 
 pub fn new() -> Book
 

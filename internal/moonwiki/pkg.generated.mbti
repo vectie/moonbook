@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "vectie/moonbook/internal/httpserve"
+package "vectie/moonbook/internal/moonwiki"
 
 import {
   "moonbitlang/async/http",

@@ -20,17 +20,19 @@ struct UiClientConfig {
 
 ///|
 pub async fn load(book_root : String) -> MDBook {
-  let config_path = @path.Path(book_root).join(@path.Path("book.toml"))
+  let config_path = moonbook_driver_path(book_root).join(
+    moonbook_driver_path("book.toml"),
+  )
   let config = if @fs.path_exists(config_path.to_string()) {
     @core.from_toml(@fs.read_file_to_string(config_path.to_string()))
   } else {
     @core.default()
   }
-  let src_dir = @path.Path(book_root)
-    .join(@path.Path(config.book.src))
+  let src_dir = moonbook_driver_path(book_root)
+    .join(moonbook_driver_path(config.book.src))
     .to_string()
-  let summary_path = @path.Path(src_dir)
-    .join(@path.Path("SUMMARY.md"))
+  let summary_path = moonbook_driver_path(src_dir)
+    .join(moonbook_driver_path("SUMMARY.md"))
     .to_string()
   let parsed_summary = @summary.parse_summary(
     @fs.read_file_to_string(summary_path),
@@ -47,11 +49,11 @@ pub async fn load_with_config(
   book_root : String,
   config : @core.Config,
 ) -> MDBook {
-  let src_dir = @path.Path(book_root)
-    .join(@path.Path(config.book.src))
+  let src_dir = moonbook_driver_path(book_root)
+    .join(moonbook_driver_path(config.book.src))
     .to_string()
-  let summary_path = @path.Path(src_dir)
-    .join(@path.Path("SUMMARY.md"))
+  let summary_path = moonbook_driver_path(src_dir)
+    .join(moonbook_driver_path("SUMMARY.md"))
     .to_string()
   let parsed_summary = @summary.parse_summary(
     @fs.read_file_to_string(summary_path),
@@ -74,11 +76,11 @@ pub async fn init_book(
   ensure_dir(book_root) catch {
     error => fail("init ensure_dir(root) failed: \{error}")
   }
-  let src_dir = @path.Path(book_root)
-    .join(@path.Path(config.book.src))
+  let src_dir = moonbook_driver_path(book_root)
+    .join(moonbook_driver_path(config.book.src))
     .to_string()
-  let build_dir = @path.Path(book_root)
-    .join(@path.Path(config.build.build_dir))
+  let build_dir = moonbook_driver_path(book_root)
+    .join(moonbook_driver_path(config.build.build_dir))
     .to_string()
   ensure_dir(src_dir) catch {
     error => fail("init ensure_dir(src) failed: \{error}")
@@ -86,8 +88,8 @@ pub async fn init_book(
   ensure_dir(build_dir) catch {
     error => fail("init ensure_dir(build) failed: \{error}")
   }
-  let summary_path = @path.Path(src_dir)
-    .join(@path.Path("SUMMARY.md"))
+  let summary_path = moonbook_driver_path(src_dir)
+    .join(moonbook_driver_path("SUMMARY.md"))
     .to_string()
   if !@fsx.exists(summary_path) {
     write_text_file(
@@ -96,23 +98,25 @@ pub async fn init_book(
       error => fail("init write SUMMARY failed: \{error}")
     }
   }
-  let chapter_path = @path.Path(src_dir)
-    .join(@path.Path("chapter_1.md"))
+  let chapter_path = moonbook_driver_path(src_dir)
+    .join(moonbook_driver_path("chapter_1.md"))
     .to_string()
   if !@fsx.exists(chapter_path) {
     write_text_file(chapter_path, "# Chapter 1\n") catch {
       error => fail("init write chapter failed: \{error}")
     }
   }
-  let book_toml = @path.Path(book_root)
-    .join(@path.Path("book.toml"))
+  let book_toml = moonbook_driver_path(book_root)
+    .join(moonbook_driver_path("book.toml"))
     .to_string()
   write_text_file(book_toml, config_to_toml(config)) catch {
     error => fail("init write book.toml failed: \{error}")
   }
   if create_gitignore {
     write_text_file(
-      @path.Path(book_root).join(@path.Path(".gitignore")).to_string(),
+      moonbook_driver_path(book_root)
+      .join(moonbook_driver_path(".gitignore"))
+      .to_string(),
       config.build.build_dir + "\n",
     ) catch {
       error => fail("init write .gitignore failed: \{error}")
@@ -137,22 +141,22 @@ pub async fn MDBook::build(self : MDBook) -> Unit {
     ),
   )
   copy_demo_site_layer(self.root, build_dir)
-  let manifest_path = @path.Path(build_dir)
-    .join(@path.Path("book.json"))
+  let manifest_path = moonbook_driver_path(build_dir)
+    .join(moonbook_driver_path("book.json"))
     .to_string()
   let manifest = { ..self, book: preprocessed_book }
   write_text_file(manifest_path, manifest.to_json().stringify(indent=2))
   if is_wiki_workspace(self.root, self.config) {
-    let ui_state_path = @path.Path(build_dir)
-      .join(@path.Path("moonbook-ui-state.json"))
+    let ui_state_path = moonbook_driver_path(build_dir)
+      .join(moonbook_driver_path("moonbook-ui-state.json"))
       .to_string()
     ignore(@wiki.write_ui_state(self.root, ui_state_path))
-    let marketing_site_root = @path.Path(build_dir)
-      .join(@path.Path("site"))
+    let marketing_site_root = moonbook_driver_path(build_dir)
+      .join(moonbook_driver_path("site"))
       .to_string()
     ignore(@wiki.write_marketing_projection(self.root, marketing_site_root))
-    let ui_config_path = @path.Path(build_dir)
-      .join(@path.Path("moonbook-ui-config.json"))
+    let ui_config_path = moonbook_driver_path(build_dir)
+      .join(moonbook_driver_path("moonbook-ui-config.json"))
       .to_string()
     write_text_file(
       ui_config_path,
@@ -176,24 +180,32 @@ pub fn resolved_build_dir(root : String, config : @core.Config) -> String {
   if @pathx.is_absolute(config.build.build_dir) {
     @pathx.normalize(config.build.build_dir)
   } else {
-    @path.Path(root).join(@path.Path(config.build.build_dir)).to_string()
+    moonbook_driver_path(root)
+    .join(moonbook_driver_path(config.build.build_dir))
+    .to_string()
   }
 }
 
 ///|
 fn is_wiki_workspace(root : String, config : @core.Config) -> Bool {
   config.book.src == "wiki" &&
-  @fs.path_exists(@path.Path(root).join(@path.Path("wiki.toml")).to_string())
+  @fs.path_exists(
+    moonbook_driver_path(root)
+    .join(moonbook_driver_path("wiki.toml"))
+    .to_string(),
+  )
 }
 
 ///|
 async fn copy_demo_site_layer(book_root : String, build_dir : String) -> Unit {
-  let source_root = @path.Path(book_root).join(@path.Path("site")).to_string()
+  let source_root = moonbook_driver_path(book_root)
+    .join(moonbook_driver_path("site"))
+    .to_string()
   if !@fsx.exists(source_root) {
     return
   }
-  let destination_root = @path.Path(build_dir)
-    .join(@path.Path("site"))
+  let destination_root = moonbook_driver_path(build_dir)
+    .join(moonbook_driver_path("site"))
     .to_string()
   copy_directory_tree(source_root, destination_root)
 }
@@ -205,13 +217,13 @@ async fn copy_directory_tree(
 ) -> Unit {
   ensure_dir(destination_dir)
   for entry in @fsx.list_directory(source_dir) {
-    let basename = @path.Path(entry).basename().to_owned()
-    let destination = @path.Path(destination_dir)
-      .join(@path.Path(basename))
+    let basename = moonbook_driver_path(entry).basename().to_owned()
+    let destination = moonbook_driver_path(destination_dir)
+      .join(moonbook_driver_path(basename))
       .to_string()
     match @afs.kind(entry, follow_symlink=false) {
-      @afs.FileKind::Directory => copy_directory_tree(entry, destination)
-      @afs.FileKind::Regular => {
+      Directory => copy_directory_tree(entry, destination)
+      Regular => {
         ensure_parent_dir(destination)
         @fsx.write_bytes(destination, @fsx.read_bytes(entry), create=0o666)
       }
@@ -239,8 +251,8 @@ pub async fn clean_book(
   book_root : String,
   dest_dir? : String? = None,
 ) -> CleanStats {
-  let config_path = @path.Path(book_root)
-    .join(@path.Path("book.toml"))
+  let config_path = moonbook_driver_path(book_root)
+    .join(moonbook_driver_path("book.toml"))
     .to_string()
   let config = if @fs.path_exists(config_path) {
     @core.from_toml(@fs.read_file_to_string(config_path))
@@ -347,7 +359,9 @@ fn resolve_chapter_paths(
     (normalized_location, relative)
   } else {
     let relative = @pathx.normalize(location)
-    let disk_path = @path.Path(src_dir).join(@path.Path(relative)).to_string()
+    let disk_path = moonbook_driver_path(src_dir)
+      .join(moonbook_driver_path(relative))
+      .to_string()
     (disk_path, relative)
   }
 }
@@ -391,7 +405,7 @@ fn preprocess_chapter(chapter : @core.Chapter) -> @core.Chapter {
 
 ///|
 fn normalize_readme_path(path : String) -> String {
-  let base = @path.Path(path)
+  let base = moonbook_driver_path(path)
   let ext = @pathx.ext(path).to_owned()
   let stem = base.basename().to_owned().replace(old=ext, new="").to_string()
   if stem.to_lower() == "readme" {
@@ -411,8 +425,8 @@ async fn create_missing_items(
       Link(link) => {
         match link.location {
           Some(location) => {
-            let filename = @path.Path(src_dir)
-              .join(@path.Path(location))
+            let filename = moonbook_driver_path(src_dir)
+              .join(moonbook_driver_path(location))
               .to_string()
             if !@fsx.exists(filename) {
               ensure_parent_dir(filename)
@@ -540,7 +554,9 @@ fn collect_clean_stats(path : String) -> CleanStats raise {
   let mut directories_removed = 1
   let mut bytes_removed = 0
   for child in @fs.read_dir(path) {
-    let child_path = @path.Path(path).join(@path.Path(child)).to_string()
+    let child_path = moonbook_driver_path(path)
+      .join(moonbook_driver_path(child))
+      .to_string()
     let nested = collect_clean_stats(child_path)
     files_removed += nested.files_removed
     directories_removed += nested.directories_removed
@@ -584,8 +600,12 @@ test "preprocess book rewrites chapter paths but preserves source paths" {
 ///|
 test "load chapter from absolute path stores source path relative to src dir" {
   let cwd = @env.current_dir().unwrap()
-  let src_dir = @path.Path(cwd).join(@path.Path("summary")).to_string()
-  let absolute = @path.Path(src_dir).join(@path.Path("summary.mbt")).to_string()
+  let src_dir = moonbook_driver_path(cwd)
+    .join(moonbook_driver_path("summary"))
+    .to_string()
+  let absolute = moonbook_driver_path(src_dir)
+    .join(moonbook_driver_path("summary.mbt"))
+    .to_string()
   let parsed = @summary.parse_summary("# Summary\n- [Summary](\{absolute})\n")
   let chapter = load_chapter(
     match parsed.numbered_chapters[0] {
@@ -605,7 +625,7 @@ test "load chapter preserves separators and nested parent names" {
   let cwd = @env.current_dir().unwrap()
   let src_dir = cwd
   let parsed = @summary.parse_summary(
-    "# Summary\n- [Driver](driver/mdbook.mbt)\n  - [Summary](summary/summary.mbt)\n  ---\n  - [Core](core/book.mbt)\n",
+    "# Summary\n- [Driver](driver/book_driver.mbt)\n  - [Summary](summary/summary.mbt)\n  ---\n  - [Core](core/book.mbt)\n",
   )
   let chapter = load_chapter(
     match parsed.numbered_chapters[0] {

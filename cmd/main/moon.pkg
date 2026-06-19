@@ -5,14 +5,17 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/core/string",
   "vectie/moonbook/internal/fsx",
-  "vectie/moonbook/internal/httpserve",
+  "vectie/moonbook/internal/moonwiki",
   "vectie/moonbook/internal/watcher",
   "vectie/moonbook/driver",
   "vectie/moonbook/core",
   "vectie/moonbook/wiki",
   "vectie/moonbook/plugins/moonstat",
   "moonbitlang/x/path",
+  "moonbitlang/x/sys",
 }
+
+supported_targets = "native"
 
 options(
   "is-main": true,

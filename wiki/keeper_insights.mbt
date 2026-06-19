@@ -2,7 +2,9 @@
 async fn ensure_keeper_insights(root : String) -> String {
   let paths = keeper_paths(root)
   ensure_keeper_files(root)
-  let path = @path.Path(paths.dir).join(@path.Path("INSIGHTS.md")).to_string()
+  let path = moonbook_wiki_path(paths.dir)
+    .join(moonbook_wiki_path("INSIGHTS.md"))
+    .to_string()
   if !@fsx.exists(path) {
     @fsx.write_to_file(
       path,
@@ -17,16 +19,16 @@ async fn ensure_keeper_insights(root : String) -> String {
 async fn refresh_keeper_insights(root : String) -> String {
   let workspace = workspace_paths(root)
   let relative = ensure_keeper_insights(root)
-  let absolute = @path.Path(workspace.root)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.root)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   let snapshot = keeper_snapshot(root)
   let pending = list_pending_reviews(root)
   let evidence_count = count_evidence_entries(root)
   let low_confidence = count_low_confidence_claims(
     read_if_exists(
-      @path.Path(workspace.wiki_dir)
-      .join(@path.Path("synthesis/claims.md"))
+      moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path("synthesis/claims.md"))
       .to_string(),
     ),
   )

@@ -1,8 +1,8 @@
 ///|
 async fn ensure_synthesis_map_page(workspace : Paths) -> String {
   let relative = "synthesis/map.md"
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   if !@fsx.exists(absolute) {
     @fsx.write_to_file(
@@ -12,7 +12,9 @@ async fn ensure_synthesis_map_page(workspace : Paths) -> String {
     )
     update_summary(workspace.summary_path, "Synthesis Map", relative)
     update_index_section(
-      @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+      moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path("index.md"))
+      .to_string(),
       "Core Pages",
       "Synthesis Map",
       relative,
@@ -26,12 +28,12 @@ async fn ensure_synthesis_map_page(workspace : Paths) -> String {
 async fn refresh_synthesis_map(root : String) -> String {
   let workspace = workspace_paths(root)
   let relative = ensure_synthesis_map_page(workspace)
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   let pages = collect_markdown_pages(workspace.wiki_dir)
-  let claims_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("synthesis/claims.md"))
+  let claims_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("synthesis/claims.md"))
     .to_string()
   let claims_text = if @fsx.exists(claims_path) {
     @fsx.read_file(claims_path)

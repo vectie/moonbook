@@ -147,8 +147,8 @@ pub async fn generate_ui_state(root : String) -> UiState {
   let health = report_health(root)
   let keeper = keeper_snapshot(root)
   let pending = list_pending_reviews(root)
-  let claims_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("synthesis/claims.md"))
+  let claims_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("synthesis/claims.md"))
     .to_string()
   let claims_text = if @fsx.exists(claims_path) {
     @fsx.read_file(claims_path)
@@ -248,7 +248,7 @@ async fn ui_project_title(root : String) -> String {
     Some(title) if !title.trim().is_empty() => return title
     _ => ()
   }
-  let leaf = @path.Path(@pathx.normalize(root)).basename().to_owned()
+  let leaf = moonbook_wiki_path(@pathx.normalize(root)).basename().to_owned()
   if leaf.has_prefix("research-") {
     return titleize_topic_slug(leaf[9:].to_owned())
   }
@@ -261,7 +261,9 @@ async fn ui_research_title(root : String) -> String? {
     relative in [
       "raw/bootstrap/deep-report.md", "wiki/synthesis/report.md", "raw/bootstrap/synthesis-brief.md",
     ] {
-    let path = @path.Path(root).join(@path.Path(relative)).to_string()
+    let path = moonbook_wiki_path(root)
+      .join(moonbook_wiki_path(relative))
+      .to_string()
     if !@fsx.exists(path) {
       continue
     }
@@ -433,42 +435,42 @@ pub async fn write_marketing_projection(
 ) -> String {
   let state = generate_ui_state(root)
   let updated_note = marketing_update_note(root)
-  let generated_dir = @path.Path(site_root)
-    .join(@path.Path("generated"))
+  let generated_dir = moonbook_wiki_path(site_root)
+    .join(moonbook_wiki_path("generated"))
     .to_string()
   @fsx.make_directory(generated_dir, recursive=true, exists_ok=true)
-  let state_path = @path.Path(generated_dir)
-    .join(@path.Path("marketing-state.json"))
+  let state_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("marketing-state.json"))
     .to_string()
-  let index_path = @path.Path(generated_dir)
-    .join(@path.Path("index.html"))
+  let index_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("index.html"))
     .to_string()
-  let entry_index_path = @path.Path(site_root)
-    .join(@path.Path("index.html"))
+  let entry_index_path = moonbook_wiki_path(site_root)
+    .join(moonbook_wiki_path("index.html"))
     .to_string()
-  let styles_path = @path.Path(generated_dir)
-    .join(@path.Path("styles.css"))
+  let styles_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("styles.css"))
     .to_string()
-  let script_path = @path.Path(generated_dir)
-    .join(@path.Path("app.js"))
+  let script_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("app.js"))
     .to_string()
-  let journal_index_path = @path.Path(generated_dir)
-    .join(@path.Path("journal.html"))
+  let journal_index_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("journal.html"))
     .to_string()
-  let journal_state_path = @path.Path(generated_dir)
-    .join(@path.Path("journal-state.json"))
+  let journal_state_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("journal-state.json"))
     .to_string()
-  let course_index_path = @path.Path(generated_dir)
-    .join(@path.Path("course.html"))
+  let course_index_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("course.html"))
     .to_string()
-  let course_state_path = @path.Path(generated_dir)
-    .join(@path.Path("course-state.json"))
+  let course_state_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("course-state.json"))
     .to_string()
-  let skills_index_path = @path.Path(generated_dir)
-    .join(@path.Path("skills.html"))
+  let skills_index_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("skills.html"))
     .to_string()
-  let skills_state_path = @path.Path(generated_dir)
-    .join(@path.Path("skills-state.json"))
+  let skills_state_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("skills-state.json"))
     .to_string()
   @fsx.write_to_file(
     state_path,
@@ -757,8 +759,8 @@ async fn ui_review_queue(
   pending : Array[ReviewItem],
 ) -> Array[UiPanelItem] {
   let workspace = workspace_paths(root)
-  let page_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("reviews/pending.md"))
+  let page_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("reviews/pending.md"))
     .to_string()
   let content = if @fsx.exists(page_path) {
     @fsx.read_file(page_path)
@@ -813,8 +815,8 @@ async fn ui_review_queue(
 ///|
 async fn ui_chapter_links(root : String) -> Array[UiChapterLink] {
   let workspace = workspace_paths(root)
-  let summary_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("SUMMARY.md"))
+  let summary_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("SUMMARY.md"))
     .to_string()
   if !@fsx.exists(summary_path) {
     return []
@@ -994,8 +996,8 @@ fn markdown_href_to_html(href : String) -> String {
 ///|
 async fn ui_synthesis_preview(root : String) -> String {
   let workspace = workspace_paths(root)
-  let map_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("synthesis/map.md"))
+  let map_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("synthesis/map.md"))
     .to_string()
   if !@fsx.exists(map_path) {
     return "No synthesis map available yet."
@@ -1038,8 +1040,8 @@ async test "ui state derives research title from deep report heading" {
   let root = "/tmp/moonbook-ui-state-research-title"
   ignore(init_workspace(root))
   @fsx.write_to_file(
-    @path.Path(root)
-    .join(@path.Path("raw/bootstrap/deep-report.md"))
+    moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("raw/bootstrap/deep-report.md"))
     .to_string(),
     "# One Person Company (OPC): Deep Research Analysis\n\n## Executive Summary\n\nA sourced report.\n",
     create=0o644,
@@ -1052,39 +1054,43 @@ async test "ui state derives research title from deep report heading" {
 async test "write marketing projection emits generated site bundle" {
   let root = "/tmp/moonbook-marketing-projection"
   ignore(init_workspace(root))
-  let brief_path = @path.Path(root)
-    .join(@path.Path("raw/bootstrap/marketing-brief.md"))
+  let brief_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("raw/bootstrap/marketing-brief.md"))
     .to_string()
   @fsx.write_to_file(
     brief_path,
     "# Sell the Workspace That Keeps Learning\n\nA product-facing front door for teams that want polished presentation and maintained knowledge in the same local project.\n\n## The Problem\n\nTeams need a clean story first and deeper proof later.\n\n- launch pages drift away from the docs\n- product proof gets buried in internal notes\n\n## The Product\n\nMoonBook turns maintained wiki state into a polished product website.\n\n- polished product website\n- detailed wiki behind the pitch\n- repeatable skill-driven publishing\n\n## Why It Wins\n\nThe pitch and the evidence live in the same workspace.\n\n- skill-driven publishing\n- durable wiki behind the site\n",
     create=0o644,
   )
-  let deep_report_path = @path.Path(root)
-    .join(@path.Path("raw/bootstrap/deep-report.md"))
+  let deep_report_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("raw/bootstrap/deep-report.md"))
     .to_string()
   @fsx.write_to_file(
     deep_report_path,
     "# MoonBook: Deep Research Analysis\n\n## Executive Summary\n\nMoonBook should present sourced research artifacts before marketing claims.\n\n## Architecture\n\n| Layer | Role |\n| --- | --- |\n| Book | Maintained memory and projection surface |\n\n```mermaid\nflowchart LR\nRaw[Raw packets] --> Wiki[Durable wiki]\nWiki --> Site[Generated site]\n```\n",
     create=0o644,
   )
-  let site_root = @path.Path(root).join(@path.Path("book/site")).to_string()
+  let site_root = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("book/site"))
+    .to_string()
   let index_path = write_marketing_projection(root, site_root)
-  let entry_index_path = @path.Path(site_root)
-    .join(@path.Path("index.html"))
+  let entry_index_path = moonbook_wiki_path(site_root)
+    .join(moonbook_wiki_path("index.html"))
     .to_string()
-  let generated_dir = @path.Path(site_root)
-    .join(@path.Path("generated"))
+  let generated_dir = moonbook_wiki_path(site_root)
+    .join(moonbook_wiki_path("generated"))
     .to_string()
-  let skills_index_path = @path.Path(generated_dir)
-    .join(@path.Path("skills.html"))
+  let skills_index_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("skills.html"))
     .to_string()
-  let skills_state_path = @path.Path(generated_dir)
-    .join(@path.Path("skills-state.json"))
+  let skills_state_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("skills-state.json"))
     .to_string()
   assert_eq(
     index_path,
-    @path.Path(generated_dir).join(@path.Path("index.html")).to_string(),
+    moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("index.html"))
+    .to_string(),
   )
   assert_true(@fsx.exists(index_path))
   assert_true(@fsx.exists(entry_index_path))
@@ -1097,54 +1103,64 @@ async test "write marketing projection emits generated site bundle" {
   )
   assert_true(
     @fsx.exists(
-      @path.Path(generated_dir)
-      .join(@path.Path("marketing-state.json"))
+      moonbook_wiki_path(generated_dir)
+      .join(moonbook_wiki_path("marketing-state.json"))
       .to_string(),
     ),
   )
   assert_true(
     @fsx.exists(
-      @path.Path(generated_dir).join(@path.Path("styles.css")).to_string(),
-    ),
-  )
-  assert_true(
-    @fsx.exists(
-      @path.Path(generated_dir).join(@path.Path("app.js")).to_string(),
-    ),
-  )
-  assert_true(
-    @fsx.exists(
-      @path.Path(generated_dir).join(@path.Path("journal.html")).to_string(),
-    ),
-  )
-  assert_true(
-    @fsx.exists(
-      @path.Path(generated_dir)
-      .join(@path.Path("journal-state.json"))
+      moonbook_wiki_path(generated_dir)
+      .join(moonbook_wiki_path("styles.css"))
       .to_string(),
     ),
   )
   assert_true(
     @fsx.exists(
-      @path.Path(generated_dir).join(@path.Path("course.html")).to_string(),
-    ),
-  )
-  assert_true(
-    @fsx.exists(
-      @path.Path(generated_dir)
-      .join(@path.Path("course-state.json"))
+      moonbook_wiki_path(generated_dir)
+      .join(moonbook_wiki_path("app.js"))
       .to_string(),
     ),
   )
   assert_true(
     @fsx.exists(
-      @path.Path(generated_dir).join(@path.Path("skills.html")).to_string(),
+      moonbook_wiki_path(generated_dir)
+      .join(moonbook_wiki_path("journal.html"))
+      .to_string(),
     ),
   )
   assert_true(
     @fsx.exists(
-      @path.Path(generated_dir)
-      .join(@path.Path("skills-state.json"))
+      moonbook_wiki_path(generated_dir)
+      .join(moonbook_wiki_path("journal-state.json"))
+      .to_string(),
+    ),
+  )
+  assert_true(
+    @fsx.exists(
+      moonbook_wiki_path(generated_dir)
+      .join(moonbook_wiki_path("course.html"))
+      .to_string(),
+    ),
+  )
+  assert_true(
+    @fsx.exists(
+      moonbook_wiki_path(generated_dir)
+      .join(moonbook_wiki_path("course-state.json"))
+      .to_string(),
+    ),
+  )
+  assert_true(
+    @fsx.exists(
+      moonbook_wiki_path(generated_dir)
+      .join(moonbook_wiki_path("skills.html"))
+      .to_string(),
+    ),
+  )
+  assert_true(
+    @fsx.exists(
+      moonbook_wiki_path(generated_dir)
+      .join(moonbook_wiki_path("skills-state.json"))
       .to_string(),
     ),
   )
@@ -1191,7 +1207,9 @@ async test "ui state exposes readiness and query counts" {
   ignore(init_workspace(root))
   let initial_state = generate_ui_state(root)
   assert_true(initial_state.readiness.length() > 0)
-  let raw_path = @path.Path(root).join(@path.Path("raw/demo.md")).to_string()
+  let raw_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("raw/demo.md"))
+    .to_string()
   @fsx.write_to_file(
     raw_path,
     "# Demo Source\n\nMoonBook maintains source pages and synthesis coverage.\n",
@@ -1211,27 +1229,27 @@ async test "ui state exposes readiness and query counts" {
 async test "ui state projects research artifacts and synthesis brief" {
   let root = "/tmp/moonbook-ui-state-research-artifacts"
   ignore(init_workspace(root))
-  let bootstrap_dir = @path.Path(root)
-    .join(@path.Path("raw/bootstrap"))
+  let bootstrap_dir = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("raw/bootstrap"))
     .to_string()
   @fsx.make_directory(bootstrap_dir, recursive=true, exists_ok=true)
   @fsx.write_to_file(
-    @path.Path(root)
-    .join(@path.Path("raw/bootstrap/synthesis-brief.md"))
+    moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("raw/bootstrap/synthesis-brief.md"))
     .to_string(),
     "# Synthesis Brief\n\nFinding: MoonBook should present sourced research artifacts before marketing claims.\n",
     create=0o644,
   )
   @fsx.write_to_file(
-    @path.Path(root)
-    .join(@path.Path("raw/bootstrap/evidence-matrix.md"))
+    moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("raw/bootstrap/evidence-matrix.md"))
     .to_string(),
-    "# Evidence Matrix\n\n| Source ID | Evidence | Locator | Confidence | Notes |\n| --- | --- | --- | --- | --- |\n| L1 | preview=`MoonBook is a MoonBit rewrite of mdBook with wiki-maintainer projections.` | original=`README.md` | High | local README |\n| L2 | preview=`Architecture uses a keeper, skills, and generated site surfaces.` | original=`wiki/bookapi.mbt` | Medium | architecture row |\n",
+    "# Evidence Matrix\n\n| Source ID | Evidence | Locator | Confidence | Notes |\n| --- | --- | --- | --- | --- |\n| L1 | preview=`MoonBook is a MoonBit-native executable book workspace with wiki-maintainer projections.` | original=`README.md` | High | local README |\n| L2 | preview=`Architecture uses a keeper, skills, and generated site surfaces.` | original=`wiki/extension_api.mbt` | Medium | architecture row |\n",
     create=0o644,
   )
   @fsx.write_to_file(
-    @path.Path(root)
-    .join(@path.Path("raw/bootstrap/deep-report.md"))
+    moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("raw/bootstrap/deep-report.md"))
     .to_string(),
     "# Deep Report\n\n## Executive Summary\n\nMoonBook should present sourced research artifacts before marketing claims [L1].\n",
     create=0o644,

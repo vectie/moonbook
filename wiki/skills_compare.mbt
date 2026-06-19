@@ -9,7 +9,7 @@ fn resolve_skill_selector(
   let matches : Array[SkillRecord] = []
   for record in records {
     let record_name = record.name.to_lower().to_string()
-    let basename = @path.Path(@pathx.dirname(record.path).to_owned())
+    let basename = moonbook_wiki_path(@pathx.dirname(record.path).to_owned())
       .basename()
       .to_owned()
       .to_lower()

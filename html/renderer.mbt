@@ -20,8 +20,8 @@ pub fn new_render_context(
 pub async fn render_html(context : RenderContext) -> Unit {
   ensure_dir(context.build_dir)
   let chapters = context.book.chapters()
-  let src_root = @path.Path(context.root)
-    .join(@path.Path(context.config.book.src))
+  let src_root = moonbook_html_path(context.root)
+    .join(moonbook_html_path(context.config.book.src))
     .to_string()
   let not_found_markdown = load_not_found_markdown(src_root, context.config)
   let extra_markdown = match not_found_markdown {
@@ -68,12 +68,16 @@ pub async fn render_html(context : RenderContext) -> Unit {
     )
   }
   write_text_file(
-    @path.Path(context.build_dir).join(@path.Path("index.html")).to_string(),
+    moonbook_html_path(context.build_dir)
+    .join(moonbook_html_path("index.html"))
+    .to_string(),
     index_body,
   )
   for chapter in chapters {
     let output_path = chapter_output_path(chapter)
-    let path = @path.Path(context.build_dir).join(@path.Path(output_path))
+    let path = moonbook_html_path(context.build_dir).join(
+      moonbook_html_path(output_path),
+    )
     let (previous, next) = previous_next_chapters(chapters, output_path)
     let page = render_shell(
       context.config,
@@ -116,7 +120,9 @@ async fn write_cname(build_dir : String, config : @core.Config) -> Unit {
   match config.read("output.html.cname") {
     Some(String(cname)) if !cname.is_empty() =>
       write_text_file(
-        @path.Path(build_dir).join(@path.Path("CNAME")).to_string(),
+        moonbook_html_path(build_dir)
+        .join(moonbook_html_path("CNAME"))
+        .to_string(),
         cname + "\n",
       )
     _ => ()
@@ -151,11 +157,11 @@ async fn copy_static_assets(
           },
         )
         if !copied.contains(normalized) {
-          let source_path = @path.Path(src_root)
-            .join(@path.Path(normalized))
+          let source_path = moonbook_html_path(src_root)
+            .join(moonbook_html_path(normalized))
             .to_string()
-          let dest_path = @path.Path(build_dir)
-            .join(@path.Path(normalized))
+          let dest_path = moonbook_html_path(build_dir)
+            .join(moonbook_html_path(normalized))
             .to_string()
           ensure_parent_dir(dest_path)
           @fsx.write_bytes(
@@ -174,11 +180,11 @@ async fn copy_static_assets(
         let asset_path = strip_link_anchor(asset)
         let normalized = @pathx.normalize(asset_path)
         if !copied.contains(normalized) {
-          let source_path = @path.Path(src_root)
-            .join(@path.Path(normalized))
+          let source_path = moonbook_html_path(src_root)
+            .join(moonbook_html_path(normalized))
             .to_string()
-          let dest_path = @path.Path(build_dir)
-            .join(@path.Path(normalized))
+          let dest_path = moonbook_html_path(build_dir)
+            .join(moonbook_html_path(normalized))
             .to_string()
           ensure_parent_dir(dest_path)
           @fsx.write_bytes(
@@ -194,11 +200,11 @@ async fn copy_static_assets(
   for asset in html_assets {
     let normalized = @pathx.normalize(asset)
     if !copied.contains(normalized) {
-      let source_path = @path.Path(book_root)
-        .join(@path.Path(normalized))
+      let source_path = moonbook_html_path(book_root)
+        .join(moonbook_html_path(normalized))
         .to_string()
-      let dest_path = @path.Path(build_dir)
-        .join(@path.Path(normalized))
+      let dest_path = moonbook_html_path(build_dir)
+        .join(moonbook_html_path(normalized))
         .to_string()
       ensure_parent_dir(dest_path)
       @fsx.write_bytes(dest_path, @fsx.read_bytes(source_path), create=0o666)
@@ -566,11 +572,11 @@ test "collect markdown assets finds image sources" {
 ///|
 test "collect markdown assets finds normal file links" {
   let assets = collect_markdown_assets(
-    "[Config](downloads/openclaw-config.json) and [Archive](./downloads/package.zip#latest)",
+    "[Config](downloads/moonclaw-config.json) and [Archive](./downloads/package.zip#latest)",
   )
   assert_true(
     assets ==
-    ["downloads/openclaw-config.json", "./downloads/package.zip#latest"],
+    ["downloads/moonclaw-config.json", "./downloads/package.zip#latest"],
   )
 }
 

@@ -5,40 +5,50 @@ async fn install_moonclaw_extension(
   root : String,
   extensions_dir : String,
 ) -> ExtensionInstallResult {
-  let manifest_path = @path.Path(extensions_dir)
-    .join(@path.Path("moonclaw.json"))
+  let manifest_path = moonbook_wiki_path(extensions_dir)
+    .join(moonbook_wiki_path("moonclaw.json"))
     .to_string()
-  let config_path = @path.Path(root)
-    .join(@path.Path("moonclaw.json"))
+  let config_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("moonclaw.json"))
     .to_string()
-  let jobs_path = @path.Path(root)
-    .join(@path.Path("moonclaw.jobs.json"))
+  let jobs_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("moonclaw.jobs.json"))
     .to_string()
-  let runtime_dir = @path.Path(root).join(@path.Path(".moonclaw")).to_string()
-  let providers_path = @path.Path(runtime_dir)
-    .join(@path.Path("providers.json"))
+  let runtime_dir = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path(".moonclaw"))
     .to_string()
-  let identity_path = @path.Path(root)
-    .join(@path.Path("IDENTITY.md"))
+  let providers_path = moonbook_wiki_path(runtime_dir)
+    .join(moonbook_wiki_path("providers.json"))
     .to_string()
-  let user_path = @path.Path(root).join(@path.Path("USER.md")).to_string()
-  let routines_path = @path.Path(root)
-    .join(@path.Path("ROUTINES.md"))
+  let identity_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("IDENTITY.md"))
     .to_string()
-  let memory_path = @path.Path(root).join(@path.Path("MEMORY.md")).to_string()
-  let keeper_path = @path.Path(root).join(@path.Path("KEEPER.md")).to_string()
-  let skills_dir = @path.Path(root).join(@path.Path("skills")).to_string()
-  let maintainer_dir = @path.Path(skills_dir)
-    .join(@path.Path("wiki-maintainer"))
+  let user_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("USER.md"))
     .to_string()
-  let review_dir = @path.Path(skills_dir)
-    .join(@path.Path("wiki-review"))
+  let routines_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("ROUTINES.md"))
     .to_string()
-  let maintainer_skill_path = @path.Path(maintainer_dir)
-    .join(@path.Path("SKILL.md"))
+  let memory_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("MEMORY.md"))
     .to_string()
-  let review_skill_path = @path.Path(review_dir)
-    .join(@path.Path("SKILL.md"))
+  let keeper_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("KEEPER.md"))
+    .to_string()
+  let skills_dir = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("skills"))
+    .to_string()
+  let maintainer_dir = moonbook_wiki_path(skills_dir)
+    .join(moonbook_wiki_path("wiki-maintainer"))
+    .to_string()
+  let review_dir = moonbook_wiki_path(skills_dir)
+    .join(moonbook_wiki_path("wiki-review"))
+    .to_string()
+  let maintainer_skill_path = moonbook_wiki_path(maintainer_dir)
+    .join(moonbook_wiki_path("SKILL.md"))
+    .to_string()
+  let review_skill_path = moonbook_wiki_path(review_dir)
+    .join(moonbook_wiki_path("SKILL.md"))
     .to_string()
   @fsx.make_directory(skills_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(runtime_dir, recursive=true, exists_ok=true)
@@ -75,21 +85,26 @@ async fn install_moontown_extension(
   root : String,
   extensions_dir : String,
 ) -> ExtensionInstallResult {
-  let manifest_path = @path.Path(extensions_dir)
-    .join(@path.Path("moontown.json"))
+  let manifest_path = moonbook_wiki_path(extensions_dir)
+    .join(moonbook_wiki_path("moontown.json"))
     .to_string()
-  let book_api_path = @path.Path(root)
-    .join(@path.Path("moontown.book.json"))
+  let extension_manifest_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("moontown.book.json"))
     .to_string()
-  let bridge_path = @path.Path(root).join(@path.Path("BOOK_API.md")).to_string()
-  write_extension_file_if_missing(book_api_path, moontown_book_text(root))
-  write_extension_file_if_missing(bridge_path, book_api_text())
+  let extension_guide_path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path("EXTENSION_API.md"))
+    .to_string()
+  write_extension_file_if_missing(
+    extension_manifest_path,
+    moontown_book_text(root),
+  )
+  write_extension_file_if_missing(extension_guide_path, extension_api_text())
   write_extension_file_if_missing(manifest_path, moontown_manifest_text())
   {
     root,
     extension: "moontown",
     manifest_path,
-    installed_files: [book_api_path, bridge_path],
+    installed_files: [extension_manifest_path, extension_guide_path],
   }
 }
 
@@ -116,8 +131,8 @@ async fn copy_extension_seed_tree_if_missing(
   destination_path : String,
   seed_relative_path : String,
 ) -> Unit {
-  let source_path = @path.Path(detect_moonbook_module_root())
-    .join(@path.Path(seed_relative_path))
+  let source_path = moonbook_wiki_path(detect_moonbook_module_root())
+    .join(moonbook_wiki_path(seed_relative_path))
     .to_string()
   if !@fsx.exists(source_path) {
     fail("missing extension seed file: \{source_path}")
@@ -131,13 +146,15 @@ async fn copy_extension_seed_tree(
   destination_path : String,
 ) -> Unit {
   match @fs.kind(source_path, follow_symlink=false) {
-    @fs.FileKind::Directory => {
+    Directory => {
       @fsx.make_directory(destination_path, recursive=true, exists_ok=true)
       for child in @fsx.list_directory(source_path) {
-        let child_name = @path.Path(child).basename().to_owned()
+        let child_name = moonbook_wiki_path(child).basename().to_owned()
         copy_extension_seed_tree(
           child,
-          @path.Path(destination_path).join(@path.Path(child_name)).to_string(),
+          moonbook_wiki_path(destination_path)
+          .join(moonbook_wiki_path(child_name))
+          .to_string(),
         )
       }
     }

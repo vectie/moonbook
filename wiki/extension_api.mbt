@@ -123,8 +123,8 @@ pub async fn produce_task_batch(
     })
   }
 
-  let maintenance_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("synthesis/maintenance-plan.md"))
+  let maintenance_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("synthesis/maintenance-plan.md"))
     .to_string()
   let maintenance_text = if @fsx.exists(maintenance_path) {
     @fsx.read_file(maintenance_path)
@@ -178,7 +178,7 @@ pub async fn produce_task_batch(
       id: "\{normalized_goal_id}-analysis",
       title: "Produce domain-local task result",
       kind: "analysis",
-      prompt: "Load `skills/wiki-query/SKILL.md` and answer the goal inside this book boundary. Use the wiki pages as the durable context and do not leak into other books: \{goal}",
+      prompt: "Load `skills/wiki-query/SKILL.md` and answer the goal inside this extension boundary. Use the wiki pages as the durable context and do not leak into other books: \{goal}",
       priority: 80,
       requires_review: true,
       target_pages: ["index.md", "log.md", "synthesis/query-insights.md"],
@@ -292,8 +292,8 @@ pub async fn persist_result(
   let updated_pages : Array[String] = []
   let observations_relative = ensure_observations_page(workspace)
   updated_pages.push(observations_relative)
-  let observations_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(observations_relative))
+  let observations_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(observations_relative))
     .to_string()
   let mut observations = @fsx.read_file(observations_path)
   let block = persisted_result_block(normalized_result)
@@ -389,13 +389,15 @@ pub async fn persist_result(
   }
 
   append_result_log(
-    @path.Path(workspace.wiki_dir).join(@path.Path("log.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("log.md"))
+    .to_string(),
     normalized_result,
     reconciled_pages,
   )
   {
-    log_path: @path.Path(workspace.wiki_dir)
-    .join(@path.Path("log.md"))
+    log_path: moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("log.md"))
     .to_string(),
     updated_pages: reconciled_pages,
     review_queued,
@@ -522,11 +524,11 @@ async fn materialize_research_envelope_pages(
   let updated : Array[String] = []
   let topic = research_envelope_topic(root, result)
   let source_relative = "sources/research-evidence.md"
-  let source_dir = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("sources"))
+  let source_dir = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("sources"))
     .to_string()
-  let source_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(source_relative))
+  let source_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(source_relative))
     .to_string()
   @fsx.make_directory(source_dir, recursive=true, exists_ok=true)
   @fsx.write_to_file(
@@ -536,7 +538,9 @@ async fn materialize_research_envelope_pages(
   )
   update_summary(workspace.summary_path, "Research Evidence", source_relative)
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Sources",
     "Research Evidence",
     source_relative,
@@ -545,11 +549,11 @@ async fn materialize_research_envelope_pages(
   updated.push(source_relative)
 
   let concept_relative = "concepts/research-artifact-envelope.md"
-  let concept_dir = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("concepts"))
+  let concept_dir = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("concepts"))
     .to_string()
-  let concept_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(concept_relative))
+  let concept_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(concept_relative))
     .to_string()
   @fsx.make_directory(concept_dir, recursive=true, exists_ok=true)
   let concept_block = "### \{result.task_id}\n\n" +
@@ -575,7 +579,9 @@ async fn materialize_research_envelope_pages(
     concept_relative,
   )
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Concepts",
     "Research Artifact Envelope",
     concept_relative,
@@ -585,11 +591,11 @@ async fn materialize_research_envelope_pages(
 
   for entity in research_envelope_entities(root) {
     let entity_relative = "entities/\{slugify_title(entity)}.md"
-    let entity_dir = @path.Path(workspace.wiki_dir)
-      .join(@path.Path("entities"))
+    let entity_dir = moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path("entities"))
       .to_string()
-    let entity_path = @path.Path(workspace.wiki_dir)
-      .join(@path.Path(entity_relative))
+    let entity_path = moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path(entity_relative))
       .to_string()
     @fsx.make_directory(entity_dir, recursive=true, exists_ok=true)
     let entity_evidence = clamp_excerpt(
@@ -614,7 +620,9 @@ async fn materialize_research_envelope_pages(
     @fsx.write_to_file(entity_path, entity_content, create=0o644)
     update_summary(workspace.summary_path, entity, entity_relative)
     update_index_section(
-      @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+      moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path("index.md"))
+      .to_string(),
       "Entities",
       entity,
       entity_relative,
@@ -626,8 +634,8 @@ async fn materialize_research_envelope_pages(
   }
 
   let overview_relative = "synthesis/overview.md"
-  let overview_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(overview_relative))
+  let overview_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(overview_relative))
     .to_string()
   let overview_brief = clamp_excerpt(
     research_artifact_text(root, "raw/bootstrap/synthesis-brief.md"),
@@ -647,7 +655,9 @@ async fn materialize_research_envelope_pages(
   @fsx.write_to_file(overview_path, overview_content, create=0o644)
   update_summary(workspace.summary_path, "Overview", overview_relative)
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Core Pages",
     "Overview",
     overview_relative,
@@ -657,8 +667,8 @@ async fn materialize_research_envelope_pages(
     updated.push(overview_relative)
   }
   let report_relative = "synthesis/report.md"
-  let report_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(report_relative))
+  let report_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(report_relative))
     .to_string()
   @fsx.write_to_file(
     report_path,
@@ -667,7 +677,9 @@ async fn materialize_research_envelope_pages(
   )
   update_summary(workspace.summary_path, "Research Report", report_relative)
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Core Pages",
     "Research Report",
     report_relative,
@@ -748,7 +760,9 @@ async fn research_envelope_report_page(
 
 ///|
 async fn research_artifact_text(root : String, relative : String) -> String {
-  let path = @path.Path(root).join(@path.Path(relative)).to_string()
+  let path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path(relative))
+    .to_string()
   if @fsx.exists(path) {
     @fsx.read_file(path)
   } else {
@@ -802,13 +816,13 @@ async fn research_envelope_entities(root : String) -> Array[String] {
 async fn research_artifact_contract_active(root : String) -> Bool {
   let workspace = workspace_paths(root)
   @fsx.exists(
-    @path.Path(workspace.root)
-    .join(@path.Path("raw/bootstrap/RESEARCH_REQUEST.md"))
+    moonbook_wiki_path(workspace.root)
+    .join(moonbook_wiki_path("raw/bootstrap/RESEARCH_REQUEST.md"))
     .to_string(),
   ) ||
   @fsx.exists(
-    @path.Path(workspace.root)
-    .join(@path.Path("raw/bootstrap/SOURCE_HINTS.md"))
+    moonbook_wiki_path(workspace.root)
+    .join(moonbook_wiki_path("raw/bootstrap/SOURCE_HINTS.md"))
     .to_string(),
   )
 }
@@ -818,8 +832,8 @@ async fn missing_research_artifacts(root : String) -> Array[String] {
   let workspace = workspace_paths(root)
   let missing : Array[String] = []
   for relative in required_research_artifacts() {
-    let absolute = @path.Path(workspace.root)
-      .join(@path.Path(relative))
+    let absolute = moonbook_wiki_path(workspace.root)
+      .join(moonbook_wiki_path(relative))
       .to_string()
     if !@fsx.exists(absolute) {
       missing.push(relative)
@@ -891,7 +905,9 @@ async fn reconcile_result_pages(
     let relative = normalize_result_workspace_path(artifact)
     if !relative.is_empty() &&
       @fsx.exists(
-        @path.Path(workspace.root).join(@path.Path(relative)).to_string(),
+        moonbook_wiki_path(workspace.root)
+        .join(moonbook_wiki_path(relative))
+        .to_string(),
       ) &&
       !reconciled.contains(relative) {
       reconciled.push(relative)
@@ -902,7 +918,9 @@ async fn reconcile_result_pages(
       Some(page) =>
         if !page.is_empty() &&
           @fsx.exists(
-            @path.Path(workspace.wiki_dir).join(@path.Path(page)).to_string(),
+            moonbook_wiki_path(workspace.wiki_dir)
+            .join(moonbook_wiki_path(page))
+            .to_string(),
           ) &&
           !reconciled.contains(page) {
           reconciled.push(page)
@@ -962,8 +980,8 @@ async fn recent_substantive_pages(
   let workspace = workspace_paths(root)
   let candidates : Array[(String, Int64)] = []
   for dir in ["sources", "entities", "concepts", "queries"] {
-    let absolute = @path.Path(workspace.wiki_dir)
-      .join(@path.Path(dir))
+    let absolute = moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path(dir))
       .to_string()
     if !@fsx.exists(absolute) {
       continue
@@ -979,11 +997,11 @@ async fn recent_substantive_pages(
   }
   for
     path in [
-      @path.Path(workspace.wiki_dir)
-      .join(@path.Path("synthesis/overview.md"))
+      moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path("synthesis/overview.md"))
       .to_string(),
-      @path.Path(workspace.wiki_dir)
-      .join(@path.Path("synthesis/claims.md"))
+      moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path("synthesis/claims.md"))
       .to_string(),
     ] {
     if @fsx.exists(path) {
@@ -1015,11 +1033,11 @@ async fn recent_substantive_pages(
 async fn summarize_memory(root : String) -> String {
   let workspace = workspace_paths(root)
   let keeper = keeper_snapshot(root)
-  let claims_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("synthesis/claims.md"))
+  let claims_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("synthesis/claims.md"))
     .to_string()
-  let overview_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("synthesis/overview.md"))
+  let overview_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("synthesis/overview.md"))
     .to_string()
   let claims = if @fsx.exists(claims_path) {
     count_heading_entries(@fsx.read_file(claims_path))
@@ -1040,8 +1058,8 @@ async fn summarize_memory(root : String) -> String {
 ///|
 async fn ensure_observations_page(workspace : Paths) -> String {
   let relative = "synthesis/observations.md"
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   if !@fsx.exists(absolute) {
     @fsx.write_to_file(
@@ -1051,7 +1069,9 @@ async fn ensure_observations_page(workspace : Paths) -> String {
     )
     update_summary(workspace.summary_path, "Observations", relative)
     update_index_section(
-      @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+      moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path("index.md"))
+      .to_string(),
       "Core Pages",
       "Observations",
       relative,
@@ -1104,8 +1124,8 @@ async fn queue_result_review(
   durable_candidates : Array[MemoryCandidate],
 ) -> Bool {
   let relative = "reviews/pending.md"
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   let review_id = "result-review-\{slugify_title(result.task_id)}"
   let current = if @fsx.exists(absolute) {
@@ -1134,7 +1154,9 @@ async fn queue_result_review(
   @fsx.write_to_file(absolute, updated, create=0o644)
   update_summary(workspace.summary_path, "Pending Review", relative)
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Core Pages",
     "Pending Review",
     relative,
@@ -1196,14 +1218,16 @@ async fn promote_durable_candidates(
       Some(page) => page
       None => "synthesis/observations.md"
     }
-    let absolute = @path.Path(workspace.wiki_dir)
-      .join(@path.Path(relative_page))
+    let absolute = moonbook_wiki_path(workspace.wiki_dir)
+      .join(moonbook_wiki_path(relative_page))
       .to_string()
     if !@fsx.exists(absolute) {
       seed_memory_candidate_page(absolute, candidate.title)
       update_summary(workspace.summary_path, candidate.title, relative_page)
       update_index_section(
-        @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+        moonbook_wiki_path(workspace.wiki_dir)
+        .join(moonbook_wiki_path("index.md"))
+        .to_string(),
         memory_candidate_section(relative_page),
         candidate.title,
         relative_page,
@@ -1312,8 +1336,8 @@ async fn refresh_workspace_projections(root : String) -> Unit {
   let substantive_pages = recent_substantive_pages(root, limit=8)
   let synthetic = workspace_projection_reconcile_result()
   let review_queued = !list_pending_reviews(root).is_empty()
-  let journey_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(journey_relative_page()))
+  let journey_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(journey_relative_page()))
     .to_string()
   if file_needs_projection_reconcile(journey_path) {
     ignore(
@@ -1323,8 +1347,8 @@ async fn refresh_workspace_projections(root : String) -> Unit {
       ),
     )
   }
-  let debug_path = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(debug_journal_relative_page()))
+  let debug_path = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(debug_journal_relative_page()))
     .to_string()
   if file_needs_projection_reconcile(debug_path) {
     ignore(
@@ -1418,11 +1442,11 @@ async fn append_standing_watch_history(
   result : BookResult,
 ) -> String {
   let relative = "history/standing-watch.md"
-  let dir = @path.Path(workspace.wiki_dir)
-    .join(@path.Path("history"))
+  let dir = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("history"))
     .to_string()
-  let absolute = @path.Path(workspace.wiki_dir)
-    .join(@path.Path(relative))
+  let absolute = moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path(relative))
     .to_string()
   @fsx.make_directory(dir, recursive=true, exists_ok=true)
   let current = if @fsx.exists(absolute) {
@@ -1435,7 +1459,9 @@ async fn append_standing_watch_history(
   @fsx.write_to_file(absolute, updated, create=0o644)
   update_summary(workspace.summary_path, "Standing Watch", relative)
   update_index_section(
-    @path.Path(workspace.wiki_dir).join(@path.Path("index.md")).to_string(),
+    moonbook_wiki_path(workspace.wiki_dir)
+    .join(moonbook_wiki_path("index.md"))
+    .to_string(),
     "Core Pages",
     "Standing Watch",
     relative,
@@ -1551,7 +1577,7 @@ test "planbook goal detection stays bounded to executable planning" {
 
 ///|
 async test "produce task batch creates dedicated standing watch task" {
-  let root = "/tmp/moonbook-bookapi-standing-watch"
+  let root = "/tmp/moonbook-extension-api-standing-watch"
   ignore(init_workspace(root))
   let batch = produce_task_batch(
     root, "standing-watch: periodically check latest sources about one person company and update the book only when there is a meaningful delta",
@@ -1566,7 +1592,7 @@ async test "produce task batch creates dedicated standing watch task" {
 
 ///|
 async test "produce task batch routes executable plan goals to planbook" {
-  let root = "/tmp/moonbook-bookapi-planbook"
+  let root = "/tmp/moonbook-extension-api-planbook"
   ignore(init_workspace(root))
   let batch = produce_task_batch(
     root, "write an implementation plan with acceptance criteria for live autonomy self-healing",
@@ -1589,7 +1615,7 @@ async test "produce task batch routes executable plan goals to planbook" {
 
 ///|
 async test "persist standing watch result records durable watch history" {
-  let root = "/tmp/moonbook-bookapi-standing-watch-history"
+  let root = "/tmp/moonbook-extension-api-standing-watch-history"
   ignore(init_workspace(root))
   let outcome = persist_result(root, {
     task_id: "goal-opc-standing-watch",
@@ -1650,7 +1676,7 @@ async test "task prompt adds local source hints for ingest work" {
 
 ///|
 async test "bootstrap context carries skill body excerpts and required research artifacts" {
-  let root = "/tmp/moonbook-bookapi-bootstrap-contract"
+  let root = "/tmp/moonbook-extension-api-bootstrap-contract"
   ignore(init_workspace(root))
   let context = hydrate_worker_context(root, {
     id: "goal-research-bootstrap_gather",
@@ -1673,7 +1699,7 @@ async test "bootstrap context carries skill body excerpts and required research 
 
 ///|
 async test "standing watch context loads watch skill and marker contract" {
-  let root = "/tmp/moonbook-bookapi-standing-watch-context"
+  let root = "/tmp/moonbook-extension-api-standing-watch-context"
   ignore(init_workspace(root))
   let task = standing_watch_task(
     "goal-opc", "standing-watch: periodically check one person company news",
@@ -1693,7 +1719,7 @@ async test "standing watch context loads watch skill and marker contract" {
 
 ///|
 async test "planbook worker context uses planbook contract not research or course" {
-  let root = "/tmp/moonbook-bookapi-planbook-context"
+  let root = "/tmp/moonbook-extension-api-planbook-context"
   ignore(init_workspace(root))
   let task = planbook_semantic_tasks(
       "goal-planbook", "write an implementation plan with acceptance criteria",
@@ -1725,16 +1751,16 @@ async test "planbook worker context uses planbook contract not research or cours
 
 ///|
 async test "catalog record defaults to book private memory scope" {
-  let root = "/tmp/moonbook-bookapi-catalog"
+  let root = "/tmp/moonbook-extension-api-catalog"
   ignore(init_workspace(root))
   let record = catalog_record(root)
   assert_eq(record.memory_scope, "BookPrivate")
-  assert_eq(record.id, "moonbook-bookapi-catalog")
+  assert_eq(record.id, "moonbook-extension-api-catalog")
 }
 
 ///|
 async test "catalog skills include base harness skills" {
-  let root = "/tmp/moonbook-bookapi-skills"
+  let root = "/tmp/moonbook-extension-api-skills"
   ignore(init_workspace(root))
   let skills = catalog_skills(root)
   assert_true(skills.contains("wiki-ingest"))
@@ -1750,7 +1776,7 @@ async test "catalog skills include base harness skills" {
 
 ///|
 async test "hydrate worker context includes keeper memory slices" {
-  let root = "/tmp/moonbook-bookapi-context"
+  let root = "/tmp/moonbook-extension-api-context"
   ignore(init_workspace(root))
   ignore(
     persist_result(root, {
@@ -1796,7 +1822,7 @@ async test "hydrate worker context includes keeper memory slices" {
 
 ///|
 async test "persist result appends compact journey entry" {
-  let root = "/tmp/moonbook-bookapi-journey"
+  let root = "/tmp/moonbook-extension-api-journey"
   ignore(init_workspace(root))
   ignore(
     persist_result(root, {
@@ -1819,7 +1845,7 @@ async test "persist result appends compact journey entry" {
 
 ///|
 async test "persist result appends detailed debug journal entry" {
-  let root = "/tmp/moonbook-bookapi-debug-journal"
+  let root = "/tmp/moonbook-extension-api-debug-journal"
   ignore(init_workspace(root))
   ignore(
     persist_result(root, {
@@ -1843,7 +1869,7 @@ async test "persist result appends detailed debug journal entry" {
 
 ///|
 async test "research bootstrap result blocks when required artifacts are missing" {
-  let root = "/tmp/moonbook-bookapi-research-contract"
+  let root = "/tmp/moonbook-extension-api-research-contract"
   ignore(init_workspace(root))
   ignore(
     @fsx.write_to_file(
@@ -1874,7 +1900,7 @@ async test "research bootstrap result blocks when required artifacts are missing
 
 ///|
 async test "persist result materializes raw research envelope into wiki pages" {
-  let root = "/tmp/moonbook-bookapi-research-envelope"
+  let root = "/tmp/moonbook-extension-api-research-envelope"
   ignore(init_workspace(root))
   ignore(
     @fsx.write_to_file(
@@ -1922,7 +1948,7 @@ async test "persist result materializes raw research envelope into wiki pages" {
 
 ///|
 async test "generic completion with complete research envelope is materialized by moonbook" {
-  let root = "/tmp/moonbook-bookapi-research-envelope-generic"
+  let root = "/tmp/moonbook-extension-api-research-envelope-generic"
   ignore(init_workspace(root))
   ignore(
     @fsx.write_to_file(
@@ -1961,7 +1987,7 @@ async test "generic completion with complete research envelope is materialized b
 
 ///|
 async test "persist result reconciles substantive bootstrap pages from workspace" {
-  let root = "/tmp/moonbook-bookapi-reconcile-bootstrap"
+  let root = "/tmp/moonbook-extension-api-reconcile-bootstrap"
   ignore(init_workspace(root))
   ignore(
     @fsx.write_to_file(
@@ -2008,7 +2034,7 @@ async test "persist result reconciles substantive bootstrap pages from workspace
 
 ///|
 async test "summarize state backfills projection pages from durable workspace state" {
-  let root = "/tmp/moonbook-bookapi-projection-reconcile"
+  let root = "/tmp/moonbook-extension-api-projection-reconcile"
   ignore(init_workspace(root))
   ignore(
     @fsx.write_to_file(
@@ -2040,7 +2066,7 @@ async test "summarize state backfills projection pages from durable workspace st
 
 ///|
 async test "reconcile provider result converts empty ingest completion into blocker" {
-  let root = "/tmp/moonbook-bookapi-normalize-blocker"
+  let root = "/tmp/moonbook-extension-api-normalize-blocker"
   ignore(init_workspace(root))
   let normalized = reconcile_provider_result(root, workspace_paths(root), {
     task_id: "goal-research-moontown-moonbook-and-moonclaw-ingest-followup",
@@ -2061,7 +2087,7 @@ async test "reconcile provider result converts empty ingest completion into bloc
 
 ///|
 async test "reconcile provider result prefers durable workspace pages over weak provider completion text" {
-  let root = "/tmp/moonbook-bookapi-normalize-recovered"
+  let root = "/tmp/moonbook-extension-api-normalize-recovered"
   ignore(init_workspace(root))
   ignore(
     @fsx.write_to_file(
@@ -2095,7 +2121,7 @@ async test "reconcile provider result prefers durable workspace pages over weak 
 
 ///|
 async test "produce task batch bootstraps research goals on weak coverage" {
-  let root = "/tmp/moonbook-bookapi-bootstrap"
+  let root = "/tmp/moonbook-extension-api-bootstrap"
   ignore(init_workspace(root))
   let batch = produce_task_batch(
     root, "research moontown, moonbook and moonclaw",
@@ -2137,7 +2163,7 @@ async test "produce task batch bootstraps research goals on weak coverage" {
 
 ///|
 async test "produce task batch routes course goals without research report skill" {
-  let root = "/tmp/moonbook-bookapi-course"
+  let root = "/tmp/moonbook-extension-api-course"
   ignore(init_workspace(root))
   let batch = produce_task_batch(
     root, "create a beginner course and workbook for Wenyu Valley tile-map game design",
@@ -2163,7 +2189,7 @@ async test "produce task batch routes course goals without research report skill
 
 ///|
 async test "course worker context uses course contract not research bootstrap contract" {
-  let root = "/tmp/moonbook-bookapi-course-context"
+  let root = "/tmp/moonbook-extension-api-course-context"
   ignore(init_workspace(root))
   let task = course_semantic_tasks(
       "goal-course", "create a beginner course and workbook for Wenyu Valley tile-map game design",
@@ -2195,7 +2221,7 @@ test "course memory filter removes stale research-bootstrap operational records"
 
 ///|
 async test "produce task batch allows synthesis after durable coverage exists" {
-  let root = "/tmp/moonbook-bookapi-query-ready"
+  let root = "/tmp/moonbook-extension-api-query-ready"
   ignore(init_workspace(root))
   ignore(ingest_source(root, root + "/raw/README.md"))
   ignore(
@@ -2230,7 +2256,7 @@ async test "produce task batch allows synthesis after durable coverage exists" {
 
 ///|
 async test "resolve task for goal accepts external bootstrap task ids" {
-  let root = "/tmp/moonbook-bookapi-external-task"
+  let root = "/tmp/moonbook-extension-api-external-task"
   ignore(init_workspace(root))
   let task = resolve_task_for_goal(
     root,
@@ -2242,7 +2268,7 @@ async test "resolve task for goal accepts external bootstrap task ids" {
 
 ///|
 async test "resolve task for goal accepts external standing watch task ids" {
-  let root = "/tmp/moonbook-bookapi-external-standing-watch-task"
+  let root = "/tmp/moonbook-extension-api-external-standing-watch-task"
   ignore(init_workspace(root))
   let task = resolve_task_for_goal(
     root,
@@ -2258,7 +2284,7 @@ async test "resolve task for goal accepts external standing watch task ids" {
 
 ///|
 async test "resolve task for goal recovers bootstrap semantic task after coverage exists" {
-  let root = "/tmp/moonbook-bookapi-bootstrap-fallback"
+  let root = "/tmp/moonbook-extension-api-bootstrap-fallback"
   ignore(init_workspace(root))
   ignore(
     @fsx.write_to_file(

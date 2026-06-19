@@ -1,9 +1,10 @@
 ///|
-// Wiki, keeper, review, and book-harness command handlers.
+// Wiki, keeper, review, and extension API command handlers.
 
 async fn run_wiki(args : Array[String]) -> Unit {
   match args {
-    ["book", .. book_args] => run_wiki_book(book_args.to_owned())
+    ["extension", .. extension_args] =>
+      run_wiki_extension(extension_args.to_owned())
     ["keeper", .. keeper_args] => run_wiki_keeper(keeper_args.to_owned())
     ["enable", extension, root] => run_wiki_enable(root, extension)
     ["enable", extension] => run_wiki_enable(".", extension)
@@ -17,7 +18,7 @@ async fn run_wiki(args : Array[String]) -> Unit {
     ["init"] => run_wiki_init(".")
     _ =>
       println(
-        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki lint [root]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki keeper submit [root] <packet.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]\nmoonbook wiki book accept [root] <goal>\nmoonbook wiki book tasks [root] <goal>\nmoonbook wiki book context [root] <goal> [--task <task-id>]\nmoonbook wiki book persist [root] <result.json>\nmoonbook wiki book summary [root]\nmoonbook wiki book health [root]",
+        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki lint [root]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki keeper submit [root] <packet.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]\nmoonbook wiki extension accept [root] <goal>\nmoonbook wiki extension tasks [root] <goal>\nmoonbook wiki extension context [root] <goal> [--task <task-id>]\nmoonbook wiki extension persist [root] <result.json>\nmoonbook wiki extension summary [root]\nmoonbook wiki extension health [root]",
       )
   }
 }
@@ -224,37 +225,37 @@ async fn run_wiki_keeper_submit(args : Array[String]) -> Unit {
 }
 
 ///|
-async fn run_wiki_book(args : Array[String]) -> Unit {
+async fn run_wiki_extension(args : Array[String]) -> Unit {
   match args {
-    ["accept", .. raw] => run_wiki_book_accept(raw.to_owned())
-    ["tasks", .. raw] => run_wiki_book_tasks(raw.to_owned())
-    ["context", .. raw] => run_wiki_book_context(raw.to_owned())
-    ["persist", root, path] => run_wiki_book_persist(root, path)
-    ["persist", path] => run_wiki_book_persist(".", path)
-    ["catalog", root] => run_wiki_book_catalog(root)
-    ["catalog"] => run_wiki_book_catalog(".")
-    ["summary", root] => run_wiki_book_summary(root)
-    ["summary"] => run_wiki_book_summary(".")
-    ["health", root] => run_wiki_book_health(root)
-    ["health"] => run_wiki_book_health(".")
+    ["accept", .. raw] => run_wiki_extension_accept(raw.to_owned())
+    ["tasks", .. raw] => run_wiki_extension_tasks(raw.to_owned())
+    ["context", .. raw] => run_wiki_extension_context(raw.to_owned())
+    ["persist", root, path] => run_wiki_extension_persist(root, path)
+    ["persist", path] => run_wiki_extension_persist(".", path)
+    ["catalog", root] => run_wiki_extension_catalog(root)
+    ["catalog"] => run_wiki_extension_catalog(".")
+    ["summary", root] => run_wiki_extension_summary(root)
+    ["summary"] => run_wiki_extension_summary(".")
+    ["health", root] => run_wiki_extension_health(root)
+    ["health"] => run_wiki_extension_health(".")
     _ =>
       println(
-        "moonbook wiki book usage: moonbook wiki book accept [root] <goal>\nmoonbook wiki book tasks [root] <goal>\nmoonbook wiki book context [root] <goal> [--task <task-id>]\nmoonbook wiki book persist [root] <result.json>\nmoonbook wiki book catalog [root]\nmoonbook wiki book summary [root]\nmoonbook wiki book health [root]",
+        "moonbook wiki extension usage: moonbook wiki extension accept [root] <goal>\nmoonbook wiki extension tasks [root] <goal>\nmoonbook wiki extension context [root] <goal> [--task <task-id>]\nmoonbook wiki extension persist [root] <result.json>\nmoonbook wiki extension catalog [root]\nmoonbook wiki extension summary [root]\nmoonbook wiki extension health [root]",
       )
   }
 }
 
 ///|
-async fn run_wiki_book_accept(args : Array[String]) -> Unit {
-  let parsed = parse_wiki_book_goal_args(args, false) catch {
+async fn run_wiki_extension_accept(args : Array[String]) -> Unit {
+  let parsed = parse_wiki_extension_goal_args(args, false) catch {
     error => {
-      println("moonbook wiki book accept failed: \{error}")
+      println("moonbook wiki extension accept failed: \{error}")
       return
     }
   }
   let result = @wiki.accept_goal(parsed.root, parsed.goal) catch {
     error => {
-      println("moonbook wiki book accept failed: \{error}")
+      println("moonbook wiki extension accept failed: \{error}")
       return
     }
   }
@@ -262,16 +263,16 @@ async fn run_wiki_book_accept(args : Array[String]) -> Unit {
 }
 
 ///|
-async fn run_wiki_book_tasks(args : Array[String]) -> Unit {
-  let parsed = parse_wiki_book_goal_args(args, false) catch {
+async fn run_wiki_extension_tasks(args : Array[String]) -> Unit {
+  let parsed = parse_wiki_extension_goal_args(args, false) catch {
     error => {
-      println("moonbook wiki book tasks failed: \{error}")
+      println("moonbook wiki extension tasks failed: \{error}")
       return
     }
   }
   let result = @wiki.produce_task_batch(parsed.root, parsed.goal) catch {
     error => {
-      println("moonbook wiki book tasks failed: \{error}")
+      println("moonbook wiki extension tasks failed: \{error}")
       return
     }
   }
@@ -279,10 +280,10 @@ async fn run_wiki_book_tasks(args : Array[String]) -> Unit {
 }
 
 ///|
-async fn run_wiki_book_context(args : Array[String]) -> Unit {
-  let parsed = parse_wiki_book_goal_args(args, true) catch {
+async fn run_wiki_extension_context(args : Array[String]) -> Unit {
+  let parsed = parse_wiki_extension_goal_args(args, true) catch {
     error => {
-      println("moonbook wiki book context failed: \{error}")
+      println("moonbook wiki extension context failed: \{error}")
       return
     }
   }
@@ -292,7 +293,7 @@ async fn run_wiki_book_context(args : Array[String]) -> Unit {
     task_id=parsed.task_id,
   ) catch {
     error => {
-      println("moonbook wiki book context failed: \{error}")
+      println("moonbook wiki extension context failed: \{error}")
       return
     }
   }
@@ -300,7 +301,7 @@ async fn run_wiki_book_context(args : Array[String]) -> Unit {
     Some(task) => {
       let context = @wiki.hydrate_worker_context(parsed.root, task) catch {
         error => {
-          println("moonbook wiki book context failed: \{error}")
+          println("moonbook wiki extension context failed: \{error}")
           return
         }
       }
@@ -308,28 +309,28 @@ async fn run_wiki_book_context(args : Array[String]) -> Unit {
     }
     None =>
       println(
-        "moonbook wiki book context failed: no matching task found for goal",
+        "moonbook wiki extension context failed: no matching task found for goal",
       )
   }
 }
 
 ///|
-async fn run_wiki_book_persist(root : String, path : String) -> Unit {
+async fn run_wiki_extension_persist(root : String, path : String) -> Unit {
   let text = @fsx.read_file(path) catch {
     error => {
-      println("moonbook wiki book persist failed: \{error}")
+      println("moonbook wiki extension persist failed: \{error}")
       return
     }
   }
   let result : @wiki.BookResult = @json.from_json(@json.parse(text)) catch {
     error => {
-      println("moonbook wiki book persist failed: \{error}")
+      println("moonbook wiki extension persist failed: \{error}")
       return
     }
   }
   let outcome = @wiki.persist_result(root, result) catch {
     error => {
-      println("moonbook wiki book persist failed: \{error}")
+      println("moonbook wiki extension persist failed: \{error}")
       return
     }
   }
@@ -337,10 +338,10 @@ async fn run_wiki_book_persist(root : String, path : String) -> Unit {
 }
 
 ///|
-async fn run_wiki_book_catalog(root : String) -> Unit {
+async fn run_wiki_extension_catalog(root : String) -> Unit {
   let result = @wiki.catalog_record(root) catch {
     error => {
-      println("moonbook wiki book catalog failed: \{error}")
+      println("moonbook wiki extension catalog failed: \{error}")
       return
     }
   }
@@ -348,10 +349,10 @@ async fn run_wiki_book_catalog(root : String) -> Unit {
 }
 
 ///|
-async fn run_wiki_book_summary(root : String) -> Unit {
+async fn run_wiki_extension_summary(root : String) -> Unit {
   let result = @wiki.summarize_state(root) catch {
     error => {
-      println("moonbook wiki book summary failed: \{error}")
+      println("moonbook wiki extension summary failed: \{error}")
       return
     }
   }
@@ -359,10 +360,10 @@ async fn run_wiki_book_summary(root : String) -> Unit {
 }
 
 ///|
-async fn run_wiki_book_health(root : String) -> Unit {
+async fn run_wiki_extension_health(root : String) -> Unit {
   let result = @wiki.report_health(root) catch {
     error => {
-      println("moonbook wiki book health failed: \{error}")
+      println("moonbook wiki extension health failed: \{error}")
       return
     }
   }
@@ -377,7 +378,7 @@ struct ParsedWikiQueryArgs {
 }
 
 ///|
-struct ParsedWikiBookGoalArgs {
+struct ParsedWikiExtensionGoalArgs {
   root : String
   goal : String
   task_id : String?
@@ -415,10 +416,10 @@ async fn parse_wiki_query_args(args : Array[String]) -> ParsedWikiQueryArgs {
 }
 
 ///|
-async fn parse_wiki_book_goal_args(
+async fn parse_wiki_extension_goal_args(
   args : Array[String],
   allow_task : Bool,
-) -> ParsedWikiBookGoalArgs {
+) -> ParsedWikiExtensionGoalArgs {
   let filtered : Array[String] = []
   let mut task_id : String? = None
   let mut i = 0
@@ -535,10 +536,18 @@ async fn parse_wiki_keeper_submit_args(
 
 ///|
 async fn looks_like_wiki_root(path : String) -> Bool {
-  let summary = @path.Path(path).join(@path.Path("wiki/SUMMARY.md")).to_string()
-  let wiki_dir = @path.Path(path).join(@path.Path("wiki")).to_string()
-  let raw_dir = @path.Path(path).join(@path.Path("raw")).to_string()
-  let agents = @path.Path(path).join(@path.Path("AGENTS.md")).to_string()
+  let summary = moonbook_cmd_path(path)
+    .join(moonbook_cmd_path("wiki/SUMMARY.md"))
+    .to_string()
+  let wiki_dir = moonbook_cmd_path(path)
+    .join(moonbook_cmd_path("wiki"))
+    .to_string()
+  let raw_dir = moonbook_cmd_path(path)
+    .join(moonbook_cmd_path("raw"))
+    .to_string()
+  let agents = moonbook_cmd_path(path)
+    .join(moonbook_cmd_path("AGENTS.md"))
+    .to_string()
   @fsx.exists(summary) ||
   @fsx.exists(wiki_dir) ||
   @fsx.exists(raw_dir) ||
@@ -547,8 +556,8 @@ async fn looks_like_wiki_root(path : String) -> Bool {
 
 ///|
 async fn ensure_wiki_keeper_submit_runtime(root : String) -> Unit {
-  let jobs_path = @path.Path(root)
-    .join(@path.Path("moonclaw.jobs.json"))
+  let jobs_path = moonbook_cmd_path(root)
+    .join(moonbook_cmd_path("moonclaw.jobs.json"))
     .to_string()
   if @fsx.exists(jobs_path) {
     return
@@ -566,7 +575,9 @@ async fn ensure_wiki_keeper_submit_runtime(root : String) -> Unit {
 
 ///|
 async fn latest_keeper_packet_path(root : String) -> String {
-  let jobs_dir = @path.Path(root).join(@path.Path("keeper/jobs")).to_string()
+  let jobs_dir = moonbook_cmd_path(root)
+    .join(moonbook_cmd_path("keeper/jobs"))
+    .to_string()
   if !@fsx.exists(jobs_dir) {
     fail("keeper jobs directory does not exist: \{jobs_dir}")
   }
@@ -590,21 +601,23 @@ async fn latest_keeper_packet_path(root : String) -> String {
 
 ///|
 fn resolve_keeper_packet_path(root : String, packet_path : String) -> String {
-  if @path.Path(packet_path).is_absolute() {
-    @path.Path(packet_path).normalize().to_string()
+  if moonbook_cmd_path(packet_path).is_absolute() {
+    moonbook_cmd_path(packet_path).normalize().to_string()
   } else if root == "." {
-    @path.Path(packet_path).normalize().to_string()
+    moonbook_cmd_path(packet_path).normalize().to_string()
   } else {
-    @path.Path(root).join(@path.Path(packet_path)).normalize().to_string()
+    moonbook_cmd_path(root)
+    .join(moonbook_cmd_path(packet_path))
+    .normalize()
+    .to_string()
   }
 }
 
 ///|
 fn default_moonclaw_root() -> String {
-  match @env.current_dir() {
-    Some(cwd) =>
-      @path.Path(cwd).join(@path.Path("../moonclaw")).normalize().to_string()
-    None => "../moonclaw"
+  match @sys.get_env_var("MOONCLAW_ROOT") {
+    Some(root) if !root.is_empty() => root
+    _ => ".moonbook/external/moonclaw"
   }
 }
 
