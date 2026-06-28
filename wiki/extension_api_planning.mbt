@@ -15,6 +15,25 @@ fn research_bootstrap_goal(goal : String) -> Bool {
 }
 
 ///|
+fn document_reverse_engineer_goal(goal : String) -> Bool {
+  let notes = goal.to_lower()
+  notes.contains("document-reverse-engineer") ||
+  notes.contains("reverse engineer") ||
+  notes.contains("reverse-engineer") ||
+  notes.contains("reverse document") ||
+  notes.contains("deconstruct document") ||
+  notes.contains("document deconstruction") ||
+  (
+    notes.contains("finished document") &&
+    (notes.contains("logic") || notes.contains("better version"))
+  ) ||
+  (
+    notes.contains("good document") &&
+    (notes.contains("logic") || notes.contains("better version"))
+  )
+}
+
+///|
 fn course_goal(goal : String) -> Bool {
   let notes = goal.to_lower()
   notes.contains("course") ||
@@ -140,6 +159,30 @@ fn course_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] {
         "synthesis/beginner-course.md", "reviews/pending.md",
       ],
       false,
+    ),
+  ]
+}
+
+///|
+fn document_reverse_engineer_tasks(
+  goal_id : String,
+  goal : String,
+) -> Array[BookTask] {
+  [
+    bootstrap_phase_task(
+      goal_id,
+      goal,
+      "document-reverse-engineer",
+      "Reverse engineer finished document",
+      100,
+      "Load `skills/document-reverse-engineer/SKILL.md`. Treat this as a reverse MoonBook routine: finished document to hidden structure to durable memory to improved projection. Read the named source document, then write `raw/bootstrap/document-deconstruction.md`, `raw/bootstrap/argument-map.md`, `raw/bootstrap/style-profile.md`, `raw/bootstrap/improvement-plan.md`, and `raw/bootstrap/regenerated-document.md` when the source is available. Do not turn this into generic ingest or a sentence-level rewrite.",
+      [
+        "../raw/bootstrap/source-document.md", "../raw/bootstrap/document-deconstruction.md",
+        "../raw/bootstrap/argument-map.md", "../raw/bootstrap/style-profile.md",
+        "../raw/bootstrap/improvement-plan.md", "../raw/bootstrap/regenerated-document.md",
+        "synthesis/map.md",
+      ],
+      true,
     ),
   ]
 }
@@ -282,6 +325,8 @@ fn infer_task_kind_from_external_id(task_id : String) -> String? {
     }
   } else if normalized.contains("bootstrap") || normalized.contains("ingest") {
     Some("ingest")
+  } else if normalized.contains("reverse") || normalized.contains("deconstruct") {
+    Some("document-reverse-engineer")
   } else if normalized.contains("review") {
     Some("review")
   } else if normalized.contains("plan") || normalized.contains("planning") {
@@ -308,6 +353,8 @@ fn resolve_task_kind_from_external_id(task_id : String) -> String? {
     }
   } else if normalized.contains("bootstrap") || normalized.contains("ingest") {
     Some("bootstrap_gather")
+  } else if normalized.contains("reverse") || normalized.contains("deconstruct") {
+    Some("document-reverse-engineer")
   } else if normalized.contains("material") ||
     normalized.contains("populate") ||
     normalized.contains("source") {

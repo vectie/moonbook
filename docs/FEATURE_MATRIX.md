@@ -83,6 +83,7 @@ Implemented behaviors:
 - `wiki init` seeds a dedicated `skills/wiki-marketing/SKILL.md` routine for writing real product marketing: buyer pain, promise, differentiation, proof, objections, and conversion path
 - `wiki init` seeds a dedicated `skills/research-report/SKILL.md` routine for turning screened research artifacts into article-quality reports with evidence-backed claims
 - `wiki init` seeds a dedicated `skills/standing-watch/SKILL.md` routine for recurring topic checks that decide whether new evidence changes the current book baseline
+- `wiki init` seeds a dedicated `skills/document-reverse-engineer/SKILL.md` routine for deconstructing a finished document into thesis, argument map, style profile, improvement plan, and regenerated draft artifacts
 - `wiki init` copies repo-owned static `SKILL.md` templates from `seed/wiki/skills/` instead of generating them in code
 - `skill list` inventories workspace skills plus repo-seeded core and extension skills
 - `skill show` prints machine-readable metadata for one resolved skill
@@ -148,9 +149,11 @@ Implemented behaviors:
 - `wiki extension accept` returns a machine-readable goal acceptance summary
 - `wiki extension tasks` returns a machine-readable local task batch for a town-issued goal
 - `wiki extension tasks` emits a dedicated `standing-watch` task for recurring 24/7 topic checks instead of hardcoding one topic or mixing the pass with bootstrap fanout
+- `wiki extension tasks` emits a dedicated `document-reverse-engineer` task when the goal explicitly asks to reverse engineer, deconstruct, or improve a finished/good document from its core logic
 - `wiki extension tasks` emits a dedicated planning task when health or goal wording indicates planning pressure
 - `wiki extension context` returns a machine-readable worker context bundle derived from book-local policy, Keeper memory, routines, and relevance-ranked durable pages
 - `wiki extension context` hydrates standing-watch tasks with `skills/standing-watch/SKILL.md`, prior watch decisions, baseline counts, and a marker-output contract
+- `wiki extension context` hydrates reverse-document tasks with `skills/document-reverse-engineer/SKILL.md` plus synthesis, claim-audit, memory, and review support skills
 - `wiki extension persist` accepts a JSON `BookResult` or MoonClaw `mooncode-book-result` envelope, appends it to `wiki/synthesis/observations.md`, records evidence in `wiki/synthesis/evidence.md`, syncs non-durable memory candidates into Keeper memory, promotes immediately-safe durable candidates into target pages, stages review-gated durable candidates, refreshes `keeper/INSIGHTS.md`, updates the maintenance plan, and can queue review
 - `wiki extension persist` records standing-watch results into `wiki/history/standing-watch.md` when the summary includes the required decision, source-count, fact-count, changed-page, and `book_changed` markers
 - `wiki extension persist` treats no-change and failed standing-watch cycles as operational records, not evidence progress, unless the result reports durable page or review changes

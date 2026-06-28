@@ -133,6 +133,7 @@ This layer is responsible for:
 
 - creating `raw/` + `wiki/` workspaces
 - maintaining bounded Keeper memory under `keeper/`
+- supporting forward source ingest and reverse finished-document deconstruction through separate skill profiles over the same workspace loop
 - maintaining lightweight evidence under `wiki/synthesis/evidence.md`
 - maintaining a synthesis-planning surface under `wiki/synthesis/map.md`
 - maintaining recurring watch decisions under `wiki/history/standing-watch.md`
@@ -151,7 +152,7 @@ A wiki workspace is intentionally file-based and agent-agnostic.
 Core files and directories:
 
 - `raw/`
-  immutable source material
+  immutable source material and finished documents staged for reverse analysis
 - `keeper/`
   bounded active, user, and working memory for Keeper
 - `wiki/`
@@ -178,6 +179,12 @@ Important wiki subdirectories:
 - `wiki/reviews/`
 - `wiki/synthesis/observations.md`
 - `wiki/synthesis/evidence.md`
+- `wiki/synthesis/argument-map.md`
+  optional durable logic map produced by reverse-document work
+- `wiki/synthesis/style-profile.md`
+  optional durable style model produced by reverse-document work
+- `wiki/synthesis/improvement-plan.md`
+  optional durable improvement plan produced by reverse-document work
 
 Generated consumer surfaces:
 

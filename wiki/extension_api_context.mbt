@@ -34,6 +34,8 @@ pub async fn hydrate_worker_context(
     memory_summary,
     output_contract: if planbook_task_kind(task.kind) {
       planbook_provider_result_contract_lines()
+    } else if document_reverse_task_kind(task.kind) {
+      document_reverse_provider_result_contract_lines()
     } else if course_task_kind(task.kind) {
       course_provider_result_contract_lines()
     } else {
@@ -73,6 +75,21 @@ fn provider_result_contract_lines() -> Array[String] {
     "For standing-watch no_change decisions, return a compact result and do not invent durable artifacts; for update or needs_review decisions, list the concrete artifact or wiki paths that changed.",
     "Use [] for empty arrays and null for missing target_page.", "For ingest or bootstrap work, generic completion text without substantive artifacts or durable candidates is a blocker, not success.",
     "If ingest work cannot produce the required raw research artifacts, say what material or tool is missing and set requires_review to true.",
+  ]
+}
+
+///|
+fn document_reverse_provider_result_contract_lines() -> Array[String] {
+  [
+    "Return exactly one JSON object.", "Do not output markdown fences or prose outside the JSON object.",
+    "Use keys: result_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
+    "Set result_id to a stable identifier for this worker result.", "artifacts must be an array of workspace-relative output paths.",
+    "This is a reverse-document task, not a research bootstrap task.", "Load skills/document-reverse-engineer/SKILL.md and inspect the named finished document before writing.",
+    "Expected artifacts are raw/bootstrap/source-document.md, raw/bootstrap/document-deconstruction.md, raw/bootstrap/argument-map.md, raw/bootstrap/style-profile.md, raw/bootstrap/improvement-plan.md, and raw/bootstrap/regenerated-document.md.",
+    "Do not require research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, deep-report.md, or marketing-brief.md unless the user explicitly asks for research bootstrap artifacts.",
+    "The regenerated document must rebuild from the extracted logic map and style profile; do not return a generic summary or sentence-by-sentence paraphrase.",
+    "If the source document is missing or only a placeholder, return a structured blocker and set requires_review to true.",
+    "Use [] for empty arrays and null for missing target_page.",
   ]
 }
 
@@ -123,6 +140,9 @@ async fn task_prompt_with_material_hints(
   if course_task_kind(task.kind) {
     return task.prompt + skill_body_excerpt_block(root, task)
   }
+  if document_reverse_task_kind(task.kind) {
+    return task.prompt + skill_body_excerpt_block(root, task)
+  }
   if !bootstrap_material_task_kind(task.kind) {
     return task.prompt
   }
@@ -154,6 +174,11 @@ fn course_task_kind(kind : String) -> Bool {
   kind == "course_workbook" ||
   kind == "course_project" ||
   kind == "course_review"
+}
+
+///|
+fn document_reverse_task_kind(kind : String) -> Bool {
+  kind == "document-reverse-engineer"
 }
 
 ///|
@@ -458,6 +483,13 @@ fn task_skill_names(task : BookTask) -> Array[String] {
         names.push("research-report")
         names.push("memory-prune")
       }
+      "document-reverse-engineer" => {
+        names.push("document-reverse-engineer")
+        names.push("synthesis-revise")
+        names.push("claim-audit")
+        names.push("wiki-memory")
+        names.push("wiki-review")
+      }
       "course_outline" => {
         names.push("wiki-course")
         names.push("source-diarize")
@@ -589,6 +621,8 @@ fn skill_name_from_path(path : String) -> String {
     "standing-watch"
   } else if normalized.contains("/skills/research-report/") {
     "research-report"
+  } else if normalized.contains("/skills/document-reverse-engineer/") {
+    "document-reverse-engineer"
   } else if normalized.contains("/skills/source-diarize/") {
     "source-diarize"
   } else if normalized.contains("/skills/entity-revise/") {

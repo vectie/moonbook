@@ -57,7 +57,7 @@ Bootstraps a wiki workspace:
 6. writes `book.toml` with `src = "wiki"` so the workspace can already be built and served by MoonBook
 7. writes `wiki.toml` as a small machine-readable workspace descriptor
 8. creates reserved directories for `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`
-9. seeds repo-owned static `SKILL.md` templates into `skills/`
+9. seeds repo-owned static `SKILL.md` templates into `skills/`, including `document-reverse-engineer` for finished-document deconstruction
 10. seeds `wiki/synthesis/claims.md`, `wiki/synthesis/maintenance-plan.md`, `wiki/synthesis/query-insights.md`, `wiki/synthesis/map.md`, `wiki/synthesis/observations.md`, `wiki/synthesis/evidence.md`, `wiki/reviews/pending.md`, and `wiki/reviews/approved.md`
 11. seeds bounded Keeper memory files under `keeper/`, including `keeper/INSIGHTS.md`
 12. seeds an optional `site/` marketing website projection with `index.html`, `styles.css`, and `app.js`
@@ -220,7 +220,8 @@ Hydrates a worker-ready context bundle:
 3. if the requested `--task` is an external bootstrap-style id, resolves it onto the nearest local MoonBook task kind when possible
 4. packages prompt, policy lines, routine lines, relevance-ranked context pages, Keeper memory slices, and memory summary
 5. for `standing-watch`, adds the seeded standing-watch skill, prior watch history, baseline counts, and marker-output contract
-6. prints a JSON worker context bundle
+6. for `document-reverse-engineer`, adds the seeded reverse-document skill plus synthesis, claim-audit, memory, and review support skills
+7. prints a JSON worker context bundle
 
 ### `moon run cmd/main -- wiki extension persist [root] <result.json>`
 

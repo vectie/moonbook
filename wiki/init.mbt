@@ -180,6 +180,9 @@ pub async fn init_workspace(
   let research_report_skill_dir = moonbook_wiki_path(skills_dir)
     .join(moonbook_wiki_path("research-report"))
     .to_string()
+  let document_reverse_engineer_skill_dir = moonbook_wiki_path(skills_dir)
+    .join(moonbook_wiki_path("document-reverse-engineer"))
+    .to_string()
   let source_diarize_skill_dir = moonbook_wiki_path(skills_dir)
     .join(moonbook_wiki_path("source-diarize"))
     .to_string()
@@ -261,6 +264,11 @@ pub async fn init_workspace(
   @fsx.make_directory(course_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(planbook_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(research_report_skill_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(
+    document_reverse_engineer_skill_dir,
+    recursive=true,
+    exists_ok=true,
+  )
   @fsx.make_directory(source_diarize_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(entity_revise_skill_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(concept_revise_skill_dir, recursive=true, exists_ok=true)
@@ -327,6 +335,9 @@ pub async fn init_workspace(
   copy_seed_tree_if_missing(planbook_skill_dir, "seed/wiki/skills/planbook")
   copy_seed_tree_if_missing(
     research_report_skill_dir, "seed/wiki/skills/research-report",
+  )
+  copy_seed_tree_if_missing(
+    document_reverse_engineer_skill_dir, "seed/wiki/skills/document-reverse-engineer",
   )
   copy_seed_tree_if_missing(
     source_diarize_skill_dir, "seed/wiki/skills/source-diarize",
@@ -1109,7 +1120,11 @@ fn resolver_text() -> String {
   "- intent: research-report\n" +
   "  skill: `skills/research-report/SKILL.md`\n" +
   "  supporting_skills: `skills/wiki-ingest/SKILL.md`, `skills/source-diarize/SKILL.md`, `skills/synthesis-revise/SKILL.md`, `skills/claim-audit/SKILL.md`, `skills/wiki-marketing/SKILL.md`\n" +
-  "  load_first: `raw/bootstrap/research-question.md`, `raw/bootstrap/source-screen.md`, `raw/bootstrap/evidence-matrix.md`, `raw/bootstrap/synthesis-brief.md`, `raw/bootstrap/deep-report.md`, `raw/bootstrap/marketing-brief.md`, `wiki/index.md`, `wiki/synthesis/overview.md`, `wiki/synthesis/map.md`\n"
+  "  load_first: `raw/bootstrap/research-question.md`, `raw/bootstrap/source-screen.md`, `raw/bootstrap/evidence-matrix.md`, `raw/bootstrap/synthesis-brief.md`, `raw/bootstrap/deep-report.md`, `raw/bootstrap/marketing-brief.md`, `wiki/index.md`, `wiki/synthesis/overview.md`, `wiki/synthesis/map.md`\n" +
+  "- intent: document-reverse-engineer\n" +
+  "  skill: `skills/document-reverse-engineer/SKILL.md`\n" +
+  "  supporting_skills: `skills/synthesis-revise/SKILL.md`, `skills/claim-audit/SKILL.md`, `skills/wiki-memory/SKILL.md`, `skills/wiki-review/SKILL.md`\n" +
+  "  load_first: `raw/`, `raw/bootstrap/source-document.md`, `raw/bootstrap/document-deconstruction.md`, `raw/bootstrap/argument-map.md`, `raw/bootstrap/style-profile.md`, `raw/bootstrap/improvement-plan.md`, `wiki/index.md`, `wiki/synthesis/overview.md`, `wiki/synthesis/map.md`, `keeper/MEMORY.md`, `keeper/USER.md`\n"
 }
 
 ///|
@@ -1311,6 +1326,7 @@ async test "init workspace seeds keeper memory files" {
   assert_true(@fsx.exists(root + "/skills/standing-watch/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/wiki-marketing/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/research-report/SKILL.md"))
+  assert_true(@fsx.exists(root + "/skills/document-reverse-engineer/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/source-diarize/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/entity-revise/SKILL.md"))
   assert_true(@fsx.exists(root + "/skills/concept-revise/SKILL.md"))

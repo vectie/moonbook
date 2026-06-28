@@ -44,9 +44,11 @@ pub async fn produce_task_batch(
   let tasks : Array[BookTask] = []
   let course_requested = course_goal(goal)
   let planbook_requested = planbook_goal(goal)
+  let document_reverse_requested = document_reverse_engineer_goal(goal)
   let bootstrap_research_goal = weak_coverage &&
     !course_requested &&
     !planbook_requested &&
+    !document_reverse_requested &&
     research_bootstrap_goal(goal)
 
   if standing_watch_goal(goal) {
@@ -78,6 +80,10 @@ pub async fn produce_task_batch(
 
   if planbook_requested {
     for task in planbook_semantic_tasks(normalized_goal_id, goal) {
+      tasks.push(task)
+    }
+  } else if document_reverse_requested {
+    for task in document_reverse_engineer_tasks(normalized_goal_id, goal) {
       tasks.push(task)
     }
   } else if course_requested {
@@ -152,6 +158,7 @@ pub async fn produce_task_batch(
   }
 
   if !planbook_requested &&
+    !document_reverse_requested &&
     (
       health.level != "healthy" ||
       weak_coverage ||
@@ -192,6 +199,8 @@ pub async fn produce_task_batch(
       "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level} bootstrap_phases=\{tasks.length()}"
     } else if planbook_requested {
       "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level} planbook_phases=\{tasks.length()}"
+    } else if document_reverse_requested {
+      "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level} document_reverse_phases=\{tasks.length()}"
     } else if course_requested {
       "book=\{state.book_id} pages=\{state.page_count} pending_review=\{state.pending_review_count} health=\{health.level} course_phases=\{tasks.length()}"
     } else {
@@ -261,6 +270,24 @@ fn fallback_bootstrap_task_for_goal(
         .iter()
         .find_first(fn(task : BookTask) { task.kind == kind })
       None => None
+    }
+  } else if document_reverse_engineer_goal(goal) {
+    let kind = match task_id {
+      Some(task_id) => resolve_task_kind_from_external_id(task_id)
+      None => None
+    }
+    let reverse_tasks = document_reverse_engineer_tasks(goal_id, goal)
+    match kind {
+      Some(kind) =>
+        reverse_tasks
+        .iter()
+        .find_first(fn(task : BookTask) { task.kind == kind })
+      None =>
+        if reverse_tasks.is_empty() {
+          None
+        } else {
+          Some(reverse_tasks[0])
+        }
     }
   } else {
     guard research_bootstrap_goal(goal) else { return None }
@@ -1622,6 +1649,22 @@ test "planbook goal detection stays bounded to executable planning" {
 }
 
 ///|
+test "document reverse engineering goal detection stays bounded" {
+  assert_true(
+    document_reverse_engineer_goal(
+      "reverse engineer this finished document and generate a better version",
+    ),
+  )
+  assert_true(
+    document_reverse_engineer_goal(
+      "deconstruct document logic from this good document",
+    ),
+  )
+  assert_true(!document_reverse_engineer_goal("research MoonBook architecture"))
+  assert_true(!document_reverse_engineer_goal("write a beginner course"))
+}
+
+///|
 async test "produce task batch creates dedicated standing watch task" {
   let root = "/tmp/moonbook-extension-api-standing-watch"
   ignore(init_workspace(root))
@@ -1634,6 +1677,26 @@ async test "produce task batch creates dedicated standing watch task" {
   assert_true(batch.tasks[0].prompt.contains("skills/standing-watch/SKILL.md"))
   assert_true(batch.tasks[0].prompt.contains("standing_goal_decision"))
   assert_true(batch.tasks[0].target_pages.contains("history/standing-watch.md"))
+}
+
+///|
+async test "produce task batch routes reverse document goals to document skill" {
+  let root = "/tmp/moonbook-extension-api-document-reverse"
+  ignore(init_workspace(root))
+  let batch = produce_task_batch(
+    root, "reverse engineer this finished document, extract the core logic, and generate a better version",
+  )
+  assert_true(batch.summary.contains("document_reverse_phases"))
+  assert_eq(batch.tasks.length(), 1)
+  assert_eq(batch.tasks[0].kind, "document-reverse-engineer")
+  assert_true(
+    batch.tasks[0].prompt.contains("skills/document-reverse-engineer/SKILL.md"),
+  )
+  assert_true(
+    batch.tasks[0].target_pages.contains(
+      "../raw/bootstrap/regenerated-document.md",
+    ),
+  )
 }
 
 ///|
@@ -1791,6 +1854,37 @@ async test "planbook worker context uses planbook contract not research or cours
     !context.output_contract.any(fn(line) {
       line.contains("For research bootstrap") ||
       line.contains("Course artifacts should include")
+    }),
+  )
+}
+
+///|
+async test "document reverse worker context uses reverse contract not research bootstrap" {
+  let root = "/tmp/moonbook-extension-api-document-reverse-context"
+  ignore(init_workspace(root))
+  let task = document_reverse_engineer_tasks(
+      "goal-document", "reverse engineer this finished document",
+    )[0]
+  let context = hydrate_worker_context(root, task)
+  assert_true(
+    context.skill_paths.contains("skills/document-reverse-engineer/SKILL.md"),
+  )
+  assert_true(!context.skill_paths.contains("skills/research-report/SKILL.md"))
+  assert_true(context.prompt.contains("Loaded skill body excerpts"))
+  assert_true(
+    context.output_contract.contains(
+      "This is a reverse-document task, not a research bootstrap task.",
+    ),
+  )
+  assert_true(
+    context.output_contract.any(fn(line) {
+      line.contains("raw/bootstrap/document-deconstruction.md")
+    }),
+  )
+  assert_true(
+    !context.output_contract.any(fn(line) {
+      line.contains("For research bootstrap") ||
+      line.contains("artifacts must include raw/bootstrap/research-question.md")
     }),
   )
 }

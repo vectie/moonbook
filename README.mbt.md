@@ -17,6 +17,8 @@ Current wiki workspaces use a raw-first bootstrap flow:
 - MoonClaw workers stage discovered research artifacts under `raw/bootstrap/`
 - MoonBook materializes those raw research envelopes into durable `wiki/*` pages
 - `SKILL.md` files are repo-owned static templates copied from `seed/`, not generated at runtime
+- recurring standing-watch checks are skill-guided book-local decisions: MoonBook compares the current baseline to new evidence, records `update | no_change | needs_review | failed`, and leaves scheduling to Moontown
+- reverse-document work is also skill-guided: MoonBook keeps the same workspace loop while `document-reverse-engineer` deconstructs a finished document into logic, style, improvement, and regenerated draft artifacts
 
 The CLI is now split more cleanly:
 
@@ -67,7 +69,9 @@ MoonBook is strongest when you want one local system to handle:
 
 ## News
 
+- `2026-06-28`: added the seeded `document-reverse-engineer` routine so a finished document can enter MoonBook from the reverse side: deconstruction, argument map, style profile, improvement plan, and regenerated draft over the same durable workspace loop
 - `2026-06-19`: added the native `moonbook.book_state.v1` snapshot plus `moonbook.knowledge_bundle.v1`, generated graph files, `wiki state`, `wiki bundle`, `wiki graph`, and lint checks for missing MoonBook page metadata so suite tools can consume book state through concise MoonBook contracts instead of scraping wiki pages
+- `2026-05-18`: added MoonBook-side standing-watch support for 24/7 topic monitoring: seeded `skills/standing-watch/SKILL.md`, dedicated `standing-watch` book tasks, worker context with baseline/history, result marker contracts, and durable `wiki/history/standing-watch.md` decision records
 - `2026-04-22`: tightened the MoonBook/MoonClaw boundary so MoonClaw returns raw research envelopes while MoonBook owns durable wiki materialization, source quality/readiness classification, generated research-report projection, and a static `research-report` skill for article-quality synthesis
 - `2026-04-22`: made `book/site/index.html` open the live generated marketing projection so readers no longer land on the generic authored source-site shell after build
 - `2026-04-17`: added `skill hub` as a dedicated live backend for managing skills across the machine, with whole-machine scan roots, in-browser editing, automatic snapshots, rollback, `/api/debug`, and SSE-driven refresh
@@ -101,6 +105,9 @@ MoonBook is strongest when you want one local system to handle:
 - 📦 generated `book/site/generated/book-state.json` plus `knowledge-bundle.json` so suite apps can read current book state through stable MoonBook contracts
 - 🔎 generated research-report projection with executive summary, architecture/runtime/memory sections, relationships, maturity gaps, and evidence table derived from `raw/bootstrap/` plus wiki synthesis pages
 - 🧾 seeded `skills/research-report/SKILL.md` that tells keepers how to turn `research-question`, `source-screen`, `evidence-matrix`, local sources, and synthesis briefs into reader-facing reports without dumping raw table rows
+- 🧩 seeded `skills/document-reverse-engineer/SKILL.md` for turning a strong finished document into deconstruction, argument map, style profile, improvement plan, and regenerated draft artifacts
+- 🕰️ seeded `skills/standing-watch/SKILL.md` for recurring topic checks that compare new evidence against the current book baseline and emit machine-readable decision, source-count, fact-count, changed-page, and `book_changed` markers
+- 🧭 durable standing-watch history under `wiki/history/standing-watch.md`, written when a book-local watch result is persisted
 - 🧭 generated journal view emitted into `book/site/generated/journal.html` from live journey and workspace state
 - 🎓 generated course view emitted into `book/site/generated/course.html` from live workspace and journey state
 - 🛠️ generated skill manager emitted into `book/site/generated/skills.html` with inventory, duplicate detection, bundled-reference diagnostics, copyable lifecycle commands, override drift comparison against seeded baselines, and staged sync commands for candidate bundles
@@ -251,7 +258,9 @@ moon test wiki
 - [docs/SYSTEM_ARCHITECTURE.md](/Users/kq/Workspace/moonbook/docs/SYSTEM_ARCHITECTURE.md)
   book-vs-wiki architecture, package boundaries, and extension separation
 - [docs/WIKI_WORKFLOW.md](/Users/kq/Workspace/moonbook/docs/WIKI_WORKFLOW.md)
-  current init/ingest/query/review/lint loop for persistent wiki workspaces
+  current init/ingest/query/review/lint loop plus the forward/reverse routine model for persistent wiki workspaces
+- [docs/KEEPER_CALL_CHAIN.md](/Users/kq/Workspace/moonbook/docs/KEEPER_CALL_CHAIN.md)
+  detailed end-to-end call chain for MoonBook keeper packet submission into MoonClaw
 - [docs/EXTENSION_PACKS.md](/Users/kq/Workspace/moonbook/docs/EXTENSION_PACKS.md)
   extension-pack model and the current MoonClaw integration boundary
 - [docs/RENDERER_STATUS.md](/Users/kq/Workspace/moonbook/docs/RENDERER_STATUS.md)

@@ -50,6 +50,7 @@ This creates:
 - `keeper/INSIGHTS.md`
 - `skills/research-report/SKILL.md`
 - `skills/standing-watch/SKILL.md`
+- `skills/document-reverse-engineer/SKILL.md`
 
 ### 2. Enable Optional Runtime Pack
 
@@ -60,6 +61,30 @@ moon run cmd/main -- wiki extension catalog ./research-wiki
 ```
 
 This is optional. It installs runtime-specific files without changing the core workspace contract.
+
+## Shared Routine Model
+
+MoonBook's wiki mode is one harness with multiple skill profiles:
+
+```text
+material -> extract durable structure -> store clean memory -> generate projection
+```
+
+Forward source work starts with rough material:
+
+```text
+ideas / notes / sources -> wiki memory -> article / site / report
+```
+
+Reverse document work starts with a strong finished artifact:
+
+```text
+finished document -> logic map / style map / argument model -> better document
+```
+
+The code owns the workspace contract, routing, and generated surfaces. Skills own
+the judgment: what to extract, what to preserve, what is weak, and how to
+regenerate without generic rewriting.
 
 ### Research Report Projection
 
@@ -79,6 +104,33 @@ The generated marketing page is a thin renderer over a keeper-authored brief:
 - The generated page uses the first `#` heading as the hero headline, text before the first `##` as the lede, and each `##` section as a product card.
 - Renderer code should not contain the actual sales claims. Improve the skill and the brief when the product story is weak.
 - Operational state, evidence tables, review queues, and debug journals belong in the wiki/journal/course surfaces, not in the marketing page.
+
+### Document Reverse Engineering
+
+`skills/document-reverse-engineer/SKILL.md` defines the reverse routine for a
+polished or coherent source document. It is for learning the document's hidden
+logic before producing a stronger projection.
+
+Expected raw artifacts:
+
+- `raw/bootstrap/source-document.md`
+- `raw/bootstrap/document-deconstruction.md`
+- `raw/bootstrap/argument-map.md`
+- `raw/bootstrap/style-profile.md`
+- `raw/bootstrap/improvement-plan.md`
+- `raw/bootstrap/regenerated-document.md`
+
+Expected durable pages when the logic should be reused:
+
+- `wiki/sources/<document-slug>.md`
+- `wiki/synthesis/argument-map.md`
+- `wiki/synthesis/style-profile.md`
+- `wiki/synthesis/improvement-plan.md`
+
+This is not a second product. It is a different entry skill over the same
+MoonBook loop. Forward ingest grows knowledge from rough inputs. Reverse
+engineering extracts a reusable model from a finished document, then regenerates
+from that model.
 
 ### 3. Standing Watch
 
@@ -263,6 +315,8 @@ The maintained wiki currently revolves around these page families:
   pending and approved operator review items
 - `raw/bootstrap/`
   generated research artifacts written during bootstrap discovery before MoonBook materializes durable wiki pages
+- `raw/bootstrap/document-*.md`, `argument-map.md`, `style-profile.md`, `improvement-plan.md`, `regenerated-document.md`
+  reverse-document artifacts written by the `document-reverse-engineer` skill before durable promotion
 - `keeper/MEMORY.md`
   reusable active domain memory
 - `keeper/USER.md`
@@ -291,6 +345,7 @@ What it does well now:
 - compact journey maintenance for operator-readable run history
 - skill-guided standing-watch decisions for recurring 24/7 topic checks
 - raw research envelope materialization from worker artifacts into durable wiki state
+- reverse-document deconstruction as a seeded skill profile over the same workspace loop
 - generated report projection that presents synthesized research sections before showing process telemetry
 - static build/serve of the resulting wiki
 
@@ -301,3 +356,4 @@ What is still missing:
 - a true claim graph or evidence model
 - smarter retrieval than the current ranking heuristic
 - first-class operator UI around the wiki flow
+- first-class generated UI for reverse-document deconstruction and regenerated drafts
