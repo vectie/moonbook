@@ -1,11 +1,33 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "username/moonbook-rabbita/main"
+package "vectie/moonbook-rabbita/main"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
 
 // Values
 
 // Errors
 
 // Types and methods
+type ChapterLink derive(@debug.Debug, @json.FromJson)
+
+type Model
+
+type Msg
+
+type PanelItem derive(@debug.Debug, @json.FromJson)
+
+type StatusChip derive(@debug.Debug, @json.FromJson)
+
+type UiClientConfig derive(@debug.Debug, @json.FromJson)
+
+type UiState derive(@debug.Debug, @json.FromJson)
+
+type WorkflowItem derive(@debug.Debug, @json.FromJson)
+
+type WorkspaceMetric derive(@debug.Debug, @json.FromJson)
 
 // Type aliases
 
