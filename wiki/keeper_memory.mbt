@@ -169,7 +169,7 @@ fn keeper_char_limit(path : String, paths : KeeperPaths) -> Int {
 
 ///|
 fn keeper_result_entry(result : BookResult) -> String {
-  "- \{result.task_id}: \{keeper_compact_text(result.summary)}"
+  "- \{result.result_id}: \{keeper_compact_text(result.summary)}"
 }
 
 ///|

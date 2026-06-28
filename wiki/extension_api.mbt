@@ -176,7 +176,7 @@ pub async fn produce_task_batch(
   if query_ready {
     tasks.push({
       id: "\{normalized_goal_id}-analysis",
-      title: "Produce domain-local task result",
+      title: "Produce domain-local worker result",
       kind: "analysis",
       prompt: "Load `skills/wiki-query/SKILL.md` and answer the goal inside this extension boundary. Use the wiki pages as the durable context and do not leak into other books: \{goal}",
       priority: 80,
@@ -283,6 +283,7 @@ fn fallback_bootstrap_task_for_goal(
 pub async fn persist_result(
   root : String,
   result : BookResult,
+  lifecycle_proof? : ExecutableBookLifecycleProof? = None,
 ) -> PersistResultOutcome {
   let workspace = workspace_paths(root)
   let provider_result = reconcile_provider_result(root, workspace, result)
@@ -331,7 +332,7 @@ pub async fn persist_result(
 
   let plan_relative = ensure_maintenance_plan_entry(
     workspace,
-    "Persist result: \{normalized_result.task_id}",
+    "Persist result: \{normalized_result.result_id}",
     "persist-result",
     "wiki/" + observations_relative,
     updated_pages,
@@ -404,6 +405,7 @@ pub async fn persist_result(
     book_id=book_identity(root),
     evidence_id=Some(evidence_id),
     review_path~,
+    lifecycle_proof~,
   )
   let (executable_event_path, latest_executable_event_path) = write_executable_book_event(
     workspace, executable_event,
@@ -464,7 +466,7 @@ async fn reconcile_provider_result(
     }
     if result_is_empty_ingest_blocker(result) {
       return {
-        task_id: result.task_id,
+        result_id: result.result_id,
         summary: "Recovered research envelope completion from required raw artifacts written by the worker.",
         artifacts: required_research_artifacts(),
         memory_candidates: [],
@@ -488,7 +490,7 @@ async fn reconcile_provider_result(
       "wiki/\{page}"
     })
     return {
-      task_id: result.task_id,
+      result_id: result.result_id,
       summary: "Recovered bootstrap completion from durable workspace pages despite weak provider completion text.",
       artifacts,
       memory_candidates: [],
@@ -497,7 +499,7 @@ async fn reconcile_provider_result(
     }
   }
   {
-    task_id: result.task_id,
+    result_id: result.result_id,
     summary: "Blocked ingest: provider returned generic completion text without durable artifacts or memory candidates.",
     artifacts: [],
     memory_candidates: [
@@ -549,7 +551,7 @@ async fn materialize_research_envelope_result(
     }
   }
   {
-    task_id: result.task_id,
+    result_id: result.result_id,
     summary: "MoonBook materialized durable wiki pages from the raw research artifact envelope. " +
     result.summary,
     artifacts,
@@ -600,7 +602,7 @@ async fn materialize_research_envelope_pages(
     .join(moonbook_wiki_path(concept_relative))
     .to_string()
   @fsx.make_directory(concept_dir, recursive=true, exists_ok=true)
-  let concept_block = "### \{result.task_id}\n\n" +
+  let concept_block = "### \{result.result_id}\n\n" +
     "- Source: [Research Evidence](../sources/research-evidence.md)\n" +
     "- Summary: \{clamp_excerpt(result.summary)}\n" +
     "- Role: MoonBook consumes the raw research envelope and decides what becomes durable wiki state.\n\n"
@@ -645,7 +647,7 @@ async fn materialize_research_envelope_pages(
     let entity_evidence = clamp_excerpt(
       research_artifact_text(root, "raw/bootstrap/synthesis-brief.md"),
     )
-    let entity_block = "### \{result.task_id}\n\n" +
+    let entity_block = "### \{result.result_id}\n\n" +
       "- Source: [Research Evidence](../sources/research-evidence.md)\n" +
       "- Evidence: \{entity_evidence}\n\n"
     let entity_content = if @fsx.exists(entity_path) {
@@ -684,7 +686,7 @@ async fn materialize_research_envelope_pages(
   let overview_brief = clamp_excerpt(
     research_artifact_text(root, "raw/bootstrap/synthesis-brief.md"),
   )
-  let overview_block = "### \{result.task_id}\n\n" +
+  let overview_block = "### \{result.result_id}\n\n" +
     "- Source: [Research Evidence](../sources/research-evidence.md)\n" +
     "- Brief: \{overview_brief}\n\n"
   let overview_content = if @fsx.exists(overview_path) {
@@ -744,7 +746,7 @@ async fn research_envelope_topic(root : String, result : BookResult) -> String {
   if !first.is_empty() {
     first
   } else {
-    result.task_id
+    result.result_id
   }
 }
 
@@ -770,7 +772,7 @@ async fn research_envelope_source_page(
   "- Source type: verified research artifact envelope\n" +
   "- Durability: verified\n" +
   "- Materialized by: MoonBook\n" +
-  "- Worker task: `\{result.task_id}`\n" +
+  "- Worker result: `\{result.result_id}`\n" +
   "- Topic: \{topic}\n\n" +
   "## Research Question\n\n\{question}\n\n" +
   "## Search Log\n\n\{search}\n\n" +
@@ -893,7 +895,7 @@ fn research_artifact_blocker_result(
 ) -> BookResult {
   let missing_text = missing.join(", ")
   {
-    task_id: result.task_id,
+    result_id: result.result_id,
     summary: "Blocked research bootstrap: missing required research artifacts: \{missing_text}. Provider must either create these files or return a tool/source-access blocker that names the unavailable capability.",
     artifacts: result.artifacts,
     memory_candidates: [
@@ -913,7 +915,7 @@ fn research_artifact_blocker_result(
 ///|
 fn result_is_empty_ingest_blocker(result : BookResult) -> Bool {
   let summary = result.summary.trim().to_lower()
-  let stage = infer_task_kind_from_external_id(result.task_id).unwrap_or("")
+  let stage = infer_task_kind_from_external_id(result.result_id).unwrap_or("")
   (
     stage == "ingest" ||
     stage == "bootstrap_gather" ||
@@ -985,7 +987,7 @@ async fn reconcile_result_pages(
 
 ///|
 fn result_stage_is_bootstrap_like(result : BookResult) -> Bool {
-  match infer_task_kind_from_external_id(result.task_id) {
+  match infer_task_kind_from_external_id(result.result_id) {
     Some("ingest") => true
     _ => {
       let summary = result.summary.to_lower()
@@ -1108,7 +1110,7 @@ async fn ensure_observations_page(workspace : Paths) -> String {
   if !@fsx.exists(absolute) {
     @fsx.write_to_file(
       absolute,
-      "# Observations\n\nThis page stores persisted task results and durable observations.\n\n## Results\n\n_None yet._\n",
+      "# Observations\n\nThis page stores persisted worker results and durable observations.\n\n## Results\n\n_None yet._\n",
       create=0o644,
     )
     update_summary(workspace.summary_path, "Observations", relative)
@@ -1119,7 +1121,7 @@ async fn ensure_observations_page(workspace : Paths) -> String {
       "Core Pages",
       "Observations",
       relative,
-      "persisted task results and memory observations",
+      "persisted worker results and memory observations",
     )
   }
   relative
@@ -1128,7 +1130,7 @@ async fn ensure_observations_page(workspace : Paths) -> String {
 ///|
 fn persisted_result_block(result : BookResult) -> String {
   let builder = StringBuilder::new()
-  builder.write_string("### \{result.task_id}\n\n")
+  builder.write_string("### \{result.result_id}\n\n")
   builder.write_string("- Summary: \{result.summary}\n")
   builder.write_string("- Requires review: `\{result.requires_review}`\n")
   builder.write_string("- Notify town: `\{result.notify_town}`\n")
@@ -1171,7 +1173,7 @@ async fn queue_result_review(
   let absolute = moonbook_wiki_path(workspace.wiki_dir)
     .join(moonbook_wiki_path(relative))
     .to_string()
-  let review_id = "result-review-\{slugify_title(result.task_id)}"
+  let review_id = "result-review-\{slugify_title(result.result_id)}"
   let current = if @fsx.exists(absolute) {
     @fsx.read_file(absolute)
   } else {
@@ -1184,9 +1186,9 @@ async fn queue_result_review(
     "wiki/" + relative,
     "wiki/" + observations_relative,
   )
-  let block = "### Result review | \{result.task_id}\n\n" +
+  let block = "### Result review | \{result.result_id}\n\n" +
     "- Review ID: `\{review_id}`\n" +
-    "- Result page: [\{result.task_id}](\{link})\n" +
+    "- Result page: [\{result.result_id}](\{link})\n" +
     "- Evidence ID: `\{evidence_id}`\n" +
     "- Merge policy: `promote-durable`\n" +
     "- Status: `pending`\n" +
@@ -1216,7 +1218,7 @@ async fn append_result_log(
   updated_pages : Array[String],
 ) -> Unit {
   let now = "\{@async.now().to_int()}"
-  let entry = "## [\{now}] persist | \{result.task_id}\n\n" +
+  let entry = "## [\{now}] persist | \{result.result_id}\n\n" +
     "- summary: \{result.summary}\n" +
     "- notify_town: `\{result.notify_town}`\n" +
     format_related_log_lines(updated_pages)
@@ -1407,7 +1409,7 @@ async fn refresh_workspace_projections(root : String) -> Unit {
 ///|
 fn workspace_projection_reconcile_result() -> BookResult {
   {
-    task_id: "workspace-bootstrap-ingest-followup",
+    result_id: "workspace-bootstrap-ingest-followup",
     summary: "Recovered bootstrap completion from durable workspace pages after runtime bookkeeping did not close the loop cleanly.",
     artifacts: [],
     memory_candidates: [],
@@ -1474,7 +1476,7 @@ fn standing_watch_prompt(goal : String) -> String {
 
 ///|
 fn result_is_standing_watch(result : BookResult) -> Bool {
-  let text = (result.task_id + "\n" + result.summary).to_lower()
+  let text = (result.result_id + "\n" + result.summary).to_lower()
   text.contains("standing-watch") ||
   text.contains("standing_goal_decision") ||
   text.contains("next_check_hint")
@@ -1537,7 +1539,7 @@ fn standing_watch_history_block(result : BookResult) -> String {
     "normal",
   )
   let builder = StringBuilder::new()
-  builder.write_string("### \{result.task_id}\n\n")
+  builder.write_string("### \{result.result_id}\n\n")
   builder.write_string("- Decision: `\{decision}`\n")
   builder.write_string("- Delta score: `\{delta_score}`\n")
   builder.write_string("- New source count: `\{new_source_count}`\n")
@@ -1662,7 +1664,7 @@ async test "persist standing watch result records durable watch history" {
   let root = "/tmp/moonbook-extension-api-standing-watch-history"
   ignore(init_workspace(root))
   let outcome = persist_result(root, {
-    task_id: "goal-opc-standing-watch",
+    result_id: "goal-opc-standing-watch",
     summary: "standing_goal_decision: no_change\ndelta_score: 8\nnew_source_count: 0\nnext_check_hint: slower\nNo credible new source changed the book baseline.",
     artifacts: [],
     memory_candidates: [],
@@ -1824,7 +1826,7 @@ async test "hydrate worker context includes keeper memory slices" {
   ignore(init_workspace(root))
   ignore(
     persist_result(root, {
-      task_id: "task-memory",
+      result_id: "task-memory",
       summary: "Observed that the user prefers concise status updates.",
       artifacts: [],
       memory_candidates: [
@@ -1870,7 +1872,7 @@ async test "persist result appends compact journey entry" {
   ignore(init_workspace(root))
   ignore(
     persist_result(root, {
-      task_id: "goal-research-moontown-ingest-followup",
+      result_id: "goal-research-moontown-ingest-followup",
       summary: "Populated durable source coverage and staged review for one promoted finding.",
       artifacts: ["wiki/sources/moontown.md"],
       memory_candidates: [],
@@ -1882,7 +1884,9 @@ async test "persist result appends compact journey entry" {
   assert_true(journey.contains("### goal-research-moontown"))
   assert_true(journey.contains("- Stage: `bootstrap`"))
   assert_true(
-    journey.contains("- Latest task: `goal-research-moontown-ingest-followup`"),
+    journey.contains(
+      "- Latest result: `goal-research-moontown-ingest-followup`",
+    ),
   )
   assert_true(journey.contains("- Status: `pending-review`"))
 }
@@ -1893,7 +1897,7 @@ async test "persist result appends detailed debug journal entry" {
   ignore(init_workspace(root))
   ignore(
     persist_result(root, {
-      task_id: "goal-research-moontown-ingest-followup",
+      result_id: "goal-research-moontown-ingest-followup",
       summary: "Completed provider task Bootstrap ingest and population.",
       artifacts: [],
       memory_candidates: [],
@@ -1904,7 +1908,9 @@ async test "persist result appends detailed debug journal entry" {
   let journal = @fsx.read_file(root + "/wiki/history/debug-journal.md")
   assert_true(journal.contains("### goal-research-moontown"))
   assert_true(
-    journal.contains("- Latest task: `goal-research-moontown-ingest-followup`"),
+    journal.contains(
+      "- Latest result: `goal-research-moontown-ingest-followup`",
+    ),
   )
   assert_true(journal.contains("- Result class: `administrative`"))
   assert_true(journal.contains("no durable artifact paths were reported"))
@@ -1923,7 +1929,7 @@ async test "research bootstrap result blocks when required artifacts are missing
     ),
   )
   let normalized = reconcile_provider_result(root, workspace_paths(root), {
-    task_id: "goal-research-moontown-bootstrap_gather",
+    result_id: "goal-research-moontown-bootstrap_gather",
     summary: "Completed provider task.",
     artifacts: [],
     memory_candidates: [],
@@ -1964,7 +1970,7 @@ async test "persist result materializes raw research envelope into wiki pages" {
     ignore(@fsx.write_to_file(root + "/" + relative, content, create=0o644))
   }
   let outcome = persist_result(root, {
-    task_id: "goal-research-moonbook-bootstrap_gather",
+    result_id: "goal-research-moonbook-bootstrap_gather",
     summary: "Completed raw research artifact envelope for MoonBook.",
     artifacts: required_research_artifacts(),
     memory_candidates: [],
@@ -2011,7 +2017,7 @@ async test "generic completion with complete research envelope is materialized b
     )
   }
   let outcome = persist_result(root, {
-    task_id: "goal-research-moonbook-bootstrap_gather",
+    result_id: "goal-research-moonbook-bootstrap_gather",
     summary: "Completed provider task.",
     artifacts: [],
     memory_candidates: [],
@@ -2056,7 +2062,7 @@ async test "persist result reconciles substantive bootstrap pages from workspace
   )
   ignore(
     persist_result(root, {
-      task_id: "goal-research-moontown-ingest-followup",
+      result_id: "goal-research-moontown-ingest-followup",
       summary: "Completed provider task Bootstrap ingest and population.",
       artifacts: [],
       memory_candidates: [],
@@ -2113,7 +2119,7 @@ async test "reconcile provider result converts empty ingest completion into bloc
   let root = "/tmp/moonbook-extension-api-normalize-blocker"
   ignore(init_workspace(root))
   let normalized = reconcile_provider_result(root, workspace_paths(root), {
-    task_id: "goal-research-moontown-moonbook-and-moonclaw-ingest-followup",
+    result_id: "goal-research-moontown-moonbook-and-moonclaw-ingest-followup",
     summary: "Completed provider task Bootstrap ingest and population.",
     artifacts: [],
     memory_candidates: [],
@@ -2148,7 +2154,7 @@ async test "reconcile provider result prefers durable workspace pages over weak 
     ),
   )
   let normalized = reconcile_provider_result(root, workspace_paths(root), {
-    task_id: "goal-research-moontown-moonbook-and-moonclaw-ingest-followup",
+    result_id: "goal-research-moontown-moonbook-and-moonclaw-ingest-followup",
     summary: "Completed provider task Bootstrap ingest and population.",
     artifacts: [],
     memory_candidates: [],
@@ -2270,7 +2276,7 @@ async test "produce task batch allows synthesis after durable coverage exists" {
   ignore(ingest_source(root, root + "/raw/README.md"))
   ignore(
     persist_result(root, {
-      task_id: "task-evidence",
+      result_id: "task-evidence",
       summary: "Validated durable wiki support records.",
       artifacts: [],
       memory_candidates: [

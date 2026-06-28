@@ -531,7 +531,7 @@ fn index_text() -> String {
   "- [Maintenance Plan](./synthesis/maintenance-plan.md): multi-page synthesis and maintenance queue\n" +
   "- [Query Insights](./synthesis/query-insights.md): durable insights from saved queries\n" +
   "- [Synthesis Map](./synthesis/map.md): coverage and maintenance view across the maintained wiki\n" +
-  "- [Observations](./synthesis/observations.md): persisted task results and promoted book observations\n" +
+  "- [Observations](./synthesis/observations.md): persisted worker results and promoted book observations\n" +
   "- [Evidence](./synthesis/evidence.md): support records for persisted results and reviewed knowledge\n" +
   "- [Planning Index](./planning/index.md): plan catalog, owner boundaries, and open plan gaps\n" +
   "- [Execution Evidence](./planning/execution-evidence.md): command results and validation notes for plan-driven work\n" +
@@ -1002,7 +1002,7 @@ fn synthesis_map_text() -> String {
 ///|
 fn observations_text() -> String {
   "# Observations\n\n" +
-  "This page stores persisted task results and durable observations promoted by the extension API.\n\n" +
+  "This page stores persisted worker results and durable observations promoted by the extension API.\n\n" +
   "## Results\n\n" +
   "_None yet._\n"
 }

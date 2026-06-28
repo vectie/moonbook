@@ -72,8 +72,8 @@ fn debug_journal_entry_block(
   let entry_id = debug_journal_entry_id(result)
   builder.write_string("### \{entry_id}\n\n")
   builder.write_string("- Stage: `\{stage}`\n")
-  if entry_id != result.task_id {
-    builder.write_string("- Latest task: `\{result.task_id}`\n")
+  if entry_id != result.result_id {
+    builder.write_string("- Latest result: `\{result.result_id}`\n")
   }
   builder.write_string("- Summary: \{result.summary}\n")
   builder.write_string("- Evidence: `\{evidence_id}`\n")
@@ -81,7 +81,7 @@ fn debug_journal_entry_block(
   builder.write_string("- Notify town: `\{result.notify_town}`\n")
   if result_stage_is_bootstrap_like(result) {
     builder.write_string(
-      "- Bootstrap cluster: `\{bootstrap_cluster_key(result.task_id)}`\n",
+      "- Bootstrap cluster: `\{bootstrap_cluster_key(result.result_id)}`\n",
     )
     builder.write_string(
       "- Bootstrap outcome: `\{bootstrap_cluster_label(bootstrap_cluster_complete)}`\n",
@@ -187,9 +187,9 @@ fn debug_open_loops(
 ///|
 fn debug_journal_entry_id(result : BookResult) -> String {
   if result_stage_is_bootstrap_like(result) {
-    bootstrap_cluster_key(result.task_id)
+    bootstrap_cluster_key(result.result_id)
   } else {
-    result.task_id
+    result.result_id
   }
 }
 
@@ -198,7 +198,7 @@ fn debug_journal_stage_label(result : BookResult) -> String {
   if result_stage_is_bootstrap_like(result) {
     "bootstrap"
   } else {
-    infer_task_kind_from_external_id(result.task_id).unwrap_or("run")
+    infer_task_kind_from_external_id(result.result_id).unwrap_or("run")
   }
 }
 
@@ -246,7 +246,7 @@ fn upsert_debug_journal_block(
 ///|
 test "debug result class marks substantive outputs" {
   let result : BookResult = {
-    task_id: "goal-ingest",
+    result_id: "goal-ingest",
     summary: "Updated source page.",
     artifacts: ["wiki/sources/demo.md"],
     memory_candidates: [],
@@ -262,7 +262,7 @@ test "debug result class marks substantive outputs" {
 ///|
 test "debug result class marks administrative outputs" {
   let result : BookResult = {
-    task_id: "goal-ingest",
+    result_id: "goal-ingest",
     summary: "Completed provider task.",
     artifacts: [],
     memory_candidates: [],

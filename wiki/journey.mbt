@@ -84,13 +84,13 @@ fn journey_entry_block(
   let entry_id = journey_entry_id(result)
   builder.write_string("### \{entry_id}\n\n")
   builder.write_string("- Stage: `\{journey_stage_label(result)}`\n")
-  if entry_id != result.task_id {
-    builder.write_string("- Latest task: `\{result.task_id}`\n")
+  if entry_id != result.result_id {
+    builder.write_string("- Latest result: `\{result.result_id}`\n")
   }
   builder.write_string(
     "- Status: `\{journey_status_label(result, review_queued, updated_pages, bootstrap_cluster_complete)}`\n",
   )
-  let bootstrap_cluster = bootstrap_cluster_key(result.task_id)
+  let bootstrap_cluster = bootstrap_cluster_key(result.result_id)
   if result_stage_is_bootstrap_like(result) {
     builder.write_string("- Bootstrap cluster: `\{bootstrap_cluster}`\n")
     builder.write_string(
@@ -124,9 +124,9 @@ fn journey_entry_block(
 ///|
 fn journey_entry_id(result : BookResult) -> String {
   if result_stage_is_bootstrap_like(result) {
-    bootstrap_cluster_key(result.task_id)
+    bootstrap_cluster_key(result.result_id)
   } else {
-    result.task_id
+    result.result_id
   }
 }
 
@@ -135,7 +135,7 @@ fn journey_stage_label(result : BookResult) -> String {
   if result_stage_is_bootstrap_like(result) {
     "bootstrap"
   } else {
-    match infer_task_kind_from_external_id(result.task_id) {
+    match infer_task_kind_from_external_id(result.result_id) {
       Some(kind) => kind
       None => "run"
     }
@@ -418,7 +418,7 @@ async test "journey recent entries reads newest first" {
     append_journey_entry(
       workspace,
       {
-        task_id: "goal-a-ingest",
+        result_id: "goal-a-ingest",
         summary: "First run.",
         artifacts: ["wiki/sources/a.md"],
         memory_candidates: [],
@@ -435,7 +435,7 @@ async test "journey recent entries reads newest first" {
     append_journey_entry(
       workspace,
       {
-        task_id: "goal-b-analysis",
+        result_id: "goal-b-analysis",
         summary: "Second run.",
         artifacts: ["wiki/queries/b.md"],
         memory_candidates: [],

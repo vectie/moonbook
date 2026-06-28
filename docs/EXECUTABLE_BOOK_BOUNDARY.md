@@ -80,10 +80,10 @@ Core fields:
 ```json
 {
   "protocol": "moonbook.executable_event.v1",
-  "id": "book-event-<book-id>-<evidence-or-task-id>",
+  "id": "book-event-<book-id>-<evidence-or-result-id>",
   "source": "moonbook",
   "book_id": "<book-id>",
-  "task_id": "<task-id>",
+  "result_id": "<result-id>",
   "run_id": "<optional-runtime-run-id>",
   "event_type": "knowledge_accepted | review_required",
   "accepted": true,
@@ -92,12 +92,38 @@ Core fields:
   "summary": "<operator-readable summary>",
   "artifacts": ["wiki/...", "tools/...", "apps/..."],
   "evidence_id": "<optional-evidence-id>",
-  "review_path": "<optional-review-page>"
+  "review_path": "<optional-review-page>",
+  "lifecycle_proof": {
+    "contract_id": "mooncode-executable-book-lifecycle.v1",
+    "owner": "moonclaw",
+    "session_id": "<runtime-session-id>",
+    "book_root": "<book-root>",
+    "ready": false,
+    "status": "blocked",
+    "completed_step_count": 7,
+    "step_count": 9,
+    "blocked_step_count": 2,
+    "first_blocker_id": "package_output",
+    "first_blocker_label": "Package output",
+    "first_blocker_evidence": "package results 0, package events 0"
+  }
 }
 ```
 
-`run_id`, `evidence_id`, and `review_path` are optional and may be omitted when
-absent.
+`run_id`, `evidence_id`, `review_path`, and `lifecycle_proof` are optional and
+may be omitted when absent.
+
+MoonCode producers include their native `command_id` and `result_id` on the
+surrounding envelope or executable event when available. The nested
+`BookResult` uses `result_id` directly; MoonCode result persistence is not
+adapted through generic MoonClaw task identity.
+
+If a MoonCode/MoonClaw envelope includes `executable_book_lifecycle`, MoonBook
+persists it as `lifecycle_proof` on the executable event. The proof is book-owned
+evidence after persistence: consumers must read it from
+`.moonbook/events/latest.json` or the CLI persist response, not from transient
+runtime sidecars. Lifecycle proof does not by itself accept knowledge; the event
+still uses `knowledge_accepted` or `review_required` to express Bookkeeper state.
 
 `knowledge_accepted` means the book changed without requiring another
 Bookkeeper pass. `review_required` means MoonBook stored durable artifacts, but
@@ -144,8 +170,10 @@ contract that preserves MoonBook's richer executable-book semantics.
 MoonBook also publishes `moonbook.book_state.v1`, a higher-level state snapshot
 for consumers that need one file instead of multiple probes.
 
-`moonbook wiki state [root]` writes `.moonbook/state.json`. Build/serve
-projection also writes `book/site/generated/book-state.json`.
+`moonbook wiki extension state [root]` returns the snapshot as JSON for runtime
+consumers. `moonbook wiki state [root]` writes `.moonbook/state.json` for human
+or file-based inspection. Build/serve projection also writes
+`book/site/generated/book-state.json`.
 
 The snapshot contains:
 
@@ -158,4 +186,5 @@ The snapshot contains:
 
 Suite tools should prefer this snapshot for dashboards and routing decisions,
 then drill into the knowledge bundle only when they need page-level records or
-graph edges.
+graph edges. They should not scrape `wiki/SUMMARY.md`, generated site files,
+review pages, and event files independently when the snapshot is available.

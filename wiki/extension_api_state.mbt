@@ -36,6 +36,8 @@ pub async fn summarize_state(root : String) -> BookStateSummary {
     keeper.user_memory.length(),
     keeper_working_count: keeper.working_memory.length(),
     evidence_count,
+    total_evidence_count: evidence_count,
+    operational_evidence_count: 0,
     substantive_coverage_ready,
     summary: "pages=\{pages.length()} sources_total=\{source_coverage.total_count} sources_verified=\{source_coverage.verified_count} sources_candidate=\{source_coverage.candidate_count} sources_provisional=\{source_coverage.provisional_count} entities=\{entity_page_count} concepts=\{concept_page_count} queries=\{query_note_count} pending_review=\{pending.length()} keeper_working=\{keeper.working_memory.length()} evidence=\{evidence_count} ready_for_synthesis=\{substantive_coverage_ready}",
   }

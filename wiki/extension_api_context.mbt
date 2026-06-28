@@ -62,8 +62,8 @@ fn filter_course_memory(entries : Array[String]) -> Array[String] {
 fn provider_result_contract_lines() -> Array[String] {
   [
     "Return exactly one JSON object.", "Do not output markdown fences or prose outside the JSON object.",
-    "Use keys: task_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
-    "Set task_id to the active provider task id.", "artifacts must be an array of workspace-relative output paths.",
+    "Use keys: result_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
+    "Set result_id to a stable identifier for this worker result.", "artifacts must be an array of workspace-relative output paths.",
     "memory_candidates must be an array of objects with kind, title, detail, durable, target_page.",
     "For weak-coverage research goals, follow the MoonBook phases in order: bootstrap_gather, source_materialize, knowledge_revise, marketing_project, review_finalize.",
     "For research bootstrap, artifacts must include raw/bootstrap/research-question.md, raw/bootstrap/search-log.md, raw/bootstrap/source-screen.md, raw/bootstrap/evidence-matrix.md, raw/bootstrap/local-sources.md, raw/bootstrap/synthesis-brief.md, raw/bootstrap/deep-report.md, and raw/bootstrap/marketing-brief.md, or the result must be a structured blocker explaining exactly which files are missing.",
@@ -80,8 +80,8 @@ fn provider_result_contract_lines() -> Array[String] {
 fn course_provider_result_contract_lines() -> Array[String] {
   [
     "Return exactly one JSON object.", "Do not output markdown fences or prose outside the JSON object.",
-    "Use keys: task_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
-    "Set task_id to the active provider task id.", "artifacts must be an array of workspace-relative output paths.",
+    "Use keys: result_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
+    "Set result_id to a stable identifier for this worker result.", "artifacts must be an array of workspace-relative output paths.",
     "This is a course task, not a research bootstrap task.", "Do not require research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, or marketing-brief.md unless the course prompt explicitly asks for them.",
     "Course artifacts should include raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md when used as the workbook, and wiki/synthesis/beginner-course.md.",
     "The visible course must teach through lessons, examples, exercises, output artifacts, checkpoints, and common mistakes.",
@@ -94,8 +94,8 @@ fn course_provider_result_contract_lines() -> Array[String] {
 fn planbook_provider_result_contract_lines() -> Array[String] {
   [
     "Return exactly one JSON object.", "Do not output markdown fences or prose outside the JSON object.",
-    "Use keys: task_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
-    "Set task_id to the active provider task id.", "artifacts must include the durable plan path when a plan was written or updated.",
+    "Use keys: result_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
+    "Set result_id to a stable identifier for this worker result.", "artifacts must include the durable plan path when a plan was written or updated.",
     "This is a PlanBook task, not a research bootstrap task and not a course task.",
     "Do not require research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, marketing-brief.md, course-outline.md, or beginner-course.md unless the plan explicitly names them as implementation artifacts.",
     "The summary must include exactly one marker block with planbook_decision, plan_path, owner, and remaining_blockers.",

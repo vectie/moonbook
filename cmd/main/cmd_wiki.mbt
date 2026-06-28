@@ -363,13 +363,17 @@ async fn run_wiki_extension_persist(root : String, path : String) -> Unit {
       return
     }
   }
-  let result = @wiki.decode_book_result_payload_text(text) catch {
+  let payload = @wiki.decode_book_result_payload_with_metadata_text(text) catch {
     error => {
       println("moonbook wiki extension persist failed: \{error}")
       return
     }
   }
-  let outcome = @wiki.persist_result(root, result) catch {
+  let outcome = @wiki.persist_result(
+    root,
+    payload.result,
+    lifecycle_proof=payload.lifecycle_proof,
+  ) catch {
     error => {
       println("moonbook wiki extension persist failed: \{error}")
       return

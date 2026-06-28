@@ -57,12 +57,34 @@ pub struct MemoryCandidate {
 
 ///|
 pub struct BookResult {
-  task_id : String
+  result_id : String
   summary : String
   artifacts : Array[String]
   memory_candidates : Array[MemoryCandidate]
   requires_review : Bool
   notify_town : Bool
+} derive(Debug, ToJson, FromJson)
+
+///|
+pub struct ExecutableBookLifecycleProof {
+  contract_id : String
+  owner : String
+  session_id : String
+  book_root : String
+  ready : Bool
+  status : String
+  completed_step_count : Int
+  step_count : Int
+  blocked_step_count : Int
+  first_blocker_id : String
+  first_blocker_label : String
+  first_blocker_evidence : String
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub struct DecodedBookResultPayload {
+  result : BookResult
+  lifecycle_proof : ExecutableBookLifecycleProof?
 } derive(Debug, ToJson, FromJson)
 
 ///|
@@ -75,6 +97,23 @@ pub fn decode_book_result_payload(value : Json) -> BookResult raise {
 ///|
 pub fn decode_book_result_payload_text(text : String) -> BookResult raise {
   decode_book_result_payload(@json.parse(text))
+}
+
+///|
+pub fn decode_book_result_payload_with_metadata(
+  value : Json,
+) -> DecodedBookResultPayload raise {
+  {
+    result: decode_book_result_payload(value),
+    lifecycle_proof: decode_book_result_lifecycle_proof(value),
+  }
+}
+
+///|
+pub fn decode_book_result_payload_with_metadata_text(
+  text : String,
+) -> DecodedBookResultPayload raise {
+  decode_book_result_payload_with_metadata(@json.parse(text))
 }
 
 ///|
@@ -102,6 +141,46 @@ fn decode_book_result_envelope(value : Json) -> BookResult raise {
 }
 
 ///|
+pub fn decode_book_result_lifecycle_proof(
+  value : Json,
+) -> ExecutableBookLifecycleProof? raise {
+  match value {
+    Object(fields) =>
+      match fields.get("executable_book_lifecycle") {
+        Some(Object(_) as proof) =>
+          Some(decode_executable_book_lifecycle_proof(proof))
+        Some(_) =>
+          fail(
+            "invalid book result payload: executable_book_lifecycle must be an object",
+          )
+        None =>
+          match fields.get("lifecycle_proof") {
+            Some(Object(_) as proof) =>
+              Some(decode_executable_book_lifecycle_proof(proof))
+            Some(_) =>
+              fail(
+                "invalid book result payload: lifecycle_proof must be an object",
+              )
+            None => None
+          }
+      }
+    _ => None
+  }
+}
+
+///|
+pub fn decode_executable_book_lifecycle_proof(
+  value : Json,
+) -> ExecutableBookLifecycleProof raise {
+  @json.from_json(value) catch {
+    error =>
+      fail(
+        "invalid executable book lifecycle proof: expected mooncode executable-book lifecycle report: \{error}",
+      )
+  }
+}
+
+///|
 pub struct PersistResultOutcome {
   log_path : String
   updated_pages : Array[String]
@@ -124,7 +203,7 @@ pub struct ExecutableBookEvent {
   id : String
   source : String
   book_id : String
-  task_id : String
+  result_id : String
   run_id : String?
   event_type : String
   accepted : Bool
@@ -134,13 +213,14 @@ pub struct ExecutableBookEvent {
   artifacts : Array[String]
   evidence_id : String?
   review_path : String?
+  lifecycle_proof : ExecutableBookLifecycleProof?
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 pub fn ExecutableBookEvent::new(
   id~ : String,
   book_id~ : String,
-  task_id~ : String,
+  result_id~ : String,
   summary~ : String,
   artifacts? : Array[String] = [],
   run_id? : String? = None,
@@ -150,13 +230,14 @@ pub fn ExecutableBookEvent::new(
   notify_town? : Bool = false,
   evidence_id? : String? = None,
   review_path? : String? = None,
+  lifecycle_proof? : ExecutableBookLifecycleProof? = None,
 ) -> ExecutableBookEvent {
   {
     protocol: executable_book_event_protocol(),
     id,
     source: "moonbook",
     book_id,
-    task_id,
+    result_id,
     run_id,
     event_type,
     accepted,
@@ -166,6 +247,7 @@ pub fn ExecutableBookEvent::new(
     artifacts,
     evidence_id,
     review_path,
+    lifecycle_proof,
   }
 }
 
@@ -176,8 +258,9 @@ pub fn BookResult::to_executable_book_event(
   evidence_id? : String? = None,
   run_id? : String? = None,
   review_path? : String? = None,
+  lifecycle_proof? : ExecutableBookLifecycleProof? = None,
 ) -> ExecutableBookEvent {
-  let evidence_part = evidence_id.unwrap_or(self.task_id)
+  let evidence_part = evidence_id.unwrap_or(self.result_id)
   let event_type = if self.requires_review {
     "review_required"
   } else {
@@ -186,7 +269,7 @@ pub fn BookResult::to_executable_book_event(
   ExecutableBookEvent::new(
     id="book-event-\{book_id}-\{evidence_part}",
     book_id~,
-    task_id=self.task_id,
+    result_id=self.result_id,
     summary=self.summary,
     artifacts=self.artifacts,
     run_id~,
@@ -196,6 +279,7 @@ pub fn BookResult::to_executable_book_event(
     notify_town=self.notify_town,
     evidence_id~,
     review_path~,
+    lifecycle_proof~,
   )
 }
 
@@ -218,6 +302,8 @@ pub struct BookStateSummary {
   keeper_memory_count : Int
   keeper_working_count : Int
   evidence_count : Int
+  total_evidence_count : Int
+  operational_evidence_count : Int
   substantive_coverage_ready : Bool
   summary : String
 } derive(Debug, ToJson, FromJson)

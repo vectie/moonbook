@@ -39,7 +39,7 @@ async fn append_result_evidence(
     .join(moonbook_wiki_path(relative))
     .to_string()
   let current = @fsx.read_file(absolute)
-  let evidence_id = "EV-\{slugify_title(result.task_id)}-\{@async.now().to_int()}"
+  let evidence_id = "EV-\{slugify_title(result.result_id)}-\{@async.now().to_int()}"
   let builder = StringBuilder::new()
   let status = if result.requires_review {
     "pending-review"
@@ -47,7 +47,7 @@ async fn append_result_evidence(
     "accepted"
   }
   builder.write_string("### \{evidence_id}\n\n")
-  builder.write_string("- Task ID: `\{result.task_id}`\n")
+  builder.write_string("- Task ID: `\{result.result_id}`\n")
   builder.write_string("- Status: `\{status}`\n")
   builder.write_string("- Summary: \{keeper_compact_text(result.summary)}\n")
   if !result.artifacts.is_empty() {

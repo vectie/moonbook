@@ -17,9 +17,17 @@ pub async fn catalog_record(String) -> BookCatalogRecord
 
 pub async fn compare_skill(String, String) -> SkillCompareResult
 
+pub fn decode_book_result_lifecycle_proof(Json) -> ExecutableBookLifecycleProof? raise
+
 pub fn decode_book_result_payload(Json) -> BookResult raise
 
 pub fn decode_book_result_payload_text(String) -> BookResult raise
+
+pub fn decode_book_result_payload_with_metadata(Json) -> DecodedBookResultPayload raise
+
+pub fn decode_book_result_payload_with_metadata_text(String) -> DecodedBookResultPayload raise
+
+pub fn decode_executable_book_lifecycle_proof(Json) -> ExecutableBookLifecycleProof raise
 
 pub async fn doctor_skills(String) -> SkillDoctorReport
 
@@ -53,7 +61,7 @@ pub async fn list_skills(String) -> Array[SkillRecord]
 
 pub fn make_skill_hub_serve_options(String, String, Int, Bool) -> SkillHubServeOptions
 
-pub async fn persist_result(String, BookResult) -> PersistResultOutcome
+pub async fn persist_result(String, BookResult, lifecycle_proof? : ExecutableBookLifecycleProof?) -> PersistResultOutcome
 
 pub async fn produce_task_batch(String, String, goal_id? : String?) -> BookTaskBatch
 
@@ -128,14 +136,14 @@ pub struct BookHealthReport {
 } derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct BookResult {
-  task_id : String
+  result_id : String
   summary : String
   artifacts : Array[String]
   memory_candidates : Array[MemoryCandidate]
   requires_review : Bool
   notify_town : Bool
 } derive(ToJson, @debug.Debug, @json.FromJson)
-pub fn BookResult::to_executable_book_event(Self, book_id~ : String, evidence_id? : String?, run_id? : String?, review_path? : String?) -> ExecutableBookEvent
+pub fn BookResult::to_executable_book_event(Self, book_id~ : String, evidence_id? : String?, run_id? : String?, review_path? : String?, lifecycle_proof? : ExecutableBookLifecycleProof?) -> ExecutableBookEvent
 
 pub struct BookStatePaths {
   knowledge_manifest : String
@@ -176,6 +184,8 @@ pub struct BookStateSummary {
   keeper_memory_count : Int
   keeper_working_count : Int
   evidence_count : Int
+  total_evidence_count : Int
+  operational_evidence_count : Int
   substantive_coverage_ready : Bool
   summary : String
 } derive(ToJson, @debug.Debug, @json.FromJson)
@@ -197,12 +207,17 @@ pub struct BookTaskBatch {
   tasks : Array[BookTask]
 } derive(ToJson, @debug.Debug, @json.FromJson)
 
+pub struct DecodedBookResultPayload {
+  result : BookResult
+  lifecycle_proof : ExecutableBookLifecycleProof?
+} derive(ToJson, @debug.Debug, @json.FromJson)
+
 pub struct ExecutableBookEvent {
   protocol : String
   id : String
   source : String
   book_id : String
-  task_id : String
+  result_id : String
   run_id : String?
   event_type : String
   accepted : Bool
@@ -212,8 +227,24 @@ pub struct ExecutableBookEvent {
   artifacts : Array[String]
   evidence_id : String?
   review_path : String?
+  lifecycle_proof : ExecutableBookLifecycleProof?
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
-pub fn ExecutableBookEvent::new(id~ : String, book_id~ : String, task_id~ : String, summary~ : String, artifacts? : Array[String], run_id? : String?, event_type? : String, accepted? : Bool, requires_review? : Bool, notify_town? : Bool, evidence_id? : String?, review_path? : String?) -> Self
+pub fn ExecutableBookEvent::new(id~ : String, book_id~ : String, result_id~ : String, summary~ : String, artifacts? : Array[String], run_id? : String?, event_type? : String, accepted? : Bool, requires_review? : Bool, notify_town? : Bool, evidence_id? : String?, review_path? : String?, lifecycle_proof? : ExecutableBookLifecycleProof?) -> Self
+
+pub struct ExecutableBookLifecycleProof {
+  contract_id : String
+  owner : String
+  session_id : String
+  book_root : String
+  ready : Bool
+  status : String
+  completed_step_count : Int
+  step_count : Int
+  blocked_step_count : Int
+  first_blocker_id : String
+  first_blocker_label : String
+  first_blocker_evidence : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub struct ExtensionInstallResult {
   root : String
