@@ -134,7 +134,8 @@ fn demo_state() -> UiState {
 ///|
 fn app_shell_style() -> Array[String] {
   [
-    "min-height:100vh", "padding:32px", "box-sizing:border-box", "background:radial-gradient(circle at top left,#dbeafe 0,#f8fafc 36%,#f1f5f9 100%)",
+    "min-height:100vh", "padding:clamp(14px,3vw,32px)", "box-sizing:border-box",
+    "overflow-x:hidden", "background:radial-gradient(circle at top left,#dbeafe 0,#f8fafc 36%,#f1f5f9 100%)",
     "color:#0f172a", "font-family:'Fira Sans','IBM Plex Sans','Avenir Next',sans-serif",
   ]
 }
@@ -142,8 +143,8 @@ fn app_shell_style() -> Array[String] {
 ///|
 fn page_grid_style() -> Array[String] {
   [
-    "max-width:1480px", "margin:0 auto", "display:grid", "grid-template-columns:minmax(260px,320px) minmax(0,1fr)",
-    "gap:24px", "align-items:start",
+    "max-width:1480px", "margin:0 auto", "display:flex", "flex-wrap:wrap", "gap:24px",
+    "align-items:flex-start", "width:100%", "min-width:0", "box-sizing:border-box",
   ]
 }
 
@@ -534,7 +535,7 @@ fn render_sidebar(state : UiState, model : Model) -> @rabbita.Html {
     style=panel_style() +
       [
         "padding:22px", "position:sticky", "top:24px", "display:flex", "flex-direction:column",
-        "gap:24px",
+        "gap:24px", "flex:0 1 320px", "max-width:100%", "box-sizing:border-box",
       ],
     [
       div([
@@ -659,8 +660,8 @@ fn hero_section(state : UiState, model : Model) -> @rabbita.Html {
       ),
       div(
         style=[
-          "display:grid", "grid-template-columns:minmax(0,1fr) auto", "gap:12px",
-          "align-items:center",
+          "display:grid", "grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))",
+          "gap:12px", "align-items:center",
         ],
         [
           input(
@@ -710,140 +711,147 @@ fn render_page(model : Model) -> @rabbita.Html {
   div(style=app_shell_style(), [
     div(style=page_grid_style(), [
       render_sidebar(state, model),
-      main_(style=["display:grid", "gap:24px"], [
-        hero_section(state, model),
-        section(
-          style=[
-            "display:grid", "grid-template-columns:repeat(4,minmax(0,1fr))", "gap:14px",
-          ],
-          state.metrics.map(metric_card),
-        ),
-        section(
-          style=[
-            "display:grid", "grid-template-columns:minmax(0,1.45fr) minmax(0,.95fr)",
-            "gap:24px", "align-items:start",
-          ],
-          [
-            section(style=["display:grid", "gap:14px"], [
+      main_(
+        style=[
+          "display:grid", "gap:24px", "flex:1 1 680px", "min-width:0", "max-width:100%",
+          "box-sizing:border-box",
+        ],
+        [
+          hero_section(state, model),
+          section(
+            style=[
+              "display:grid", "grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))",
+              "gap:14px",
+            ],
+            state.metrics.map(metric_card),
+          ),
+          section(
+            style=[
+              "display:grid", "grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))",
+              "gap:24px", "align-items:start",
+            ],
+            [
+              section(style=["display:grid", "gap:14px"], [
+                div([
+                  h2(
+                    style=["margin:0 0 8px 0", "font-size:28px"],
+                    "Workflow Surface",
+                  ),
+                  p(
+                    style=muted_text_style() + ["margin:0"],
+                    "The UI mirrors the current MoonBook loop using generated workspace state instead of hardcoded demo counters.",
+                  ),
+                ]),
+                div(
+                  style=[
+                    "display:grid", "grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))",
+                    "gap:14px",
+                  ],
+                  render_workflow_cards(state.workflow),
+                ),
+                panel_list(
+                  "Review Queue",
+                  "High-value merges and promotions should be legible before they become durable wiki edits.",
+                  state.review_queue,
+                ),
+              ]),
+              section(style=["display:grid", "gap:14px"], [
+                panel_list(
+                  "Keeper State",
+                  "Bounded memory needs its own operator panel instead of disappearing into file names.",
+                  state.keeper_items,
+                ),
+                panel_list(
+                  "Page Families",
+                  "The reading UI should make the maintained surfaces feel like a product map, not just markdown files.",
+                  state.page_families,
+                ),
+              ]),
+            ],
+          ),
+          section(
+            id="map",
+            style=panel_style() +
+              [
+                "padding:24px", "display:grid", "grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))",
+                "gap:22px",
+              ],
+            [
               div([
                 h2(
                   style=["margin:0 0 8px 0", "font-size:28px"],
-                  "Workflow Surface",
+                  "Synthesis Map Preview",
                 ),
                 p(
-                  style=muted_text_style() + ["margin:0"],
-                  "The UI mirrors the current MoonBook loop using generated workspace state instead of hardcoded demo counters.",
+                  style=muted_text_style() + ["margin:0 0 18px 0"],
+                  "A dedicated surface for coverage, hubs, and open loops makes local planning tangible. This is the part the old Rabbita shell was missing.",
+                ),
+                pre(
+                  style=[
+                    "margin:0", "padding:18px", "border-radius:20px", "background:#0f172a",
+                    "color:#dbeafe", "overflow:auto", "font-family:'Fira Code','SFMono-Regular',monospace",
+                    "font-size:13px", "line-height:1.7",
+                  ],
+                  [code(state.synthesis_preview)],
                 ),
               ]),
-              div(
+              article(
+                id="keeper",
                 style=[
-                  "display:grid", "grid-template-columns:repeat(2,minmax(0,1fr))",
+                  "padding:20px", "border-radius:22px", "background:linear-gradient(180deg,#eff6ff,#ffffff)",
+                  "border:1px solid rgba(37,99,235,.15)", "display:flex", "flex-direction:column",
                   "gap:14px",
                 ],
-                render_workflow_cards(state.workflow),
-              ),
-              panel_list(
-                "Review Queue",
-                "High-value merges and promotions should be legible before they become durable wiki edits.",
-                state.review_queue,
-              ),
-            ]),
-            section(style=["display:grid", "gap:14px"], [
-              panel_list(
-                "Keeper State",
-                "Bounded memory needs its own operator panel instead of disappearing into file names.",
-                state.keeper_items,
-              ),
-              panel_list(
-                "Page Families",
-                "The reading UI should make the maintained surfaces feel like a product map, not just markdown files.",
-                state.page_families,
-              ),
-            ]),
-          ],
-        ),
-        section(
-          id="map",
-          style=panel_style() +
-            [
-              "padding:24px", "display:grid", "grid-template-columns:minmax(0,1fr) minmax(320px,.9fr)",
-              "gap:22px",
-            ],
-          [
-            div([
-              h2(
-                style=["margin:0 0 8px 0", "font-size:28px"],
-                "Synthesis Map Preview",
-              ),
-              p(
-                style=muted_text_style() + ["margin:0 0 18px 0"],
-                "A dedicated surface for coverage, hubs, and open loops makes local planning tangible. This is the part the old Rabbita shell was missing.",
-              ),
-              pre(
-                style=[
-                  "margin:0", "padding:18px", "border-radius:20px", "background:#0f172a",
-                  "color:#dbeafe", "overflow:auto", "font-family:'Fira Code','SFMono-Regular',monospace",
-                  "font-size:13px", "line-height:1.7",
+                [
+                  small(
+                    style=[
+                      "font-size:12px", "font-weight:700", "letter-spacing:.05em",
+                      "text-transform:uppercase", "color:#1d4ed8",
+                    ],
+                    "Operator Notes",
+                  ),
+                  h3(
+                    style=["margin:0", "font-size:22px"],
+                    "What the UI now covers",
+                  ),
+                  ul(
+                    style=[
+                      "margin:0", "padding-left:18px", "display:grid", "gap:10px",
+                      "color:#334155", "line-height:1.6",
+                    ],
+                    [
+                      li("Reader navigation for the maintained page families."),
+                      li(
+                        "Dashboard view for review backlog, evidence, and open loops.",
+                      ),
+                      li(
+                        "A synthesis map panel that reflects the generated planning layer.",
+                      ),
+                      li(
+                        if model.loading {
+                          "Fetching `moonbook-ui-state.json` after a live update signal."
+                        } else {
+                          "Latest snapshot loaded from `moonbook-ui-state.json`."
+                        },
+                      ),
+                      li(refresh_note),
+                      li(transport_note),
+                      li(operator_note),
+                    ],
+                  ),
+                  button(
+                    style=[
+                      "margin-top:auto", "padding:13px 16px", "border:none", "border-radius:16px",
+                      "background:#0f172a", "color:#fff", "font-weight:700", "cursor:pointer",
+                    ],
+                    "Snapshot Ready",
+                  ),
                 ],
-                [code(state.synthesis_preview)],
               ),
-            ]),
-            article(
-              id="keeper",
-              style=[
-                "padding:20px", "border-radius:22px", "background:linear-gradient(180deg,#eff6ff,#ffffff)",
-                "border:1px solid rgba(37,99,235,.15)", "display:flex", "flex-direction:column",
-                "gap:14px",
-              ],
-              [
-                small(
-                  style=[
-                    "font-size:12px", "font-weight:700", "letter-spacing:.05em",
-                    "text-transform:uppercase", "color:#1d4ed8",
-                  ],
-                  "Operator Notes",
-                ),
-                h3(
-                  style=["margin:0", "font-size:22px"],
-                  "What the UI now covers",
-                ),
-                ul(
-                  style=[
-                    "margin:0", "padding-left:18px", "display:grid", "gap:10px",
-                    "color:#334155", "line-height:1.6",
-                  ],
-                  [
-                    li("Reader navigation for the maintained page families."),
-                    li(
-                      "Dashboard view for review backlog, evidence, and open loops.",
-                    ),
-                    li(
-                      "A synthesis map panel that reflects the generated planning layer.",
-                    ),
-                    li(
-                      if model.loading {
-                        "Fetching `moonbook-ui-state.json` after a live update signal."
-                      } else {
-                        "Latest snapshot loaded from `moonbook-ui-state.json`."
-                      },
-                    ),
-                    li(refresh_note),
-                    li(transport_note),
-                    li(operator_note),
-                  ],
-                ),
-                button(
-                  style=[
-                    "margin-top:auto", "padding:13px 16px", "border:none", "border-radius:16px",
-                    "background:#0f172a", "color:#fff", "font-weight:700", "cursor:pointer",
-                  ],
-                  "Snapshot Ready",
-                ),
-              ],
-            ),
-          ],
-        ),
-      ]),
+            ],
+          ),
+        ],
+      ),
     ]),
   ])
 }
