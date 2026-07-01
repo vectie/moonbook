@@ -11,6 +11,7 @@ import {
   "vectie/moonbook/internal/fsx",
   "vectie/moonbook/internal/watcher",
   "vectie/moonbook/internal/pathx",
+  "vectie/moonlib/moonsuite",
   "moonbitlang/x/path",
   "moonbitlang/x/sys",
 }

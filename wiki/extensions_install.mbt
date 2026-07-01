@@ -80,17 +80,7 @@ async fn install_moonclaw_extension(
 
 ///|
 fn moonclaw_product_state_dir_for_root(root : String) -> String {
-  let normalized_root = @pathx.normalize(root)
-  let parent = @pathx.dirname(normalized_root).to_owned()
-  let suite_root = if moonbook_wiki_path(parent).basename().to_owned() ==
-    "books" {
-    @pathx.dirname(parent).to_owned()
-  } else {
-    normalized_root
-  }
-  moonbook_wiki_path(suite_root)
-  .join(moonbook_wiki_path(".moonsuite/products/moonclaw"))
-  .to_string()
+  @moonsuite.product_artifact_for_workspace_root(root, "moonclaw", "")
 }
 
 ///|
