@@ -115,7 +115,7 @@ Implemented behaviors:
 - `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`
 - `wiki enable moonclaw` seeds `KEEPER.md` plus `skills/wiki-maintainer/SKILL.md` and `skills/wiki-review/SKILL.md` from static repo templates
 - `wiki enable moonclaw` seeds role-aware controller/worker profiles with explicit `role_runtime` envelopes aligned to MoonClaw's planner substrate
-- `wiki enable moonclaw` seeds `.moonclaw/providers.json` with the MoonClaw provider target name `moonbook`
+- `wiki enable moonclaw` seeds `.moonsuite/products/moonclaw/providers.json` with the MoonClaw provider target name `moonbook`
 - `wiki enable moonclaw` now decomposes ingest work into gather, material-prep, inspect, plan, revise, review, and finalize stages instead of jumping straight into a monolithic inspect step
 - `wiki enable moonclaw` now uses a raw-first bootstrap flow where workers complete `raw/bootstrap/research-question.md`, `search-log.md`, `source-screen.md`, `local-sources.md`, `evidence-matrix.md`, `synthesis-brief.md`, `deep-report.md`, and `marketing-brief.md`
 - `wiki enable moonclaw` now treats MoonClaw as the research/artifact executor and MoonBook as the durable `wiki/*` materialization owner

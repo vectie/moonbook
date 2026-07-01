@@ -277,6 +277,6 @@ MoonBook also now exposes an extension API surface intended for town-level orche
 That extension API surface now also smooths over two integration details:
 
 - `wiki extension context` can resolve external bootstrap-style task ids onto the nearest local MoonBook task kind instead of requiring an exact task id from the latest task batch
-- `wiki enable moonclaw` seeds `.moonclaw/providers.json` with the MoonClaw provider target name `moonbook`, so MoonClaw has a workspace-local manifest for `wiki extension tasks/context/persist`
+- `wiki enable moonclaw` seeds `.moonsuite/products/moonclaw/providers.json` with the MoonClaw provider target name `moonbook`, so MoonClaw has a suite-local manifest for `wiki extension tasks/context/persist`
 
 The `moonclaw` add-on is also aligned with MoonClaw's current role substrate: MoonBook seeds a host-owned `Keeper` policy, wiki-maintainer/review skills, and role-aware controller/worker profiles so the embedded planner feels book-specific without hard-coding MoonClaw product policy into MoonBook core.

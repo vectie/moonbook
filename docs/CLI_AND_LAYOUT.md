@@ -709,7 +709,7 @@ Installed by `moonbook wiki enable moonclaw [root]`:
   points MoonClaw at the same workspace root
 - `moonclaw.jobs.json`
   seeds role-aware wiki controller/worker profiles aligned with MoonClaw's role substrate
-- `.moonclaw/providers.json`
+- `.moonsuite/products/moonclaw/providers.json`
   seeds the MoonClaw provider target named `moonbook` so MoonClaw can resolve provider-backed `wiki extension tasks/context/persist`
   the provider metadata points back at `moon run cmd/main -- wiki extension ...` from the MoonBook module cwd
 - `IDENTITY.md`, `USER.md`, `ROUTINES.md`, `MEMORY.md`, `KEEPER.md`

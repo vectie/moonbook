@@ -187,6 +187,22 @@ test "moonclaw providers text seeds moonbook provider target" {
 }
 
 ///|
+test "moonclaw product state dir uses standalone moonsuite home" {
+  assert_eq(
+    moonclaw_product_state_dir_for_root("/tmp/wiki"),
+    "/tmp/wiki/.moonsuite/products/moonclaw",
+  )
+}
+
+///|
+test "moonclaw product state dir resolves from suite books root" {
+  assert_eq(
+    moonclaw_product_state_dir_for_root("/tmp/suite/books/research-wiki"),
+    "/tmp/suite/.moonsuite/products/moonclaw",
+  )
+}
+
+///|
 test "moontown manifest declares book and guide entrypoints" {
   let text = moontown_manifest_text()
   assert_true(text.contains("\"book\": \"moontown.book.json\""))
@@ -215,4 +231,17 @@ async test "extension maintainer skill is copied from repo templates" {
   assert_true(text.contains("references/moonclaw-raw-first.md"))
   assert_true(text.contains("Bad output to avoid"))
   assert_true(reference.contains("## Worker split"))
+}
+
+///|
+async test "moonclaw extension installs provider manifest into moonsuite product home" {
+  let suite_root = unique_extension_test_root("/tmp/moonbook-moonsuite-install")
+  let root = suite_root + "/books/research-wiki"
+  ignore(init_workspace(root))
+  let install = enable_extension(root, "moonclaw")
+  let providers_path = suite_root +
+    "/.moonsuite/products/moonclaw/providers.json"
+  assert_true(@fsx.exists(providers_path))
+  assert_true(!@fsx.exists(root + "/.moonclaw/providers.json"))
+  assert_true(install.installed_files.contains(providers_path))
 }

@@ -48,7 +48,7 @@ A mature executable book can contain both prose and executable behavior:
   apps/
   portable/app-tool/
   site/generated/
-  .moonclaw/mooncode/sessions/
+  .moonsuite/products/mooncode/sessions/
 ```
 
 MoonBook already strongly owns the Wiki side: `wiki init`, `wiki ingest`,

@@ -14,9 +14,7 @@ async fn install_moonclaw_extension(
   let jobs_path = moonbook_wiki_path(root)
     .join(moonbook_wiki_path("moonclaw.jobs.json"))
     .to_string()
-  let runtime_dir = moonbook_wiki_path(root)
-    .join(moonbook_wiki_path(".moonclaw"))
-    .to_string()
+  let runtime_dir = moonclaw_product_state_dir_for_root(root)
   let providers_path = moonbook_wiki_path(runtime_dir)
     .join(moonbook_wiki_path("providers.json"))
     .to_string()
@@ -78,6 +76,21 @@ async fn install_moonclaw_extension(
       memory_path, keeper_path, maintainer_skill_path, review_skill_path,
     ],
   }
+}
+
+///|
+fn moonclaw_product_state_dir_for_root(root : String) -> String {
+  let normalized_root = @pathx.normalize(root)
+  let parent = @pathx.dirname(normalized_root).to_owned()
+  let suite_root = if moonbook_wiki_path(parent).basename().to_owned() ==
+    "books" {
+    @pathx.dirname(parent).to_owned()
+  } else {
+    normalized_root
+  }
+  moonbook_wiki_path(suite_root)
+  .join(moonbook_wiki_path(".moonsuite/products/moonclaw"))
+  .to_string()
 }
 
 ///|
