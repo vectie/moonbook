@@ -3,6 +3,8 @@ import {
   "moonbitlang/async/http",
   "moonbitlang/core/json",
   "moonbitlang/x/sys",
+  "vectie/moonlib/pathx",
+  "vectie/moonlib/moonsuite",
 }
 
 supported_targets = "native"
