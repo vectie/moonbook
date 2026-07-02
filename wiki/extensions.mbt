@@ -190,7 +190,7 @@ test "moonclaw providers text seeds moonbook provider target" {
 test "moonclaw product state dir uses standalone moonsuite home" {
   assert_eq(
     moonclaw_product_state_dir_for_root("/tmp/wiki"),
-    "/tmp/wiki/.moonsuite/products/moonclaw",
+    @moonsuite.product_home("/tmp/wiki", "moonclaw").state_path,
   )
 }
 
@@ -198,7 +198,7 @@ test "moonclaw product state dir uses standalone moonsuite home" {
 test "moonclaw product state dir resolves from suite books root" {
   assert_eq(
     moonclaw_product_state_dir_for_root("/tmp/suite/books/research-wiki"),
-    "/tmp/suite/.moonsuite/products/moonclaw",
+    @moonsuite.product_home("/tmp/suite", "moonclaw").state_path,
   )
 }
 
@@ -239,8 +239,9 @@ async test "moonclaw extension installs provider manifest into moonsuite product
   let root = suite_root + "/books/research-wiki"
   ignore(init_workspace(root))
   let install = enable_extension(root, "moonclaw")
-  let providers_path = suite_root +
-    "/.moonsuite/products/moonclaw/providers.json"
+  let providers_path = @moonsuite.product_artifact(
+    suite_root, "moonclaw", "providers.json",
+  )
   assert_true(@fsx.exists(providers_path))
   assert_true(!@fsx.exists(root + "/.moonclaw/providers.json"))
   assert_true(install.installed_files.contains(providers_path))
