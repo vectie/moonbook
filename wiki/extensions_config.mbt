@@ -6,7 +6,7 @@ fn moonclaw_manifest_text() -> String {
   "  \"id\": \"moonclaw\",\n" +
   "  \"kind\": \"agent-runtime\",\n" +
   "  \"entry\": {\n" +
-  "    \"config\": \"moonclaw.json\",\n" +
+  "    \"config\": \"\{@moonsuite.product_display_artifact("moonclaw", "moonclaw.json")}\",\n" +
   "    \"jobs\": \"moonclaw.jobs.json\"\n" +
   "  }\n" +
   "}\n"

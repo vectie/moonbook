@@ -69,7 +69,11 @@ test "supported extensions includes moonclaw" {
 ///|
 test "moonclaw manifest declares config and jobs entrypoints" {
   let text = moonclaw_manifest_text()
-  assert_true(text.contains("\"config\": \"moonclaw.json\""))
+  assert_true(
+    text.contains(
+      "\"config\": \"\{@moonsuite.product_display_artifact("moonclaw", "moonclaw.json")}\"",
+    ),
+  )
   assert_true(text.contains("\"jobs\": \"moonclaw.jobs.json\""))
 }
 
@@ -234,15 +238,21 @@ async test "extension maintainer skill is copied from repo templates" {
 }
 
 ///|
-async test "moonclaw extension installs provider manifest into moonsuite product home" {
+async test "moonclaw extension installs runtime config and provider manifest into moonsuite product home" {
   let suite_root = unique_extension_test_root("/tmp/moonbook-moonsuite-install")
   let root = suite_root + "/books/research-wiki"
   ignore(init_workspace(root))
   let install = enable_extension(root, "moonclaw")
+  let config_path = @moonsuite.product_artifact(
+    suite_root, "moonclaw", "moonclaw.json",
+  )
   let providers_path = @moonsuite.product_artifact(
     suite_root, "moonclaw", "providers.json",
   )
+  assert_true(@fsx.exists(config_path))
   assert_true(@fsx.exists(providers_path))
+  assert_true(!@fsx.exists(root + "/moonclaw.json"))
   assert_true(!@fsx.exists(root + "/.moonclaw/providers.json"))
+  assert_true(install.installed_files.contains(config_path))
   assert_true(install.installed_files.contains(providers_path))
 }

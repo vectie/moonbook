@@ -8,9 +8,9 @@ async fn install_moonclaw_extension(
   let manifest_path = moonbook_wiki_path(extensions_dir)
     .join(moonbook_wiki_path("moonclaw.json"))
     .to_string()
-  let config_path = moonbook_wiki_path(root)
-    .join(moonbook_wiki_path("moonclaw.json"))
-    .to_string()
+  let config_path = @moonsuite.product_artifact_for_workspace_root(
+    root, "moonclaw", "moonclaw.json",
+  )
   let jobs_path = moonbook_wiki_path(root)
     .join(moonbook_wiki_path("moonclaw.jobs.json"))
     .to_string()

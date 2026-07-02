@@ -705,7 +705,7 @@ Created by `moonbook wiki init`:
 
 Installed by `moonbook wiki enable moonclaw [root]`:
 
-- `moonclaw.json`
+- `.moonsuite/products/moonclaw/moonclaw.json`
   points MoonClaw at the same workspace root
 - `moonclaw.jobs.json`
   seeds role-aware wiki controller/worker profiles aligned with MoonClaw's role substrate

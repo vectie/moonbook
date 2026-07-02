@@ -250,7 +250,7 @@ Function:
 
 Current seeded files:
 
-- `moonclaw.json`
+- `.moonsuite/products/moonclaw/moonclaw.json`
 - `moonclaw.jobs.json`
 - `IDENTITY.md`
 - `USER.md`
