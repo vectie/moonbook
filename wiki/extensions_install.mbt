@@ -80,7 +80,7 @@ async fn install_moonclaw_extension(
 
 ///|
 fn moonclaw_product_state_dir_for_root(root : String) -> String {
-  @moonsuite.product_artifact_for_workspace_root(root, "moonclaw", "")
+  @moonsuite.product_home_for_workspace_root(root, "moonclaw").state_path
 }
 
 ///|
