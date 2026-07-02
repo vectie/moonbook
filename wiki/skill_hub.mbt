@@ -212,9 +212,7 @@ async fn refresh_skill_hub_state(root : String) -> Unit {
     extra_paths: skill_hub_extra_paths(),
     roots,
     watch_roots: skill_hub_watch_roots(roots, skills),
-    ignored_patterns: [
-      ".git", "node_modules", "_build", "book", ".moonsuite", ".tmp",
-    ],
+    ignored_patterns: skill_hub_ignored_dir_names(),
     errors,
     duration_ms: @async.now().to_int() - started,
     generated_at: @async.now().to_int(),
@@ -452,9 +450,20 @@ async fn collect_skill_hub_records_from_root(
 ///|
 fn should_descend_skill_hub_dir(path : String) -> Bool {
   let base = moonbook_wiki_path(path).basename().to_owned()
-  ![".git", "node_modules", "_build", "book", ".moonsuite", ".tmp", ".DS_Store"].contains(
-    base,
-  )
+  !skill_hub_ignored_dir_names().contains(base)
+}
+
+///|
+fn skill_hub_ignored_dir_names() -> Array[String] {
+  [
+    ".git",
+    "node_modules",
+    "_build",
+    "book",
+    @moonsuite.state_dir("."),
+    @moonsuite.tmp_root("."),
+    ".DS_Store",
+  ]
 }
 
 ///|
@@ -806,6 +815,16 @@ async test "skill hub refresh writes state and debug files" {
   refresh_skill_hub_state(root)
   assert_true(@fsx.exists(skill_hub_state_path(root)))
   assert_true(@fsx.exists(skill_hub_debug_path(root)))
+}
+
+///|
+test "skill hub ignore list derives moonsuite internal roots" {
+  assert_true(skill_hub_ignored_dir_names().contains(@moonsuite.state_dir(".")))
+  assert_true(skill_hub_ignored_dir_names().contains(@moonsuite.tmp_root(".")))
+  assert_false(should_descend_skill_hub_dir("/tmp/book/.moonsuite"))
+  assert_false(should_descend_skill_hub_dir("/tmp/book/.tmp"))
+  assert_false(should_descend_skill_hub_dir("/tmp/book/node_modules"))
+  assert_true(should_descend_skill_hub_dir("/tmp/book/skills"))
 }
 
 ///|
