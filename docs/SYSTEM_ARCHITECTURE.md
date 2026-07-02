@@ -141,7 +141,7 @@ This layer is responsible for:
 - tracking lightweight claims and review queues
 - refreshing Keeper self-maintenance hints under `keeper/INSIGHTS.md`
 - saving query results back into the wiki
-- exporting concise typed book-state and knowledge contracts under `.moonbook/`, `book/knowledge/`, and `book/site/generated/`
+- exporting concise typed book-state and knowledge contracts under `state/`, `book/knowledge/`, and `book/site/generated/`
 - exposing a graph of durable pages and markdown links without forcing consumers to scrape rendered HTML
 - exposing the wiki as a normal MoonBook build/serve target
 

@@ -7,7 +7,8 @@ It covers:
 - the static call chain in MoonBook
 - the cross-repo handoff into MoonClaw
 - the workflow compilation and execution path in MoonClaw
-- the current observed runtime state from the integration run on `2026-04-13`
+- the current fresh-default runtime state from the integration run on
+  `2026-04-13`
 
 It does not describe an idealized future design. It describes the code path that exists now.
 
@@ -24,7 +25,7 @@ The example live workspace used during inspection was:
 
 - workspace root: `/tmp/moonbook-confirm-check-3`
 - packet: `/tmp/moonbook-confirm-check-3/keeper/jobs/ingest-confirm-demo-three.json`
-- MoonClaw home: `/Users/kq/.moonclaw`
+- MoonClaw product home: `/tmp/moonbook-confirm-check-3/.moonsuite/products/moonclaw`
 - MoonClaw repo: `/Users/kq/Workspace/moonclaw`
 
 ## High-Level Shape
@@ -258,7 +259,7 @@ Current seeded files:
 - `KEEPER.md`
 - `skills/wiki-maintainer/SKILL.md`
 - `skills/wiki-review/SKILL.md`
-- `.moonbook/extensions/moonclaw.json`
+- `extensions/moonclaw.json`
 
 The current inspected workspace also contains a broader skill set under `skills/`, including:
 
@@ -489,7 +490,7 @@ The current inspected controller run is:
 
 Run metadata file:
 
-- [`/Users/kq/.moonclaw/jobs/runs/run-20260413-205053-usersk/meta.json`](/Users/kq/.moonclaw/jobs/runs/run-20260413-205053-usersk/meta.json)
+- `/tmp/moonbook-confirm-check-3/.moonsuite/products/moonclaw/jobs/runs/run-20260413-205053-usersk/meta.json`
 
 ## Phase 12: Workflow Engine Executes Steps
 
@@ -526,7 +527,7 @@ Detailed loop:
 
 Current event log for the controller run:
 
-- [`/Users/kq/.moonclaw/jobs/runs/run-20260413-205053-usersk/events.jsonl`](/Users/kq/.moonclaw/jobs/runs/run-20260413-205053-usersk/events.jsonl)
+- `/tmp/moonbook-confirm-check-3/.moonsuite/products/moonclaw/jobs/runs/run-20260413-205053-usersk/events.jsonl`
 
 ## Phase 13: Analysis Step Handling
 
@@ -624,10 +625,10 @@ Observed step status:
 
 Relevant step files:
 
-- [`inspect_source.json`](/Users/kq/.moonclaw/jobs/runs/run-20260413-205053-usersk/steps/inspect_source.json)
-- [`plan_revisions.json`](/Users/kq/.moonclaw/jobs/runs/run-20260413-205053-usersk/steps/plan_revisions.json)
-- [`apply_revisions.json`](/Users/kq/.moonclaw/jobs/runs/run-20260413-205053-usersk/steps/apply_revisions.json)
-- [`review_revisions.json`](/Users/kq/.moonclaw/jobs/runs/run-20260413-205053-usersk/steps/review_revisions.json)
+- `jobs/runs/run-20260413-205053-usersk/steps/inspect_source.json`
+- `jobs/runs/run-20260413-205053-usersk/steps/plan_revisions.json`
+- `jobs/runs/run-20260413-205053-usersk/steps/apply_revisions.json`
+- `jobs/runs/run-20260413-205053-usersk/steps/review_revisions.json`
 
 ### Observed `inspect_source` output
 
@@ -643,7 +644,7 @@ The first planner step produced a packet that:
 
 Artifact:
 
-- [`step-inspect_source-inspect-source.json`](/Users/kq/Workspace/moonclaw-workspace/moonclaw-jobs/run-20260413-205053-usersk/outputs/step-inspect_source-inspect-source.json)
+- `/tmp/moonbook-confirm-check-3/.moonsuite/products/moonclaw/jobs/run-20260413-205053-usersk/outputs/step-inspect_source-inspect-source.json`
 
 ### Observed `plan_revisions` output
 
@@ -663,7 +664,7 @@ The second planner step produced a more explicit revision plan covering:
 
 Artifact:
 
-- [`step-plan_revisions-plan-revisions.json`](/Users/kq/Workspace/moonclaw-workspace/moonclaw-jobs/run-20260413-205053-usersk/outputs/step-plan_revisions-plan-revisions.json)
+- `/tmp/moonbook-confirm-check-3/.moonsuite/products/moonclaw/jobs/run-20260413-205053-usersk/outputs/step-plan_revisions-plan-revisions.json`
 
 ### Observed `apply_revisions` output
 
