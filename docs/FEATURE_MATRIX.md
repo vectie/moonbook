@@ -71,8 +71,8 @@ Implemented behaviors:
 - `skill hub` starts a dedicated live backend specialized for skill operations instead of reusing the static book server
 - `skill hub` scans workspace skills plus broader machine roots such as repo seeds, Claude skill locations, current working ancestors, and common development folders
 - `skill hub` provides direct in-browser editing for discovered `SKILL.md` files
-- `skill hub` snapshots each save into `.moonbook-skill-hub/snapshots/` and supports rollback from those snapshots
-- `skill hub` writes machine-readable state and diagnostics into `.moonbook-skill-hub/state.json`, `.moonbook-skill-hub/debug.json`, and `.moonbook-skill-hub/version`
+- `skill hub` snapshots each save into `.moonsuite/products/moonbook/skill-hub/snapshots/` and supports rollback from those snapshots
+- `skill hub` writes machine-readable state and diagnostics into `.moonsuite/products/moonbook/skill-hub/state.json`, `.moonsuite/products/moonbook/skill-hub/debug.json`, and `.moonsuite/products/moonbook/skill-hub/version`
 - `skill hub` exposes `GET /api/state`, `GET /api/debug`, `GET /api/snapshots`, `POST /api/save`, `POST /api/rollback`, and `GET /api/events`
 - `skill hub` pushes live refresh notifications over SSE when watched skill files change
 - `serve --watcher native` currently falls back to the poll backend with an explicit notice
@@ -95,7 +95,7 @@ Implemented behaviors:
 - `skill hub` is positioned as “manage skills across this machine” rather than only “inspect skills in this workspace”
 - `pack list` reports currently supported extension packs
 - generated marketing projection renders skill-authored product copy from `raw/bootstrap/marketing-brief.md`, `wiki/synthesis/marketing.md`, or `site/marketing.md` instead of hard-coded sales claims
-- `wiki state` writes `.moonbook/state.json` using the native `moonbook.book_state.v1` contract
+- `wiki state` writes `state/state.json` using the native `moonbook.book_state.v1` contract
 - `wiki bundle` writes `book/knowledge/manifest.json`, `book/knowledge/graph.json`, and `book/knowledge/pages.json` using the native `moonbook.knowledge_bundle.v1` contract
 - `wiki graph` prints the current durable page graph as JSON
 - generated site output writes `book/site/generated/book-state.json`, `book/site/generated/knowledge-bundle.json`, and `book/site/generated/graph.json` for suite consumers
@@ -112,7 +112,7 @@ Implemented behaviors:
 - `wiki init` seeds `wiki/history/debug-journal.md` for detailed run-by-run debug notes
 - `wiki init` outputs a workspace that can immediately be built with `moonbook build`
 - `wiki enable moonclaw` installs MoonClaw-specific runtime/config/workspace files without overwriting them
-- `wiki enable moonclaw` records an extension manifest under `.moonbook/extensions/moonclaw.json`
+- `wiki enable moonclaw` records an extension manifest under `extensions/moonclaw.json`
 - `wiki enable moonclaw` seeds `KEEPER.md` plus `skills/wiki-maintainer/SKILL.md` and `skills/wiki-review/SKILL.md` from static repo templates
 - `wiki enable moonclaw` seeds role-aware controller/worker profiles with explicit `role_runtime` envelopes aligned to MoonClaw's planner substrate
 - `wiki enable moonclaw` seeds `.moonsuite/products/moonclaw/providers.json` with the MoonClaw provider target name `moonbook`
@@ -120,7 +120,7 @@ Implemented behaviors:
 - `wiki enable moonclaw` now uses a raw-first bootstrap flow where workers complete `raw/bootstrap/research-question.md`, `search-log.md`, `source-screen.md`, `local-sources.md`, `evidence-matrix.md`, `synthesis-brief.md`, `deep-report.md`, and `marketing-brief.md`
 - `wiki enable moonclaw` now treats MoonClaw as the research/artifact executor and MoonBook as the durable `wiki/*` materialization owner
 - `wiki enable moontown` installs an optional town-facing extension API manifest and guide without changing the core wiki contract
-- `wiki enable moontown` records an extension manifest under `.moonbook/extensions/moontown.json`
+- `wiki enable moontown` records an extension manifest under `extensions/moontown.json`
 - `wiki ingest` imports sources into `raw/imported/` when needed
 - `wiki ingest` rejects hidden placeholders, empty files, and `.gitkeep`-style scaffolding as non-substantive sources
 - `wiki ingest` generates `wiki/sources/<slug>.md`

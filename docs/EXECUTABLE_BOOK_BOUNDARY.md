@@ -121,7 +121,7 @@ adapted through generic MoonClaw task identity.
 If a MoonCode/MoonClaw envelope includes `executable_book_lifecycle`, MoonBook
 persists it as `lifecycle_proof` on the executable event. The proof is book-owned
 evidence after persistence: consumers must read it from
-`.moonbook/events/latest.json` or the CLI persist response, not from transient
+`events/latest.json` or the CLI persist response, not from transient
 runtime sidecars. Lifecycle proof does not by itself accept knowledge; the event
 still uses `knowledge_accepted` or `review_required` to express Bookkeeper state.
 
@@ -133,8 +133,8 @@ review accepts it.
 Every `wiki extension persist` writes the event as book-owned evidence:
 
 ```text
-<book>/.moonbook/events/<event-id>.json
-<book>/.moonbook/events/latest.json
+<book>/events/<event-id>.json
+<book>/events/latest.json
 ```
 
 The CLI persist response includes `executable_event_path`,
@@ -171,7 +171,7 @@ MoonBook also publishes `moonbook.book_state.v1`, a higher-level state snapshot
 for consumers that need one file instead of multiple probes.
 
 `moonbook wiki extension state [root]` returns the snapshot as JSON for runtime
-consumers. `moonbook wiki state [root]` writes `.moonbook/state.json` for human
+consumers. `moonbook wiki state [root]` writes `state/state.json` for human
 or file-based inspection. Build/serve projection also writes
 `book/site/generated/book-state.json`.
 

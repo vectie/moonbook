@@ -16,7 +16,7 @@ project as the target product.
 - `moontown`-aligned catalog export for persisted town bootstrap
 - first wiki ingest/query/review/lint flows
 - reusable extension API flow with `moonbook wiki extension`
-- extension manifests under `.moonbook/extensions/`
+- extension manifests under `extensions/`
 - static HTML generation for normal chapter trees
 - broad markdown coverage for common book content
 - stable heading/link behavior for many inline cases

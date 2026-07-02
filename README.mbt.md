@@ -99,7 +99,7 @@ MoonBook is strongest when you want one local system to handle:
 - 🧱 HTML rendering with sidebar navigation, breadcrumbs, previous/next links, local asset copying, code-block handling, tables, footnotes, raw HTML passthrough, and GitHub-style markdown layout cues
 - 🌐 optional repo-owned `site/` source website that is copied into `book/site/` during build and serve
 - ✨ generated live marketing projection emitted into `book/site/generated/` from a skill-authored `marketing-brief.md`, keeping product copy out of renderer code
-- 🧭 native book-state snapshot through `moonbook wiki state [root]`, writing `.moonbook/state.json`
+- 🧭 native book-state snapshot through `moonbook wiki state [root]`, writing `state/state.json`
 - 🧩 native knowledge bundle export through `moonbook wiki bundle [root]`, writing `book/knowledge/manifest.json`, `graph.json`, and `pages.json`
 - 🕸️ native graph projection through `moonbook wiki graph [root]` and generated `book/site/generated/graph.json`
 - 📦 generated `book/site/generated/book-state.json` plus `knowledge-bundle.json` so suite apps can read current book state through stable MoonBook contracts
@@ -235,7 +235,7 @@ moon run cmd/main -- build ./research-wiki
 # optional: open ./research-wiki/book/site/generated/journal.html for the generated journal view
 # optional: open ./research-wiki/book/site/generated/course.html for the generated course view
 # optional: open ./research-wiki/book/site/generated/skills.html for the generated skill manager
-# optional: inspect ./research-wiki/.moonbook/state.json for the standalone book-state snapshot
+# optional: inspect ./research-wiki/state/state.json for the standalone book-state snapshot
 # optional: inspect ./research-wiki/book/site/generated/book-state.json, knowledge-bundle.json, and graph.json for suite consumers
 moon run cmd/main -- skill hub ./research-wiki -n 127.0.0.1 -p 3456
 ```

@@ -66,7 +66,7 @@ Bootstraps a wiki workspace:
 
 Installs an optional runtime/agent extension pack into an existing wiki workspace:
 
-1. creates `.moonbook/extensions/`
+1. creates `extensions/`
 2. writes an extension manifest for the selected pack
 3. writes any extension-owned runtime/config/workspace files
 4. copies extension-owned static `SKILL.md` templates from the repo seed directory
@@ -103,7 +103,7 @@ Runs a dedicated live backend for machine-wide skill operations:
 1. scans workspace `skills/`
 2. scans repo-seeded `seed/wiki/skills/`
 3. scans broader machine roots such as `$HOME/.claude/skills`, `$HOME/.claude/plugins`, `$HOME/.claude/projects`, current-working-directory ancestor skill folders, optional extra paths from `MOONBOOK_SKILL_HUB_EXTRA_PATHS` / `SKILL_HUB_EXTRA_PATHS`, and common development folders
-4. writes live state under `<root>/.moonbook-skill-hub/`
+4. writes live state under `.moonsuite/products/moonbook/skill-hub/`
 5. serves a browser UI specialized for skill inventory, editing, snapshots, rollback, and debug
 6. keeps the UI fresh through SSE events from `GET /api/events`
 
@@ -118,10 +118,10 @@ Current API surface:
 
 Current persistence layout:
 
-- `<root>/.moonbook-skill-hub/state.json`
-- `<root>/.moonbook-skill-hub/debug.json`
-- `<root>/.moonbook-skill-hub/version`
-- `<root>/.moonbook-skill-hub/snapshots/<skill-slug>/<timestamp>/`
+- `.moonsuite/products/moonbook/skill-hub/state.json`
+- `.moonsuite/products/moonbook/skill-hub/debug.json`
+- `.moonsuite/products/moonbook/skill-hub/version`
+- `.moonsuite/products/moonbook/skill-hub/snapshots/<skill-slug>/<timestamp>/`
 
 ### `moon run cmd/main -- skill show <name> [root]`
 
@@ -261,11 +261,11 @@ Prints a JSON health report for the book.
 ### `moon run cmd/main -- wiki extension state [root]`
 
 Prints the current `moonbook.book_state.v1` snapshot as JSON for extension
-runtimes that want a read-only state probe without writing `.moonbook/state.json`.
+runtimes that want a read-only state probe without writing `state/state.json`.
 
 ### `moon run cmd/main -- wiki state [root]`
 
-Writes `.moonbook/state.json` using the native `moonbook.book_state.v1`
+Writes `state/state.json` using the native `moonbook.book_state.v1`
 contract.
 
 The snapshot is the preferred suite-facing read model. It contains:
@@ -649,7 +649,7 @@ Created by `moonbook wiki init`:
   standalone graph written by `wiki bundle`
 - `book/knowledge/pages.json`
   typed durable page records written by `wiki bundle`
-- `.moonbook/state.json`
+- `state/state.json`
   standalone book-state snapshot written by `wiki state`
 - `wiki/history/journey.md`
   compact operator timeline distilled from persisted book results
@@ -698,7 +698,7 @@ Created by `moonbook wiki init`:
   wiki-maintainer schema instructions
 - `wiki.toml`
   workspace descriptor
-- `.moonbook/extensions/`
+- `extensions/`
   installed extension manifests
 
 ### `moonclaw` Extension Pack

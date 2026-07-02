@@ -47,7 +47,7 @@ Supported today:
 Installed files by pack:
 
 - `moonclaw`
-  - `.moonbook/extensions/moonclaw.json`
+  - `extensions/moonclaw.json`
   - `moonclaw.json`
   - `moonclaw.jobs.json`
   - `IDENTITY.md`
@@ -58,7 +58,7 @@ Installed files by pack:
   - `skills/wiki-maintainer/SKILL.md`
   - `skills/wiki-review/SKILL.md`
 - `moontown`
-  - `.moonbook/extensions/moontown.json`
+  - `extensions/moontown.json`
   - `moontown.book.json`
   - `EXTENSION_API.md`
 
@@ -96,7 +96,7 @@ Runtime-specific files should not be assumed to exist unless the matching extens
 Extension manifests are recorded under:
 
 ```text
-.moonbook/extensions/
+extensions/
 ```
 
 This is the runtime integration boundary MoonBook currently owns.

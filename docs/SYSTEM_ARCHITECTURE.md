@@ -188,7 +188,7 @@ Important wiki subdirectories:
 
 Generated consumer surfaces:
 
-- `.moonbook/state.json`
+- `state/state.json`
   native `moonbook.book_state.v1` snapshot for current book identity, health,
   readiness, latest event, and knowledge bundle
 - `book/knowledge/manifest.json`
@@ -216,7 +216,7 @@ The design intent is:
 
 - `moonbook wiki init` creates an agent-agnostic workspace
 - `moonbook wiki enable <extension>` installs optional runtime-specific files
-- extension manifests live under `.moonbook/extensions/`
+- extension manifests live under `extensions/`
 
 Current extension packs:
 
