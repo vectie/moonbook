@@ -27,7 +27,7 @@ pub async fn write_book_state_snapshot(root : String) -> String {
   let workspace = workspace_paths(root)
   let snapshot = generate_book_state_snapshot(root)
   let dir = moonbook_wiki_path(workspace.root)
-    .join(moonbook_wiki_path(".moonbook"))
+    .join(moonbook_wiki_path("state"))
     .to_string()
   @fsx.make_directory(dir, recursive=true, exists_ok=true)
   let path = moonbook_wiki_path(dir)
@@ -56,7 +56,7 @@ fn book_state_paths() -> BookStatePaths {
     knowledge_manifest: "book/knowledge/manifest.json",
     generated_knowledge_bundle: "book/site/generated/knowledge-bundle.json",
     generated_graph: "book/site/generated/graph.json",
-    latest_event: ".moonbook/events/latest.json",
+    latest_event: "events/latest.json",
     review_queue: "wiki/reviews/pending.md",
   }
 }
@@ -64,7 +64,7 @@ fn book_state_paths() -> BookStatePaths {
 ///|
 async fn read_latest_executable_event(root : String) -> ExecutableBookEvent? {
   let path = moonbook_wiki_path(root)
-    .join(moonbook_wiki_path(".moonbook/events/latest.json"))
+    .join(moonbook_wiki_path("events/latest.json"))
     .to_string()
   if !@fsx.exists(path) {
     return None
@@ -83,6 +83,6 @@ async test "book state snapshot includes knowledge bundle and latest event path"
   let snapshot = generate_book_state_snapshot(root)
   assert_eq(snapshot.contract, "moonbook.book_state.v1")
   assert_eq(snapshot.knowledge.contract, "moonbook.knowledge_bundle.v1")
-  assert_eq(snapshot.paths.latest_event, ".moonbook/events/latest.json")
+  assert_eq(snapshot.paths.latest_event, "events/latest.json")
   assert_true(snapshot.latest_event is None)
 }

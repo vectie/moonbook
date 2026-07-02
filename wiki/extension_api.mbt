@@ -457,7 +457,7 @@ async fn write_executable_book_event(
   event : ExecutableBookEvent,
 ) -> (String, String) {
   let events_dir = moonbook_wiki_path(workspace.root)
-    .join(moonbook_wiki_path(".moonbook/events"))
+    .join(moonbook_wiki_path("events"))
     .to_string()
   @fsx.make_directory(events_dir, recursive=true, exists_ok=true)
   let event_path = moonbook_wiki_path(events_dir)

@@ -20,7 +20,7 @@ pub async fn enable_extension(
   let normalized_extension = extension.trim().to_lower()
   let supported = supported_extensions().join(", ")
   let extensions_dir = moonbook_wiki_path(normalized_root)
-    .join(moonbook_wiki_path(".moonbook/extensions"))
+    .join(moonbook_wiki_path("extensions"))
     .to_string()
   @fsx.make_directory(extensions_dir, recursive=true, exists_ok=true)
   match normalized_extension {

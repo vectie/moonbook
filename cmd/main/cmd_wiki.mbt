@@ -586,7 +586,7 @@ async fn parse_wiki_keeper_submit_args(
     confirm,
     home,
     cwd: cwd.unwrap_or(root),
-    moonclaw_root: moonclaw_root.unwrap_or(default_moonclaw_root()),
+    moonclaw_root: moonclaw_root.unwrap_or(default_moonclaw_root(root)),
   }
 }
 
@@ -670,10 +670,15 @@ fn resolve_keeper_packet_path(root : String, packet_path : String) -> String {
 }
 
 ///|
-fn default_moonclaw_root() -> String {
+fn default_moonclaw_root(root : String) -> String {
   match @sys.get_env_var("MOONCLAW_ROOT") {
     Some(root) if !root.is_empty() => root
-    _ => ".moonbook/external/moonclaw"
+    _ =>
+      @moonsuite.product_external_tool_home(
+        @moonsuite.suite_root_for_workspace_root(root),
+        "moonbook",
+        "moonclaw",
+      )
   }
 }
 

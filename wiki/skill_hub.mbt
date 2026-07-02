@@ -213,7 +213,7 @@ async fn refresh_skill_hub_state(root : String) -> Unit {
     roots,
     watch_roots: skill_hub_watch_roots(roots, skills),
     ignored_patterns: [
-      ".git", "node_modules", "_build", "book", ".moonbook-skill-hub",
+      ".git", "node_modules", "_build", "book", ".moonsuite", ".tmp",
     ],
     errors,
     duration_ms: @async.now().to_int() - started,
@@ -452,9 +452,9 @@ async fn collect_skill_hub_records_from_root(
 ///|
 fn should_descend_skill_hub_dir(path : String) -> Bool {
   let base = moonbook_wiki_path(path).basename().to_owned()
-  ![
-    ".git", "node_modules", "_build", "book", ".moonbook-skill-hub", ".DS_Store",
-  ].contains(base)
+  ![".git", "node_modules", "_build", "book", ".moonsuite", ".tmp", ".DS_Store"].contains(
+    base,
+  )
 }
 
 ///|
@@ -474,9 +474,7 @@ fn skill_hub_record_id(path : String) -> String {
 
 ///|
 fn skill_hub_state_dir(root : String) -> String {
-  moonbook_wiki_path(root)
-  .join(moonbook_wiki_path(".moonbook-skill-hub"))
-  .to_string()
+  @moonsuite.product_artifact_for_workspace_root(root, "moonbook", "skill-hub")
 }
 
 ///|
