@@ -349,6 +349,10 @@ async fn write_live_reload_token(build_dir : String) -> Unit {
   let token_path = moonbook_cmd_path(build_dir)
     .join(moonbook_cmd_path(@moonwiki.live_reload_token_file))
     .to_string()
+  let token_parent = moonbook_cmd_path(token_path).dirname().to_string()
+  @fsx.make_directory(token_parent, recursive=true, exists_ok=true) catch {
+    _ => ()
+  }
   let token = "\{@async.now().to_int()}"
   @fsx.write_to_file(token_path, token, create=0o666) catch {
     _ => ()

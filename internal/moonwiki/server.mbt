@@ -9,7 +9,7 @@ pub struct ServeOptions {
 } derive(Debug, ToJson)
 
 ///|
-pub let live_reload_token_file : String = ".moonbook-livereload"
+pub let live_reload_token_file : String = "state/moonbook-livereload.token"
 
 ///|
 pub fn default_options(root : String) -> ServeOptions {
@@ -371,6 +371,12 @@ test "resolve request path normalizes and rejects traversal" {
     Some("/tmp/moonbook-serve/nested/page.html"),
   )
   assert_true(resolve_request_path("/tmp/moonbook-serve", "/../secret") == None)
+}
+
+///|
+test "live reload token uses visible state path" {
+  assert_eq(live_reload_token_file, "state/moonbook-livereload.token")
+  assert_false(live_reload_token_file.has_prefix(".moonbook"))
 }
 
 ///|
