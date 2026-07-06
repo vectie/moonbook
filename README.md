@@ -7,6 +7,8 @@
 MoonBook is a MoonBit-native executable book and wiki workspace for durable sources, generated pages, review queues, and book-owned tools.
 
 In the wider Moon architecture, MoonBook is the executable book: MoonWiki edits what the book says, MoonCode edits what the book can do, and MoonClaw executes bounded work. See [Executable Book Boundary](docs/EXECUTABLE_BOOK_BOUNDARY.md).
+Start with [docs/README.md](docs/README.md) for the documentation map,
+implementation boundary, testing guidance, operational notes, and future plan.
 
 MoonBook treats a book as a live workspace: raw sources, durable wiki pages,
 review queues, generated projections, executable events, and book-owned tools
