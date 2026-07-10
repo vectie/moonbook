@@ -195,11 +195,38 @@ async fn page_content_map(
 ) -> Map[String, String] {
   let contents : Map[String, String] = {}
   for path in page_paths {
-    contents[relative_to_root(path, root)] = strip_moonbook_metadata_block(
+    contents[relative_to_root(path, root)] = maintained_analysis_content(
       @fsx.read_file(path),
     )
   }
   contents
+}
+
+///|
+fn maintained_analysis_content(content : String) -> String {
+  let builder = StringBuilder::new()
+  let mut in_fence = false
+  let mut ignored_section = false
+  for raw in strip_moonbook_metadata_block(content).split("\n") {
+    let line = raw.to_owned()
+    let trimmed = line.trim().to_owned()
+    if trimmed.has_prefix("```") {
+      in_fence = !in_fence
+      continue
+    }
+    if in_fence {
+      continue
+    }
+    if trimmed.has_prefix("## ") {
+      ignored_section = trimmed == "## Extract" ||
+        trimmed == "## Raw extract-derived summary (unreviewed)"
+    }
+    if !ignored_section {
+      builder.write_string(line)
+      builder.write_char('\n')
+    }
+  }
+  builder.to_string()
 }
 
 ///|
@@ -428,14 +455,13 @@ fn missing_concept_page_findings(
   }
   for slug in suggested.keys() {
     let evidence = suggested[slug]
-    let mut has_source_evidence = false
+    let mut source_evidence_count = 0
     for path in evidence {
       if path.has_prefix("wiki/sources/") {
-        has_source_evidence = true
-        break
+        source_evidence_count += 1
       }
     }
-    if evidence.length() >= 2 && has_source_evidence {
+    if source_evidence_count >= 2 {
       let evidence_text = evidence.join(", ")
       findings.push({
         kind: "missing-concept-page",
@@ -703,6 +729,24 @@ test "normalize page link resolves relative page paths" {
 }
 
 ///|
+test "maintained analysis excludes raw and explicitly unreviewed extracts" {
+  let content = "# Source\n\n## Reviewed synopsis\n\nLunar dust affects mobility.\n\n## Raw extract-derived summary (unreviewed)\n\ngform hooks https noise\n\n## Extract\n\n```text\nmore gform noise\n```\n"
+  let maintained = maintained_analysis_content(content)
+  assert_true(maintained.contains("Lunar dust affects mobility."))
+  assert_false(maintained.contains("gform"))
+  assert_false(maintained.contains("https"))
+}
+
+///|
+test "concept gaps require repetition across independent source pages" {
+  let findings = missing_concept_page_findings({
+    "wiki/sources/one.md": "# One\n\nHazard avoidance matters.",
+    "wiki/synthesis/overview.md": "# Overview\n\nHazard avoidance matters.",
+  })
+  assert_true(findings.is_empty())
+}
+
+///|
 test "index placeholder detection reports empty sections" {
   let placeholders = index_placeholders(
     "## Entities\n\n_None yet._\n\n## Sources\n\n_None yet._\n",
@@ -752,6 +796,7 @@ test "contradiction findings detect conflicting simple claims" {
 test "missing concept page findings suggest absent concept pages" {
   let findings = missing_concept_page_findings({
     "wiki/sources/a.md": "Runtime pipeline confidence.\n",
+    "wiki/sources/b.md": "Runtime confidence.\n",
     "wiki/synthesis/overview.md": "Runtime confidence.\n",
   })
   assert_true(findings.length() >= 1)

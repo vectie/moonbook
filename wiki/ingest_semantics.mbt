@@ -1254,6 +1254,15 @@ fn should_keep_concept_word(word : String) -> Bool {
     | "source"
     | "title"
     | "query"
+    | "queries"
+    | "claim"
+    | "claims"
+    | "evidence"
+    | "support"
+    | "acceptance"
+    | "lunar"
+    | "south"
+    | "window"
     | "pages"
     | "page"
     | "keeps"
@@ -1363,29 +1372,34 @@ fn detect_canonical_concepts(text : String) -> Array[String] {
   }
   if lowered.contains("gateway") ||
     lowered.contains("restart") ||
-    lowered.contains("daemon") ||
-    lowered.contains("status") ||
-    lowered.contains("service") {
+    lowered.contains("daemon") {
     concepts.push("gateway operations")
   }
   if lowered.contains("feishu") ||
-    lowered.contains("channel") ||
     lowered.contains("plugin") ||
     lowered.contains("imessage") ||
     lowered.contains("pairing") {
     concepts.push("channel integration")
   }
-  if lowered.contains("windows") ||
-    lowered.contains("macos") ||
-    lowered.contains("wsl") ||
-    lowered.contains("server") ||
-    lowered.contains("cloud") {
+  let software_context = lowered.contains("moonclaw") ||
+    lowered.contains("powershell") ||
+    lowered.contains("npm") ||
+    lowered.contains("pnpm") ||
+    lowered.contains("install") ||
+    lowered.contains("gateway") ||
+    lowered.contains("daemon")
+  if software_context &&
+    (
+      lowered.contains("windows") ||
+      lowered.contains("macos") ||
+      lowered.contains("wsl") ||
+      lowered.contains("server") ||
+      lowered.contains("cloud")
+    ) {
     concepts.push("deployment environments")
   }
   if lowered.contains("troubleshoot") ||
     lowered.contains("error") ||
-    lowered.contains("verify") ||
-    lowered.contains("validation") ||
     lowered.contains("常见问题") ||
     lowered.contains("验证") {
     concepts.push("troubleshooting patterns")

@@ -88,7 +88,12 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
     exists_ok=true,
   )
 
-  let resolved_source = resolve_input_source(source_path)
+  let remote_source = is_remote_source(source_path)
+  let resolved_source = if remote_source {
+    fetch_remote_source(workspace.raw_dir, source_path)
+  } else {
+    resolve_input_source(source_path)
+  }
   if !@fsx.exists(resolved_source) {
     fail("source does not exist: \{resolved_source}")
   }
@@ -147,7 +152,7 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
     page_path,
     raw_path: stored_raw_path,
     title,
-    imported: !source_under_raw,
+    imported: remote_source || !source_under_raw,
     related_pages,
     keeper_packet_path,
   }
@@ -178,7 +183,13 @@ async fn suggest_source_slug(title : String, path : String) -> String {
   let content = @fsx.read_file(path)
   let title_signal = (title + "\n" + file_stem(path)).to_lower()
   let content_signal = content.to_lower()
-  let suggested = if title_signal.contains("troubleshoot") ||
+  let title_slug = slugify_title(title)
+  let suggested = if content.contains(
+      "- Retrieval mode: bounded remote extract",
+    ) &&
+    !is_generic_source_slug(title_slug) {
+    title_slug
+  } else if title_signal.contains("troubleshoot") ||
     title_signal.contains("verification") ||
     title_signal.contains("common issue") ||
     title_signal.contains("常见问题") ||
@@ -285,6 +296,12 @@ async fn unique_import_path(imported_dir : String, basename : String) -> String 
 async fn detect_source_title(path : String) -> String {
   if is_text_source(path) {
     let content = @fsx.read_file(path)
+    if @pathx.ext(path).to_owned().to_lower() == ".json" {
+      match detect_json_source_title(content) {
+        Some(title) => return title
+        None => ()
+      }
+    }
     let heading = first_markdown_heading(content)
     if !heading.is_empty() {
       return heading
@@ -295,6 +312,30 @@ async fn detect_source_title(path : String) -> String {
     }
   }
   file_stem(path)
+}
+
+///|
+fn detect_json_source_title(content : String) -> String? {
+  let parsed = @json.parse(content) catch { _ => return None }
+  guard parsed is Object(fields) else { return None }
+  for key in ["title", "name", "evidence_id", "dataset_id", "id"] {
+    match fields.get(key) {
+      Some(String(value)) if !value.trim().is_empty() =>
+        return Some(value.trim().to_owned())
+      _ => ()
+    }
+  }
+  None
+}
+
+///|
+test "JSON source title prefers durable identity fields over punctuation" {
+  assert_true(
+    detect_json_source_title(
+      "{\"evidence_id\":\"first-trusted-square-window-search-v1\"}",
+    ) ==
+    Some("first-trusted-square-window-search-v1"),
+  )
 }
 
 ///|
@@ -340,17 +381,40 @@ async fn source_page_text(
   let now = "\{@async.now().to_int()}"
   if is_text_source(stored_raw_path) {
     let content = @fsx.read_file(stored_raw_path)
-    let overview = summarize_source(title, content)
+    let remote_packet = content.contains(
+      "- Retrieval mode: bounded remote extract",
+    )
+    let overview = if remote_packet {
+      "Bounded remote capture of \{title}. Treat extracted text as provisional research material and verify promoted claims against the recorded source URL."
+    } else {
+      summarize_source(title, content)
+    }
     let excerpt = excerpt_source(content, 24)
-    let source_type = detect_source_type(title, stored_raw_path, content)
-    let scope = detect_source_scope(title, stored_raw_path, content)
-    let signals = detect_source_signals(title, stored_raw_path, content)
+    let source_type = if remote_packet {
+      "remote web source"
+    } else {
+      detect_source_type(title, stored_raw_path, content)
+    }
+    let scope = if remote_packet {
+      "source-specific research evidence; claim promotion requires URL review"
+    } else {
+      detect_source_scope(title, stored_raw_path, content)
+    }
+    let signals = if remote_packet {
+      []
+    } else {
+      detect_source_signals(title, stored_raw_path, content)
+    }
     moonbook_metadata_block(
       "source",
       title,
       overview,
       "accepted",
-      "verified",
+      if remote_packet {
+        "provisional"
+      } else {
+        "verified"
+      },
       ["source", "evidence"],
       now,
     ) +
@@ -456,15 +520,34 @@ async fn enrich_ingest(
 
   let content = @fsx.read_file(stored_raw_path)
   let related_pages : Array[String] = []
-  let entities = extract_candidate_entities(source_title, content)
-  let concepts = extract_candidate_concepts(content)
-  let claims = extract_structured_claims(content)
+  let remote_packet = content.contains(
+    "- Retrieval mode: bounded remote extract",
+  )
+  let entities = if remote_packet {
+    []
+  } else {
+    extract_candidate_entities(source_title, content)
+  }
+  let concepts = if remote_packet {
+    []
+  } else {
+    extract_candidate_concepts(content)
+  }
+  let claims = if remote_packet {
+    []
+  } else {
+    extract_structured_claims(content)
+  }
   related_pages.push(
     ensure_synthesis_overview(
       workspace,
       source_title,
       source_relative_page,
-      summarize_source(source_title, content),
+      if remote_packet {
+        "Bounded remote capture stored for reviewed query and synthesis work; no ontology or claims are promoted from navigation or script text."
+      } else {
+        summarize_source(source_title, content)
+      },
       entities,
       concepts,
       claims.map(claim => claim.summary_line()),
@@ -552,6 +635,12 @@ async fn ingest_packet_notes(
     ]
   }
   let content = @fsx.read_file(stored_raw_path)
+  if content.contains("- Retrieval mode: bounded remote extract") {
+    return [
+      "remote-source: bounded capture; review the recorded URL before promoting claims",
+      "skill-followup: source-diarize, synthesis-revise, index-maintain",
+    ]
+  }
   let entities = extract_candidate_entities(file_stem(stored_raw_path), content)
   let concepts = extract_candidate_concepts(content)
   let claims = extract_structured_claims(content)

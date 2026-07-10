@@ -69,7 +69,7 @@ async fn run_wiki_ingest(root : String, source : String) -> Unit {
   let result = @wiki.ingest_source(root, source) catch {
     error => {
       println("moonbook wiki ingest failed: \{error}")
-      return
+      @os.exit(1)
     }
   }
   println("ingested \{result.title}")

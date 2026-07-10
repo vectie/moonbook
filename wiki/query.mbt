@@ -97,7 +97,11 @@ fn is_queryable_page(path : String) -> Bool {
   base != "Home.md" &&
   base != "index.md" &&
   base != "log.md" &&
+  !normalized.has_suffix("/wiki/synthesis/maintenance-plan.md") &&
+  !normalized.has_suffix("/wiki/synthesis/map.md") &&
   !normalized.has_suffix("/wiki/synthesis/query-insights.md") &&
+  !normalized.contains("/wiki/planning/") &&
+  !normalized.contains("/wiki/history/debug-journal.md") &&
   !normalized.contains("/wiki/reviews/") &&
   !normalized.contains("/wiki/queries/")
 }
@@ -112,11 +116,17 @@ async fn rank_matches(
   for path in page_paths {
     let content = @fsx.read_file(path)
     let title = detect_page_title(path, content)
-    let score = relevance_score(title, content, terms)
+    let relative_path = relative_to_root(path, root)
+    let relevance = relevance_score(title, content, terms)
+    let score = if relevance > 0 {
+      relevance + query_page_evidence_weight(relative_path)
+    } else {
+      0
+    }
     if score > 0 {
       matches.push({
         path,
-        relative_path: relative_to_root(path, root),
+        relative_path,
         title,
         excerpt: matching_excerpt(content, terms),
         score,
@@ -131,6 +141,20 @@ async fn rank_matches(
     }
   })
   matches
+}
+
+///|
+fn query_page_evidence_weight(relative_path : String) -> Int {
+  if relative_path.has_prefix("wiki/sources/") {
+    4
+  } else if relative_path.has_prefix("wiki/entities/") ||
+    relative_path.has_prefix("wiki/concepts/") {
+    3
+  } else if relative_path.has_prefix("wiki/synthesis/") {
+    2
+  } else {
+    0
+  }
 }
 
 ///|
@@ -182,6 +206,10 @@ fn occurrence_count(text : String, pattern : String) -> Int {
 
 ///|
 fn matching_excerpt(content : String, terms : Array[String]) -> String {
+  match metadata_summary_excerpt(content) {
+    Some(summary) => return clamp_excerpt(summary)
+    None => ()
+  }
   for raw in content.split("\n") {
     let line = raw.trim().to_owned()
     if line.is_empty() || line.has_prefix("#") {
@@ -195,6 +223,28 @@ fn matching_excerpt(content : String, terms : Array[String]) -> String {
     }
   }
   clamp_excerpt(strip_inline_markup(first_nonempty_line(content)))
+}
+
+///|
+fn metadata_summary_excerpt(content : String) -> String? {
+  for raw in content.split("\n") {
+    let line = raw.trim().to_owned()
+    if !line.has_prefix("summary:") {
+      continue
+    }
+    let value = line["summary:".length():].trim().to_owned()
+    let unquoted = if value.length() >= 2 &&
+      value.has_prefix("\"") &&
+      value.has_suffix("\"") {
+      value[1:value.length() - 1].to_owned()
+    } else {
+      value
+    }
+    if !unquoted.is_empty() {
+      return Some(unquoted)
+    }
+  }
+  None
 }
 
 ///|
@@ -223,7 +273,7 @@ fn answer_text(question : String, matches : Array[QueryMatch]) -> String {
   builder.write_string("# Query: \{question}\n\n")
   builder.write_string("## Answer\n\n")
   builder.write_string(
-    "Based on the current wiki pages, the strongest matches are summarized below.\n\n",
+    "Based on the maintained wiki pages at query time, the strongest matches are summarized below.\n\n",
   )
   builder.write_string("## Relevant Pages\n\n")
   for match_ in matches {
@@ -648,4 +698,25 @@ test "matching excerpt prefers matching line" {
     ["alpha"],
   )
   assert_eq(excerpt, "relevant alpha note")
+}
+
+///|
+test "matching excerpt prefers maintained metadata summary" {
+  let excerpt = matching_excerpt(
+    "---\ntitle: \"Lunar Window\"\nsummary: \"Route evidence supports a bounded November traverse.\"\n---\n# Lunar Window\n",
+    ["lunar"],
+  )
+  assert_eq(excerpt, "Route evidence supports a bounded November traverse.")
+}
+
+///|
+test "query excludes maintenance scaffolding and weights source evidence" {
+  assert_false(
+    is_queryable_page("/tmp/book/wiki/synthesis/maintenance-plan.md"),
+  )
+  assert_false(
+    is_queryable_page("/tmp/book/wiki/planning/execution-evidence.md"),
+  )
+  assert_eq(query_page_evidence_weight("wiki/sources/nasa.md"), 4)
+  assert_eq(query_page_evidence_weight("wiki/concepts/terrain.md"), 3)
 }
