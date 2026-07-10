@@ -27,7 +27,9 @@ pub async fn lint_wiki(root : String) -> LintResult {
   let contents = page_content_map(page_paths, workspace.root)
 
   let inbound = inbound_link_counts(page_paths, workspace.root)
-  let summary_links = extract_markdown_links(summary_text)
+  let summary_links = extract_markdown_links(summary_text).map(link => {
+    normalize_page_link("wiki", link)
+  })
   let tracked_pages = builtin_tracked_pages()
 
   for relative_page in relative_pages {
@@ -38,8 +40,7 @@ pub async fn lint_wiki(root : String) -> LintResult {
       continue
     }
     let inbound_count = inbound.get(relative_page).unwrap_or(0)
-    let in_summary = summary_links.contains("./" + relative_page) ||
-      summary_links.contains(relative_page)
+    let in_summary = summary_links.contains(relative_page)
     if !in_summary && inbound_count == 0 {
       findings.push({
         kind: "orphan-page",
@@ -390,6 +391,16 @@ fn missing_concept_page_findings(
   contents : Map[String, String],
 ) -> Array[LintFinding] {
   let findings : Array[LintFinding] = []
+  let mut has_source_evidence = false
+  for path in contents.keys() {
+    if path.has_prefix("wiki/sources/") {
+      has_source_evidence = true
+      break
+    }
+  }
+  if !has_source_evidence {
+    return findings
+  }
   let concept_pages : Map[String, Bool] = {}
   for path in contents.keys() {
     if path.has_prefix("wiki/concepts/") {
@@ -417,7 +428,14 @@ fn missing_concept_page_findings(
   }
   for slug in suggested.keys() {
     let evidence = suggested[slug]
-    if evidence.length() >= 2 || is_salient_concept_word(slug) {
+    let mut has_source_evidence = false
+    for path in evidence {
+      if path.has_prefix("wiki/sources/") {
+        has_source_evidence = true
+        break
+      }
+    }
+    if evidence.length() >= 2 && has_source_evidence {
       let evidence_text = evidence.join(", ")
       findings.push({
         kind: "missing-concept-page",
@@ -595,11 +613,17 @@ fn likely_claim_predicate(text : String) -> Bool {
 
 ///|
 fn contains_stale_word(text : String) -> Bool {
-  text.contains("latest") ||
-  text.contains("current") ||
-  text.contains("recent") ||
-  text.contains("today") ||
-  text.contains("now")
+  for raw in text.split(" ") {
+    let word = raw.trim(chars="`*_.,:;!?()[]{}\"'").to_owned()
+    if word == "latest" ||
+      word == "current" ||
+      word == "recent" ||
+      word == "today" ||
+      word == "now" {
+      return true
+    }
+  }
+  false
 }
 
 ///|
@@ -699,6 +723,22 @@ test "stale wording finds time-sensitive lines without dates" {
 }
 
 ///|
+test "stale wording does not match now inside knowledge" {
+  let findings = stale_wording_findings({
+    "wiki/page.md": "Structured support records for reviewed knowledge.\n",
+  })
+  assert_true(findings.is_empty())
+}
+
+///|
+test "summary links resolve relative to the wiki directory" {
+  let links = extract_markdown_links(
+    "[Active Plan Review](./reviews/active-plan-review.md)",
+  ).map(link => normalize_page_link("wiki", link))
+  assert_true(links.contains("wiki/reviews/active-plan-review.md"))
+}
+
+///|
 test "contradiction findings detect conflicting simple claims" {
   let findings = contradiction_findings({
     "wiki/a.md": "Alpha is red.\n",
@@ -716,6 +756,24 @@ test "missing concept page findings suggest absent concept pages" {
   })
   assert_true(findings.length() >= 1)
   assert_true(findings[0].kind == "missing-concept-page")
+}
+
+///|
+test "empty scaffold synthesis does not require concept pages before sources exist" {
+  let findings = missing_concept_page_findings({
+    "wiki/synthesis/claims.md": "# Claims\n\n## Claims\n\n_None yet._\n",
+    "wiki/synthesis/evidence.md": "# Evidence\n\nSupport records.\n",
+  })
+  assert_true(findings.is_empty())
+}
+
+///|
+test "repeated operational wording without source evidence does not require a concept page" {
+  let findings = missing_concept_page_findings({
+    "wiki/entities/system.md": "Runtime state and evidence routing.\n",
+    "wiki/synthesis/overview.md": "Runtime state and evidence routing.\n",
+  })
+  assert_true(findings.is_empty())
 }
 
 ///|

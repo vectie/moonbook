@@ -83,6 +83,12 @@ pub fn supported_extensions() -> Array[String]
 
 pub async fn sync_skill(String, String) -> SkillSyncResult
 
+pub fn wiki_readiness_accepted(Json) -> Bool
+
+pub async fn wiki_readiness_json(String, revision? : String) -> Json
+
+pub fn wiki_readiness_path(String) -> String
+
 pub async fn write_book_state_snapshot(String) -> String
 
 pub async fn write_generated_book_state(String, String) -> String
@@ -94,6 +100,8 @@ pub async fn write_knowledge_bundle(String, output_dir? : String?) -> String
 pub async fn write_marketing_projection(String, String) -> String
 
 pub async fn write_ui_state(String, String) -> String
+
+pub async fn write_wiki_readiness(String, revision? : String) -> Json
 
 // Errors
 

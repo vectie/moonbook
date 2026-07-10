@@ -97,7 +97,7 @@ fn moonclaw_providers_text(root : String) -> String {
 
 ///|
 fn detect_moonbook_module_root() -> String {
-  @env.current_dir().unwrap_or(".")
+  moonbook_module_root()
 }
 
 ///|

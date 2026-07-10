@@ -2,7 +2,7 @@
 // Skill paths, copy/sync helpers, slugs, and scaffold text generation.
 
 fn skill_module_root() -> String {
-  @env.current_dir().unwrap_or(".")
+  moonbook_module_root()
 }
 
 ///|

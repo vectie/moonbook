@@ -12,6 +12,7 @@ import {
   "vectie/moonbook/wiki",
   "vectie/moonbook/plugins/moonstat",
   "vectie/moonlib/moonsuite",
+  "vectie/moonlib/os",
   "moonbitlang/x/path",
   "moonbitlang/x/sys",
 }

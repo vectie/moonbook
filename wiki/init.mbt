@@ -105,6 +105,9 @@ pub async fn init_workspace(
   let claims_path = moonbook_wiki_path(synthesis_dir)
     .join(moonbook_wiki_path("claims.md"))
     .to_string()
+  let overview_path = moonbook_wiki_path(synthesis_dir)
+    .join(moonbook_wiki_path("overview.md"))
+    .to_string()
   let maintenance_plan_path = moonbook_wiki_path(synthesis_dir)
     .join(moonbook_wiki_path("maintenance-plan.md"))
     .to_string()
@@ -302,6 +305,7 @@ pub async fn init_workspace(
   write_if_missing(home_path, home_text())
   write_if_missing(index_path, index_text())
   write_if_missing(log_path, log_text())
+  write_if_missing(overview_path, overview_text())
   write_if_missing(claims_path, claims_text())
   write_if_missing(maintenance_plan_path, maintenance_plan_text())
   write_if_missing(query_insights_path, query_insights_text())
@@ -438,7 +442,7 @@ async fn copy_seed_tree(
 
 ///|
 fn seed_module_root() -> String {
-  @env.current_dir().unwrap_or(".")
+  moonbook_module_root()
 }
 
 ///|
@@ -520,7 +524,7 @@ fn home_text() -> String {
   "5. `wiki/synthesis/` tracks overview, claims, maintenance, evidence, and observations.\n\n" +
   "## PlanBook Layout\n\n" +
   "1. `plans/` stores executable plans that can drive implementation.\n" +
-  "2. `wiki/planning/index.md` catalogs current plans, owners, acceptance criteria, and open gaps.\n" +
+  "2. `wiki/planning/index.md` catalogs active plans, owners, acceptance criteria, and open gaps.\n" +
   "3. `wiki/planning/execution-evidence.md` records validation evidence after work happens.\n" +
   "4. `wiki/reviews/active-plan-review.md` tracks review findings for the active plan.\n\n" +
   "## Usage\n\n" +
@@ -549,6 +553,7 @@ fn index_text() -> String {
   "- [Journey](./history/journey.md): compact operator-facing journey from earlier runs to the current book state\n" +
   "- [Debug Journal](./history/debug-journal.md): detailed keeper and worker debug trail for intermediate preparation quality\n" +
   "- [Pending Review](./reviews/pending.md): pending human review items\n" +
+  "- [Active Plan Review](./reviews/active-plan-review.md): findings for the active executable plan\n" +
   "- [Approved Review](./reviews/approved.md): accepted review decisions\n\n" +
   "## Research Bootstrap Layout\n\n" +
   "- `../raw/`: immutable source files waiting to be diarized or revised into the wiki\n" +
@@ -989,6 +994,14 @@ fn claims_text() -> String {
 }
 
 ///|
+fn overview_text() -> String {
+  "# Overview\n\n" +
+  "Cross-source synthesis belongs here after the first qualified source is ingested.\n\n" +
+  "## Synthesis\n\n" +
+  "_None yet._\n"
+}
+
+///|
 fn query_insights_text() -> String {
   "# Query Insights\n\n" +
   "This page accumulates durable insights captured from saved queries.\n\n" +
@@ -1278,6 +1291,13 @@ test "summary seeds wiki navigation pages" {
   assert_true(
     text.contains("[Maintenance Plan](./synthesis/maintenance-plan.md)"),
   )
+}
+
+///|
+test "overview seed provides the page referenced by the index" {
+  let text = overview_text()
+  assert_true(text.contains("# Overview"))
+  assert_true(text.contains("## Synthesis"))
 }
 
 ///|
