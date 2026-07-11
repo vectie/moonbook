@@ -117,7 +117,7 @@ When the task asks for course artifacts, the artifact list should include:
 
 A good course page should let a new reader answer:
 
-- what are Moontown, MoonBook, and MoonClaw
+- what are MoonTown, MoonBook, and MoonClaw
 - what does raw-first bootstrap mean
 - what is the keeper doing
 - where does durable knowledge live
@@ -178,7 +178,7 @@ Write a one-paragraph product statement and list three non-goals.
 
 ### Checkpoint
 A new teammate can explain what belongs in the town and what belongs in
-Moondesk.
+MoonDesk.
 
 ### Common mistake
 Starting with CSS offsets or random assets before defining the role of the

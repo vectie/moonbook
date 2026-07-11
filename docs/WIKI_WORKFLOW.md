@@ -135,7 +135,7 @@ from that model.
 ### 3. Standing Watch
 
 Standing watch is the MoonBook-side half of 24/7 monitoring.
-Moontown schedules and supervises the loop; MoonBook owns the book-local baseline decision.
+MoonTown schedules and supervises the loop; MoonBook owns the book-local baseline decision.
 
 ```bash
 moon run cmd/main -- wiki extension tasks ./research-wiki "standing-watch: periodically check latest sources about one person company and update only when there is a meaningful delta"

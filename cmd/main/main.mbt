@@ -7,6 +7,10 @@ async fn main {
     ["skill", .. skill_args] => run_skill(skill_args.to_owned())
     ["doctor", .. doctor_args] => run_doctor(doctor_args.to_owned())
     ["wiki", .. wiki_args] => run_wiki(wiki_args.to_owned())
+    ["bookkeeper", .. bookkeeper_args] =>
+      run_bookkeeper(bookkeeper_args.to_owned())
+    ["executable", .. executable_args] =>
+      run_executable(executable_args.to_owned())
     ["build", root] => run_build(root)
     ["build"] => run_build(".")
     ["serve", .. serve_args] => run_serve(serve_args.to_owned())

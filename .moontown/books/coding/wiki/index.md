@@ -19,10 +19,10 @@
 ## Entities
 
 - [Keeper](./entities/keeper.md): book-local maintenance boundary for durable wiki revision
-- [Mayor](./entities/mayor.md): strategic Moontown runtime for dispatch and packet preparation
+- [Mayor](./entities/mayor.md): strategic MoonTown runtime for dispatch and packet preparation
 - [MoonBook](./entities/moonbook.md): durable workspace and wiki owner
 - [MoonClaw](./entities/moonclaw.md): execution substrate for proposals and workflows
-- [Moontown](./entities/moontown.md): town-level orchestrator above books and runtimes
+- [MoonTown](./entities/moontown.md): town-level orchestrator above books and runtimes
 
 ## Concepts
 
@@ -39,4 +39,4 @@ _None yet._
 
 - [MoonBook Repo Overview](./sources/moonbook-repo-overview.md): durable source summary for the MoonBook repo and wiki workflow
 - [MoonClaw Repo Overview](./sources/moonclaw-repo-overview.md): durable source summary for the MoonClaw runtime repo
-- [Moontown Repo Overview](./sources/moontown-repo-overview.md): durable source summary for the Moontown orchestration repo
+- [MoonTown Repo Overview](./sources/moontown-repo-overview.md): durable source summary for the MoonTown orchestration repo

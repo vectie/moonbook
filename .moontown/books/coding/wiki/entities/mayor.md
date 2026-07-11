@@ -2,7 +2,7 @@
 
 ## Identity
 
-Mayor is the strategic runtime role embedded by Moontown for town-level dispatch and keeper packet preparation.
+Mayor is the strategic runtime role embedded by MoonTown for town-level dispatch and keeper packet preparation.
 
 ## Role
 
@@ -12,10 +12,10 @@ Mayor is the strategic runtime role embedded by Moontown for town-level dispatch
 
 ## Relationships
 
-- Lives inside [Moontown](./moontown.md).
+- Lives inside [MoonTown](./moontown.md).
 - Uses [MoonBook](./moonbook.md) worker context to prepare packets.
 - Maps tasks onto [MoonClaw](./moonclaw.md) controller profiles such as `wiki_ingest_controller` and `wiki_query_controller`.
-- Is evidenced by [Moontown Repo Overview](../sources/moontown-repo-overview.md).
+- Is evidenced by [MoonTown Repo Overview](../sources/moontown-repo-overview.md).
 
 ## Operational Relevance
 

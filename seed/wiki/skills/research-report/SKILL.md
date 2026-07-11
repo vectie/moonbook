@@ -5,7 +5,7 @@ description: Turn screened research artifacts and wiki pages into a reader-facin
 
 # Research Report Skill
 
-Use this skill when a MoonBook keeper, MoonClaw worker, or Moontown lane needs to turn gathered material into a high-quality research article.
+Use this skill when a MoonBook keeper, MoonClaw worker, or MoonTown lane needs to turn gathered material into a high-quality research article.
 
 This skill is not for fetching sources. It is for synthesis after collection has produced enough raw material. If source collection is missing, write a blocker and ask for the missing artifacts instead of inventing a report.
 
@@ -190,13 +190,13 @@ For a single-topic report, prefer this exact Markdown heading skeleton:
 
 You may rename headings only when the source material clearly calls for a better reader-facing title. Do not remove the section structure.
 
-For a town-level report covering Moontown, MoonBook, and MoonClaw together, use this section order:
+For a town-level report covering MoonTown, MoonBook, and MoonClaw together, use this section order:
 
 1. Executive summary
 2. Ecosystem overview and foundational context
 3. MoonBook: documentation and knowledge infrastructure
 4. MoonClaw: agent runtime and job orchestration
-5. Moontown: orchestration layer and control plane
+5. MoonTown: orchestration layer and control plane
 6. Inter-system integration and architectural relationships
 7. Technical documentation and development resources
 8. Comparative and contextual analysis
@@ -272,7 +272,7 @@ When the evidence matrix has at least five usable rows, the report must include:
 - at least 1 paragraph explaining what evidence is local-only, public-web,
   inferred, or provisional
 
-For the MoonBook/MoonClaw/Moontown stack, a Kimi-standard town-level report must
+For the MoonBook/MoonClaw/MoonTown stack, a Kimi-standard town-level report must
 contain all three project sections, even if one project has weaker evidence. If
 one project is weak, state that as a maturity/evidence limitation; do not omit
 the project.
@@ -352,7 +352,7 @@ Bad transformation:
 When the topic asks for several related projects, write the relationship, not
 three isolated mini-reports.
 
-For Moontown, MoonBook, and MoonClaw, always answer:
+For MoonTown, MoonBook, and MoonClaw, always answer:
 
 - What does each layer own?
 - Which layer plans?
@@ -367,7 +367,7 @@ Include a table like:
 ```markdown
 | Layer | Owns | Does not own | Evidence |
 | --- | --- | --- | --- |
-| Moontown | scheduling, policy, multi-book orchestration | durable domain memory | L1, L3 |
+| MoonTown | scheduling, policy, multi-book orchestration | durable domain memory | L1, L3 |
 | MoonBook | workspace semantics, skills, wiki materialization, projections | tool execution runtime | L2, L4 |
 | MoonClaw | worker execution, tools, jobs, artifacts | long-term domain truth | L5, L6 |
 ```
@@ -376,7 +376,7 @@ Then explain the lifecycle in prose:
 
 > A town goal becomes a book-scoped packet, the book hydrates context and skills,
 > MoonClaw workers gather or execute bounded tasks, and MoonBook decides what is
-> promoted into durable wiki memory. Moontown observes and schedules the next
+> promoted into durable wiki memory. MoonTown observes and schedules the next
 > stage rather than directly editing book memory.
 
 ## Visual Requirements
@@ -388,7 +388,7 @@ Good:
 
 ```mermaid
 flowchart LR
-  Goal[User or scheduled town goal] --> Town[Moontown: route and schedule]
+  Goal[User or scheduled town goal] --> Town[MoonTown: route and schedule]
   Town --> Book[MoonBook: hydrate domain context]
   Book --> Claw[MoonClaw: execute bounded workers]
   Claw --> Raw[Raw evidence artifacts]
@@ -469,14 +469,14 @@ For multi-project stack reports, include a compact table:
 | --- | --- | --- | --- |
 | Knowledge | MoonBook | Durable wiki, memory, and projections | L1, L5 |
 | Execution | MoonClaw | Worker runtime and provider execution | L1, L4 |
-| Governance | Moontown | Cross-book orchestration and supervision | L1, L6 |
+| Governance | MoonTown | Cross-book orchestration and supervision | L1, L6 |
 ```
 
 When relationship evidence exists, include a Mermaid diagram:
 
 ```mermaid
 flowchart TD
-  Town[Moontown: orchestration] --> Book[MoonBook: memory and projection]
+  Town[MoonTown: orchestration] --> Book[MoonBook: memory and projection]
   Town --> Claw[MoonClaw: worker execution]
   Claw --> Raw[raw/bootstrap evidence]
   Book --> Wiki[durable wiki pages]
@@ -486,9 +486,9 @@ If Mermaid is not supported by the renderer, still write the code block; MoonBoo
 
 Do not replace Mermaid with a plain `text` diagram unless the runtime explicitly cannot write Mermaid. Do not create fake diagrams. If evidence does not support a relationship, explain the missing evidence instead.
 
-For MoonBook/MoonClaw/Moontown topics, the relationship model should use this split unless contradicted by evidence:
+For MoonBook/MoonClaw/MoonTown topics, the relationship model should use this split unless contradicted by evidence:
 
-- Moontown decides what should happen and coordinates multi-book work.
+- MoonTown decides what should happen and coordinates multi-book work.
 - MoonBook owns the domain workspace, durable memory, skills, and projections.
 - MoonClaw executes worker tasks, tools, provider runs, and artifacts.
 
@@ -570,7 +570,7 @@ When evidence exists, a single-topic report should include at least:
 A three-project town-level report should include at least:
 
 - 1 cross-stack thesis paragraph
-- 2 paragraphs each for Moontown, MoonBook, and MoonClaw
+- 2 paragraphs each for MoonTown, MoonBook, and MoonClaw
 - 2 relationship/integration paragraphs
 - 1 comparative architecture table
 - 1 maturity matrix
@@ -646,7 +646,7 @@ Do not use `text` diagrams when a Mermaid relationship diagram is feasible. Use 
 
 Do not write the same relationship paragraph for all three projects. Each project needs a different angle:
 
-- Moontown: coordination, scheduling, policy, synthesis, operator view
+- MoonTown: coordination, scheduling, policy, synthesis, operator view
 - MoonBook: workspace semantics, durable memory, wiki materialization, projection
 - MoonClaw: task execution, provider runtime, tools, jobs, artifacts
 
@@ -685,7 +685,7 @@ Example:
 
 ## Answer
 
-MoonClaw is the worker-runtime layer in the town/book/claw stack. It owns task execution, provider runs, tool access, artifacts, and worker session state, while MoonBook owns durable wiki memory and Moontown owns cross-book orchestration [L1, L4, L7].
+MoonClaw is the worker-runtime layer in the town/book/claw stack. It owns task execution, provider runs, tool access, artifacts, and worker session state, while MoonBook owns durable wiki memory and MoonTown owns cross-book orchestration [L1, L4, L7].
 
 ## Verified Findings
 
@@ -716,7 +716,7 @@ Example:
 
 ## Role
 
-MoonClaw is the worker execution runtime in the Moontown/MoonBook/MoonClaw stack [L1].
+MoonClaw is the worker execution runtime in the MoonTown/MoonBook/MoonClaw stack [L1].
 
 ## Responsibilities
 

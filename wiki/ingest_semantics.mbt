@@ -1080,7 +1080,7 @@ fn normalize_entity_name(text : String) -> String {
   let cleaned = strip_leading_determiner(clean_phrase(text))
   match cleaned.to_lower() {
     "moonclaw" => "MoonClaw"
-    "moontown" => "Moontown"
+    "moontown" => "MoonTown"
     "feishu" => "Feishu"
     "nodejs" | "node-js" | "node.js" => "Node.js"
     "powershell" => "PowerShell"
@@ -1295,7 +1295,7 @@ fn detect_known_entities(title : String, content : String) -> Array[String] {
   let ranked : Array[(String, Int)] = []
   let known : Array[(String, String)] = [
     ("moonclaw", "MoonClaw"),
-    ("moontown", "Moontown"),
+    ("moontown", "MoonTown"),
     ("feishu", "Feishu"),
     ("node.js", "Node.js"),
     ("nodejs", "Node.js"),

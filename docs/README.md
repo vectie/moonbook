@@ -18,8 +18,8 @@ MoonBook owns:
 
 MoonBook does not own agent execution, town scheduling, desktop projection,
 suite metrics, or shared filesystem contracts. MoonClaw executes bounded work,
-Moontown coordinates standing/cross-book work, Moondesk projects and edits
-books, MoonStat observes, and MoonLib defines shared layout.
+MoonTown coordinates standing/cross-book work, MoonDesk projects and edits
+books, MoonGate observes, and MoonLib defines shared layout.
 
 ## Reading Order
 
@@ -57,7 +57,7 @@ state, and accepted artifact paths.
 ## Worth Noticing
 
 - MoonBook must run as its own checkout; do not require sibling MoonClaw,
-  Moontown, or Moondesk source trees.
+  MoonTown, or MoonDesk source trees.
 - MoonCode artifacts are normal book artifacts only after persistence/review.
 - Extension packs should be optional and configured, not hard dependencies.
 - Generated output belongs under book output paths; source docs and templates

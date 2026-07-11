@@ -21,7 +21,7 @@ MoonBook owns this decision because MoonBook owns:
 - generated site projection
 
 MoonClaw may search, fetch, inspect, and package work.
-Moontown may schedule the next check.
+MoonTown may schedule the next check.
 MoonBook decides whether the check produced a meaningful book delta.
 
 ## Research Temperament

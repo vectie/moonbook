@@ -312,9 +312,9 @@ When writing for MoonBook:
 - differentiation: marketing stays clean while durable knowledge stays detailed
 - proof: generated pages, maintained wiki, static seed skills, test/build status
 
-## Moontown Marketing Angle
+## MoonTown Marketing Angle
 
-When writing for Moontown:
+When writing for MoonTown:
 
 - primary buyer: operators of long-running multi-agent or multi-domain work
 - core pain: individual workers can act, but nobody sees the whole system

@@ -3,7 +3,7 @@
 ## Repo research packet example
 
 ```
-# Moontown research packet
+# MoonTown research packet
 
 ## Provenance
 - ../moontown/README.md
@@ -11,7 +11,7 @@
 - ../moontown/roles/mayor.mbt
 
 ## Synopsis
-Moontown is the town-level control plane. It schedules goals, routes them into books, and tracks multi-stage runs.
+MoonTown is the town-level control plane. It schedules goals, routes them into books, and tracks multi-stage runs.
 
 ## Evidence
 - goal runs persist state and events
@@ -19,7 +19,7 @@ Moontown is the town-level control plane. It schedules goals, routes them into b
 - books receive domain-local goals
 
 ## Entities
-- Moontown
+- MoonTown
 - Mayor
 - Goal Run
 

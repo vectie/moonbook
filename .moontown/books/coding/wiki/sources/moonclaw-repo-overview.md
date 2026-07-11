@@ -26,7 +26,7 @@ MoonClaw is an agent runtime and execution substrate with gateway, job workflows
 
 - [MoonClaw](../entities/moonclaw.md)
 - [MoonBook](../entities/moonbook.md)
-- [Moontown](../entities/moontown.md)
+- [MoonTown](../entities/moontown.md)
 
 ## Related Concepts
 

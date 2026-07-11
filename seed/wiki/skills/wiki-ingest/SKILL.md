@@ -159,7 +159,7 @@ It should include:
 
 Good:
 
-- "Research the relationship between Moontown, MoonBook, and MoonClaw as a product stack. Verify local repo claims against project files and public sources when available."
+- "Research the relationship between MoonTown, MoonBook, and MoonClaw as a product stack. Verify local repo claims against project files and public sources when available."
 
 Bad:
 
@@ -724,7 +724,7 @@ Do not:
 ```json
 {
   "task_id": "goal-research-moontown-moonbook-and-moonclaw-ingest-followup",
-  "summary": "Completed raw research artifacts for the Moontown, MoonBook, and MoonClaw relationship: question, search log, source screen, local source digest, evidence matrix, and synthesis brief.",
+  "summary": "Completed raw research artifacts for the MoonTown, MoonBook, and MoonClaw relationship: question, search log, source screen, local source digest, evidence matrix, and synthesis brief.",
   "artifacts": [
     "raw/bootstrap/research-question.md",
     "raw/bootstrap/search-log.md",

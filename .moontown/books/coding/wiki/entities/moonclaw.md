@@ -13,7 +13,7 @@ MoonClaw is the runtime and execution substrate in this stack. It owns proposal 
 ## Relationships
 
 - Executes packets and controller profiles prepared from [MoonBook](./moonbook.md) book tasks.
-- Serves as the runtime substrate below [Moontown](./moontown.md)'s orchestration layer.
+- Serves as the runtime substrate below [MoonTown](./moontown.md)'s orchestration layer.
 - Reads wiki-shaped workspace context when work targets a MoonBook-style wiki.
 - Is described by [MoonClaw Repo Overview](../sources/moonclaw-repo-overview.md).
 

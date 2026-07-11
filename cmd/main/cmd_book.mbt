@@ -106,7 +106,7 @@ async fn run_test(root : String) -> Unit {
 
 ///|
 fn moonstat_startup_ready_message(base_url : String) -> String {
-  "Moonstat available at \{base_url}; suite telemetry endpoint enabled"
+  "MoonGate available at \{base_url}; suite telemetry endpoint enabled"
 }
 
 ///|
@@ -114,7 +114,7 @@ fn moonstat_startup_unavailable_message(
   base_url : String,
   error : String,
 ) -> String {
-  "Moonstat unavailable at \{base_url}; continuing as standalone Moonbook: \{error}"
+  "MoonGate unavailable at \{base_url}; continuing as standalone Moonbook: \{error}"
 }
 
 ///|

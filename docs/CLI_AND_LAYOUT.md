@@ -728,7 +728,7 @@ Installed by `moonbook wiki enable moontown [root]`:
 - `EXTENSION_API.md`
   human-readable guide for the town-facing extension boundary
 
-This pack does not change the core wiki directories or make MoonBook depend on Moontown at runtime. It only advertises the optional extension API surface over the same workspace.
+This pack does not change the core wiki directories or make MoonBook depend on MoonTown at runtime. It only advertises the optional extension API surface over the same workspace.
 
 ### `ui/`
 

@@ -78,13 +78,13 @@ agent can mark them true or false without rereading the entire conversation.
 
 Respect the system split:
 
-- Moontown owns control-plane orchestration, live autonomy, town UI, routing,
+- MoonTown owns control-plane orchestration, live autonomy, town UI, routing,
   repair dispatch, and cross-book status.
 - MoonBook owns workspace semantics, skills, durable wiki/plan/course/research
   artifacts, generated sites, review queues, and book-local memory.
 - MoonClaw owns execution, worker runtimes, tool use, observations, and packaged
   results.
-- Moondesk owns human-facing desktop/file-manager style interaction.
+- MoonDesk owns human-facing desktop/file-manager style interaction.
 
 If a gap belongs to another component, do not hide that with a local workaround.
 Write a plan or repair packet for the correct owner.
@@ -152,7 +152,7 @@ Owner: moontown
 
 ## Goal
 
-Moontown should discover open PlanBook criteria, dispatch bounded repair work,
+MoonTown should discover open PlanBook criteria, dispatch bounded repair work,
 reconcile results, and refresh the live spine without pretending unresolved
 external-owner gaps are solved.
 
@@ -189,7 +189,7 @@ changed_artifacts:
   - wiki/planning/index.md
 follow_up_gaps:
   - owner: moonbook
-    next_action: expose a stable book-health field if needed by Moontown
+    next_action: expose a stable book-health field if needed by MoonTown
 remaining_blockers: none
 ```
 

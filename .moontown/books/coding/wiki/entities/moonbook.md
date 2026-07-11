@@ -8,11 +8,11 @@ MoonBook is the per-domain wiki and book workspace layer in this stack. It is bo
 
 - Owns `raw/`, `raw/bootstrap/`, and durable `wiki/` content.
 - Ingests source material into source pages, entity pages, concept pages, and synthesis pages.
-- Exposes a book-harness API that Moontown can target without changing the core workspace contract.
+- Exposes a book-harness API that MoonTown can target without changing the core workspace contract.
 
 ## Relationships
 
-- Receives town-facing orchestration from [Moontown](./moontown.md).
+- Receives town-facing orchestration from [MoonTown](./moontown.md).
 - Supplies worker context bundles and durable wiki state to [MoonClaw](./moonclaw.md)-executed workflows.
 - Anchors the `Keeper` boundary that ingests packets into durable wiki pages.
 - Is described by [MoonBook Repo Overview](../sources/moonbook-repo-overview.md).
