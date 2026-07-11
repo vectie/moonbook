@@ -741,7 +741,7 @@ fn ingest_packet_skill_paths() -> Array[String] {
     "skills/wiki-ingest/SKILL.md", "skills/source-diarize/SKILL.md", "skills/entity-revise/SKILL.md",
     "skills/concept-revise/SKILL.md", "skills/synthesis-revise/SKILL.md", "skills/claim-audit/SKILL.md",
     "skills/contradiction-review/SKILL.md", "skills/review-decision/SKILL.md", "skills/index-maintain/SKILL.md",
-    "skills/research-report/SKILL.md", "skills/wiki-marketing/SKILL.md",
+    "skills/research-report/SKILL.md",
   ]
 }
 
