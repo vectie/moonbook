@@ -92,7 +92,7 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
   let resolved_source = if remote_source {
     fetch_remote_source(workspace.raw_dir, source_path)
   } else {
-    resolve_input_source(source_path)
+    resolve_input_source(workspace.root, source_path)
   }
   if !@fsx.exists(resolved_source) {
     fail("source does not exist: \{resolved_source}")
@@ -159,18 +159,44 @@ pub async fn ingest_source(root : String, source_path : String) -> IngestResult 
 }
 
 ///|
-fn resolve_input_source(source_path : String) -> String {
+fn resolve_input_source(root : String, source_path : String) -> String raise {
   if moonbook_wiki_path(source_path).is_absolute() {
     moonbook_wiki_path(source_path).normalize().to_string()
   } else {
-    match @env.current_dir() {
-      Some(current_dir) =>
-        moonbook_wiki_path(current_dir)
-        .join(moonbook_wiki_path(source_path))
-        .normalize()
-        .to_string()
-      None => moonbook_wiki_path(source_path).normalize().to_string()
+    let resolved = moonbook_wiki_path(root)
+      .join(moonbook_wiki_path(source_path))
+      .normalize()
+      .to_string()
+    if !is_under_root(resolved, root) {
+      fail("relative source must stay inside MoonBook root: \{source_path}")
     }
+    resolved
+  }
+}
+
+///|
+test "relative ingest source resolves against the supplied MoonBook root" {
+  assert_eq(
+    resolve_input_source("/tmp/example-book", "raw/bootstrap/goal.md"),
+    "/tmp/example-book/raw/bootstrap/goal.md",
+  )
+  assert_eq(
+    resolve_input_source("/tmp/example-book", "/tmp/external-source.md"),
+    "/tmp/external-source.md",
+  )
+}
+
+///|
+test "relative ingest source cannot escape the supplied MoonBook root" {
+  try resolve_input_source("/tmp/example-book", "../outside.md") catch {
+    error =>
+      assert_true(
+        "\{error}".contains(
+          "relative source must stay inside MoonBook root: ../outside.md",
+        ),
+      )
+  } noraise {
+    _ => fail("expected workspace escape to be rejected")
   }
 }
 
