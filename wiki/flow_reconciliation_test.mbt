@@ -5,6 +5,12 @@ fn flow_projection(
   blocker? : String = "",
   error_kind? : String = "",
 ) -> Json {
+  let review_artifact = "books/generic-book/reviews/work-research-r1.json"
+  let artifacts = if status == "accepted" {
+    ["artifact://moonwiki/research-r1", review_artifact]
+  } else {
+    ["artifact://moonwiki/research-r1"]
+  }
   {
     "protocol": "moonflow.run-projection.v2",
     "run_id": "flow-generic-r1",
@@ -24,11 +30,27 @@ fn flow_projection(
         "active_attempt_id": "attempt-research-1",
         "request_id": "request-research-1",
         "result_id": "result-research-1",
+        "operation": "build-evidence-bundle",
         "input_digest": "sha256:input",
         "output_digest": output_digest,
-        "artifacts": ["artifact://moonwiki/research-r1"],
+        "artifacts": artifacts,
         "blocker": blocker,
         "error_kind": error_kind,
+        "acceptance_review_id": if status == "accepted" {
+          "review-work-research-r1"
+        } else {
+          ""
+        },
+        "acceptance_review_artifact": if status == "accepted" {
+          review_artifact
+        } else {
+          ""
+        },
+        "acceptance_reviewer_id": if status == "accepted" {
+          "book-owner-review"
+        } else {
+          ""
+        },
       },
     ],
   }
@@ -74,7 +96,7 @@ test "failed work produces bounded recovery without weakening criteria" {
 }
 
 ///|
-test "accepted work becomes evidence without inventing a learned procedure" {
+test "accepted work becomes a provenance-bound candidate procedure" {
   let observation = @wiki.decode_flow_outcome_observation(
     flow_projection("accepted"),
     "work-research",
@@ -82,8 +104,37 @@ test "accepted work becomes evidence without inventing a learned procedure" {
   )
   let reflection = @wiki.reflect_on_flow_outcome(observation)
   assert_true(reflection.gaps.is_empty())
-  assert_true(reflection.learned_procedures.is_empty())
+  assert_eq(reflection.learned_procedures.length(), 1)
+  let procedure = reflection.learned_procedures[0]
+  assert_eq(procedure.status, "candidate")
+  assert_true(procedure.title.contains("build-evidence-bundle"))
+  assert_true(
+    procedure.verification_criteria.contains("reviewed evidence is attached"),
+  )
+  assert_true(
+    procedure.evidence_refs.contains(
+      "books/generic-book/reviews/work-research-r1.json",
+    ),
+  )
   assert_eq(reflection.confidence, 0.98)
+}
+
+///|
+test "accepted projection without typed review evidence fails closed" {
+  let projection = flow_projection("accepted")
+  guard projection is Object(fields) && fields["items"] is Array([Object(item)]) else {
+    fail("expected flow projection fixture")
+  }
+  item["acceptance_review_id"] = ""
+  item["acceptance_review_artifact"] = ""
+  item["acceptance_reviewer_id"] = ""
+  let observation = @wiki.decode_flow_outcome_observation(
+    projection, "work-research", "2026-07-11T10:02:00Z",
+  )
+  let issues = observation.quality_issues()
+  assert_true(issues.any(issue => issue.contains("acceptance_review_id")))
+  assert_true(issues.any(issue => issue.contains("review artifact")))
+  assert_true(issues.any(issue => issue.contains("acceptance_reviewer_id")))
 }
 
 ///|

@@ -410,11 +410,15 @@ pub(all) struct FlowOutcomeObservation {
   attempt_id : String
   request_id : String
   result_id : String
+  operation : String
   input_digest : String
   output_digest : String
   artifact_refs : Array[String]
   blocker : String
   error_kind : String
+  acceptance_review_id : String
+  acceptance_review_artifact : String
+  acceptance_reviewer_id : String
   recorded_at : String
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn FlowOutcomeObservation::quality_issues(Self) -> Array[String]

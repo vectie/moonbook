@@ -15,11 +15,15 @@ pub(all) struct FlowOutcomeObservation {
   attempt_id : String
   request_id : String
   result_id : String
+  operation : String
   input_digest : String
   output_digest : String
   artifact_refs : Array[String]
   blocker : String
   error_kind : String
+  acceptance_review_id : String
+  acceptance_review_artifact : String
+  acceptance_reviewer_id : String
   recorded_at : String
 } derive(Debug, Eq, ToJson, FromJson)
 
@@ -85,11 +89,19 @@ pub fn decode_flow_outcome_observation(
     attempt_id,
     request_id: bk_optional_string(item, "request_id", ""),
     result_id,
+    operation: bk_optional_string(item, "operation", ""),
     input_digest: bk_optional_string(item, "input_digest", ""),
     output_digest: bk_optional_string(item, "output_digest", ""),
     artifact_refs: bk_strings(item, "artifacts"),
     blocker: bk_optional_string(item, "blocker", ""),
     error_kind: bk_optional_string(item, "error_kind", ""),
+    acceptance_review_id: bk_optional_string(item, "acceptance_review_id", ""),
+    acceptance_review_artifact: bk_optional_string(
+      item, "acceptance_review_artifact", "",
+    ),
+    acceptance_reviewer_id: bk_optional_string(
+      item, "acceptance_reviewer_id", "",
+    ),
     recorded_at,
   }
 }
@@ -119,6 +131,24 @@ pub fn FlowOutcomeObservation::quality_issues(
   if (self.status == "review" || self.status == "accepted") &&
     self.output_digest.trim().is_empty() {
     issues.push("reviewed or accepted flow outcome requires output_digest")
+  }
+  if (self.status == "review" || self.status == "accepted") &&
+    self.operation.trim().is_empty() {
+    issues.push("reviewed or accepted flow outcome requires operation")
+  }
+  if self.status == "accepted" {
+    if self.acceptance_review_id.trim().is_empty() {
+      issues.push("accepted flow outcome requires acceptance_review_id")
+    }
+    if self.acceptance_review_artifact.trim().is_empty() ||
+      !self.artifact_refs.contains(self.acceptance_review_artifact) {
+      issues.push(
+        "accepted flow outcome requires an attached acceptance review artifact",
+      )
+    }
+    if self.acceptance_reviewer_id.trim().is_empty() {
+      issues.push("accepted flow outcome requires acceptance_reviewer_id")
+    }
   }
   if self.status == "failed" &&
     self.error_kind.trim().is_empty() &&
@@ -158,6 +188,7 @@ pub fn reflect_on_flow_outcome(
   }
   let gaps : Array[BookkeeperGap] = []
   let actions : Array[BookkeeperAction] = []
+  let procedures : Array[BookkeeperProcedure] = []
   let uncertainty : Array[String] = []
   match observation.status {
     "review" => {
@@ -195,6 +226,29 @@ pub fn reflect_on_flow_outcome(
       uncertainty.push(
         "the work ended without acceptance and requires no automatic retry",
       )
+    "accepted" =>
+      procedures.push({
+        procedure_id: "procedure-\{observation.observation_id}",
+        title: "Reuse accepted \{observation.product_id} operation \{observation.operation}",
+        applicability: [
+          "declaration revision \{observation.declaration_revision}",
+          "requested authority \{observation.requested_authority}",
+          "input digest \{observation.input_digest}",
+        ],
+        steps: [
+          "Invoke \{observation.product_id} operation \{observation.operation} under \{observation.requested_authority} authority.",
+          "Retain result \{observation.result_id}, attempt \{observation.attempt_id}, and output digest \{observation.output_digest}.",
+          "Review every original acceptance criterion and persist a typed acceptance receipt before reuse.",
+        ],
+        verification_criteria: observation.acceptance_criteria.copy(),
+        failure_modes: [
+          "the declaration revision or input digest differs", "the requested authority is unavailable or changes",
+          "the output cannot reproduce the reviewed evidence", "the acceptance review is missing, rejected, or stale",
+        ],
+        counterexamples: [],
+        evidence_refs: observation.artifact_refs.copy(),
+        status: "candidate",
+      })
     _ => ()
   }
   {
@@ -208,7 +262,7 @@ pub fn reflect_on_flow_outcome(
     gaps,
     belief_updates: [],
     proposed_actions: actions,
-    learned_procedures: [],
+    learned_procedures: procedures,
     confidence: if observation.status == "accepted" {
       0.98
     } else {
