@@ -7,6 +7,8 @@ import {
   "moonbitlang/async/socket",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x/crypto",
   "vectie/moonbook/core",
   "vectie/moonbook/internal/fsx",
   "vectie/moonbook/internal/watcher",

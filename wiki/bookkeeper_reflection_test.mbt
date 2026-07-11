@@ -38,6 +38,7 @@ fn observation(
 test "Bookkeeper closes all three gaps without weakening the constraint" {
   let reflection = @wiki.reflect_on_observation(observation(evidence_refs=[]))
   assert_true(reflection.quality_issues().is_empty())
+  assert_eq(reflection.requested_authority, "cognitive-maintenance")
   assert_true(reflection.gaps.any(gap => gap.kind == "information-gap"))
   assert_true(reflection.gaps.any(gap => gap.kind == "cognition-gap"))
   assert_true(reflection.gaps.any(gap => gap.kind == "execution-gap"))
@@ -77,6 +78,32 @@ test "missing evidence does not create trusted procedural memory" {
   assert_true(reflection.gaps.any(gap => gap.kind == "information-gap"))
   assert_true(reflection.learned_procedures.is_empty())
   assert_eq(reflection.confidence, 0.55)
+}
+
+///|
+async test "Bookkeeper proposal compiles with canonical authority and source digest" {
+  let root = "/tmp/moonbook-bookkeeper-proposal-wbtest"
+  @fsx.make_directory(root, recursive=true)
+  let observation_path = root + "/observation.json"
+  @fsx.write_to_file(
+    observation_path,
+    observation().to_json().stringify(indent=2),
+  )
+  let record = @wiki.reflect_bookkeeper_file(root, observation_path)
+  let document = @wiki.decode_executable_document(
+    @json.parse(@fsx.read_file(record.proposals_path)),
+  )
+  assert_true(document.quality_issues().is_empty())
+  assert_true(@wiki.executable_source_digest_is_valid(document.source_digest))
+  assert_eq(
+    document.source_digest,
+    @wiki.executable_sha256(
+      @fsx.read_file(record.reflection_path).trim().to_owned(),
+    ),
+  )
+  let graph = @wiki.compile_executable_document(document)
+  assert_true(graph.stringify().contains("work-investigate-alternative"))
+  assert_true(graph.stringify().contains("sandbox-execution"))
 }
 
 ///|

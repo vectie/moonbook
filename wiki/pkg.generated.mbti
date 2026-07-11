@@ -17,6 +17,10 @@ pub async fn catalog_record(String) -> BookCatalogRecord
 
 pub async fn compare_skill(String, String) -> SkillCompareResult
 
+pub fn compile_executable_document(ExecutableDocument) -> Json raise
+
+pub async fn compile_executable_document_file(String, String) -> ExecutableCompileRecord
+
 pub fn decode_book_result_lifecycle_proof(Json) -> ExecutableBookLifecycleProof? raise
 
 pub fn decode_book_result_payload(Json) -> BookResult raise
@@ -27,13 +31,23 @@ pub fn decode_book_result_payload_with_metadata(Json) -> DecodedBookResultPayloa
 
 pub fn decode_book_result_payload_with_metadata_text(String) -> DecodedBookResultPayload raise
 
+pub fn decode_bookkeeper_observation(Json) -> BookkeeperObservation raise
+
 pub fn decode_executable_book_lifecycle_proof(Json) -> ExecutableBookLifecycleProof raise
+
+pub fn decode_executable_document(Json) -> ExecutableDocument raise
 
 pub async fn doctor_skills(String) -> SkillDoctorReport
 
 pub async fn enable_extension(String, String) -> ExtensionInstallResult
 
+pub fn executable_authority_is_canonical(String) -> Bool
+
 pub fn executable_book_event_protocol() -> String
+
+pub fn executable_sha256(String) -> String
+
+pub fn executable_source_digest_is_valid(String) -> Bool
 
 pub async fn find_skill(String, String) -> SkillRecord?
 
@@ -65,7 +79,13 @@ pub async fn persist_result(String, BookResult, lifecycle_proof? : ExecutableBoo
 
 pub async fn produce_task_batch(String, String, goal_id? : String?) -> BookTaskBatch
 
+pub async fn promote_bookkeeper_procedures(String, String) -> Array[String]
+
 pub async fn query_wiki(String, String, save? : Bool) -> QueryResult
+
+pub async fn reflect_bookkeeper_file(String, String) -> BookkeeperReflectionRecord
+
+pub fn reflect_on_observation(BookkeeperObservation) -> BookkeeperReflection
 
 pub async fn reject_review(String, String) -> ReviewActionResult
 
@@ -215,6 +235,97 @@ pub struct BookTaskBatch {
   tasks : Array[BookTask]
 } derive(ToJson, @debug.Debug, @json.FromJson)
 
+pub(all) struct BookkeeperAction {
+  declaration_id : String
+  kind : String
+  title : String
+  statement : String
+  executor_product : String
+  requires : Array[String]
+  acceptance_criteria : Array[String]
+  requested_authority : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct BookkeeperBeliefUpdate {
+  update_id : String
+  belief_id : String
+  statement : String
+  change : String
+  evidence_refs : Array[String]
+  confidence : Double
+  affected_refs : Array[String]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct BookkeeperGap {
+  gap_id : String
+  kind : String
+  question : String
+  required_by : Array[String]
+  current_evidence : Array[String]
+  missing : String
+  significance : String
+  resolution_criteria : Array[String]
+  status : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct BookkeeperObservation {
+  observation_id : String
+  book_id : String
+  subject : String
+  requirement_id : String
+  constraint_name : String
+  statement : String
+  evidence_refs : Array[String]
+  comparison : String
+  measured_value : Double
+  limit_value : Double
+  unit : String
+  outcome : String
+  next_action_present : Bool
+  validator_product : String
+  applicability : Array[String]
+  procedure_steps : Array[String]
+  verification_criteria : Array[String]
+  failure_modes : Array[String]
+  recorded_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct BookkeeperProcedure {
+  procedure_id : String
+  title : String
+  applicability : Array[String]
+  steps : Array[String]
+  verification_criteria : Array[String]
+  failure_modes : Array[String]
+  counterexamples : Array[String]
+  evidence_refs : Array[String]
+  status : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct BookkeeperReflection {
+  contract_id : String
+  reflection_id : String
+  book_id : String
+  trigger : String
+  observations : Array[String]
+  gaps : Array[BookkeeperGap]
+  belief_updates : Array[BookkeeperBeliefUpdate]
+  proposed_actions : Array[BookkeeperAction]
+  learned_procedures : Array[BookkeeperProcedure]
+  confidence : Double
+  uncertainty : Array[String]
+  requested_authority : String
+  recorded_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn BookkeeperReflection::quality_issues(Self) -> Array[String]
+
+pub(all) struct BookkeeperReflectionRecord {
+  reflection_path : String
+  episode_path : String
+  proposals_path : String
+  reflection : BookkeeperReflection
+} derive(Eq, ToJson, @debug.Debug)
+
 pub struct DecodedBookResultPayload {
   result : BookResult
   lifecycle_proof : ExecutableBookLifecycleProof?
@@ -253,6 +364,22 @@ pub struct ExecutableBookLifecycleProof {
   first_blocker_label : String
   first_blocker_evidence : String
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct ExecutableCompileRecord {
+  declaration_path : String
+  graph_path : String
+  graph : Json
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct ExecutableDocument {
+  contract_id : String
+  book_id : String
+  revision : String
+  declarations : Array[BookkeeperAction]
+  source_digest : String
+  recorded_at : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ExecutableDocument::quality_issues(Self) -> Array[String]
 
 pub struct ExtensionInstallResult {
   root : String

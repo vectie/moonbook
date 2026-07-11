@@ -369,11 +369,7 @@ pub fn reflect_on_observation(
       0.95
     },
     uncertainty,
-    requested_authority: if actions.is_empty() {
-      "cognitive-maintenance"
-    } else {
-      "propose"
-    },
+    requested_authority: "cognitive-maintenance",
     recorded_at: observation.recorded_at,
   }
 }
@@ -391,6 +387,16 @@ pub fn BookkeeperReflection::quality_issues(
   }
   if self.confidence < 0.0 || self.confidence > 1.0 {
     issues.push("confidence must be between 0 and 1")
+  }
+  if !executable_authority_is_canonical(self.requested_authority) {
+    issues.push("reflection requested_authority is not canonical")
+  }
+  for action in self.proposed_actions {
+    if !executable_authority_is_canonical(action.requested_authority) {
+      issues.push(
+        "proposed action requested_authority is not canonical: \{action.declaration_id}",
+      )
+    }
   }
   if self.gaps.any(gap => gap.kind == "execution-gap") &&
     self.proposed_actions.is_empty() {
@@ -489,7 +495,7 @@ pub async fn reflect_bookkeeper_file(
     "book_id": reflection.book_id,
     "revision": reflection.reflection_id,
     "declarations": reflection.proposed_actions.to_json(),
-    "source_digest": reflection.reflection_id,
+    "source_digest": executable_sha256(reflection.to_json().stringify(indent=2)),
     "source_reflection": reflection.reflection_id,
     "recorded_at": reflection.recorded_at,
   }

@@ -16,6 +16,36 @@ pub(all) struct ExecutableCompileRecord {
 } derive(Debug, Eq, ToJson)
 
 ///|
+pub fn executable_authority_is_canonical(authority : String) -> Bool {
+  [
+    "observe", "cognitive-maintenance", "sandbox-execution", "workspace-mutation",
+    "external-effect", "physical-effect",
+  ].contains(authority)
+}
+
+///|
+pub fn executable_source_digest_is_valid(digest : String) -> Bool {
+  if digest.length() != 71 || !digest.has_prefix("sha256:") {
+    return false
+  }
+  for index in 7..<digest.length() {
+    let unit = digest[index]
+    if !((unit >= '0' && unit <= '9') || (unit >= 'a' && unit <= 'f')) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+pub fn executable_sha256(text : String) -> String {
+  let hex = @crypto.sha256(@utf8.encode(text))
+    .map(byte => byte.to_hex())
+    .join("")
+  "sha256:\{hex}"
+}
+
+///|
 fn decode_executable_action(value : Json) -> BookkeeperAction raise {
   let fields = bk_object(value)
   {
@@ -89,8 +119,8 @@ pub fn ExecutableDocument::quality_issues(
   if self.revision.trim().is_empty() {
     issues.push("revision is required")
   }
-  if self.source_digest.trim().is_empty() {
-    issues.push("source_digest is required")
+  if !executable_source_digest_is_valid(self.source_digest) {
+    issues.push("source_digest must be a lowercase sha256 digest")
   }
   if self.declarations.is_empty() {
     issues.push("at least one executable declaration is required")
@@ -113,6 +143,11 @@ pub fn ExecutableDocument::quality_issues(
     if declaration.acceptance_criteria.is_empty() {
       issues.push(
         "acceptance criteria are required: \{declaration.declaration_id}",
+      )
+    }
+    if !executable_authority_is_canonical(declaration.requested_authority) {
+      issues.push(
+        "requested_authority is not canonical: \{declaration.declaration_id}",
       )
     }
   }
