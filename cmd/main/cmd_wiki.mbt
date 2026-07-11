@@ -28,7 +28,7 @@ async fn run_wiki(args : Array[String]) -> Unit {
     ["init"] => run_wiki_init(".")
     _ =>
       println(
-        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki state [root]\nmoonbook wiki bundle [root]\nmoonbook wiki graph [root]\nmoonbook wiki lint [root]\nmoonbook wiki readiness [root] [--revision <revision>]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki keeper submit [root] <packet.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]\nmoonbook wiki extension accept [root] <goal>\nmoonbook wiki extension tasks [root] <goal>\nmoonbook wiki extension context [root] <goal> [--task <task-id>]\nmoonbook wiki extension persist [root] <result.json>\nmoonbook wiki extension summary [root]\nmoonbook wiki extension health [root]",
+        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki state [root]\nmoonbook wiki bundle [root]\nmoonbook wiki graph [root]\nmoonbook wiki lint [root]\nmoonbook wiki readiness [root] [--revision <revision>]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki keeper submit [root] <packet.json> [--confirm] [--inline] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]\nmoonbook wiki extension accept [root] <goal>\nmoonbook wiki extension tasks [root] <goal>\nmoonbook wiki extension context [root] <goal> [--task <task-id>]\nmoonbook wiki extension persist [root] <result.json>\nmoonbook wiki extension summary [root]\nmoonbook wiki extension health [root]",
       )
   }
 }
@@ -228,7 +228,7 @@ async fn run_wiki_keeper(args : Array[String]) -> Unit {
     ["submit", .. raw] => run_wiki_keeper_submit(raw.to_owned())
     _ =>
       println(
-        "moonbook wiki keeper usage: moonbook wiki keeper submit [root] <packet.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]",
+        "moonbook wiki keeper usage: moonbook wiki keeper submit [root] <packet.json> [--confirm] [--inline] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]",
       )
   }
 }
@@ -265,6 +265,11 @@ async fn run_wiki_keeper_submit(args : Array[String]) -> Unit {
     },
     ..if parsed.confirm {
       ["--confirm"]
+    } else {
+      []
+    },
+    ..if parsed.inline {
+      ["--inline"]
     } else {
       []
     },
@@ -464,6 +469,7 @@ struct ParsedWikiKeeperSubmitArgs {
   root : String
   packet_path : String
   confirm : Bool
+  inline : Bool
   home : String?
   cwd : String
   moonclaw_root : String
@@ -526,6 +532,7 @@ async fn parse_wiki_keeper_submit_args(
 ) -> ParsedWikiKeeperSubmitArgs {
   let filtered : Array[String] = []
   let mut confirm = false
+  let mut inline = false
   let mut latest = false
   let mut home : String? = None
   let mut cwd : String? = None
@@ -535,6 +542,10 @@ async fn parse_wiki_keeper_submit_args(
     match args[i] {
       "--confirm" => {
         confirm = true
+        i += 1
+      }
+      "--inline" => {
+        inline = true
         i += 1
       }
       "--latest" => {
@@ -570,12 +581,12 @@ async fn parse_wiki_keeper_submit_args(
   }
   if latest && filtered.length() > 1 {
     fail(
-      "usage: moonbook wiki keeper submit [root] --latest [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]",
+      "usage: moonbook wiki keeper submit [root] --latest [--confirm] [--inline] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]",
     )
   }
   if !latest && (filtered.is_empty() || filtered.length() > 2) {
     fail(
-      "usage: moonbook wiki keeper submit [root] <packet.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]",
+      "usage: moonbook wiki keeper submit [root] <packet.json> [--confirm] [--inline] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]",
     )
   }
   let root = if latest {
@@ -603,6 +614,7 @@ async fn parse_wiki_keeper_submit_args(
     root,
     packet_path: resolved_packet,
     confirm,
+    inline,
     home,
     cwd: cwd.unwrap_or(root),
     moonclaw_root: moonclaw_root.unwrap_or(default_moonclaw_root(root)),
