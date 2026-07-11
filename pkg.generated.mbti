@@ -2,6 +2,9 @@
 package "vectie/moonbook"
 
 // Values
+pub fn moonbook_moonflow_adapter_capability_json() -> Json
+
+pub fn moonwiki_moonflow_adapter_capability_json() -> Json
 
 // Errors
 
