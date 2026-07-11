@@ -46,8 +46,11 @@ MoonBook now owns the semantic ingest graph for the domain. For ingest, the inte
 1. `bootstrap_gather`
 2. `source_materialize`
 3. `knowledge_revise`
-4. `marketing_project`
-5. `review_finalize`
+4. `review_finalize`
+
+`marketing_project` is an optional projection task, not an ingest phase. It is
+scheduled only when an explicit marketing or website-projection goal requests
+buyer-facing material from an already reviewed research envelope.
 
 MoonClaw still compiles the packet into the current executable workflow profile.
 
@@ -97,7 +100,6 @@ What it does:
    - `bootstrap_gather`
    - `source_materialize`
    - `knowledge_revise`
-   - `marketing_project`
    - `review_finalize`
 6. Creates the source page under `wiki/sources/<slug>.md`.
 7. Runs `enrich_ingest(...)` to update maintained wiki pages.
@@ -165,10 +167,12 @@ MoonBook's semantic intent for the packet is now:
   - turn raw packets into durable `wiki/sources/*`
 - `knowledge_revise`
   - prepare entity/concept/synthesis recommendations and the deep research report
-- `marketing_project`
-  - write buyer-facing `raw/bootstrap/marketing-brief.md` from the prepared research envelope
 - `review_finalize`
   - verify artifacts, blockers, and final promotion status
+
+An explicit marketing or website-projection request may schedule the separate
+`marketing_project` task after review. Research ingest never schedules it by
+default.
 
 MoonBook's execution intent is now also explicit in the packet:
 

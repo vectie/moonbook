@@ -45,7 +45,14 @@ pub async fn produce_task_batch(
   let course_requested = course_goal(goal)
   let planbook_requested = planbook_goal(goal)
   let document_reverse_requested = document_reverse_engineer_goal(goal)
-  let bootstrap_research_goal = weak_coverage &&
+  let explicit_research_pipeline = notes.contains("research pipeline") ||
+    notes.contains("semantic phase") ||
+    notes.contains("source materialization") ||
+    notes.contains("knowledge revision") ||
+    notes.contains("review finalize")
+  let qualified_bootstrap_exists = research_artifact_contract_active(root) &&
+    missing_research_artifacts(root).is_empty()
+  let bootstrap_research_goal = (weak_coverage || explicit_research_pipeline) &&
     !course_requested &&
     !planbook_requested &&
     !document_reverse_requested &&
@@ -92,7 +99,11 @@ pub async fn produce_task_batch(
     }
   } else if bootstrap_research_goal {
     for task in bootstrap_semantic_tasks(normalized_goal_id, goal) {
-      tasks.push(task)
+      if !(explicit_research_pipeline &&
+        qualified_bootstrap_exists &&
+        task.kind == "bootstrap_gather") {
+        tasks.push(task)
+      }
     }
   } else if weak_coverage ||
     notes.contains("research") ||
@@ -988,7 +999,8 @@ async fn reconcile_result_pages(
   }
   for candidate in result.memory_candidates {
     match candidate.target_page {
-      Some(page) =>
+      Some(page) => {
+        let page = normalize_result_workspace_path(page)
         if !page.is_empty() &&
           @fsx.exists(
             moonbook_wiki_path(workspace.wiki_dir)
@@ -998,6 +1010,7 @@ async fn reconcile_result_pages(
           !reconciled.contains(page) {
           reconciled.push(page)
         }
+      }
       None => ()
     }
   }
@@ -1181,6 +1194,7 @@ fn persisted_result_block(result : BookResult) -> String {
 
 ///|
 async fn seed_memory_candidate_page(path : String, title : String) -> Unit {
+  @fsx.make_directory(@pathx.dirname(path), recursive=true, exists_ok=true)
   @fsx.write_to_file(
     path,
     "# \{title}\n\n## Durable Memory\n\n_None yet._\n",
@@ -1288,7 +1302,7 @@ async fn promote_durable_candidates(
   let updated_pages : Array[String] = []
   for candidate in candidates {
     let relative_page = match candidate.target_page {
-      Some(page) => page
+      Some(page) => normalize_result_workspace_path(page)
       None => "synthesis/observations.md"
     }
     let absolute = moonbook_wiki_path(workspace.wiki_dir)

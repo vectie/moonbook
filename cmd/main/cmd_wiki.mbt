@@ -646,7 +646,12 @@ async fn ensure_wiki_keeper_submit_runtime(root : String) -> Unit {
   let jobs_path = moonbook_cmd_path(root)
     .join(moonbook_cmd_path("moonclaw.jobs.json"))
     .to_string()
-  if @fsx.exists(jobs_path) {
+  let provider_registry_path = moonbook_cmd_path(root)
+    .join(moonbook_cmd_path(".moonsuite/resource-providers.json"))
+    .to_string()
+  let provider_transport_current = @fsx.exists(provider_registry_path) &&
+    @fsx.read_file(provider_registry_path).contains("\"task_args_prefix\"")
+  if @fsx.exists(jobs_path) && provider_transport_current {
     return
   }
   if !looks_like_wiki_root(root) {
@@ -656,7 +661,7 @@ async fn ensure_wiki_keeper_submit_runtime(root : String) -> Unit {
   }
   let install = @wiki.enable_extension(root, "moonclaw")
   println(
-    "seeded moonclaw extension for keeper submit: \{install.manifest_path}",
+    "seeded/refreshed moonclaw extension for keeper submit: \{install.manifest_path}",
   )
 }
 

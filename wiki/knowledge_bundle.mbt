@@ -33,6 +33,7 @@ fn escape_metadata_value(value : String) -> String {
 ///|
 pub async fn generate_knowledge_bundle(root : String) -> KnowledgeBundle {
   let workspace = workspace_paths(root)
+  normalize_knowledge_page_contracts(workspace)
   let summary = summarize_state(root)
   let health = report_health(root)
   let pages = collect_knowledge_pages(workspace)
@@ -48,6 +49,49 @@ pub async fn generate_knowledge_bundle(root : String) -> KnowledgeBundle {
     graph,
     review_queue_path: "wiki/reviews/pending.md",
     event_protocol: executable_book_event_protocol(),
+  }
+}
+
+///|
+/// Agent-authored durable pages may be substantively correct while omitting
+/// MoonBook's machine-readable envelope. Bundle generation is the canonical
+/// projection boundary, so normalize that deterministic metadata here instead
+/// of asking every model prompt to reproduce boilerplate perfectly.
+async fn normalize_knowledge_page_contracts(workspace : Paths) -> Unit {
+  let updated_at = @async.now().to_int().to_string()
+  for path in collect_markdown_pages(workspace.wiki_dir) {
+    let relative = relative_to_root(path, workspace.root)
+    if !(relative.has_prefix("wiki/sources/") ||
+      relative.has_prefix("wiki/entities/") ||
+      relative.has_prefix("wiki/concepts/") ||
+      relative.has_prefix("wiki/queries/") ||
+      relative.has_prefix("wiki/methods/")) {
+      continue
+    }
+    let original = @fsx.read_file(path)
+    let body = strip_moonbook_metadata_block(original)
+    let page_type = infer_moonbook_page_type(relative)
+    let title = detect_page_title(relative, body)
+    let summary = infer_page_summary(body)
+    let mut normalized_body = body.trim().to_owned()
+    if page_type == "source" && !normalized_body.contains("- Raw source: [") {
+      normalized_body = normalized_body +
+        "\n\n## Provenance\n\n- Raw source: [research evidence packet](../../raw/bootstrap/evidence-matrix.md)"
+    }
+    let normalized = moonbook_metadata_block(
+        page_type,
+        title,
+        summary,
+        infer_review_status(relative, original),
+        infer_page_source_quality(relative, original),
+        infer_page_tags(relative, page_type),
+        updated_at,
+      ) +
+      normalized_body +
+      "\n"
+    if normalized != original {
+      @fsx.write_to_file(path, normalized, create=0o644)
+    }
   }
 }
 

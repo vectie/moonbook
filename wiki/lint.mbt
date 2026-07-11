@@ -442,6 +442,12 @@ fn missing_concept_page_findings(
       continue
     }
     for concept in extract_candidate_concepts(contents[path]) {
+      // Single-token frequency candidates are too ambiguous to require a page
+      // (for example "surface", "mobility", or "guidance"). Durable concept
+      // lint should enforce relationship-shaped concepts, not ontology noise.
+      if !concept.contains(" ") {
+        continue
+      }
       let slug = slugify_title(concept)
       if concept_pages.contains(slug) {
         continue
@@ -488,7 +494,8 @@ fn weak_synthesis_findings(
     if title.is_empty() {
       continue
     }
-    if !overview.contains(title) {
+    let source_link = "../" + path[5:].to_owned()
+    if !overview.contains(title) && !overview.contains(source_link) {
       findings.push({
         kind: "missing-synthesis-coverage",
         path: Some(path),
@@ -496,7 +503,9 @@ fn weak_synthesis_findings(
       })
     }
     let claims_in_source = extract_claim_statements(contents[path])
-    if !claims_in_source.is_empty() && !claims.contains(title) {
+    if !claims_in_source.is_empty() &&
+      !claims.contains(title) &&
+      !claims.contains(source_link) {
       findings.push({
         kind: "missing-claim-coverage",
         path: Some(path),
@@ -641,11 +650,7 @@ fn likely_claim_predicate(text : String) -> Bool {
 fn contains_stale_word(text : String) -> Bool {
   for raw in text.split(" ") {
     let word = raw.trim(chars="`*_.,:;!?()[]{}\"'").to_owned()
-    if word == "latest" ||
-      word == "current" ||
-      word == "recent" ||
-      word == "today" ||
-      word == "now" {
+    if word == "latest" || word == "recent" || word == "today" {
       return true
     }
   }
@@ -769,7 +774,7 @@ test "stale wording finds time-sensitive lines without dates" {
 ///|
 test "stale wording does not match now inside knowledge" {
   let findings = stale_wording_findings({
-    "wiki/page.md": "Structured support records for reviewed knowledge.\n",
+    "wiki/page.md": "Traceability is now explicit in the evidence map.\n",
   })
   assert_true(findings.is_empty())
 }
@@ -795,9 +800,9 @@ test "contradiction findings detect conflicting simple claims" {
 ///|
 test "missing concept page findings suggest absent concept pages" {
   let findings = missing_concept_page_findings({
-    "wiki/sources/a.md": "Runtime pipeline confidence.\n",
-    "wiki/sources/b.md": "Runtime confidence.\n",
-    "wiki/synthesis/overview.md": "Runtime confidence.\n",
+    "wiki/sources/a.md": "Gateway daemon operations.\n",
+    "wiki/sources/b.md": "Gateway restart operations.\n",
+    "wiki/synthesis/overview.md": "Gateway operations.\n",
   })
   assert_true(findings.length() >= 1)
   assert_true(findings[0].kind == "missing-concept-page")

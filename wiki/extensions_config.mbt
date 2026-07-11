@@ -84,6 +84,7 @@ fn moonclaw_providers_text(root : String) -> String {
   "    \"metadata\": {\n" +
   "      \"command\": \"moon\",\n" +
   "      \"args\": [\"run\", \"cmd/main\", \"--\"],\n" +
+  "      \"task_args_prefix\": [\"wiki\", \"extension\"],\n" +
   "      \"cwd\": \"__MODULE_ROOT__\",\n" +
   "      \"workspace_root\": \"__WORKSPACE_ROOT__\"\n" +
   "    }\n" +

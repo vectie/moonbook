@@ -150,7 +150,7 @@ fn keeper_entry_limit(path : String, paths : KeeperPaths) -> Int {
   if path == paths.user_path {
     10
   } else if path == paths.working_path {
-    18
+    7
   } else {
     12
   }
@@ -216,8 +216,9 @@ fn keeper_bounded_entries(
   description : String,
 ) -> Array[String] {
   let next : Array[String] = []
+  let new_key = keeper_entry_key(new_entry)
   for entry in entries {
-    if entry != new_entry {
+    if keeper_entry_key(entry) != new_key {
       next.push(entry)
     }
   }
@@ -230,6 +231,20 @@ fn keeper_bounded_entries(
     trim_first_entry(next)
   }
   next
+}
+
+///|
+fn keeper_entry_key(entry : String) -> String {
+  let trimmed = entry.trim().to_owned()
+  let normalized = if trimmed.has_prefix("- ") {
+    trimmed[2:].to_owned()
+  } else {
+    trimmed
+  }
+  match normalized.find(":") {
+    Some(index) => normalized[:index].trim().to_owned()
+    None => normalized
+  }
 }
 
 ///|
@@ -374,6 +389,19 @@ test "keeper bounded entries dedupe and cap" {
     "desc",
   )
   assert_true(entries == ["- beta", "- alpha", "- gamma"])
+}
+
+///|
+test "keeper bounded entries replace the same task identity" {
+  let entries = keeper_bounded_entries(
+    ["- task-a: old summary", "- task-b: keep"],
+    "- task-a: revised summary",
+    7,
+    500,
+    "Keeper Working Memory",
+    "desc",
+  )
+  assert_true(entries == ["- task-b: keep", "- task-a: revised summary"])
 }
 
 ///|

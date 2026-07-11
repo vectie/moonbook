@@ -67,7 +67,7 @@ fn provider_result_contract_lines() -> Array[String] {
     "Use keys: result_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
     "Set result_id to a stable identifier for this worker result.", "artifacts must be an array of workspace-relative output paths.",
     "memory_candidates must be an array of objects with kind, title, detail, durable, target_page.",
-    "For weak-coverage research goals, follow the MoonBook phases in order: bootstrap_gather, source_materialize, knowledge_revise, marketing_project, review_finalize.",
+    "For weak-coverage research goals, follow the MoonBook phases in order: bootstrap_gather, source_materialize, knowledge_revise, review_finalize. marketing_project is optional and must only run for an explicit marketing or website-projection goal after review.",
     "For research bootstrap, artifacts must include raw/bootstrap/research-question.md, raw/bootstrap/search-log.md, raw/bootstrap/source-screen.md, raw/bootstrap/evidence-matrix.md, raw/bootstrap/local-sources.md, raw/bootstrap/synthesis-brief.md, and raw/bootstrap/deep-report.md, or the result must be a structured blocker explaining exactly which files are missing.",
     "For bootstrap ingest, MoonClaw should produce raw/bootstrap research artifacts and should not need to create wiki/* pages; MoonBook owns durable wiki materialization from the research envelope.",
     "If web_search or web_fetch is unavailable, explicitly say so in the blocker and record that limitation in raw/bootstrap/search-log.md or raw/bootstrap/source-screen.md when possible.",

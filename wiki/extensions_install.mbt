@@ -15,9 +15,7 @@ async fn install_moonclaw_extension(
     .join(moonbook_wiki_path("moonclaw.jobs.json"))
     .to_string()
   let runtime_dir = moonclaw_product_state_dir_for_root(root)
-  let providers_path = moonbook_wiki_path(runtime_dir)
-    .join(moonbook_wiki_path("providers.json"))
-    .to_string()
+  let providers_path = moonclaw_resource_providers_path(root)
   let identity_path = moonbook_wiki_path(root)
     .join(moonbook_wiki_path("IDENTITY.md"))
     .to_string()
@@ -50,11 +48,19 @@ async fn install_moonclaw_extension(
     .to_string()
   @fsx.make_directory(skills_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(runtime_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(
+    @pathx.dirname(providers_path),
+    recursive=true,
+    exists_ok=true,
+  )
   @fsx.make_directory(maintainer_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(review_dir, recursive=true, exists_ok=true)
   write_extension_file_if_missing(config_path, moonclaw_config_text(root))
   write_generated_extension_file(jobs_path, moonclaw_jobs_text())
-  write_extension_file_if_missing(providers_path, moonclaw_providers_text(root))
+  // This registry is generated transport configuration owned by MoonBook.
+  // Refresh it on install so protocol upgrades cannot leave a stale provider
+  // command in an otherwise current book workspace.
+  write_generated_extension_file(providers_path, moonclaw_providers_text(root))
   write_extension_file_if_missing(identity_path, identity_text(root))
   write_extension_file_if_missing(user_path, user_text())
   write_extension_file_if_missing(routines_path, routines_text())
@@ -81,6 +87,14 @@ async fn install_moonclaw_extension(
 ///|
 fn moonclaw_product_state_dir_for_root(root : String) -> String {
   @moonsuite.product_home_for_workspace_root(root, "moonclaw").state_path
+}
+
+///|
+fn moonclaw_resource_providers_path(root : String) -> String {
+  moonbook_wiki_path(root)
+  .join(moonbook_wiki_path(".moonsuite/resource-providers.json"))
+  .normalize()
+  .to_string()
 }
 
 ///|

@@ -62,6 +62,34 @@ test "decode book result payload accepts direct BookResult json" {
 }
 
 ///|
+test "decode book result payload normalizes MoonClaw provider task id" {
+  let decoded = decode_book_result_payload({
+    "task_id": "provider-task-1",
+    "summary": "Provider worker result.",
+    "artifacts": ["raw/bootstrap/evidence-matrix.md"],
+    "memory_candidates": Json::array([]),
+    "requires_review": false,
+    "notify_town": true,
+  })
+  assert_eq(decoded.result_id, "provider-task-1")
+  assert_true(decoded.artifacts.contains("raw/bootstrap/evidence-matrix.md"))
+  assert_true(decoded.notify_town)
+}
+
+///|
+test "decode book result payload accepts MoonClaw accepted-result envelope" {
+  let decoded = decode_book_result_payload({
+    "step_id": "step_2",
+    "result_decision": "accepted",
+    "model": "moongate/gpt-5.5",
+    "content": "{\"result_id\":\"child-report\",\"summary\":\"Qualified report.\",\"artifacts\":[\"raw/bootstrap/deep-report.md\"],\"memory_candidates\":[],\"requires_review\":false,\"notify_town\":true}",
+  })
+  assert_eq(decoded.result_id, "child-report")
+  assert_true(decoded.artifacts.contains("raw/bootstrap/deep-report.md"))
+  assert_true(decoded.notify_town)
+}
+
+///|
 test "decode book result payload accepts MoonClaw sidecar envelope" {
   let decoded = decode_book_result_payload({
     "kind": "mooncode-book-result",

@@ -90,7 +90,30 @@ pub struct DecodedBookResultPayload {
 ///|
 pub fn decode_book_result_payload(value : Json) -> BookResult raise {
   @json.from_json(value) catch {
-    _ => decode_book_result_envelope(value)
+    _ =>
+      match decode_provider_task_result(value) {
+        Some(result) => result
+        None => decode_book_result_envelope(value)
+      }
+  }
+}
+
+///|
+/// MoonClaw's provider transport names the stable result key `task_id` while
+/// MoonBook's durable contract calls it `result_id`. Accept that transport
+/// shape at the provider boundary and normalize it immediately; persisted book
+/// events continue to use only MoonBook terminology.
+fn decode_provider_task_result(value : Json) -> BookResult? {
+  guard value is Object(fields) else { return None }
+  guard fields.get("task_id") is Some(String(task_id)) else { return None }
+  let normalized : Map[String, Json] = {}
+  for key, value in fields {
+    normalized[key] = value
+  }
+  normalized.remove("task_id")
+  normalized["result_id"] = task_id.to_json()
+  Some(@json.from_json(Json::object(normalized))) catch {
+    _ => None
   }
 }
 
@@ -129,9 +152,19 @@ fn decode_book_result_envelope(value : Json) -> BookResult raise {
               )
           }
         _ =>
-          fail(
-            "invalid book result payload: expected BookResult or envelope with object field book_result",
-          )
+          match fields.get("content") {
+            Some(String(content)) =>
+              decode_book_result_payload_text(content) catch {
+                error =>
+                  fail(
+                    "invalid book result envelope: content is not a BookResult: \{error}",
+                  )
+              }
+            _ =>
+              fail(
+                "invalid book result payload: expected BookResult, a book_result object, or a content string containing a BookResult",
+              )
+          }
       }
     _ =>
       fail(

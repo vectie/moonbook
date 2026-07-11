@@ -188,6 +188,7 @@ test "moonclaw providers text seeds moonbook provider target" {
       "\"capabilities\": [\"provider\", \"extension\", \"provider.task\", \"extension.task\"]",
     ),
   )
+  assert_true(text.contains("\"task_args_prefix\": [\"wiki\", \"extension\"]"))
   assert_true(text.contains("\"workspace_root\": \"/tmp/wiki\""))
 }
 
@@ -206,6 +207,14 @@ test "moonclaw product state dir resolves from suite books root" {
     @moonsuite.product_home_for_workspace_root(
       "/tmp/suite/books/research-wiki", "moonclaw",
     ).state_path,
+  )
+}
+
+///|
+test "moonclaw extension provider registry remains book local" {
+  assert_eq(
+    moonclaw_resource_providers_path("/tmp/suite/books/lunar-robot-genesis"),
+    "/tmp/suite/books/lunar-robot-genesis/.moonsuite/resource-providers.json",
   )
 }
 
@@ -241,7 +250,7 @@ async test "extension maintainer skill is copied from repo templates" {
 }
 
 ///|
-async test "moonclaw extension installs runtime config and provider manifest into moonsuite product home" {
+async test "moonclaw extension separates model config from book provider registry" {
   let suite_root = unique_extension_test_root("/tmp/moonbook-moonsuite-install")
   let root = suite_root + "/books/research-wiki"
   ignore(init_workspace(root))
@@ -249,9 +258,7 @@ async test "moonclaw extension installs runtime config and provider manifest int
   let config_path = @moonsuite.product_artifact_for_workspace_root(
     root, "moonclaw", "moonclaw.json",
   )
-  let providers_path = @moonsuite.product_artifact_for_workspace_root(
-    root, "moonclaw", "providers.json",
-  )
+  let providers_path = moonclaw_resource_providers_path(root)
   assert_true(@fsx.exists(config_path))
   assert_true(@fsx.exists(providers_path))
   assert_true(!@fsx.exists(root + "/moonclaw.json"))
