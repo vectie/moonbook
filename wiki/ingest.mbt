@@ -690,8 +690,7 @@ fn ingest_packet_context_pages(source_relative_page : String) -> Array[String] {
 ///|
 fn ingest_semantic_phases() -> Array[String] {
   [
-    "bootstrap_gather", "source_materialize", "knowledge_revise", "marketing_project",
-    "review_finalize",
+    "bootstrap_gather", "source_materialize", "knowledge_revise", "review_finalize",
   ]
 }
 
@@ -755,7 +754,7 @@ fn ingest_plan_notes(
 ) -> Array[String] {
   let notes : Array[String] = []
   notes.push(
-    "semantic-phases: bootstrap_gather -> source_materialize -> knowledge_revise -> marketing_project -> review_finalize",
+    "semantic-phases: bootstrap_gather -> source_materialize -> knowledge_revise -> review_finalize",
   )
   notes.push(
     "execution-mode: parallel-lane-bootstrap with one MoonClaw gather worker per lane when the source surface is broad",

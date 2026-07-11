@@ -2274,7 +2274,7 @@ async test "produce task batch bootstraps research goals on weak coverage" {
   assert_true(batch.tasks.any(fn(task) { task.kind == "bootstrap_gather" }))
   assert_true(batch.tasks.any(fn(task) { task.kind == "source_materialize" }))
   assert_true(batch.tasks.any(fn(task) { task.kind == "knowledge_revise" }))
-  assert_true(batch.tasks.any(fn(task) { task.kind == "marketing_project" }))
+  assert_true(!batch.tasks.any(fn(task) { task.kind == "marketing_project" }))
   assert_true(batch.tasks.any(fn(task) { task.kind == "review_finalize" }))
   assert_true(!batch.tasks.any(fn(task) { task.kind == "ingest" }))
   assert_true(batch.tasks.any(fn(task) { task.kind == "planning" }))
@@ -2309,6 +2309,16 @@ async test "produce task batch bootstraps research goals on weak coverage" {
   assert_true(
     materialize.target_pages.contains("../raw/bootstrap/evidence-matrix.md"),
   )
+}
+
+///|
+async test "produce task batch adds marketing only for explicit projection goals" {
+  let root = "/tmp/moonbook-extension-api-marketing-projection"
+  ignore(init_workspace(root))
+  let batch = produce_task_batch(
+    root, "research evidence and create a buyer-facing product marketing brief",
+  )
+  assert_true(batch.tasks.any(fn(task) { task.kind == "marketing_project" }))
 }
 
 ///|

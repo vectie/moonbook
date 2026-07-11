@@ -19,7 +19,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"plan_gather_fanout\",\n" +
   "            \"title\": \"Plan gather worker fan-out\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Act as the book keeper for ${proposal.title}. Read the imported proposal request and notes first. If the proposal declares gather lane specs or parallel-lane bootstrap intent, preserve them. Do not compress multiple gather lanes into one worker unless the source surface is obviously tiny. Produce a concrete execution note for separate docs, implementation, and architecture workers before gather begins.\",\n" +
+  "            \"prompt_template\": \"Act as the book keeper for ${proposal.title}. Read the imported proposal request, notes, and gather lane specs first. Preserve the proposal's goal-adaptive evidence roles and specialize them to the subject. Do not substitute software-repository lanes for a scientific, physical, policy, or design goal, and do not compress multiple lanes into one worker unless the source surface is obviously tiny. Produce a concrete execution note for question framing, authoritative evidence, and alternatives or validation before gather begins.\",\n" +
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-maintainer\"],\n" +
   "              \"enable_tools\": true,\n" +
@@ -29,10 +29,10 @@ fn moonclaw_jobs_text() -> String {
   "            }\n" +
   "          },\n" +
   "          {\n" +
-  "            \"id\": \"gather_docs\",\n" +
-  "            \"title\": \"Gather repo and product docs\",\n" +
+  "            \"id\": \"gather_question_framing\",\n" +
+  "            \"title\": \"Frame research questions\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Act as the wiki gather worker for the docs lane of ${proposal.title}. Inspect only high-signal docs, specs, READMEs, guides, and product-facing markdown from the current workspace and any explicitly allowed local sources. Write packet-ready evidence into raw/bootstrap/ with provenance, evidence bullets, source-path notes, entity candidates, concept candidates, and open questions. Do not read the entire repo and do not claim final ingest success from this lane.\",\n" +
+  "            \"request_template\": \"Act as the question-framing worker for ${proposal.title}. Read the proposal and source page, then write or improve raw/bootstrap/research-question.md with bounded unknowns, scope and exclusion boundaries, decision dependencies, and evidence requirements. Do not answer the questions, choose a design, or invent domain conclusions in this lane.\",\n" +
   "            \"child_profile\": \"wiki_gather_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
@@ -43,10 +43,10 @@ fn moonclaw_jobs_text() -> String {
   "            }\n" +
   "          },\n" +
   "          {\n" +
-  "            \"id\": \"gather_implementation\",\n" +
-  "            \"title\": \"Gather implementation evidence\",\n" +
+  "            \"id\": \"gather_authoritative_evidence\",\n" +
+  "            \"title\": \"Gather authoritative evidence\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Act as the wiki gather worker for the implementation lane of ${proposal.title}. Inspect only the highest-signal code, config, manifests, and runtime wiring that support durable wiki claims. Produce packet-ready evidence under raw/bootstrap/ with concrete source paths, evidence bullets, entity candidates, concept candidates, and unresolved questions. Keep the lane narrow and do not try to summarize the whole system.\",\n" +
+  "            \"request_template\": \"Act as the authoritative-evidence worker for ${proposal.title}. Use the bounded research questions to search and screen high-signal primary or authoritative sources appropriate to the subject. Write or improve raw/bootstrap/search-log.md, source-screen.md, and local-sources.md with URLs or paths, provenance, publication context, inclusion or rejection reasons, applicability limits, and disconfirming evidence. If remote tools are unavailable, record that limitation explicitly and do not imply web research occurred.\",\n" +
   "            \"child_profile\": \"wiki_gather_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
@@ -57,10 +57,10 @@ fn moonclaw_jobs_text() -> String {
   "            }\n" +
   "          },\n" +
   "          {\n" +
-  "            \"id\": \"gather_architecture\",\n" +
-  "            \"title\": \"Gather architecture and topology notes\",\n" +
+  "            \"id\": \"gather_alternatives_validation\",\n" +
+  "            \"title\": \"Compare alternatives and validation\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Act as the wiki gather worker for the architecture lane of ${proposal.title}. Inspect only the files that explain system boundaries, call chains, topology, and cross-component responsibilities. Write packet-ready architecture notes into raw/bootstrap/ with provenance, evidence bullets, relationship candidates, and explicit uncertainty markers. Do not duplicate doc or implementation lanes.\",\n" +
+  "            \"request_template\": \"Act as the alternatives-and-validation worker for ${proposal.title}. Compare relevant prior approaches or alternatives against the screened evidence. Write or improve raw/bootstrap/evidence-matrix.md with traceable tradeoffs, failure modes, disconfirming tests, acceptance evidence, uncertainty markers, and unresolved execution-critical questions. Keep recommendations provisional until authoritative evidence is available.\",\n" +
   "            \"child_profile\": \"wiki_gather_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
@@ -111,26 +111,10 @@ fn moonclaw_jobs_text() -> String {
   "            }\n" +
   "          },\n" +
   "          {\n" +
-  "            \"id\": \"write_marketing_brief\",\n" +
-  "            \"title\": \"Write buyer-facing marketing brief\",\n" +
-  "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Write only raw/bootstrap/marketing-brief.md for ${proposal.title}. Load wiki-marketing/SKILL.md and use its exact skeleton. The visible page must read like product marketing for a buyer, not a planning document, run log, source audit, or implementation summary. The only accepted level-2 headings are The Problem, The Product, Why It Wins, What You Can Ship, Who It Is For, Proof Points, Objections, and Next Step. If any heading such as Audience, Buyer Pain, Core Positioning, Product Promise, Differentiation, Seller-Facing Messaging Angles, Positioning Guardrails, Recommended Next Materialization, Evidence Base Used, Source IDs, or Web Verification Status appears, rewrite the brief before returning. Use deep-report.md, synthesis-brief.md, and evidence-matrix.md as backing material, but translate evidence into buyer value. Return raw/bootstrap/marketing-brief.md in artifacts or return a structured blocker.\",\n" +
-  "            \"child_profile\": \"wiki_revision_worker\",\n" +
-  "            \"include_parent_outputs\": true,\n" +
-  "            \"max_depth\": 3,\n" +
-  "            \"metadata\": {\n" +
-  "              \"preferred_skills\": [\"wiki-marketing\"],\n" +
-  "              \"enable_tools\": true,\n" +
-  "              \"web_search\": false,\n" +
-  "              \"board_lane\": \"Market\",\n" +
-  "              \"board_order\": 7\n" +
-  "            }\n" +
-  "          },\n" +
-  "          {\n" +
   "            \"id\": \"apply_revisions\",\n" +
   "            \"title\": \"Finalize research envelope\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Finalize the research envelope for ${proposal.title}. Read the prepared raw/bootstrap packets and make sure the required raw artifacts exist: research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, deep-report.md, and marketing-brief.md. Use the research-report skill to make deep-report.md a long-form article, not a checklist. Use the exact output skeleton in wiki-marketing/SKILL.md for marketing-brief.md: the only accepted level-2 headings are The Problem, The Product, Why It Wins, What You Can Ship, Who It Is For, Proof Points, Objections, and Next Step. Do not use planning headings like Audience And Buying Situation, Positioning, Messaging Guidance, Source IDs, or Next Materialization. Return those raw/bootstrap paths in artifacts. Do not edit durable wiki pages directly; MoonBook will materialize wiki/sources, wiki/entities, wiki/concepts, and synthesis pages from this envelope. If any required raw artifact is missing or marketing headings are invalid, return an explicit structured blocker.\",\n" +
+  "            \"request_template\": \"Finalize the research envelope for ${proposal.title}. Read the prepared raw/bootstrap packets and make sure the required raw artifacts exist: research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, and deep-report.md. Use the research-report skill to make deep-report.md a long-form evidence synthesis, not a checklist or promotional projection. Return those raw/bootstrap paths in artifacts. Do not edit durable wiki pages directly; MoonBook will materialize wiki/sources, wiki/entities, wiki/concepts, and synthesis pages from this envelope. If any required raw artifact is missing, return an explicit structured blocker.\",\n" +
   "            \"child_profile\": \"wiki_revision_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
@@ -144,7 +128,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"review_revisions\",\n" +
   "            \"title\": \"Review wiki consistency\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Review the research envelope for ${proposal.title}. Check that required raw/bootstrap artifacts exist, source screening is explicit, evidence rows support the synthesis brief and deep-report.md, marketing-brief.md reads like buyer-facing product marketing instead of generic feature inventory, and marketing-brief.md uses only the wiki-marketing skeleton headings: The Problem, The Product, Why It Wins, What You Can Ship, Who It Is For, Proof Points, Objections, Next Step. Reject internal planning headings such as Audience And Buying Situation, Positioning, Messaging Guidance, Source IDs, or Next Materialization. Do not require MoonClaw-created durable wiki pages; MoonBook owns final wiki materialization.\",\n" +
+  "            \"request_template\": \"Review the research envelope for ${proposal.title}. Check that every required raw/bootstrap artifact exists, source screening is explicit, evidence rows support the synthesis brief and deep-report.md, contradictions and applicability limits are visible, and execution-critical unknowns remain blockers. Reject unsupported certainty, generic completion prose, and promotional claims presented as evidence. Do not require MoonClaw-created durable wiki pages; MoonBook owns final wiki materialization.\",\n" +
   "            \"child_profile\": \"wiki_review_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +

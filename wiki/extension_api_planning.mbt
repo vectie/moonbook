@@ -189,7 +189,7 @@ fn document_reverse_engineer_tasks(
 
 ///|
 fn bootstrap_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] {
-  [
+  let tasks = [
     bootstrap_phase_task(
       goal_id,
       goal,
@@ -220,26 +220,32 @@ fn bootstrap_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] 
       "knowledge_revise",
       "Prepare knowledge revision evidence",
       80,
-      "Load `skills/entity-revise/SKILL.md`, `skills/concept-revise/SKILL.md`, `skills/synthesis-revise/SKILL.md`, `skills/claim-audit/SKILL.md`, and `skills/research-report/SKILL.md`. Prepare ontology and synthesis recommendations in `raw/bootstrap/synthesis-brief.md`, and write a long-form `raw/bootstrap/deep-report.md` using the evidence matrix. Do not write marketing copy in this phase; MoonBook schedules a separate marketing_project phase with `skills/wiki-marketing/SKILL.md` so buyer-facing copy stays focused. Do not write durable entity, concept, claim, or synthesis pages directly unless explicitly asked; MoonBook owns those durable wiki writes. Blockers are unsupported claims, missing synthesis brief, missing deep report, unresolved source contradictions, or no safe revision target.",
+      "Load `skills/entity-revise/SKILL.md`, `skills/concept-revise/SKILL.md`, `skills/synthesis-revise/SKILL.md`, `skills/claim-audit/SKILL.md`, and `skills/research-report/SKILL.md`. Prepare ontology and synthesis recommendations in `raw/bootstrap/synthesis-brief.md`, and write a long-form `raw/bootstrap/deep-report.md` using the evidence matrix. Do not write marketing copy in this phase; promotional projection is a separate task and is scheduled only when the goal explicitly requests it. Do not write durable entity, concept, claim, or synthesis pages directly unless explicitly asked; MoonBook owns those durable wiki writes. Blockers are unsupported claims, missing synthesis brief, missing deep report, unresolved source contradictions, or no safe revision target.",
       [
         "../raw/bootstrap/synthesis-brief.md", "../raw/bootstrap/evidence-matrix.md",
         "../raw/bootstrap/deep-report.md", "synthesis/map.md",
       ],
       true,
     ),
-    bootstrap_phase_task(
-      goal_id,
-      goal,
-      "marketing_project",
-      "Write product marketing brief",
-      75,
-      "Load only `skills/wiki-marketing/SKILL.md` plus the prepared research artifacts. Write `raw/bootstrap/marketing-brief.md` as buyer-facing product marketing, not a plan, audit, evidence log, or implementation summary. Use the exact skeleton from the skill. The only accepted `##` headings are: The Problem, The Product, Why It Wins, What You Can Ship, Who It Is For, Proof Points, Objections, Next Step. Reject and rewrite if any other `##` heading appears. Do not mention this task, provider execution, ReviewQueued, source IDs, raw paths, artifact contracts, or internal planning headings in the visible copy. Translate evidence into buyer value. Blockers are missing deep-report/evidence material, invalid marketing heading structure, or claims that cannot be supported without backend leakage.",
-      [
-        "../raw/bootstrap/deep-report.md", "../raw/bootstrap/evidence-matrix.md",
-        "../raw/bootstrap/synthesis-brief.md", "../raw/bootstrap/marketing-brief.md",
-      ],
-      true,
-    ),
+  ]
+  if marketing_projection_goal(goal) {
+    tasks.push(
+      bootstrap_phase_task(
+        goal_id,
+        goal,
+        "marketing_project",
+        "Write product marketing brief",
+        75,
+        "Load only `skills/wiki-marketing/SKILL.md` plus the prepared research artifacts. Write `raw/bootstrap/marketing-brief.md` as buyer-facing product marketing, not a plan, audit, evidence log, or implementation summary. Use the exact skeleton from the skill. The only accepted `##` headings are: The Problem, The Product, Why It Wins, What You Can Ship, Who It Is For, Proof Points, Objections, Next Step. Reject and rewrite if any other `##` heading appears. Do not mention this task, provider execution, ReviewQueued, source IDs, raw paths, artifact contracts, or internal planning headings in the visible copy. Translate evidence into buyer value. Blockers are missing deep-report/evidence material, invalid marketing heading structure, or claims that cannot be supported without backend leakage.",
+        [
+          "../raw/bootstrap/deep-report.md", "../raw/bootstrap/evidence-matrix.md",
+          "../raw/bootstrap/synthesis-brief.md", "../raw/bootstrap/marketing-brief.md",
+        ],
+        true,
+      ),
+    )
+  }
+  tasks.push(
     bootstrap_phase_task(
       goal_id,
       goal,
@@ -252,7 +258,17 @@ fn bootstrap_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] 
       ],
       true,
     ),
-  ]
+  )
+  tasks
+}
+
+///|
+fn marketing_projection_goal(goal : String) -> Bool {
+  let normalized = goal.to_lower()
+  [
+    "marketing", "product marketing", "buyer-facing", "go-to-market", "positioning",
+    "sales brief",
+  ].any(fn(term) { normalized.contains(term) })
 }
 
 ///|

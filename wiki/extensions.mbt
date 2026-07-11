@@ -109,15 +109,16 @@ test "moonclaw jobs include role runtime metadata" {
 test "moonclaw ingest controller decomposes gather before revision" {
   let text = moonclaw_jobs_text()
   assert_true(text.contains("\"id\": \"plan_gather_fanout\""))
-  assert_true(text.contains("\"id\": \"gather_docs\""))
-  assert_true(text.contains("\"id\": \"gather_implementation\""))
-  assert_true(text.contains("\"id\": \"gather_architecture\""))
+  assert_true(text.contains("\"id\": \"gather_question_framing\""))
+  assert_true(text.contains("\"id\": \"gather_authoritative_evidence\""))
+  assert_true(text.contains("\"id\": \"gather_alternatives_validation\""))
   assert_true(text.contains("\"id\": \"prepare_materials\""))
-  assert_true(text.contains("parallel-lane bootstrap intent"))
+  assert_true(text.contains("gather lane specs"))
   assert_true(text.contains("\"child_profile\": \"wiki_gather_worker\""))
-  assert_true(text.contains("docs lane"))
-  assert_true(text.contains("implementation lane"))
-  assert_true(text.contains("architecture lane"))
+  assert_true(text.contains("question-framing worker"))
+  assert_true(text.contains("authoritative-evidence worker"))
+  assert_true(text.contains("alternatives-and-validation worker"))
+  assert_false(text.contains("\"id\": \"write_marketing_brief\""))
   assert_true(
     text.contains(
       "Do not edit durable wiki pages directly; MoonBook will materialize",

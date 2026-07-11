@@ -124,7 +124,7 @@ fn routines_text() -> String {
   "# Routines\n\n" +
   "## Ingest\n\n" +
   "1. Read the raw source from `raw/`\n" +
-  "2. Produce a complete research envelope under `raw/bootstrap/`, including `deep-report.md` for article-quality synthesis and `marketing-brief.md` for product-facing copy\n" +
+  "2. Produce a complete evidence envelope under `raw/bootstrap/`, including `deep-report.md` for long-form synthesis; create `marketing-brief.md` only when an explicit marketing projection is requested\n" +
   "3. Let MoonBook materialize durable `wiki/sources/`, entity, concept, and synthesis pages from that envelope\n" +
   "4. Update `wiki/index.md`, `wiki/SUMMARY.md`, and `wiki/log.md`\n\n" +
   "## Query\n\n" +
