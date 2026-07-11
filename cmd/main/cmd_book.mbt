@@ -105,12 +105,12 @@ async fn run_test(root : String) -> Unit {
 }
 
 ///|
-fn moonstat_startup_ready_message(base_url : String) -> String {
+fn moongate_startup_ready_message(base_url : String) -> String {
   "MoonGate available at \{base_url}; suite telemetry endpoint enabled"
 }
 
 ///|
-fn moonstat_startup_unavailable_message(
+fn moongate_startup_unavailable_message(
   base_url : String,
   error : String,
 ) -> String {
@@ -118,12 +118,12 @@ fn moonstat_startup_unavailable_message(
 }
 
 ///|
-async fn print_moonstat_startup_status() -> Unit {
-  let client = @moonstat.discover()
+async fn print_moongate_startup_status() -> Unit {
+  let client = @moongate.discover()
   match client.health() {
-    Ok(_) => println(moonstat_startup_ready_message(client.base_url()))
+    Ok(_) => println(moongate_startup_ready_message(client.base_url()))
     Err(error) =>
-      println(moonstat_startup_unavailable_message(client.base_url(), error))
+      println(moongate_startup_unavailable_message(client.base_url(), error))
   }
 }
 
@@ -179,7 +179,7 @@ async fn run_serve(args : Array[String]) -> Unit {
   println("listening on \{serving_url}")
   @async.with_task_group(group => {
     group.spawn_bg(
-      () => print_moonstat_startup_status(),
+      () => print_moongate_startup_status(),
       no_wait=true,
       allow_failure=true,
     )
