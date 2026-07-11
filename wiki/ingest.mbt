@@ -702,33 +702,35 @@ fn ingest_gather_lanes(
 ) -> Array[IngestGatherLane] {
   [
     {
-      id: "docs",
-      title: "Docs lane",
-      objective: "Read only high-signal docs, READMEs, guides, and product-facing markdown relevant to \{source_title}. Produce packet-ready evidence with provenance and candidate ontology.",
-      expected_artifacts: ["raw/bootstrap/*docs*.md"],
+      id: "question-framing",
+      title: "Question-framing lane",
+      objective: "Read wiki/\{source_relative_page} and turn \{source_title} into explicit unknowns, scope boundaries, decision questions, and evidence needs. Do not answer the questions or invent domain conclusions in this lane.",
+      expected_artifacts: ["raw/bootstrap/research-question.md"],
       expected_outputs: [
-        "inspected source paths", "evidence bullets", "candidate entities", "candidate concepts",
-        "lane readiness judgment",
+        "bounded research questions", "known and unknown separation", "decision dependencies",
+        "evidence requirements", "lane readiness judgment",
       ],
     },
     {
-      id: "implementation",
-      title: "Implementation lane",
-      objective: "Read only the highest-signal code, manifests, configs, and runtime wiring that support durable claims about wiki/\{source_relative_page}. Produce packet-ready implementation evidence, not final synthesis.",
-      expected_artifacts: ["raw/bootstrap/*implementation*.md"],
+      id: "authoritative-evidence",
+      title: "Authoritative-evidence lane",
+      objective: "Use the questions derived from wiki/\{source_relative_page} to find and screen high-signal primary or authoritative sources appropriate to \{source_title}. Record provenance, publication context, applicability limits, and disconfirming evidence; if remote search is unavailable, return that limitation explicitly.",
+      expected_artifacts: [
+        "raw/bootstrap/search-log.md", "raw/bootstrap/source-screen.md", "raw/bootstrap/local-sources.md",
+      ],
       expected_outputs: [
-        "inspected source paths", "runtime or code evidence bullets", "candidate entities",
-        "candidate concepts", "unresolved questions",
+        "source paths or URLs", "screening decisions", "evidence bullets", "applicability limits",
+        "unresolved questions",
       ],
     },
     {
-      id: "architecture",
-      title: "Architecture lane",
-      objective: "Read only files that explain system boundaries, topology, call chains, or cross-component responsibilities related to \{source_title}. Produce architecture notes with relationship candidates and uncertainty markers.",
-      expected_artifacts: ["raw/bootstrap/*architecture*.md"],
+      id: "alternatives-validation",
+      title: "Alternatives and validation lane",
+      objective: "For \{source_title}, compare relevant prior approaches or alternatives and identify tradeoffs, failure modes, disconfirming tests, and acceptance evidence. Keep recommendations provisional until the authoritative-evidence lane is complete.",
+      expected_artifacts: ["raw/bootstrap/evidence-matrix.md"],
       expected_outputs: [
-        "inspected source paths", "relationship evidence bullets", "candidate entities",
-        "candidate concepts", "topology notes",
+        "alternatives considered", "tradeoff evidence", "failure modes", "validation criteria",
+        "uncertainty markers",
       ],
     },
   ]
@@ -758,7 +760,9 @@ fn ingest_plan_notes(
   notes.push(
     "execution-mode: parallel-lane-bootstrap with one MoonClaw gather worker per lane when the source surface is broad",
   )
-  notes.push("gather-lanes: docs, implementation, architecture")
+  notes.push(
+    "gather-lanes: question-framing, authoritative-evidence, alternatives-validation",
+  )
   notes.push(
     "skill-followup: source-diarize, synthesis-revise, index-maintain, claim-audit",
   )
@@ -978,8 +982,13 @@ async test "ingest leaves ontology revision to follow-up skills" {
   assert_true(packet.contains("\"max_parallel_workers\": 4"))
   assert_true(packet.contains("\"semantic_phases\""))
   assert_true(packet.contains("\"gather_lanes\""))
-  assert_true(packet.contains("\"id\": \"docs\""))
-  assert_true(packet.contains("\"id\": \"implementation\""))
-  assert_true(packet.contains("\"id\": \"architecture\""))
+  assert_true(packet.contains("\"id\": \"question-framing\""))
+  assert_true(packet.contains("\"id\": \"authoritative-evidence\""))
+  assert_true(packet.contains("\"id\": \"alternatives-validation\""))
+  assert_true(
+    packet.contains(
+      "gather-lanes: question-framing, authoritative-evidence, alternatives-validation",
+    ),
+  )
   assert_true(packet.contains("one MoonClaw gather worker per lane"))
 }

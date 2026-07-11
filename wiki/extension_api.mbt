@@ -2290,7 +2290,13 @@ async test "produce task batch bootstraps research goals on weak coverage" {
   assert_true(gather.prompt.contains("Success means"))
   assert_true(gather.prompt.contains("Blockers"))
   assert_true(gather.prompt.contains("fan-out phase"))
-  assert_true(gather.prompt.contains("2 to 4 bounded gather lanes"))
+  assert_true(
+    gather.prompt.contains("2 to 4 bounded, goal-adaptive gather lanes"),
+  )
+  assert_true(gather.prompt.contains("goal-adaptive gather lanes"))
+  assert_true(
+    gather.prompt.contains("instead of copying examples mechanically"),
+  )
   assert_true(gather.target_pages.contains("synthesis/map.md"))
   let materialize = batch.tasks
     .iter()
