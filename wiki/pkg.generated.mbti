@@ -37,6 +37,8 @@ pub fn decode_executable_book_lifecycle_proof(Json) -> ExecutableBookLifecyclePr
 
 pub fn decode_executable_document(Json) -> ExecutableDocument raise
 
+pub fn decode_flow_outcome_observation(Json, String, String) -> FlowOutcomeObservation raise
+
 pub async fn doctor_skills(String) -> SkillDoctorReport
 
 pub async fn enable_extension(String, String) -> ExtensionInstallResult
@@ -83,7 +85,11 @@ pub async fn promote_bookkeeper_procedures(String, String) -> Array[String]
 
 pub async fn query_wiki(String, String, save? : Bool) -> QueryResult
 
+pub async fn reconcile_flow_projection_file(String, String, String, String) -> BookkeeperReflectionRecord
+
 pub async fn reflect_bookkeeper_file(String, String) -> BookkeeperReflectionRecord
+
+pub fn reflect_on_flow_outcome(FlowOutcomeObservation) -> BookkeeperReflection raise
 
 pub fn reflect_on_observation(BookkeeperObservation) -> BookkeeperReflection
 
@@ -387,6 +393,31 @@ pub struct ExtensionInstallResult {
   manifest_path : String
   installed_files : Array[String]
 } derive(ToJson, @debug.Debug)
+
+pub(all) struct FlowOutcomeObservation {
+  observation_id : String
+  run_id : String
+  book_id : String
+  declaration_revision : String
+  source_digest : String
+  source_projection_digest : String
+  work_item_id : String
+  declaration_id : String
+  product_id : String
+  requested_authority : String
+  acceptance_criteria : Array[String]
+  status : String
+  attempt_id : String
+  request_id : String
+  result_id : String
+  input_digest : String
+  output_digest : String
+  artifact_refs : Array[String]
+  blocker : String
+  error_kind : String
+  recorded_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn FlowOutcomeObservation::quality_issues(Self) -> Array[String]
 
 pub struct IngestResult {
   page_path : String
