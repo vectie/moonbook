@@ -7,7 +7,7 @@ human-language and executable/code-language editing operate on.
 
 ## Standalone Project Rule
 
-MoonBook must run as its own checkout. It may persist artifacts produced by external runtimes, but it must not require adjacent MoonClaw, Moontown, or Moondesk source checkouts to build, test, serve, or edit books. Cross-project integration should use configured paths, published packages, or runtime protocols.
+MoonBook must run as its own checkout. It may persist artifacts produced by external runtimes, but it must not require adjacent MoonClaw, MoonTown, or MoonDesk source checkouts to build, test, serve, or edit books. Cross-project integration should use configured paths, published packages, or runtime protocols.
 
 ## Product Model
 
@@ -16,7 +16,7 @@ MoonBook = executable book
 MoonWiki = human-language book editing
 MoonCode = executable/code-language book editing
 MoonClaw = bounded execution engine
-Moontown = coordination network for books
+MoonTown = coordination network for books
 Bookkeeper = acceptance gate
 ```
 
@@ -58,15 +58,15 @@ standing-watch decisions, and review queues.
 The next documentation and template hardening is to make the Code side equally
 first-class: book-owned `tools/`, `apps/`, package manifests, test evidence,
 MoonCode review receipts, and executable artifact promotion should be described
-as normal MoonBook surfaces, not only as Moondesk or MoonClaw side effects.
+as normal MoonBook surfaces, not only as MoonDesk or MoonClaw side effects.
 
 ## Boundary Rules
 
 - MoonBook owns durable truth and accepted artifacts.
 - MoonClaw may stage raw results, code diffs, package proof, and runtime events.
 - Bookkeeper/user review decides what is accepted.
-- Moontown schedules and coordinates book work, but does not own topic memory.
-- Moondesk projects and edits the book, but should not own book semantics.
+- MoonTown schedules and coordinates book work, but does not own topic memory.
+- MoonDesk projects and edits the book, but should not own book semantics.
 
 ## Portable Event Contract
 
@@ -145,8 +145,8 @@ state from pages, logs, or sidecar hints.
 ## Native Knowledge Bundle
 
 MoonBook also publishes a compact product contract named
-`moonbook.knowledge_bundle.v1`. This is the stable read model for Moondesk,
-Moontown, MoonClaw clients, and future suite tools when they need current book
+`moonbook.knowledge_bundle.v1`. This is the stable read model for MoonDesk,
+MoonTown, MoonClaw clients, and future suite tools when they need current book
 state without scraping markdown or rendered HTML.
 
 The bundle contains:

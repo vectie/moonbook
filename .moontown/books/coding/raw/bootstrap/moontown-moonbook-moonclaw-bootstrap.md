@@ -1,4 +1,4 @@
-# Bootstrap Packet: Moontown, MoonBook, and MoonClaw
+# Bootstrap Packet: MoonTown, MoonBook, and MoonClaw
 
 ## Scope
 
@@ -53,13 +53,13 @@ Bounded fan-out gather across three local repos for coding-book bootstrap.
 
 - `moontown/cmd/main/main.mbt` routes `run` requests into `@moontown.render_goal_run(...)` and otherwise loads a demo dashboard, showing a CLI entrypoint for town execution and visualization.
 - `moontown/roles/mayor.mbt` maps book task kinds like `ingest`, `review`, `planning`, `analysis`, and `synthesis` onto MoonClaw profiles such as `wiki_ingest_controller`, `wiki_lint_controller`, and `wiki_query_controller`.
-- `moontown/roles/mayor.mbt` prepares keeper packets from MoonBook worker context bundles, indicating Moontown depends on MoonBook for per-book task context and on MoonClaw for execution packets.
+- `moontown/roles/mayor.mbt` prepares keeper packets from MoonBook worker context bundles, indicating MoonTown depends on MoonBook for per-book task context and on MoonClaw for execution packets.
 - `moonbook/wiki/bookapi.mbt` and `moonbook/wiki/ingest.mbt` define a four-phase ingest flow with `bootstrap_gather`, `source_materialize`, `knowledge_revise`, and `review_finalize` semantics.
 - `moonclaw/cmd/main/main.mbt` exposes `gateway`, `proposal`, `exec`, `acp`, and interactive surfaces, showing MoonClaw is the runtime side rather than the durable wiki owner.
 
 ### Candidate entities
 
-- `Moontown`
+- `MoonTown`
 - `MoonBook`
 - `MoonClaw`
 - `Mayor`
@@ -94,7 +94,7 @@ Bounded fan-out gather across three local repos for coding-book bootstrap.
 
 ### Topology notes
 
-- Moontown sits above books and delegates domain-local work into MoonBook book workspaces.
+- MoonTown sits above books and delegates domain-local work into MoonBook book workspaces.
 - MoonBook sits between orchestration and execution, owning durable wiki state and book-local planning APIs.
 - MoonClaw sits below MoonBook as the execution substrate for proposals, jobs, controllers, and runtime workspaces.
 
@@ -114,15 +114,15 @@ Bounded fan-out gather across three local repos for coding-book bootstrap.
 
 ### Evidence
 
-- Moontown says town orchestration stays in `moontown`, harness and memory control stay in `moonbook`, and execution-heavy behavior stays in `moonclaw`.
+- MoonTown says town orchestration stays in `moontown`, harness and memory control stay in `moonbook`, and execution-heavy behavior stays in `moonclaw`.
 - MoonBook says the `moontown` add-on is optional and additive, exposing a town-facing book-harness API without changing the core wiki contract.
 - MoonBook says `wiki enable moonclaw` seeds provider/task manifests so MoonClaw can execute `wiki book tasks/context/persist` against a workspace-local target named `moonbook`.
 - MoonClaw says it can import external proposal packets and detect wiki-shaped workspaces containing `raw/`, `wiki/`, `wiki/index.md`, and `wiki/log.md`.
 
 ### Linkage claims worth materializing
 
-- Moontown orchestrates across multiple MoonBook book workspaces rather than owning durable domain knowledge itself.
-- MoonBook is the durable knowledge and harness boundary between Moontown and MoonClaw.
+- MoonTown orchestrates across multiple MoonBook book workspaces rather than owning durable domain knowledge itself.
+- MoonBook is the durable knowledge and harness boundary between MoonTown and MoonClaw.
 - MoonClaw executes provider-backed or extension-backed work against workspaces but does not own the wiki ontology.
 
 ### Lane blocker
@@ -131,7 +131,7 @@ Bounded fan-out gather across three local repos for coding-book bootstrap.
 
 ## Open questions
 
-- The repos describe current boundaries clearly, but runtime completeness is still partial: Moontown marks result persistence and long-running patrol loops as stubbed.
+- The repos describe current boundaries clearly, but runtime completeness is still partial: MoonTown marks result persistence and long-running patrol loops as stubbed.
 - MoonBook describes claim handling as still heuristic, so synthesis claims should stay scoped and source-linked.
 - MoonClaw documents workspace-aware execution, but this packet does not inspect deep workflow engine code beyond CLI and architecture references.
 

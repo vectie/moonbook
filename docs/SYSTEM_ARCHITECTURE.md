@@ -198,7 +198,7 @@ Generated consumer surfaces:
 - `book/knowledge/pages.json`
   typed page records with title, summary, review status, source quality, tags, and outbound links
 - `book/site/generated/knowledge-bundle.json`
-  generated-site copy of the same bundle for Moondesk, Moontown, and MoonClaw clients
+  generated-site copy of the same bundle for MoonDesk, MoonTown, and MoonClaw clients
 - `book/site/generated/book-state.json`
   generated-site copy of the current book-state snapshot for browser and desktop clients
 - `book/site/generated/graph.json`
@@ -227,7 +227,7 @@ The current `moontown` alignment is intentionally additive:
 
 - MoonBook exports a catalog-style book record for town bootstrap
 - MoonBook exposes optional extension API commands for planning, hydration, persistence, summary, and health
-- MoonBook owns standing-watch baseline decisions for recurring goals, including source/fact accounting and `book_changed` classification, while Moontown owns scheduling/supervision and MoonClaw owns execution
+- MoonBook owns standing-watch baseline decisions for recurring goals, including source/fact accounting and `book_changed` classification, while MoonTown owns scheduling/supervision and MoonClaw owns execution
 - MoonBook does not take over town scheduling or worker execution
 
 This keeps MoonBook from depending on one agent runtime while still allowing runtime-specific setup.
@@ -249,4 +249,4 @@ What should stay out of MoonBook core:
 - provider/model-specific agent logic
 - external operator UX assumptions
 
-Those belong in extension packs or external systems like MoonClaw and Moontown.
+Those belong in extension packs or external systems like MoonClaw and MoonTown.

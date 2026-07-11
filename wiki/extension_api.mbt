@@ -872,7 +872,7 @@ async fn research_envelope_entities(root : String) -> Array[String] {
   "\n" +
   research_artifact_text(root, "raw/bootstrap/evidence-matrix.md")).to_lower()
   let entities : Array[String] = []
-  for item in ["Moontown", "MoonBook", "MoonClaw"] {
+  for item in ["MoonTown", "MoonBook", "MoonClaw"] {
     if text.contains(item.to_lower()) {
       entities.push(item)
     }
@@ -1762,7 +1762,7 @@ async test "task prompt adds local source hints for ingest work" {
   ignore(@fsx.make_directory(book_root, recursive=true, exists_ok=true))
   ignore(@fsx.make_directory(moontown, recursive=true, exists_ok=true))
   ignore(
-    @fsx.write_to_file(moontown + "/README.md", "# Moontown\n", create=0o644),
+    @fsx.write_to_file(moontown + "/README.md", "# MoonTown\n", create=0o644),
   )
   let task : BookTask = {
     id: "goal-research-ingest",
@@ -2376,8 +2376,8 @@ async test "produce task batch allows synthesis after durable coverage exists" {
       memory_candidates: [
         {
           kind: "fact",
-          title: "Moontown",
-          detail: "Moontown orchestrates town-level work.",
+          title: "MoonTown",
+          detail: "MoonTown orchestrates town-level work.",
           durable: true,
           target_page: Some("entities/moontown.md"),
         },

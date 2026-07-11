@@ -2,7 +2,7 @@
 
 ## Identity
 
-Keeper is the book-local maintenance role described by MoonBook and referenced by Moontown handoff flows. It is the domain-scoped side of ingest, memory control, and durable wiki revision.
+Keeper is the book-local maintenance role described by MoonBook and referenced by MoonTown handoff flows. It is the domain-scoped side of ingest, memory control, and durable wiki revision.
 
 ## Role
 
@@ -13,7 +13,7 @@ Keeper is the book-local maintenance role described by MoonBook and referenced b
 ## Relationships
 
 - Operates inside [MoonBook](./moonbook.md) workspaces.
-- Receives handoff packets prepared by [Mayor](./mayor.md) in [Moontown](./moontown.md).
+- Receives handoff packets prepared by [Mayor](./mayor.md) in [MoonTown](./moontown.md).
 - Hands execution work to [MoonClaw](./moonclaw.md) workflow lanes while preserving MoonBook-owned semantics.
 - Is evidenced by [MoonBook Repo Overview](../sources/moonbook-repo-overview.md).
 

@@ -147,6 +147,30 @@ pub async fn init_workspace(
   let keeper_dir = moonbook_wiki_path(normalized_root)
     .join(moonbook_wiki_path("keeper"))
     .to_string()
+  let memory_dir = moonbook_wiki_path(normalized_root)
+    .join(moonbook_wiki_path("memory"))
+    .to_string()
+  let memory_episodes_dir = moonbook_wiki_path(memory_dir)
+    .join(moonbook_wiki_path("episodes"))
+    .to_string()
+  let memory_reflections_dir = moonbook_wiki_path(memory_dir)
+    .join(moonbook_wiki_path("reflections"))
+    .to_string()
+  let memory_beliefs_dir = moonbook_wiki_path(memory_dir)
+    .join(moonbook_wiki_path("beliefs"))
+    .to_string()
+  let memory_procedures_dir = moonbook_wiki_path(memory_dir)
+    .join(moonbook_wiki_path("procedures"))
+    .to_string()
+  let flow_dir = moonbook_wiki_path(normalized_root)
+    .join(moonbook_wiki_path("flow"))
+    .to_string()
+  let flow_declarations_dir = moonbook_wiki_path(flow_dir)
+    .join(moonbook_wiki_path("declarations"))
+    .to_string()
+  let flow_proposals_dir = moonbook_wiki_path(flow_dir)
+    .join(moonbook_wiki_path("proposals"))
+    .to_string()
   let skills_dir = moonbook_wiki_path(normalized_root)
     .join(moonbook_wiki_path("skills"))
     .to_string()
@@ -255,6 +279,14 @@ pub async fn init_workspace(
   @fsx.make_directory(reviews_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(sources_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(keeper_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(memory_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(memory_episodes_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(memory_reflections_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(memory_beliefs_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(memory_procedures_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(flow_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(flow_declarations_dir, recursive=true, exists_ok=true)
+  @fsx.make_directory(flow_proposals_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(skills_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(skill_candidates_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(ingest_skill_dir, recursive=true, exists_ok=true)
@@ -1214,7 +1246,7 @@ fn schema_text() -> String {
   "3. Decide `update`, `no_change`, `needs_review`, or `failed` from evidence quality and baseline delta\n" +
   "4. Include the required `standing_goal_decision`, `delta_score`, `new_source_count`, and `next_check_hint` marker lines in the result summary\n" +
   "5. Update durable pages only when there is meaningful new evidence; otherwise return a compact no-change result\n" +
-  "6. Let Moontown schedule and supervise the loop; MoonBook owns the book-local baseline decision and durable state\n\n" +
+  "6. Let MoonTown schedule and supervise the loop; MoonBook owns the book-local baseline decision and durable state\n\n" +
   "### Marketing\n\n" +
   "When updating the marketing projection:\n\n" +
   "1. Read `RESOLVER.md` and load `skills/wiki-marketing/SKILL.md`\n" +

@@ -90,7 +90,7 @@ Avoid promotion when the answer:
 
 ## Example high-value note
 
-- a query note explaining why Moontown can route correctly while MoonClaw still fails at materialization
+- a query note explaining why MoonTown can route correctly while MoonClaw still fails at materialization
 
 ## Operator reminder
 

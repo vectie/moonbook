@@ -19,7 +19,7 @@ Current wiki workspaces use a raw-first bootstrap flow:
 - MoonClaw workers stage discovered research artifacts under `raw/bootstrap/`
 - MoonBook materializes those raw research envelopes into durable `wiki/*` pages
 - `SKILL.md` files are repo-owned static templates copied from `seed/`, not generated at runtime
-- recurring standing-watch checks are skill-guided book-local decisions: MoonBook compares the current baseline to new evidence, records `update | no_change | needs_review | failed`, and leaves scheduling to Moontown
+- recurring standing-watch checks are skill-guided book-local decisions: MoonBook compares the current baseline to new evidence, records `update | no_change | needs_review | failed`, and leaves scheduling to MoonTown
 - reverse-document work is also skill-guided: MoonBook keeps the same workspace loop while `document-reverse-engineer` deconstructs a finished document into logic, style, improvement, and regenerated draft artifacts
 
 The CLI is now split more cleanly:

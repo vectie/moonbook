@@ -66,11 +66,11 @@ Relationships should say something real.
 
 Good:
 
-- "Moontown dispatches work into MoonBook book workspaces."
+- "MoonTown dispatches work into MoonBook book workspaces."
 
 Bad:
 
-- "Moontown is related to MoonBook."
+- "MoonTown is related to MoonBook."
 
 ## Uncertainty rules
 

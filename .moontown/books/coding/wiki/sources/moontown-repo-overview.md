@@ -1,4 +1,4 @@
-# Moontown Repo Overview
+# MoonTown Repo Overview
 
 ## Source Identity
 
@@ -14,11 +14,11 @@
 
 ## Synopsis
 
-Moontown is a town-level orchestration layer that coordinates multiple MoonBook book domains and multiple MoonClaw runtimes. Its docs and role code position it above per-book wiki maintenance, with a strategic Mayor role that prepares keeper packets and routes work into book-local execution lanes.
+MoonTown is a town-level orchestration layer that coordinates multiple MoonBook book domains and multiple MoonClaw runtimes. Its docs and role code position it above per-book wiki maintenance, with a strategic Mayor role that prepares keeper packets and routes work into book-local execution lanes.
 
 ## Evidence
 
-- The README describes Moontown as a town-level orchestration layer above multiple `moonbook` domains and multiple `moonclaw` runtimes.
+- The README describes MoonTown as a town-level orchestration layer above multiple `moonbook` domains and multiple `moonclaw` runtimes.
 - The README says town orchestration stays in `moontown`, harness and memory control stay in `moonbook`, and execution-heavy behavior stays in `moonclaw`.
 - `roles/mayor.mbt` maps task kinds like `ingest`, `review`, and `synthesis` onto MoonClaw controller profiles.
 - `roles/mayor.mbt` prepares keeper packets from MoonBook worker context bundles, showing a concrete handoff boundary rather than a vague integration claim.
@@ -26,7 +26,7 @@ Moontown is a town-level orchestration layer that coordinates multiple MoonBook 
 
 ## Related Entities
 
-- [Moontown](../entities/moontown.md)
+- [MoonTown](../entities/moontown.md)
 - [MoonBook](../entities/moonbook.md)
 - [MoonClaw](../entities/moonclaw.md)
 - [Mayor](../entities/mayor.md)

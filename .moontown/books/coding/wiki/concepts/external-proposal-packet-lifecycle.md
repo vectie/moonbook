@@ -10,20 +10,20 @@ This concept is the main execution linkage between the durable wiki side and the
 
 ## Examples
 
-- Moontown prepares keeper-facing external proposal packets from MoonBook task context.
+- MoonTown prepares keeper-facing external proposal packets from MoonBook task context.
 - MoonClaw documents `proposal import <packet.json>` as a normal entry into its proposal lifecycle.
 - MoonBook's keeper call-chain docs describe packet emission, profile application, workflow compilation, and execution in MoonClaw.
 
 ## Linked Entities
 
-- [Moontown](../entities/moontown.md)
+- [MoonTown](../entities/moontown.md)
 - [MoonBook](../entities/moonbook.md)
 - [MoonClaw](../entities/moonclaw.md)
 - [Mayor](../entities/mayor.md)
 
 ## Sources
 
-- [Moontown Repo Overview](../sources/moontown-repo-overview.md)
+- [MoonTown Repo Overview](../sources/moontown-repo-overview.md)
 - [MoonBook Repo Overview](../sources/moonbook-repo-overview.md)
 - [MoonClaw Repo Overview](../sources/moonclaw-repo-overview.md)
 

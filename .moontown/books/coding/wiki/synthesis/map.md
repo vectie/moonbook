@@ -13,7 +13,7 @@ Coverage, hub pages, and open maintenance loops for this wiki.
 ## Entity Hubs
 
 - [MoonBook](../entities/moonbook.md): durable workspace, ingest owner, and book-harness boundary.
-- [Moontown](../entities/moontown.md): town orchestrator and Mayor host.
+- [MoonTown](../entities/moontown.md): town orchestrator and Mayor host.
 - [MoonClaw](../entities/moonclaw.md): execution substrate and proposal runtime.
 
 ## Concept Hubs
@@ -25,5 +25,5 @@ Coverage, hub pages, and open maintenance loops for this wiki.
 ## Open Loops
 
 - Deepen MoonClaw runtime coverage beyond README and CLI boundaries if future tasks need workflow-engine detail.
-- Track whether Moontown's stubbed result-persistence and daemon patrol loops become implemented.
+- Track whether MoonTown's stubbed result-persistence and daemon patrol loops become implemented.
 - Revisit claim confidence when MoonBook's docs stop describing claim handling as heuristic.

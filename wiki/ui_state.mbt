@@ -372,7 +372,7 @@ fn compact_review_label(kind : String, title : String) -> String {
 fn compact_task_label(text : String) -> String {
   let normalized = text.trim().to_lower()
   let lane = if normalized.contains("moontown-research-lane") {
-    "Moontown lane"
+    "MoonTown lane"
   } else if normalized.contains("moonbook-research-lane") {
     "MoonBook lane"
   } else if normalized.contains("moonclaw-research-lane") {

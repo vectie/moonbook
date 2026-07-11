@@ -62,7 +62,7 @@ Installed files by pack:
   - `moontown.book.json`
   - `EXTENSION_API.md`
 
-The `moontown` pack is aligned to Moontown's current persisted bootstrap shape:
+The `moontown` pack is aligned to MoonTown's current persisted bootstrap shape:
 
 - MoonBook can export a catalog-style record with `moonbook wiki extension catalog`
 - `moontown.book.json` advertises both that catalog export and the town-to-extension API commands

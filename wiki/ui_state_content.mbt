@@ -438,7 +438,7 @@ async fn ui_research_report(
       ),
     },
     {
-      title: "Relationship to Moontown and MoonBook",
+      title: "Relationship to MoonTown and MoonBook",
       detail: research_relationship_summary(title, corpus, evidence_rows),
       evidence: report_evidence_from_rows(
         evidence_rows,
@@ -650,7 +650,7 @@ fn research_relationship_summary(
   if selected.is_empty() {
     "Cross-project relationship evidence is not yet strong enough. The report should explain town orchestration, book memory/materialization, and claw execution boundaries."
   } else {
-    "\{title} should be read inside the town-book-claw split: Moontown owns orchestration, MoonBook owns durable workspace and memory materialization, and MoonClaw owns worker execution. Current supporting rows: \{row_list_sentence(selected)}"
+    "\{title} should be read inside the town-book-claw split: MoonTown owns orchestration, MoonBook owns durable workspace and memory materialization, and MoonClaw owns worker execution. Current supporting rows: \{row_list_sentence(selected)}"
   }
 }
 

@@ -15,7 +15,7 @@
 
 ## Synopsis
 
-MoonBook is a MoonBit-native mdBook rewrite extended into a persistent wiki-maintainer workspace. It owns the raw-first bootstrap and durable wiki surfaces, including source pages, entity pages, concept pages, synthesis pages, review queues, and optional book-harness APIs used by Moontown.
+MoonBook is a MoonBit-native mdBook rewrite extended into a persistent wiki-maintainer workspace. It owns the raw-first bootstrap and durable wiki surfaces, including source pages, entity pages, concept pages, synthesis pages, review queues, and optional book-harness APIs used by MoonTown.
 
 ## Evidence
 
@@ -28,7 +28,7 @@ MoonBook is a MoonBit-native mdBook rewrite extended into a persistent wiki-main
 ## Related Entities
 
 - [MoonBook](../entities/moonbook.md)
-- [Moontown](../entities/moontown.md)
+- [MoonTown](../entities/moontown.md)
 - [MoonClaw](../entities/moonclaw.md)
 - [Keeper](../entities/keeper.md)
 

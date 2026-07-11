@@ -161,8 +161,8 @@ A good saved query note usually includes:
   "memory_candidates": [
     {
       "kind": "finding",
-      "title": "Moontown planning depends on MoonBook coverage quality",
-      "detail": "The saved query note explains that Moontown can route work correctly, but answer quality still depends on MoonBook coverage and MoonClaw materialization quality.",
+      "title": "MoonTown planning depends on MoonBook coverage quality",
+      "detail": "The saved query note explains that MoonTown can route work correctly, but answer quality still depends on MoonBook coverage and MoonClaw materialization quality.",
       "durable": true,
       "target_page": "wiki/synthesis/overview.md"
     }
