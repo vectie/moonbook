@@ -102,7 +102,14 @@ fn gap_stable_key(requirement_id : String, kind : String) -> String {
 
 ///|
 fn procedure_stable_key(procedure : BookkeeperProcedure) -> String {
-  procedure_signature(procedure).join("|")
+  let structural_steps = if procedure.steps.is_empty() {
+    []
+  } else {
+    [procedure.steps[0]]
+  }
+  semantic_terms(
+    [procedure.title] + structural_steps + procedure.verification_criteria,
+  ).join("|")
 }
 
 ///|
@@ -384,6 +391,11 @@ fn integrate_procedures(
         if record.successful_reflections.length() >= 2 {
           record.status = "accepted"
         }
+        for evidence_ref in procedure.evidence_refs {
+          if !record.procedure.evidence_refs.contains(evidence_ref) {
+            record.procedure.evidence_refs.push(evidence_ref)
+          }
+        }
         record.updated_at = reflection.recorded_at
         found = true
       }
@@ -400,6 +412,59 @@ fn integrate_procedures(
     }
   }
   index.updated_at = reflection.recorded_at
+}
+
+///|
+fn normalize_procedure_keys(index : ProcedureLearningIndex) -> Unit {
+  let normalized : Array[ProcedureLearningRecord] = []
+  for record in index.procedures {
+    let stable_key = procedure_stable_key(record.procedure)
+    let mut merged = false
+    for target in normalized {
+      if target.stable_key == stable_key {
+        for reflection_id in record.successful_reflections {
+          if !target.successful_reflections.contains(reflection_id) {
+            target.successful_reflections.push(reflection_id)
+          }
+        }
+        for review_ref in record.review_refs {
+          if !target.review_refs.contains(review_ref) {
+            target.review_refs.push(review_ref)
+          }
+        }
+        for evidence_ref in record.procedure.evidence_refs {
+          if !target.procedure.evidence_refs.contains(evidence_ref) {
+            target.procedure.evidence_refs.push(evidence_ref)
+          }
+        }
+        if target.successful_reflections.length() >= 2 ||
+          record.status == "accepted" {
+          target.status = "accepted"
+        }
+        target.updated_at = record.updated_at
+        merged = true
+      }
+    }
+    if !merged {
+      normalized.push({
+        stable_key,
+        procedure: record.procedure,
+        successful_reflections: record.successful_reflections.copy(),
+        review_refs: record.review_refs.copy(),
+        status: if record.successful_reflections.length() >= 2 ||
+          record.status == "accepted" {
+          "accepted"
+        } else {
+          "candidate"
+        },
+        updated_at: record.updated_at,
+      })
+    }
+  }
+  index.procedures.clear()
+  for record in normalized {
+    index.procedures.push(record)
+  }
 }
 
 ///|
@@ -428,6 +493,7 @@ pub async fn persist_metacognition(
     reflection.book_id,
     reflection.recorded_at,
   )
+  normalize_procedure_keys(procedures)
   integrate_gaps(gap_graph, requirement_id, reflection)
   integrate_beliefs(beliefs, reflection)
   integrate_procedures(procedures, reflection)

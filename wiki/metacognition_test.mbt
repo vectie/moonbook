@@ -126,7 +126,20 @@ async test "procedure remains candidate after one success and promotes after two
     metacognition_reflection(
       "reflection-success-2",
       [],
-      [candidate_procedure("procedure-run-2")],
+      [
+        {
+          ..candidate_procedure("procedure-run-2"),
+          applicability: [
+            "the artifact has declared positive and negative criteria", "declaration revision r2",
+            "input digest sha256:bbbbbbbb",
+          ],
+          steps: [
+            "run native checks", "Retain result result-run-2 and output digest sha256:cccccccc.",
+            "run positive and negative cases",
+          ],
+          evidence_refs: ["evidence/accepted-run-2.json"],
+        },
+      ],
       "2026-07-12T14:11:00+08:00",
     ),
   )
@@ -137,6 +150,11 @@ async test "procedure remains candidate after one success and promotes after two
   assert_eq(index.procedures.length(), 1)
   assert_eq(index.procedures[0].successful_reflections.length(), 2)
   assert_eq(index.procedures[0].status, "accepted")
+  assert_true(
+    index.procedures[0].procedure.evidence_refs.contains(
+      "evidence/accepted-run-2.json",
+    ),
+  )
   assert_true(!index.procedures[0].procedure.invalidation_triggers.is_empty())
 }
 
