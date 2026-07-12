@@ -91,6 +91,8 @@ pub async fn persist_metacognition(String, String, BookkeeperReflection) -> Meta
 
 pub async fn persist_result(String, BookResult, lifecycle_proof? : ExecutableBookLifecycleProof?) -> PersistResultOutcome
 
+pub async fn prepare_goal_unattended_runtime(String, String, String, String, String, String) -> GoalRuntimeRecord
+
 pub async fn produce_task_batch(String, String, goal_id? : String?) -> BookTaskBatch
 
 pub async fn promote_bookkeeper_procedures(String, String, String) -> Array[String]
@@ -466,6 +468,15 @@ pub(all) enum GoalIntentClass {
   GeneralDigitalArtifact
 } derive(Eq, @debug.Debug)
 pub fn GoalIntentClass::id(Self) -> String
+
+pub(all) struct GoalRuntimeRecord {
+  contract_id : String
+  capabilities_path : String
+  manifest_path : String
+  review_policy_path : String
+  envelope_request_path : String
+  expected_artifacts : Array[String]
+} derive(Eq, ToJson, @debug.Debug)
 
 pub struct IngestResult {
   page_path : String

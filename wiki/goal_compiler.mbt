@@ -28,6 +28,16 @@ pub(all) struct GoalCompileRecord {
 } derive(Debug, Eq, ToJson)
 
 ///|
+pub(all) struct GoalRuntimeRecord {
+  contract_id : String
+  capabilities_path : String
+  manifest_path : String
+  review_policy_path : String
+  envelope_request_path : String
+  expected_artifacts : Array[String]
+} derive(Debug, Eq, ToJson)
+
+///|
 pub fn classify_goal_intent(goal : String) -> GoalIntentClass {
   let text = goal.to_lower()
   let physical = [
@@ -459,5 +469,220 @@ pub async fn compile_goal_file(
     graph_path,
     intent_class: intent.id(),
     graph,
+  }
+}
+
+///|
+fn goal_capability_json(
+  action : BookkeeperAction,
+  binding : ExecutableExecutionBinding,
+) -> Json {
+  (
+    {
+      "adapter_id": "\{action.executor_product}-\{binding.operation}-v1",
+      "product_id": action.executor_product,
+      "protocol": "moonflow.adapter.v1",
+      "operations": [binding.operation],
+      "authority_classes": [action.requested_authority],
+      "input_contracts": binding.input_contracts.to_json(),
+      "output_contracts": binding.output_contracts.to_json(),
+      "claim_ceiling": binding.required_claim,
+      "healthy": true,
+      "supports_cancel": true,
+      "supports_reconcile": true,
+    } : Json)
+}
+
+///|
+fn goal_driver_json(
+  action : BookkeeperAction,
+  binding : ExecutableExecutionBinding,
+  output_ref : String,
+  worker_executable : String,
+  model : String,
+) -> Json {
+  (
+    {
+      "adapter_id": "\{action.executor_product}-\{binding.operation}-v1",
+      "executable": worker_executable,
+      "arguments": [
+        "flow-adapter", "execute", "--workspace", "{workspace}", "--request", "{request}",
+        "--result", "{result}", "--model", model, "--artifact", output_ref, "--max-trials",
+        "3",
+      ],
+      "expected_output_artifacts": [output_ref],
+      "reviewer_id": "independent-reviewer-\{action.executor_product}-\{binding.operation}",
+      "reviewer_executable": worker_executable,
+      "reviewer_arguments": [
+        "flow-adapter", "review", "--workspace", "{workspace}", "--review-packet",
+        "{review}", "--model", model,
+      ],
+      "review_authority_id": "moonflow-independent-criterion-policy-v1",
+      "budget_request": {
+        "model_tokens": 50000,
+        "tool_calls": 30,
+        "storage_bytes": 10485760,
+        "attempts": 3,
+        "concurrency": 1,
+      },
+    } : Json)
+}
+
+///|
+pub async fn prepare_goal_unattended_runtime(
+  workspace : String,
+  book_id : String,
+  revision : String,
+  gate_executable : String,
+  worker_executable : String,
+  model : String,
+) -> GoalRuntimeRecord {
+  if gate_executable.trim().is_empty() ||
+    worker_executable.trim().is_empty() ||
+    model.trim().is_empty() {
+    fail("unattended runtime requires explicit gate, worker, and model")
+  }
+  let safe_book_id = safe_observation_id(book_id)
+  let safe_revision = safe_observation_id(revision)
+  let root = @pathx.normalize(workspace)
+  let book_root = root + "/books/" + safe_book_id
+  let declaration_path = book_root +
+    "/flow/declarations/" +
+    safe_revision +
+    ".json"
+  let document = decode_executable_document(
+    @json.parse(@fsx.read_file(declaration_path)),
+  )
+  let capabilities : Array[Json] = []
+  let drivers : Array[Json] = []
+  let expected_artifacts : Array[String] = []
+  for action in document.declarations {
+    guard document.binding_for(action.declaration_id) is Some(binding) else {
+      fail("goal runtime lost execution binding: \{action.declaration_id}")
+    }
+    let output_ref = "books/" +
+      safe_book_id +
+      "/flow/outputs/" +
+      action.declaration_id +
+      ".json"
+    capabilities.push(goal_capability_json(action, binding))
+    drivers.push(
+      goal_driver_json(action, binding, output_ref, worker_executable, model),
+    )
+    expected_artifacts.push(output_ref)
+  }
+  let runtime_root = book_root + "/flow/runtime"
+  @fsx.make_directory(runtime_root, recursive=true, exists_ok=true)
+  let capabilities_path = runtime_root + "/capabilities.json"
+  let manifest_path = runtime_root + "/unattended-manifest.json"
+  let review_policy_path = runtime_root + "/review-policy.json"
+  let envelope_request_path = runtime_root + "/autonomy-request.json"
+  @fsx.write_to_file(
+    capabilities_path,
+    Json::array(capabilities).stringify(indent=2) + "\n",
+    create=0o644,
+  )
+  let grant_products : Array[String] = []
+  let grants : Array[Json] = []
+  for action in document.declarations {
+    if grant_products.contains(action.executor_product) {
+      continue
+    }
+    grant_products.push(action.executor_product)
+    let operations : Array[String] = []
+    let mut authority = @pipeline.AuthorityClass::Observe
+    let mut claim = @pipeline.ClaimClass::Observation
+    for candidate in document.declarations {
+      if candidate.executor_product == action.executor_product {
+        guard document.binding_for(candidate.declaration_id) is Some(binding) else {
+          continue
+        }
+        if !operations.contains(binding.operation) {
+          operations.push(binding.operation)
+        }
+        let requested = @pipeline.authority_class_from_id(
+          candidate.requested_authority,
+        )
+        if !authority.allows(requested) {
+          authority = requested
+        }
+        let required = @pipeline.claim_class_from_id(binding.required_claim)
+        if !claim.allows(required) {
+          claim = required
+        }
+      }
+    }
+    grants.push(
+      (
+        {
+          "product_id": action.executor_product,
+          "operations": operations.to_json(),
+          "authority_ceiling": authority.id(),
+          "claim_ceiling": claim.id(),
+          "artifact_prefixes": ["books/" + safe_book_id + "/flow/outputs"],
+        } : Json),
+    )
+  }
+  @fsx.write_to_file(
+    envelope_request_path,
+    (
+      {
+        "contract_id": "moonbook.autonomy-request.v1",
+        "goal_ref": "books/" +
+        safe_book_id +
+        "/flow/goals/" +
+        safe_revision +
+        ".txt",
+        "source_digest": document.source_digest,
+        "mode": "unattended-digital",
+        "grants": Json::array(grants),
+        "budget": {
+          "model_tokens": document.declarations.length() * 50000,
+          "tool_calls": document.declarations.length() * 30,
+          "storage_bytes": document.declarations.length() * 10485760,
+          "attempts": document.declarations.length() * 3,
+          "concurrency": 1,
+        },
+        "external_effects_allowed": false,
+        "physical_effects_allowed": false,
+      } : Json).stringify(indent=2) +
+    "\n",
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    manifest_path,
+    (
+      {
+        "contract_id": "moonflow.unattended-manifest.v1",
+        "gate_executable": gate_executable,
+        "gate_arguments": ["suite", "autonomy-check"],
+        "max_cycles": document.declarations.length() * 4 + 4,
+        "drivers": Json::array(drivers),
+      } : Json).stringify(indent=2) +
+    "\n",
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    review_policy_path,
+    (
+      {
+        "contract_id": "moonbook.review-policy.v1",
+        "reviewer_independence": "required",
+        "criterion_order": "immutable",
+        "evidence_identity": "digest-verified",
+        "self_review": "prohibited",
+        "unsupported_claim": "reduce-or-reject",
+        "physical_readiness": "prohibited",
+      } : Json).stringify(indent=2) +
+    "\n",
+    create=0o644,
+  )
+  {
+    contract_id: "moonbook.goal-runtime-record.v1",
+    capabilities_path,
+    manifest_path,
+    review_policy_path,
+    envelope_request_path,
+    expected_artifacts,
   }
 }
