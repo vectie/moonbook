@@ -502,9 +502,13 @@ pub async fn reconcile_flow_run_file(
     reconciled_work_items.push(work_item_id)
     reflection_paths.push(record.reflection_path)
     let error_kind = bk_optional_string(item, "error_kind", "")
+    let blocker = bk_optional_string(item, "blocker", "")
     if recovery_graph_path.is_empty() &&
       status == "blocked" &&
-      error_kind == "acceptance-rejected" {
+      (
+        error_kind == "acceptance-rejected" ||
+        blocker.has_prefix("Acceptance rejected by ")
+      ) {
       let recovery = write_automatic_recovery_revision(
         root,
         projection,
