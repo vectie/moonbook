@@ -558,6 +558,7 @@ pub fn native_attestor_executable(
 ) -> String raise {
   let binary = match product_id {
     "moonwiki" | "moonbook" => "moonbook-flow-attestor"
+    "moonclaw" => "moonclaw"
     "moontown" => "moontown-flow-attestor"
     "moonrobo" => "moonrobo-flow-attestor"
     "moonmoon" => "moonmoon-flow-attestor"
