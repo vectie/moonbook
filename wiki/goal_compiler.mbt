@@ -244,7 +244,7 @@ pub fn compile_goal_document(
       actions.push(
         goal_action(
           "digital-build",
-          "build-digital-system",
+          "build-digital-robot",
           "Build the governed digital system model",
           "Produce a traceable digital design and sandboxed model; do not claim physical construction or readiness.",
           "moonrobo",
@@ -259,7 +259,7 @@ pub fn compile_goal_document(
       actions.push(
         goal_action(
           "validate",
-          "validate-digital-system",
+          "validate-requirements",
           "Validate the digital design and negative cases",
           "Run independent structural, constraint, and resilience validation against the original criteria.",
           "moonrobo",
@@ -300,7 +300,7 @@ pub fn compile_goal_document(
       bindings.push(
         goal_binding(
           "digital-build",
-          "build-digital-system",
+          "build-digital-robot",
           ["moontown.deliberation.v1"],
           ["moonrobo.digital-design.v1"],
           "digital-artifact",
@@ -311,7 +311,7 @@ pub fn compile_goal_document(
       bindings.push(
         goal_binding(
           "validate",
-          "validate-digital-system",
+          "validate-requirements",
           ["moonrobo.digital-design.v1"],
           ["moonrobo.validation-evidence.v1"],
           "simulation-evidence",
@@ -511,6 +511,22 @@ fn goal_driver_json(
         "3",
       ],
       "expected_output_artifacts": [output_ref],
+      "attestor_id": "contract-attestor-\{action.executor_product}-v1",
+      "attestor_executable": worker_executable,
+      "attestor_arguments": [
+        "flow-adapter",
+        "attest",
+        "--workspace",
+        "{workspace}",
+        "--request",
+        "{request}",
+        "--result",
+        "{result}",
+        "--attestation",
+        "{attestation}",
+        "--attestor-id",
+        "contract-attestor-\{action.executor_product}-v1",
+      ],
       "reviewer_id": "independent-reviewer-\{action.executor_product}-\{binding.operation}",
       "reviewer_executable": worker_executable,
       "reviewer_arguments": [
@@ -581,9 +597,23 @@ pub async fn prepare_goal_unattended_runtime(
   let manifest_path = runtime_root + "/unattended-manifest.json"
   let review_policy_path = runtime_root + "/review-policy.json"
   let envelope_request_path = runtime_root + "/autonomy-request.json"
+  let usage_path = runtime_root + "/usage.json"
   @fsx.write_to_file(
     capabilities_path,
     Json::array(capabilities).stringify(indent=2) + "\n",
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    usage_path,
+    (
+      {
+        "model_tokens": 0,
+        "tool_calls": 0,
+        "storage_bytes": 0,
+        "attempts": 0,
+        "concurrency": 0,
+      } : Json).stringify(indent=2) +
+    "\n",
     create=0o644,
   )
   let grant_products : Array[String] = []
@@ -657,7 +687,7 @@ pub async fn prepare_goal_unattended_runtime(
     manifest_path,
     (
       {
-        "contract_id": "moonflow.unattended-manifest.v1",
+        "contract_id": "moonflow.unattended-manifest.v2",
         "gate_executable": gate_executable,
         "gate_arguments": ["suite", "autonomy-check"],
         "max_cycles": document.declarations.length() * 4 + 4,
