@@ -498,6 +498,7 @@ fn goal_driver_json(
   action : BookkeeperAction,
   binding : ExecutableExecutionBinding,
   output_ref : String,
+  draft_ref : String,
   worker_executable : String,
   model : String,
 ) -> Json {
@@ -507,9 +508,10 @@ fn goal_driver_json(
       "executable": worker_executable,
       "arguments": [
         "flow-adapter", "execute", "--workspace", "{workspace}", "--request", "{request}",
-        "--result", "{result}", "--model", model, "--artifact", output_ref, "--max-trials",
+        "--result", "{result}", "--model", model, "--artifact", draft_ref, "--max-trials",
         "3",
       ],
+      "draft_output_artifacts": [draft_ref],
       "expected_output_artifacts": [output_ref],
       "attestor_id": "contract-attestor-\{action.executor_product}-v1",
       "attestor_executable": worker_executable,
@@ -526,6 +528,10 @@ fn goal_driver_json(
         "{attestation}",
         "--attestor-id",
         "contract-attestor-\{action.executor_product}-v1",
+        "--draft",
+        "{draft}",
+        "--final",
+        "{final}",
       ],
       "reviewer_id": "independent-reviewer-\{action.executor_product}-\{binding.operation}",
       "reviewer_executable": worker_executable,
@@ -585,9 +591,16 @@ pub async fn prepare_goal_unattended_runtime(
       "/flow/outputs/" +
       action.declaration_id +
       ".json"
+    let draft_ref = "books/" +
+      safe_book_id +
+      "/flow/drafts/" +
+      action.declaration_id +
+      ".json"
     capabilities.push(goal_capability_json(action, binding))
     drivers.push(
-      goal_driver_json(action, binding, output_ref, worker_executable, model),
+      goal_driver_json(
+        action, binding, output_ref, draft_ref, worker_executable, model,
+      ),
     )
     expected_artifacts.push(output_ref)
   }
@@ -687,7 +700,7 @@ pub async fn prepare_goal_unattended_runtime(
     manifest_path,
     (
       {
-        "contract_id": "moonflow.unattended-manifest.v2",
+        "contract_id": "moonflow.unattended-manifest.v3",
         "gate_executable": gate_executable,
         "gate_arguments": ["suite", "autonomy-check"],
         "max_cycles": document.declarations.length() * 4 + 4,
