@@ -32,6 +32,17 @@ async fn run_bookkeeper(args : Array[String]) -> Unit {
       }
       print_json(record)
     }
+    ["reconcile-run", root, projection_path, recorded_at] => {
+      let record = @wiki.reconcile_flow_run_file(
+        root, projection_path, recorded_at,
+      ) catch {
+        error => {
+          println("moonbook bookkeeper reconcile-run failed: \{error}")
+          @os.exit(1)
+        }
+      }
+      print_json(record)
+    }
     ["propose-revision", root, request_path] => {
       let record = @wiki.write_plan_revision(root, request_path) catch {
         error => {
@@ -52,7 +63,7 @@ async fn run_bookkeeper(args : Array[String]) -> Unit {
     }
     _ =>
       println(
-        "moonbook bookkeeper usage:\n  moonbook bookkeeper reflect <book-root> <observation.json>\n  moonbook bookkeeper promote <book-root> <reflection-id> <review-receipt-ref>\n  moonbook bookkeeper reconcile-flow <book-root> <projection.json> <work-item-id> <recorded-at>\n  moonbook bookkeeper propose-revision <book-root> <request.json>\n  moonbook bookkeeper metacognition <book-root>",
+        "moonbook bookkeeper usage:\n  moonbook bookkeeper reflect <book-root> <observation.json>\n  moonbook bookkeeper promote <book-root> <reflection-id> <review-receipt-ref>\n  moonbook bookkeeper reconcile-flow <book-root> <projection.json> <work-item-id> <recorded-at>\n  moonbook bookkeeper reconcile-run <book-root> <projection.json> <recorded-at>\n  moonbook bookkeeper propose-revision <book-root> <request.json>\n  moonbook bookkeeper metacognition <book-root>",
       )
   }
 }

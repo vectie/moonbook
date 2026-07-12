@@ -91,7 +91,7 @@ pub async fn persist_metacognition(String, String, BookkeeperReflection) -> Meta
 
 pub async fn persist_result(String, BookResult, lifecycle_proof? : ExecutableBookLifecycleProof?) -> PersistResultOutcome
 
-pub async fn prepare_goal_unattended_runtime(String, String, String, String, String, String) -> GoalRuntimeRecord
+pub async fn prepare_goal_unattended_runtime(String, String, String, String, String, String, String) -> GoalRuntimeRecord
 
 pub async fn produce_task_batch(String, String, goal_id? : String?) -> BookTaskBatch
 
@@ -100,6 +100,8 @@ pub async fn promote_bookkeeper_procedures(String, String, String) -> Array[Stri
 pub async fn query_wiki(String, String, save? : Bool) -> QueryResult
 
 pub async fn reconcile_flow_projection_file(String, String, String, String) -> BookkeeperReflectionRecord
+
+pub async fn reconcile_flow_run_file(String, String, String) -> FlowRunReconciliation
 
 pub async fn reflect_bookkeeper_file(String, String) -> BookkeeperReflectionRecord
 
@@ -450,6 +452,15 @@ pub(all) struct FlowOutcomeObservation {
   recorded_at : String
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 pub fn FlowOutcomeObservation::quality_issues(Self) -> Array[String]
+
+pub(all) struct FlowRunReconciliation {
+  contract_id : String
+  run_id : String
+  reconciled_work_items : Array[String]
+  reflection_paths : Array[String]
+  metacognition : Json
+  recorded_at : String
+} derive(Eq, ToJson, @debug.Debug)
 
 pub(all) struct GoalCompileRecord {
   contract_id : String

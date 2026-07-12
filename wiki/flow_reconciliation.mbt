@@ -28,6 +28,16 @@ pub(all) struct FlowOutcomeObservation {
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
+pub(all) struct FlowRunReconciliation {
+  contract_id : String
+  run_id : String
+  reconciled_work_items : Array[String]
+  reflection_paths : Array[String]
+  metacognition : Json
+  recorded_at : String
+} derive(Debug, Eq, ToJson)
+
+///|
 fn flow_int(fields : Map[String, Json], key : String) -> Int raise {
   match fields.get(key) {
     Some(Number(value, ..)) => value.to_int()
@@ -355,4 +365,43 @@ pub async fn reconcile_flow_projection_file(
     )
   }
   { reflection_path, episode_path, proposals_path, reflection }
+}
+
+///|
+pub async fn reconcile_flow_run_file(
+  root : String,
+  projection_path : String,
+  recorded_at : String,
+) -> FlowRunReconciliation {
+  let projection = @json.parse(@fsx.read_file(projection_path))
+  let fields = bk_object(projection)
+  let run_id = safe_observation_id(bk_string(fields, "run_id"))
+  guard fields.get("items") is Some(Array(items)) else {
+    fail("MoonFlow projection requires items array")
+  }
+  let reconciled_work_items : Array[String] = []
+  let reflection_paths : Array[String] = []
+  for value in items {
+    let item = bk_object(value)
+    let status = bk_string(item, "status")
+    if !["review", "accepted", "blocked", "failed", "cancelled", "superseded"].contains(
+        status,
+      ) {
+      continue
+    }
+    let work_item_id = safe_observation_id(bk_string(item, "work_item_id"))
+    let record = reconcile_flow_projection_file(
+      root, projection_path, work_item_id, recorded_at,
+    )
+    reconciled_work_items.push(work_item_id)
+    reflection_paths.push(record.reflection_path)
+  }
+  {
+    contract_id: "moonbook.flow-run-reconciliation.v1",
+    run_id,
+    reconciled_work_items,
+    reflection_paths,
+    metacognition: metacognition_status_json(root),
+    recorded_at,
+  }
 }

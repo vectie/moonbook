@@ -535,12 +535,16 @@ pub async fn prepare_goal_unattended_runtime(
   revision : String,
   gate_executable : String,
   worker_executable : String,
+  observer_executable : String,
   model : String,
 ) -> GoalRuntimeRecord {
   if gate_executable.trim().is_empty() ||
     worker_executable.trim().is_empty() ||
+    observer_executable.trim().is_empty() ||
     model.trim().is_empty() {
-    fail("unattended runtime requires explicit gate, worker, and model")
+    fail(
+      "unattended runtime requires explicit gate, worker, observer, and model",
+    )
   }
   let safe_book_id = safe_observation_id(book_id)
   let safe_revision = safe_observation_id(revision)
@@ -658,6 +662,11 @@ pub async fn prepare_goal_unattended_runtime(
         "gate_arguments": ["suite", "autonomy-check"],
         "max_cycles": document.declarations.length() * 4 + 4,
         "drivers": Json::array(drivers),
+        "observer_executable": observer_executable,
+        "observer_arguments": [
+          "bookkeeper", "reconcile-run", "{workspace}/books/{book_id}", "{projection}",
+          "{recorded_at}",
+        ],
       } : Json).stringify(indent=2) +
     "\n",
     create=0o644,

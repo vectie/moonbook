@@ -28,10 +28,12 @@ async fn run_executable(args : Array[String]) -> Unit {
       revision,
       gate_executable,
       worker_executable,
+      observer_executable,
       model,
     ] => {
       let record = @wiki.prepare_goal_unattended_runtime(
-        workspace, book_id, revision, gate_executable, worker_executable, model,
+        workspace, book_id, revision, gate_executable, worker_executable, observer_executable,
+        model,
       ) catch {
         error => {
           println("moonbook executable prepare-unattended failed: \{error}")
@@ -42,7 +44,7 @@ async fn run_executable(args : Array[String]) -> Unit {
     }
     _ =>
       println(
-        "moonbook executable usage:\n  moonbook executable compile <book-root> <document.json>\n  moonbook executable compile-goal <workspace> <book-id> <goal.txt> <revision> <recorded-at>\n  moonbook executable prepare-unattended <workspace> <book-id> <revision> <gate-executable> <worker-executable> <model>",
+        "moonbook executable usage:\n  moonbook executable compile <book-root> <document.json>\n  moonbook executable compile-goal <workspace> <book-id> <goal.txt> <revision> <recorded-at>\n  moonbook executable prepare-unattended <workspace> <book-id> <revision> <gate-executable> <worker-executable> <observer-executable> <model>",
       )
   }
 }
