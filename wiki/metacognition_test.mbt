@@ -178,3 +178,38 @@ async test "belief index separates contradiction evidence and records invalidati
   assert_true(index.beliefs[0].consequence_links.contains("safe-return"))
   assert_true(!index.beliefs[0].invalidation_triggers.is_empty())
 }
+
+///|
+test "accepted procedures transfer structurally and changed criteria prevent reuse" {
+  let procedure = candidate_procedure("procedure-source-domain")
+  let index : ProcedureLearningIndex = {
+    contract_id: "moonbook.procedure-candidate.v1",
+    book_id: "source-domain",
+    procedures: [
+      {
+        stable_key: "structural-digital-validation",
+        procedure,
+        successful_reflections: ["success-a", "success-b"],
+        review_refs: [],
+        status: "accepted",
+        updated_at: "2026-07-12T14:30:00+08:00",
+      },
+    ],
+    updated_at: "2026-07-12T14:30:00+08:00",
+  }
+  let transferred = retrieve_applicable_procedures(
+    index,
+    [
+      "A software package has positive and negative acceptance criteria.", "Run native checks and retain exact case receipts.",
+    ],
+    [],
+  ).stringify()
+  assert_true(transferred.contains("\"status\":\"applicable-candidate\""))
+  let invalidated = retrieve_applicable_procedures(
+    index,
+    ["A different robot model has positive and negative acceptance criteria."],
+    ["The acceptance criteria change for this run."],
+  ).stringify()
+  assert_true(invalidated.contains("invalidation signal matched"))
+  assert_false(invalidated.contains("\"status\":\"applicable-candidate\""))
+}

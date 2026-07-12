@@ -102,8 +102,103 @@ fn gap_stable_key(requirement_id : String, kind : String) -> String {
 
 ///|
 fn procedure_stable_key(procedure : BookkeeperProcedure) -> String {
-  let applicability = procedure.applicability.map(value => value.to_lower())
-  "\{procedure.title.to_lower()}::\{applicability.join("|")}"
+  procedure_signature(procedure).join("|")
+}
+
+///|
+fn semantic_terms(values : Array[String]) -> Array[String] {
+  let terms : Array[String] = []
+  for value in values {
+    let normalized = value
+      .to_lower()
+      .replace(old=",", new=" ")
+      .replace(old=".", new=" ")
+      .replace(old=":", new=" ")
+      .replace(old=";", new=" ")
+      .replace(old="/", new=" ")
+      .replace(old="-", new=" ")
+    for raw in normalized.split(" ") {
+      let term = raw.trim().to_owned()
+      if term.length() >= 4 &&
+        ![
+          "this", "that", "with", "from", "when", "then", "into", "have", "must",
+          "will", "under", "only", "each", "same", "current", "declared",
+        ].contains(term) &&
+        !terms.contains(term) {
+        terms.push(term)
+      }
+    }
+  }
+  terms.sort()
+  terms
+}
+
+///|
+fn procedure_signature(procedure : BookkeeperProcedure) -> Array[String] {
+  semantic_terms(
+    procedure.applicability +
+    procedure.steps +
+    procedure.verification_criteria +
+    procedure.failure_modes +
+    procedure.counterexamples,
+  )
+}
+
+///|
+pub fn retrieve_applicable_procedures(
+  index : ProcedureLearningIndex,
+  target_conditions : Array[String],
+  invalidation_signals : Array[String],
+) -> Json {
+  let target_terms = semantic_terms(target_conditions)
+  let invalidation_terms = semantic_terms(invalidation_signals)
+  let matches : Array[Json] = []
+  let rejections : Array[Json] = []
+  for record in index.procedures {
+    if record.status != "accepted" {
+      rejections.push({
+        "stable_key": record.stable_key,
+        "reason": "procedure is not accepted",
+      })
+      continue
+    }
+    let invalidated = semantic_terms(record.procedure.invalidation_triggers).filter(term => {
+        invalidation_terms.contains(term)
+      },
+    )
+    if !invalidated.is_empty() {
+      rejections.push({
+        "stable_key": record.stable_key,
+        "reason": "invalidation signal matched",
+        "matched_terms": invalidated.to_json(),
+      })
+      continue
+    }
+    let signature = procedure_signature(record.procedure)
+    let overlap = signature.filter(term => target_terms.contains(term))
+    if overlap.length() < 2 {
+      rejections.push({
+        "stable_key": record.stable_key,
+        "reason": "applicability evidence is insufficient",
+        "matched_terms": overlap.to_json(),
+      })
+      continue
+    }
+    matches.push({
+      "stable_key": record.stable_key,
+      "procedure": record.procedure.to_json(),
+      "matched_terms": overlap.to_json(),
+      "source_reflections": record.successful_reflections.to_json(),
+      "status": "applicable-candidate",
+    })
+  }
+  {
+    "contract_id": "moonbook.procedure-retrieval.v1",
+    "target_conditions": target_conditions.to_json(),
+    "invalidation_signals": invalidation_signals.to_json(),
+    "matches": matches.to_json(),
+    "rejections": rejections.to_json(),
+  }
 }
 
 ///|
