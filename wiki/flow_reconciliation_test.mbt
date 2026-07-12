@@ -196,3 +196,24 @@ async test "acceptance rejection creates one criteria-preserving child graph" {
   )
   assert_true(proposal.contains("\"criteria_preserved\": true"))
 }
+
+///|
+async test "a product process crash creates one bounded recovery child" {
+  let root = "/tmp/moonbook-flow-product-restart-wbtest"
+  @fsx.make_directory(root, recursive=true, exists_ok=true)
+  let projection_path = root + "/projection.json"
+  @fsx.write_to_file(
+    projection_path,
+    flow_projection(
+      "blocked",
+      output_digest="",
+      blocker="adapter process failed or omitted its result receipt",
+      error_kind="supervisor-blocked",
+    ).stringify(indent=2),
+    create=0o644,
+  )
+  let record = @wiki.reconcile_flow_run_file(
+    root, projection_path, "2026-07-12T06:31:00Z",
+  )
+  assert_true(!record.recovery_graph_ref.is_empty())
+}
