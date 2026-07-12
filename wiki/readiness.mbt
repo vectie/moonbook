@@ -92,6 +92,6 @@ test "book readiness payload uses shared contract and rejects missing artifacts"
     "quality": {},
     "checked_at": "0",
   }
-  assert_true(@pipeline.has_required_fields(@pipeline.BookReadiness, payload))
+  assert_true(@pipeline.has_required_fields(BookReadiness, payload))
   assert_false(wiki_readiness_accepted(payload))
 }

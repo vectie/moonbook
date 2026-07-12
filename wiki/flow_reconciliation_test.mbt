@@ -12,7 +12,7 @@ fn flow_projection(
     ["artifact://moonwiki/research-r1"]
   }
   {
-    "protocol": "moonflow.run-projection.v2",
+    "protocol": "moonflow.run-projection.v3",
     "run_id": "flow-generic-r1",
     "book_id": "generic-book",
     "declaration_revision": "r1",

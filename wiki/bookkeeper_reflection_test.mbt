@@ -122,9 +122,17 @@ async test "reviewed high-confidence procedure promotion becomes durable memory"
     .stringify(indent=2),
   )
   let record = @wiki.reflect_bookkeeper_file(root, observation_path)
+  let review_ref = "reviews/procedure-promotion.json"
+  @fsx.make_directory(root + "/reviews", recursive=true, exists_ok=true)
+  @fsx.write_to_file(
+    root + "/" + review_ref,
+    "{\"decision\":\"accepted\",\"reviewer\":\"human\"}",
+    create=0o644,
+  )
   let paths = @wiki.promote_bookkeeper_procedures(
     root,
     record.reflection.reflection_id,
+    review_ref,
   )
   assert_eq(paths.length(), 1)
   assert_true(@fsx.read_file(paths[0]).contains("\"status\": \"accepted\""))

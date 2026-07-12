@@ -21,6 +21,8 @@ pub fn compile_executable_document(ExecutableDocument) -> Json raise
 
 pub async fn compile_executable_document_file(String, String) -> ExecutableCompileRecord
 
+pub fn compile_plan_revision(PlanRevisionRequest) -> (PlanRevisionProposal, PlanRevisionLineage) raise
+
 pub fn decode_book_result_lifecycle_proof(Json) -> ExecutableBookLifecycleProof? raise
 
 pub fn decode_book_result_payload(Json) -> BookResult raise
@@ -77,11 +79,15 @@ pub async fn list_skills(String) -> Array[SkillRecord]
 
 pub fn make_skill_hub_serve_options(String, String, Int, Bool) -> SkillHubServeOptions
 
+pub async fn metacognition_status_json(String) -> Json
+
+pub async fn persist_metacognition(String, String, BookkeeperReflection) -> MetacognitionSnapshot
+
 pub async fn persist_result(String, BookResult, lifecycle_proof? : ExecutableBookLifecycleProof?) -> PersistResultOutcome
 
 pub async fn produce_task_batch(String, String, goal_id? : String?) -> BookTaskBatch
 
-pub async fn promote_bookkeeper_procedures(String, String) -> Array[String]
+pub async fn promote_bookkeeper_procedures(String, String, String) -> Array[String]
 
 pub async fn query_wiki(String, String, save? : Bool) -> QueryResult
 
@@ -124,6 +130,8 @@ pub async fn write_generated_knowledge_bundle(String, String) -> String
 pub async fn write_knowledge_bundle(String, output_dir? : String?) -> String
 
 pub async fn write_marketing_projection(String, String) -> String
+
+pub async fn write_plan_revision(String, String) -> PlanRevisionRecord
 
 pub async fn write_ui_state(String, String) -> String
 
@@ -304,6 +312,7 @@ pub(all) struct BookkeeperProcedure {
   verification_criteria : Array[String]
   failure_modes : Array[String]
   counterexamples : Array[String]
+  invalidation_triggers : Array[String]
   evidence_refs : Array[String]
   status : String
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
@@ -488,6 +497,18 @@ pub struct MemoryCandidate {
   target_page : String?
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
+pub(all) struct MetacognitionSnapshot {
+  contract_id : String
+  gap_graph_path : String
+  belief_index_path : String
+  procedure_index_path : String
+  open_information_gaps : Int
+  open_cognition_gaps : Int
+  open_execution_gaps : Int
+  accepted_procedures : Int
+  recorded_at : String
+} derive(Eq, ToJson, @debug.Debug)
+
 pub struct PersistResultOutcome {
   log_path : String
   updated_pages : Array[String]
@@ -498,6 +519,123 @@ pub struct PersistResultOutcome {
   latest_executable_event_path : String
   executable_event : ExecutableBookEvent
 } derive(ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct PersistentBelief {
+  belief_id : String
+  mut statement : String
+  mut confidence : Double
+  supporting_evidence : Array[String]
+  contradicting_evidence : Array[String]
+  consequence_links : Array[String]
+  invalidation_triggers : Array[String]
+  mut status : String
+  mut last_update_id : String
+  mut updated_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct PersistentBeliefIndex {
+  contract_id : String
+  book_id : String
+  beliefs : Array[PersistentBelief]
+  mut updated_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct PersistentGapGraph {
+  contract_id : String
+  book_id : String
+  nodes : Array[PersistentGapNode]
+  mut updated_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct PersistentGapNode {
+  stable_key : String
+  gap_id : String
+  requirement_id : String
+  kind : String
+  question : String
+  significance : String
+  current_evidence : Array[String]
+  resolution_criteria : Array[String]
+  mut status : String
+  first_reflection_id : String
+  mut last_reflection_id : String
+  mut resolution_ref : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct PlanDeclarationChange {
+  declaration_id : String
+  owner_product_id : String
+  previous_acceptance_criteria : Array[String]
+  proposed_acceptance_criteria : Array[String]
+  reason : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct PlanRevisionLineage {
+  contract_id : String
+  book_id : String
+  parent_revision : String
+  revision : String
+  proposal_id : String
+  proposal_ref : String
+  changed_declaration_ids : Array[String]
+  unchanged_declaration_ids : Array[String]
+  evidence_refs : Array[String]
+  source_digest : String
+  recorded_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct PlanRevisionProposal {
+  contract_id : String
+  proposal_id : String
+  book_id : String
+  parent_revision : String
+  proposed_revision : String
+  invalid_assumption : String
+  reason : String
+  evidence_refs : Array[String]
+  changed_declarations : Array[PlanDeclarationChange]
+  unchanged_declarations : Array[String]
+  source_digest : String
+  recorded_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct PlanRevisionRecord {
+  proposal_path : String
+  lineage_path : String
+  proposal_ref : String
+  proposal : PlanRevisionProposal
+  lineage : PlanRevisionLineage
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct PlanRevisionRequest {
+  request_id : String
+  book_id : String
+  parent_revision : String
+  proposed_revision : String
+  invalid_assumption : String
+  reason : String
+  evidence_refs : Array[String]
+  changed_declarations : Array[PlanDeclarationChange]
+  unchanged_declarations : Array[String]
+  recorded_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn PlanRevisionRequest::quality_issues(Self) -> Array[String]
+
+pub(all) struct ProcedureLearningIndex {
+  contract_id : String
+  book_id : String
+  procedures : Array[ProcedureLearningRecord]
+  mut updated_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct ProcedureLearningRecord {
+  stable_key : String
+  procedure : BookkeeperProcedure
+  successful_reflections : Array[String]
+  review_refs : Array[String]
+  mut status : String
+  mut updated_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub struct QueryResult {
   question : String

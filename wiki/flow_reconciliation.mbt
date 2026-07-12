@@ -60,7 +60,7 @@ pub fn decode_flow_outcome_observation(
 ) -> FlowOutcomeObservation raise {
   let fields = bk_object(projection)
   let protocol = bk_string(fields, "protocol")
-  if protocol != "moonflow.run-projection.v2" {
+  if protocol != "moonflow.run-projection.v3" {
     fail("unsupported MoonFlow projection: \{protocol}")
   }
   let safe_work_item_id = safe_observation_id(work_item_id)
@@ -245,7 +245,14 @@ pub fn reflect_on_flow_outcome(
           "the declaration revision or input digest differs", "the requested authority is unavailable or changes",
           "the output cannot reproduce the reviewed evidence", "the acceptance review is missing, rejected, or stale",
         ],
-        counterexamples: [],
+        counterexamples: [
+          "Reject reuse when declaration revision, authority, or input identity differs.",
+          "Reject reuse when any original acceptance criterion lacks current evidence.",
+        ],
+        invalidation_triggers: [
+          "the declaration revision changes", "the requested authority changes or expires",
+          "the input digest or referenced evidence changes", "the acceptance review is superseded, rejected, or stale",
+        ],
         evidence_refs: observation.artifact_refs.copy(),
         status: "candidate",
       })
@@ -311,6 +318,13 @@ pub async fn reconcile_flow_projection_file(
     reflection_path,
     reflection.to_json().stringify(indent=2) + "\n",
     create=0o644,
+  )
+  ignore(
+    persist_metacognition(
+      normalized_root,
+      observation.declaration_id,
+      reflection,
+    ),
   )
   let mut proposals_path = ""
   if !reflection.proposed_actions.is_empty() {

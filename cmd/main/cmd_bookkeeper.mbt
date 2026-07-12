@@ -10,8 +10,10 @@ async fn run_bookkeeper(args : Array[String]) -> Unit {
       }
       print_json(record)
     }
-    ["promote", root, reflection_id] => {
-      let paths = @wiki.promote_bookkeeper_procedures(root, reflection_id) catch {
+    ["promote", root, reflection_id, review_ref] => {
+      let paths = @wiki.promote_bookkeeper_procedures(
+        root, reflection_id, review_ref,
+      ) catch {
         error => {
           println("moonbook bookkeeper promote failed: \{error}")
           @os.exit(1)
@@ -30,9 +32,27 @@ async fn run_bookkeeper(args : Array[String]) -> Unit {
       }
       print_json(record)
     }
+    ["propose-revision", root, request_path] => {
+      let record = @wiki.write_plan_revision(root, request_path) catch {
+        error => {
+          println("moonbook bookkeeper propose-revision failed: \{error}")
+          @os.exit(1)
+        }
+      }
+      print_json(record)
+    }
+    ["metacognition", root] => {
+      let status = @wiki.metacognition_status_json(root) catch {
+        error => {
+          println("moonbook bookkeeper metacognition failed: \{error}")
+          @os.exit(1)
+        }
+      }
+      print_json(status)
+    }
     _ =>
       println(
-        "moonbook bookkeeper usage:\n  moonbook bookkeeper reflect <book-root> <observation.json>\n  moonbook bookkeeper promote <book-root> <reflection-id>\n  moonbook bookkeeper reconcile-flow <book-root> <projection.json> <work-item-id> <recorded-at>",
+        "moonbook bookkeeper usage:\n  moonbook bookkeeper reflect <book-root> <observation.json>\n  moonbook bookkeeper promote <book-root> <reflection-id> <review-receipt-ref>\n  moonbook bookkeeper reconcile-flow <book-root> <projection.json> <work-item-id> <recorded-at>\n  moonbook bookkeeper propose-revision <book-root> <request.json>\n  moonbook bookkeeper metacognition <book-root>",
       )
   }
 }

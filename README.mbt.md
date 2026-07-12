@@ -39,6 +39,9 @@ It is designed for:
 - ✨ polished marketing websites under `site/`
 - 🧭 compact history pages under `wiki/history/`
 - 🧠 bounded Keeper memory for active, user, and working context
+- 🧠 governed Bookkeeper metacognition with persistent information, cognition, and execution gaps
+- 🧬 immutable plan revision proposals and parent/child lineage
+- 🧭 procedure candidates that require repeated success or explicit review before promotion
 - 🧠 wiki ingest/query/review/lint flows
 - 🔌 optional runtime integration through extension packs
 - 🏙️ optional `moontown` extension runtime for town-to-book orchestration without changing the core wiki contract
@@ -71,6 +74,7 @@ MoonBook is strongest when you want one local system to handle:
 
 ## News
 
+- `2026-07-12`: added governed Bookkeeper metacognition with a persistent three-gap graph, consequence/invalidation-aware beliefs, evidence-qualified procedure learning, immutable plan revision lineage, and MoonFlow v3 reconciliation
 - `2026-06-28`: added the seeded `document-reverse-engineer` routine so a finished document can enter MoonBook from the reverse side: deconstruction, argument map, style profile, improvement plan, and regenerated draft over the same durable workspace loop
 - `2026-06-19`: added the native `moonbook.book_state.v1` snapshot plus `moonbook.knowledge_bundle.v1`, generated graph files, `wiki state`, `wiki bundle`, `wiki graph`, and lint checks for missing MoonBook page metadata so suite tools can consume book state through concise MoonBook contracts instead of scraping wiki pages
 - `2026-05-18`: added MoonBook-side standing-watch support for 24/7 topic monitoring: seeded `skills/standing-watch/SKILL.md`, dedicated `standing-watch` book tasks, worker context with baseline/history, result marker contracts, and durable `wiki/history/standing-watch.md` decision records

@@ -66,6 +66,7 @@ pub(all) struct BookkeeperProcedure {
   verification_criteria : Array[String]
   failure_modes : Array[String]
   counterexamples : Array[String]
+  invalidation_triggers : Array[String]
   evidence_refs : Array[String]
   status : String
 } derive(Debug, Eq, ToJson, FromJson)
@@ -348,7 +349,13 @@ pub fn reflect_on_observation(
       steps: observation.procedure_steps.copy(),
       verification_criteria: observation.verification_criteria.copy(),
       failure_modes: observation.failure_modes.copy(),
-      counterexamples: [],
+      counterexamples: observation.failure_modes.map(failure => {
+        "Reject reuse when \{failure}"
+      }),
+      invalidation_triggers: [
+        "the applicability conditions no longer match", "supporting evidence is superseded or invalidated",
+      ] +
+      observation.failure_modes,
       evidence_refs: observation.evidence_refs.copy(),
       status: "candidate",
     })
@@ -411,6 +418,14 @@ pub fn BookkeeperReflection::quality_issues(
     }
     if procedure.failure_modes.is_empty() {
       issues.push("learned procedures require failure modes")
+    }
+    if procedure.counterexamples.is_empty() {
+      issues.push(
+        "learned procedures require counterfactual rejection boundaries",
+      )
+    }
+    if procedure.invalidation_triggers.is_empty() {
+      issues.push("learned procedures require invalidation triggers")
     }
   }
   issues
@@ -490,6 +505,13 @@ pub async fn reflect_bookkeeper_file(
       create=0o644,
     )
   }
+  ignore(
+    persist_metacognition(
+      normalized_root,
+      observation.requirement_id,
+      reflection,
+    ),
+  )
   let proposals_document : Json = {
     "contract_id": "moonsuite.executable-document.v1",
     "book_id": reflection.book_id,
@@ -511,10 +533,17 @@ pub async fn reflect_bookkeeper_file(
 pub async fn promote_bookkeeper_procedures(
   root : String,
   reflection_id : String,
+  review_ref : String,
 ) -> Array[String] {
   let safe_id = safe_observation_id(reflection_id)
   let normalized_root = @pathx.normalize(root)
   ensure_bookkeeper_learning_dirs(normalized_root)
+  if !revision_artifact_ref_is_safe(review_ref) {
+    fail("procedure promotion review must be workspace-relative")
+  }
+  if !@fsx.exists(@pathx.join(normalized_root, review_ref)) {
+    fail("procedure promotion requires an existing explicit review receipt")
+  }
   let reflection_path = moonbook_wiki_path(normalized_root)
     .join(moonbook_wiki_path("memory/reflections/\{safe_id}.json"))
     .to_string()
@@ -531,6 +560,12 @@ pub async fn promote_bookkeeper_procedures(
     fail("reflection contains no learned procedure")
   }
   let paths : Array[String] = []
+  let (_, _, procedure_index_path) = metacognition_paths(normalized_root)
+  let procedure_index = load_procedure_index(
+    procedure_index_path,
+    reflection.book_id,
+    reflection.recorded_at,
+  )
   for candidate in reflection.learned_procedures {
     if candidate.evidence_refs.is_empty() ||
       candidate.verification_criteria.is_empty() ||
@@ -540,6 +575,21 @@ pub async fn promote_bookkeeper_procedures(
       )
     }
     let procedure = { ..candidate, status: "accepted" }
+    let stable_key = procedure_stable_key(candidate)
+    let mut indexed = false
+    for record in procedure_index.procedures {
+      if record.stable_key == stable_key {
+        if !record.review_refs.contains(review_ref) {
+          record.review_refs.push(review_ref)
+        }
+        record.status = "accepted"
+        record.updated_at = reflection.recorded_at
+        indexed = true
+      }
+    }
+    if !indexed {
+      fail("procedure candidate is missing from the learning index")
+    }
     let path = moonbook_wiki_path(normalized_root)
       .join(
         moonbook_wiki_path("memory/procedures/\{procedure.procedure_id}.json"),
@@ -552,5 +602,10 @@ pub async fn promote_bookkeeper_procedures(
     )
     paths.push(path)
   }
+  @fsx.write_to_file(
+    procedure_index_path,
+    procedure_index.to_json().stringify(indent=2) + "\n",
+    create=0o644,
+  )
   paths
 }
