@@ -243,12 +243,27 @@ pub fn compile_goal_document(
       )
       actions.push(
         goal_action(
+          "helper-tools",
+          "implement-helper-tools",
+          "Build bounded executable helper logic",
+          "Implement the smallest concept-specific calculations or decision gates as a native-validated safe helper DSL with positive and negative vectors.",
+          "moonclaw",
+          ["concept"],
+          [
+            "helper logic passes native wrapper-owned checks", "positive and negative vectors are executed rather than asserted",
+            "the helper remains digital and preserves every original criterion",
+          ],
+          "workspace-mutation",
+        ),
+      )
+      actions.push(
+        goal_action(
           "digital-build",
           "build-digital-robot",
           "Build the governed digital system model",
           "Produce a traceable digital design and sandboxed model; do not claim physical construction or readiness.",
           "moonrobo",
-          ["concept"],
+          ["concept", "helper-tools"],
           [
             "the digital design traces requirements to components", "hazards, margins, and unsupported physical assumptions are explicit",
             "the artifact claims digital design only",
@@ -299,9 +314,20 @@ pub fn compile_goal_document(
       )
       bindings.push(
         goal_binding(
+          "helper-tools",
+          "implement-helper-tools",
+          ["moontown.deliberation.v1"],
+          ["moonclaw.software-result.v1"],
+          "digital-artifact",
+          [goal_ref],
+          900000,
+        ),
+      )
+      bindings.push(
+        goal_binding(
           "digital-build",
           "build-digital-robot",
-          ["moontown.deliberation.v1"],
+          ["moontown.deliberation.v1", "moonclaw.software-result.v1"],
           ["moonrobo.digital-design.v1"],
           "digital-artifact",
           [goal_ref],

@@ -90,4 +90,16 @@ test "three unrelated goals compile without lunar template leakage or authority 
   assert_true(
     adversarial.declarations.any(action => action.executor_product == "moonmoon"),
   )
+  assert_true(
+    adversarial.declarations.any(action => {
+      action.declaration_id == "helper-tools" &&
+      action.executor_product == "moonclaw"
+    }),
+  )
+  assert_true(
+    adversarial.declarations.any(action => {
+      action.declaration_id == "digital-build" &&
+      action.requires.contains("helper-tools")
+    }),
+  )
 }
