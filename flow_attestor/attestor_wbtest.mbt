@@ -37,6 +37,20 @@ async test "MoonWiki attests traceable research and preserves gaps" {
     "remaining_information_gaps": ["Calibrated actuator efficiency is unknown."],
     "query_lineage": ["goal -> thermal environment -> polar illumination"],
     "stopping_rationale": "The digital concept can proceed while calibration remains blocked.",
+    "web_provenance": [
+      {
+        "tool": "web_search",
+        "arguments": { "query": "lunar thermal environment mission archive" },
+        "succeeded": true,
+        "event_digest": "sha256:search-event",
+      },
+      {
+        "tool": "web_fetch",
+        "arguments": { "url": "https://example.invalid/thermal" },
+        "succeeded": true,
+        "event_digest": "sha256:fetch-event",
+      },
+    ],
   })
   attest(
     workspace, "runtime/request.json", "runtime/result.json", "runtime/attestation.json",
@@ -44,6 +58,7 @@ async test "MoonWiki attests traceable research and preserves gaps" {
   )
   let text = read_json(scoped_path(workspace, "outputs/research.json")).stringify()
   assert_true(text.contains("\"claims_traceable\":true"))
+  assert_true(text.contains("\"tool_provenance_verified\":true"))
   assert_true(text.contains("Calibrated actuator efficiency is unknown"))
   assert_true(text.contains("\"physical_readiness\":false"))
 }

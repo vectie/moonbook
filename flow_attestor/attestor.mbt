@@ -67,11 +67,46 @@ async fn write_json(path : String, value : Json) -> Unit {
 }
 
 ///|
+fn attest_web_provenance(
+  draft_fields : Map[String, Json],
+) -> (Array[Json], Array[String]) raise {
+  let events = array_field(draft_fields, "web_provenance")
+  let fetched_urls : Array[String] = []
+  let mut searched = false
+  for value in events {
+    let entry = object(value, "web provenance entry")
+    guard entry.get("succeeded") == Some(Json::boolean(true)) else { continue }
+    let tool = string_field(entry, "tool")
+    let arguments = match entry.get("arguments") {
+      Some(Object(fields)) => fields
+      _ => fail("MoonWiki web provenance requires tool arguments")
+    }
+    if tool == "web_search" {
+      ignore(string_field(arguments, "query"))
+      searched = true
+    } else if tool == "web_fetch" {
+      let url = string_field(arguments, "url")
+      if !fetched_urls.contains(url) {
+        fetched_urls.push(url)
+      }
+    }
+    ignore(string_field(entry, "event_digest"))
+  }
+  if !searched || fetched_urls.is_empty() {
+    fail(
+      "MoonWiki research requires successful governed search and fetch provenance",
+    )
+  }
+  (events, fetched_urls)
+}
+
+///|
 fn attest_research(draft_fields : Map[String, Json]) -> Json raise {
   if string_field(draft_fields, "contract_id") != "moonwiki.evidence-bundle.v1" ||
     string_field(draft_fields, "product_id") != "moonwiki" {
     fail("MoonWiki evidence draft has the wrong identity")
   }
+  let (web_provenance, fetched_urls) = attest_web_provenance(draft_fields)
   let sources = array_field(draft_fields, "sources")
   let source_ids : Array[String] = []
   for value in sources {
@@ -82,7 +117,12 @@ fn attest_research(draft_fields : Map[String, Json]) -> Json raise {
     }
     source_ids.push(source_id)
     ignore(string_field(source, "title"))
-    ignore(string_field(source, "locator"))
+    let locator = string_field(source, "locator")
+    if !fetched_urls.contains(locator) {
+      fail(
+        "MoonWiki source locator lacks successful governed web_fetch provenance",
+      )
+    }
     ignore(string_field(source, "authority"))
     ignore(string_field(source, "accessed_at"))
   }
@@ -119,8 +159,10 @@ fn attest_research(draft_fields : Map[String, Json]) -> Json raise {
       "remaining_information_gaps": gaps.to_json(),
       "query_lineage": lineage.to_json(),
       "stopping_rationale": string_field(draft_fields, "stopping_rationale"),
+      "web_provenance": web_provenance.to_json(),
       "research_quality": {
         "provenance_complete": true,
+        "tool_provenance_verified": true,
         "claims_traceable": true,
         "contradictions_preserved": true,
         "information_gaps_preserved": true,
