@@ -167,7 +167,7 @@ pub fn compile_goal_document(
           ["moontown.deliberation.v1"],
           "accepted-knowledge",
           [goal_ref],
-          300000,
+          900000,
         ),
       )
       terminal_contract = "moontown.deliberation.v1"
@@ -210,7 +210,7 @@ pub fn compile_goal_document(
           ["moontown.deliberation.v1"],
           "accepted-knowledge",
           [goal_ref],
-          300000,
+          900000,
         ),
       )
       bindings.push(
@@ -309,7 +309,7 @@ pub fn compile_goal_document(
           ["moontown.deliberation.v1"],
           "accepted-knowledge",
           [goal_ref],
-          300000,
+          900000,
         ),
       )
       bindings.push(
@@ -381,7 +381,7 @@ pub fn compile_goal_document(
           ["moontown.deliberation.v1"],
           "accepted-knowledge",
           [goal_ref],
-          300000,
+          900000,
         ),
       )
       terminal_contract = "moontown.deliberation.v1"
@@ -411,7 +411,7 @@ pub fn compile_goal_document(
       ["moonbook.outcome-audit.v1"],
       "accepted-knowledge",
       [goal_ref],
-      300000,
+      900000,
     ),
   )
   {

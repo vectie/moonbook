@@ -23,6 +23,11 @@ test "goal compiler distinguishes unrelated intent without inferring authority" 
       action.requested_authority != "physical-effect"
     }),
   )
+  assert_true(
+    document.execution_bindings.all(binding => {
+      binding.declaration_id == "research" || binding.timeout_ms >= 900000
+    }),
+  )
 }
 
 ///|
