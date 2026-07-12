@@ -1,0 +1,26 @@
+///|
+test "goal compiler distinguishes unrelated intent without inferring authority" {
+  assert_true(
+    classify_goal_intent("Build a new robot that works on the Moon") ==
+    PhysicalSystemDigitalTwin,
+  )
+  assert_true(
+    classify_goal_intent("Implement a parser library with tests") ==
+    SoftwareArtifact,
+  )
+  assert_true(
+    classify_goal_intent("Research competing explanations for sleep") ==
+    ResearchOutcome,
+  )
+  let document = @wiki.compile_goal_document(
+    "robot", "r1", "Build a new robot that works on the Moon", "books/robot/flow/goals/r1.txt",
+    "2026-07-12T04:00:00Z",
+  )
+  assert_true(document.quality_issues().is_empty())
+  assert_true(
+    document.declarations.all(action => {
+      action.requested_authority != "external-effect" &&
+      action.requested_authority != "physical-effect"
+    }),
+  )
+}
