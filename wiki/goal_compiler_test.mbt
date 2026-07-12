@@ -62,6 +62,11 @@ test "autonomy grants cover product drafts and product-owned finals only" {
 }
 
 ///|
+test "unattended budget preserves bounded final-stage recovery headroom" {
+  assert_eq(unattended_budget_reservations(7), 8)
+}
+
+///|
 test "three unrelated goals compile without lunar template leakage or authority inference" {
   let research = compile_goal_document(
     "sleep-evidence", "r1", "Research competing explanations for sleep-stage memory consolidation.",

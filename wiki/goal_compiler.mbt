@@ -600,6 +600,14 @@ pub fn goal_artifact_prefixes(book_id : String) -> Array[String] raise {
 }
 
 ///|
+/// Reserve one additional stage-sized budget for bounded automatic recovery.
+/// Without this headroom, a rejection at the final stage cannot be revised even
+/// when the recovery policy and envelope otherwise permit it.
+pub fn unattended_budget_reservations(stage_count : Int) -> Int {
+  stage_count + 1
+}
+
+///|
 pub async fn prepare_goal_unattended_runtime(
   workspace : String,
   book_id : String,
@@ -670,6 +678,9 @@ pub async fn prepare_goal_unattended_runtime(
   let review_policy_path = runtime_root + "/review-policy.json"
   let envelope_request_path = runtime_root + "/autonomy-request.json"
   let usage_path = runtime_root + "/usage.json"
+  let budget_reservations = unattended_budget_reservations(
+    document.declarations.length(),
+  )
   @fsx.write_to_file(
     capabilities_path,
     Json::array(capabilities).stringify(indent=2) + "\n",
@@ -743,10 +754,10 @@ pub async fn prepare_goal_unattended_runtime(
         "mode": "unattended-digital",
         "grants": Json::array(grants),
         "budget": {
-          "model_tokens": document.declarations.length() * 50000,
-          "tool_calls": document.declarations.length() * 30,
-          "storage_bytes": document.declarations.length() * 10485760,
-          "attempts": document.declarations.length() * 3,
+          "model_tokens": budget_reservations * 50000,
+          "tool_calls": budget_reservations * 30,
+          "storage_bytes": budget_reservations * 10485760,
+          "attempts": budget_reservations * 3,
           "concurrency": 1,
         },
         "external_effects_allowed": false,
