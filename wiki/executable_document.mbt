@@ -4,9 +4,21 @@ pub(all) struct ExecutableDocument {
   book_id : String
   revision : String
   declarations : Array[BookkeeperAction]
+  execution_bindings : Array[ExecutableExecutionBinding]
   source_digest : String
   recorded_at : String
 } derive(Debug, Eq, ToJson)
+
+///|
+pub(all) struct ExecutableExecutionBinding {
+  declaration_id : String
+  operation : String
+  input_contracts : Array[String]
+  output_contracts : Array[String]
+  required_claim : String
+  input_artifacts : Array[String]
+  timeout_ms : Int
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 pub(all) struct ExecutableCompileRecord {
@@ -14,6 +26,27 @@ pub(all) struct ExecutableCompileRecord {
   graph_path : String
   graph : Json
 } derive(Debug, Eq, ToJson)
+
+///|
+fn executable_bindings_for_actions(
+  actions : Array[BookkeeperAction],
+  input_artifact : String,
+) -> Json {
+  Json::array(
+    actions.map(action => {
+      (
+        {
+          "declaration_id": action.declaration_id,
+          "operation": action.kind,
+          "input_contracts": ["moonbook.bookkeeper-reflection.v1"],
+          "output_contracts": ["moonsuite.evidence-envelope.v1"],
+          "required_claim": "execution-result",
+          "input_artifacts": [input_artifact],
+          "timeout_ms": 120000,
+        } : Json)
+    }),
+  )
+}
 
 ///|
 pub fn executable_authority_is_canonical(authority : String) -> Bool {
@@ -61,6 +94,20 @@ fn decode_executable_action(value : Json) -> BookkeeperAction raise {
 }
 
 ///|
+fn decode_execution_binding(value : Json) -> ExecutableExecutionBinding raise {
+  let fields = bk_object(value)
+  {
+    declaration_id: safe_observation_id(bk_string(fields, "declaration_id")),
+    operation: bk_string(fields, "operation"),
+    input_contracts: bk_strings(fields, "input_contracts"),
+    output_contracts: bk_strings(fields, "output_contracts"),
+    required_claim: bk_string(fields, "required_claim"),
+    input_artifacts: bk_strings(fields, "input_artifacts"),
+    timeout_ms: bk_double(fields, "timeout_ms").to_int(),
+  }
+}
+
+///|
 pub fn decode_executable_document(value : Json) -> ExecutableDocument raise {
   let fields = bk_object(value)
   let contract_id = bk_string(fields, "contract_id")
@@ -71,14 +118,32 @@ pub fn decode_executable_document(value : Json) -> ExecutableDocument raise {
     Some(Array(values)) => values.map(value => decode_executable_action(value))
     _ => fail("executable document requires declarations array")
   }
+  let execution_bindings = match fields.get("execution_bindings") {
+    Some(Array(values)) => values.map(value => decode_execution_binding(value))
+    _ => fail("executable document requires execution_bindings array")
+  }
   {
     contract_id,
     book_id: bk_string(fields, "book_id"),
     revision: safe_observation_id(bk_string(fields, "revision")),
     declarations,
+    execution_bindings,
     source_digest: bk_string(fields, "source_digest"),
     recorded_at: bk_string(fields, "recorded_at"),
   }
+}
+
+///|
+fn ExecutableDocument::binding_for(
+  self : ExecutableDocument,
+  declaration_id : String,
+) -> ExecutableExecutionBinding? {
+  for binding in self.execution_bindings {
+    if binding.declaration_id == declaration_id {
+      return Some(binding)
+    }
+  }
+  None
 }
 
 ///|
@@ -125,6 +190,9 @@ pub fn ExecutableDocument::quality_issues(
   if self.declarations.is_empty() {
     issues.push("at least one executable declaration is required")
   }
+  if self.execution_bindings.length() != self.declarations.length() {
+    issues.push("every declaration requires exactly one execution binding")
+  }
   let ids : Array[String] = []
   for declaration in self.declarations {
     if ids.contains(declaration.declaration_id) {
@@ -152,6 +220,18 @@ pub fn ExecutableDocument::quality_issues(
     }
   }
   for declaration in self.declarations {
+    guard self.binding_for(declaration.declaration_id) is Some(binding) else {
+      issues.push("missing execution binding: \{declaration.declaration_id}")
+      continue
+    }
+    if binding.operation.trim().is_empty() ||
+      binding.input_contracts.is_empty() ||
+      binding.output_contracts.is_empty() ||
+      binding.required_claim.trim().is_empty() ||
+      binding.input_artifacts.is_empty() ||
+      binding.timeout_ms <= 0 {
+      issues.push("incomplete execution binding: \{declaration.declaration_id}")
+    }
     for dependency in declaration.requires {
       if !ids.contains(dependency) {
         issues.push(
@@ -173,6 +253,7 @@ pub fn compile_executable_document(document : ExecutableDocument) -> Json raise 
     fail("unqualified executable document: \{issues.join("; ")}")
   }
   let items : Array[Json] = document.declarations.map(declaration => {
+    let binding = document.binding_for(declaration.declaration_id).unwrap()
     let dependencies : Array[Json] = declaration.requires.map(dependency => {
       Json::string("work-\{dependency}")
     })
@@ -192,6 +273,12 @@ pub fn compile_executable_document(document : ExecutableDocument) -> Json raise 
         "depends_on": dependencies,
         "acceptance_criteria": acceptance,
         "requested_authority": declaration.requested_authority,
+        "operation": binding.operation,
+        "input_contracts": binding.input_contracts.to_json(),
+        "output_contracts": binding.output_contracts.to_json(),
+        "required_claim": binding.required_claim,
+        "input_artifacts": binding.input_artifacts.to_json(),
+        "timeout_ms": binding.timeout_ms,
         "attempt_count": 0,
         "blocker": "",
       } : Json)

@@ -517,6 +517,10 @@ pub async fn reflect_bookkeeper_file(
     "book_id": reflection.book_id,
     "revision": reflection.reflection_id,
     "declarations": reflection.proposed_actions.to_json(),
+    "execution_bindings": executable_bindings_for_actions(
+      reflection.proposed_actions,
+      "memory/reflections/\{reflection.reflection_id}.json",
+    ),
     "source_digest": executable_sha256(reflection.to_json().stringify(indent=2)),
     "source_reflection": reflection.reflection_id,
     "recorded_at": reflection.recorded_at,

@@ -29,6 +29,26 @@ fn executable_document(
         requested_authority: "sandbox-execution",
       },
     ],
+    execution_bindings: [
+      {
+        declaration_id: "research-terrain",
+        operation: "query-evidence",
+        input_contracts: ["moonbook.research-question.v1"],
+        output_contracts: ["moonsuite.evidence-envelope.v1"],
+        required_claim: "research-evidence",
+        input_artifacts: ["books/robot/inputs/research-question.json"],
+        timeout_ms: 120000,
+      },
+      {
+        declaration_id: "validate-route",
+        operation: "simulate-calibrated-recovery",
+        input_contracts: ["moonsuite.robot-design.v1"],
+        output_contracts: ["moonmoon.robot-mission-result.v1"],
+        required_claim: "calibrated-digital-twin",
+        input_artifacts: ["books/robot/inputs/robot-design.json"],
+        timeout_ms: 120000,
+      },
+    ],
     source_digest,
     recorded_at: "2026-07-11T00:00:00Z",
   }
@@ -68,6 +88,8 @@ test "executable document compiles deterministically" {
   assert_true(text.contains("flow-selene-crater-service-rover-r1"))
   assert_true(text.contains("work-research-terrain"))
   assert_true(text.contains("work-validate-route"))
+  assert_true(text.contains("simulate-calibrated-recovery"))
+  assert_true(text.contains("calibrated-digital-twin"))
 }
 
 ///|
