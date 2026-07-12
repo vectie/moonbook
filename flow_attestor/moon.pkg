@@ -1,0 +1,13 @@
+import {
+  "moonbitlang/core/json",
+  "vectie/moonbook/wiki",
+  "vectie/moonlib/fsx",
+  "vectie/moonlib/pathx",
+}
+
+supported_targets = "native"
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/test",
+} for "wbtest"

@@ -24,3 +24,23 @@ test "goal compiler distinguishes unrelated intent without inferring authority" 
     }),
   )
 }
+
+///|
+test "unattended drivers select product-owned attestors under the suite root" {
+  assert_eq(
+    native_attestor_executable("/tmp/moonsuite", "moonwiki"),
+    "/tmp/moonsuite/bin/moonbook-flow-attestor",
+  )
+  assert_eq(
+    native_attestor_executable("/tmp/moonsuite", "moontown"),
+    "/tmp/moonsuite/bin/moontown-flow-attestor",
+  )
+  assert_eq(
+    native_attestor_executable("/tmp/moonsuite", "moonrobo"),
+    "/tmp/moonsuite/bin/moonrobo-flow-attestor",
+  )
+  assert_eq(
+    native_attestor_executable("/tmp/moonsuite", "moonmoon"),
+    "/tmp/moonsuite/bin/moonmoon-flow-attestor",
+  )
+}

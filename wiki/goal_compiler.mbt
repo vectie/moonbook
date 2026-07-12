@@ -500,6 +500,7 @@ fn goal_driver_json(
   output_ref : String,
   draft_ref : String,
   worker_executable : String,
+  attestor_executable : String,
   model : String,
 ) -> Json {
   (
@@ -514,7 +515,7 @@ fn goal_driver_json(
       "draft_output_artifacts": [draft_ref],
       "expected_output_artifacts": [output_ref],
       "attestor_id": "contract-attestor-\{action.executor_product}-v1",
-      "attestor_executable": worker_executable,
+      "attestor_executable": attestor_executable,
       "attestor_arguments": [
         "flow-adapter",
         "attest",
@@ -548,6 +549,21 @@ fn goal_driver_json(
         "concurrency": 1,
       },
     } : Json)
+}
+
+///|
+pub fn native_attestor_executable(
+  workspace : String,
+  product_id : String,
+) -> String raise {
+  let binary = match product_id {
+    "moonwiki" | "moonbook" => "moonbook-flow-attestor"
+    "moontown" => "moontown-flow-attestor"
+    "moonrobo" => "moonrobo-flow-attestor"
+    "moonmoon" => "moonmoon-flow-attestor"
+    _ => fail("no product-native Flow attestor is registered for \{product_id}")
+  }
+  @pathx.normalize(workspace) + "/bin/" + binary
 }
 
 ///|
@@ -596,10 +612,20 @@ pub async fn prepare_goal_unattended_runtime(
       "/flow/drafts/" +
       action.declaration_id +
       ".json"
+    let attestor_executable = native_attestor_executable(
+      workspace,
+      action.executor_product,
+    )
+    if !@suite_fsx.exists_as_file(attestor_executable) {
+      fail(
+        "missing product-native Flow attestor: \{attestor_executable}; install the Moon Suite runtime before preparing unattended work",
+      )
+    }
     capabilities.push(goal_capability_json(action, binding))
     drivers.push(
       goal_driver_json(
-        action, binding, output_ref, draft_ref, worker_executable, model,
+        action, binding, output_ref, draft_ref, worker_executable, attestor_executable,
+        model,
       ),
     )
     expected_artifacts.push(output_ref)
