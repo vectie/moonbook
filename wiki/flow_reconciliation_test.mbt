@@ -31,6 +31,12 @@ fn flow_projection(
         "request_id": "request-research-1",
         "result_id": "result-research-1",
         "operation": "build-evidence-bundle",
+        "input_contracts": ["moonsuite.goal.v1"],
+        "output_contracts": ["moonwiki.evidence-bundle.v1"],
+        "required_claim": "research-evidence",
+        "input_artifacts": ["books/generic-book/flow/goals/r1.txt"],
+        "timeout_ms": 60000,
+        "depends_on": [],
         "input_digest": "sha256:input",
         "output_digest": output_digest,
         "artifacts": artifacts,
@@ -160,4 +166,33 @@ async test "failed flow projection persists a compilable recovery proposal" {
   assert_true(document.quality_issues().is_empty())
   let graph = @wiki.compile_executable_document(document)
   assert_true(graph.stringify().contains("work-recover-research"))
+}
+
+///|
+async test "acceptance rejection creates one criteria-preserving child graph" {
+  let root = "/tmp/moonbook-flow-auto-recovery-wbtest"
+  @fsx.make_directory(root, recursive=true, exists_ok=true)
+  let projection_path = root + "/projection.json"
+  @fsx.write_to_file(
+    projection_path,
+    flow_projection(
+      "blocked",
+      blocker="criterion evidence is incomplete",
+      error_kind="acceptance-rejected",
+    ).stringify(indent=2),
+    create=0o644,
+  )
+  let record = @wiki.reconcile_flow_run_file(
+    root, projection_path, "2026-07-12T06:30:00Z",
+  )
+  assert_true(!record.recovery_graph_ref.is_empty())
+  let graph = @json.parse(@fsx.read_file(record.recovery_graph_path))
+  let text = graph.stringify()
+  assert_true(text.contains("r1-auto-recovery-5"))
+  assert_true(text.contains("reviewed evidence is attached"))
+  assert_true(text.contains("memory/reflections"))
+  let proposal = @fsx.read_file(
+    root + "/flow/revisions/r1-auto-recovery-5/automatic-recovery.json",
+  )
+  assert_true(proposal.contains("\"criteria_preserved\": true"))
 }

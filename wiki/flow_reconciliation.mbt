@@ -33,6 +33,9 @@ pub(all) struct FlowRunReconciliation {
   run_id : String
   reconciled_work_items : Array[String]
   reflection_paths : Array[String]
+  recovery_graph_path : String
+  recovery_graph_ref : String
+  recovery_proposal_ref : String
   metacognition : Json
   recorded_at : String
 } derive(Debug, Eq, ToJson)
@@ -43,6 +46,106 @@ fn flow_int(fields : Map[String, Json], key : String) -> Int raise {
     Some(Number(value, ..)) => value.to_int()
     _ => fail("MoonFlow projection requires integer field: \{key}")
   }
+}
+
+///|
+async fn write_automatic_recovery_revision(
+  root : String,
+  projection : Json,
+  blocked_work_item_id : String,
+  reflection_path : String,
+  recorded_at : String,
+) -> (String, String, String) {
+  let fields = bk_object(projection)
+  let run_id = safe_observation_id(bk_string(fields, "run_id"))
+  let book_id = safe_observation_id(bk_string(fields, "book_id"))
+  let parent_revision = safe_observation_id(
+    bk_string(fields, "declaration_revision"),
+  )
+  if parent_revision.contains("-auto-recovery-") {
+    return ("", "", "")
+  }
+  let sequence = flow_int(fields, "last_sequence")
+  let revision = safe_observation_id(
+    "\{parent_revision}-auto-recovery-\{sequence}",
+  )
+  let child_run_id = safe_observation_id("\{run_id}-auto-recovery-\{sequence}")
+  let reflection_parts = reflection_path.split("/").to_array()
+  let reflection_name = reflection_parts[reflection_parts.length() - 1].to_owned()
+  let relative_reflection = "books/" +
+    book_id +
+    "/memory/reflections/" +
+    reflection_name
+  guard fields.get("items") is Some(Array(items)) else {
+    fail("MoonFlow projection requires items array")
+  }
+  let child_items : Array[Json] = []
+  for value in items {
+    let item = bk_object(value)
+    let work_item_id = safe_observation_id(bk_string(item, "work_item_id"))
+    let input_artifacts = bk_strings(item, "input_artifacts")
+    if work_item_id == blocked_work_item_id &&
+      !input_artifacts.contains(relative_reflection) {
+      input_artifacts.push(relative_reflection)
+    }
+    child_items.push({
+      "work_item_id": work_item_id,
+      "declaration_id": bk_string(item, "declaration_id"),
+      "product_id": bk_string(item, "product_id"),
+      "requested_authority": bk_string(item, "requested_authority"),
+      "acceptance_criteria": bk_strings(item, "acceptance_criteria").to_json(),
+      "operation": bk_string(item, "operation"),
+      "input_contracts": bk_strings(item, "input_contracts").to_json(),
+      "output_contracts": bk_strings(item, "output_contracts").to_json(),
+      "required_claim": bk_string(item, "required_claim"),
+      "input_artifacts": input_artifacts.to_json(),
+      "timeout_ms": flow_int(item, "timeout_ms"),
+      "depends_on": bk_strings(item, "depends_on").to_json(),
+    })
+  }
+  let revision_dir = @pathx.join(root, "flow/revisions/\{revision}")
+  @fsx.make_directory(revision_dir, recursive=true, exists_ok=true)
+  let graph_path = @pathx.join(revision_dir, "recovery-graph.json")
+  let proposal_path = @pathx.join(revision_dir, "automatic-recovery.json")
+  let graph_ref = "books/" +
+    book_id +
+    "/flow/revisions/" +
+    revision +
+    "/recovery-graph.json"
+  let proposal_ref = "books/" +
+    book_id +
+    "/flow/revisions/" +
+    revision +
+    "/automatic-recovery.json"
+  let graph : Json = {
+    "contract_id": "moonsuite.work-model.v1",
+    "graph_id": child_run_id,
+    "book_id": book_id,
+    "declaration_revision": revision,
+    "source_digest": bk_string(fields, "source_digest"),
+    "items": Json::array(child_items),
+    "recorded_at": recorded_at,
+  }
+  let proposal : Json = {
+    "contract_id": "moonbook.automatic-recovery-revision.v1",
+    "parent_run_id": run_id,
+    "child_run_id": child_run_id,
+    "parent_revision": parent_revision,
+    "revision": revision,
+    "blocked_work_item_id": blocked_work_item_id,
+    "diagnostic_ref": relative_reflection,
+    "criteria_preserved": true,
+    "source_digest": bk_string(fields, "source_digest"),
+    "recovery_graph_ref": graph_ref,
+    "recorded_at": recorded_at,
+  }
+  @fsx.write_to_file(graph_path, graph.stringify(indent=2) + "\n", create=0o644)
+  @fsx.write_to_file(
+    proposal_path,
+    proposal.stringify(indent=2) + "\n",
+    create=0o644,
+  )
+  (graph_path, graph_ref, proposal_ref)
 }
 
 ///|
@@ -381,6 +484,9 @@ pub async fn reconcile_flow_run_file(
   }
   let reconciled_work_items : Array[String] = []
   let reflection_paths : Array[String] = []
+  let mut recovery_graph_path = ""
+  let mut recovery_graph_ref = ""
+  let mut recovery_proposal_ref = ""
   for value in items {
     let item = bk_object(value)
     let status = bk_string(item, "status")
@@ -395,12 +501,30 @@ pub async fn reconcile_flow_run_file(
     )
     reconciled_work_items.push(work_item_id)
     reflection_paths.push(record.reflection_path)
+    let error_kind = bk_optional_string(item, "error_kind", "")
+    if recovery_graph_path.is_empty() &&
+      status == "blocked" &&
+      error_kind == "acceptance-rejected" {
+      let recovery = write_automatic_recovery_revision(
+        root,
+        projection,
+        work_item_id,
+        record.reflection_path,
+        recorded_at,
+      )
+      recovery_graph_path = recovery.0
+      recovery_graph_ref = recovery.1
+      recovery_proposal_ref = recovery.2
+    }
   }
   {
     contract_id: "moonbook.flow-run-reconciliation.v1",
     run_id,
     reconciled_work_items,
     reflection_paths,
+    recovery_graph_path,
+    recovery_graph_ref,
+    recovery_proposal_ref,
     metacognition: metacognition_status_json(root),
     recorded_at,
   }
