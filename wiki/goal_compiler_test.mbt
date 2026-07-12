@@ -50,6 +50,13 @@ test "unattended drivers select product-owned attestors under the suite root" {
 }
 
 ///|
+test "autonomy grants cover product drafts and product-owned finals only" {
+  assert_eq(goal_artifact_prefixes("robot-book"), [
+    "books/robot-book/flow/drafts", "books/robot-book/flow/outputs",
+  ])
+}
+
+///|
 test "three unrelated goals compile without lunar template leakage or authority inference" {
   let research = compile_goal_document(
     "sleep-evidence", "r1", "Research competing explanations for sleep-stage memory consolidation.",

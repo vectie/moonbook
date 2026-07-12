@@ -594,6 +594,12 @@ pub fn native_attestor_executable(
 }
 
 ///|
+pub fn goal_artifact_prefixes(book_id : String) -> Array[String] raise {
+  let base = "books/" + safe_observation_id(book_id) + "/flow/"
+  [base + "drafts", base + "outputs"]
+}
+
+///|
 pub async fn prepare_goal_unattended_runtime(
   workspace : String,
   book_id : String,
@@ -719,7 +725,7 @@ pub async fn prepare_goal_unattended_runtime(
           "operations": operations.to_json(),
           "authority_ceiling": authority.id(),
           "claim_ceiling": claim.id(),
-          "artifact_prefixes": ["books/" + safe_book_id + "/flow/outputs"],
+          "artifact_prefixes": goal_artifact_prefixes(safe_book_id).to_json(),
         } : Json),
     )
   }
