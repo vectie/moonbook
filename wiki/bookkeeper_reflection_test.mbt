@@ -153,6 +153,7 @@ fn spatial_study(unknowns? : Array[String] = []) -> @wiki.SpatialReferenceStudy 
     observed_facts: ["the source image shows a rectangular central volume"],
     inferred_hypotheses: ["the visible wings may be service volumes"],
     unknowns,
+    blocking_unknowns: unknowns,
     scale_basis: if unknowns.is_empty() {
       "declared"
     } else {
@@ -187,6 +188,11 @@ async test "complete spatial reference study becomes candidate procedural memory
   assert_true(@fsx.exists(record.study_path))
   assert_true(record.reflection_record.reflection.gaps.is_empty())
   assert_eq(record.reflection_record.reflection.learned_procedures.length(), 1)
+  let repeated = @wiki.record_spatial_reference_file(root, study_path)
+  assert_eq(repeated.study_path, record.study_path)
+  assert_true(
+    repeated.reflection_record.reflection == record.reflection_record.reflection,
+  )
 }
 
 ///|

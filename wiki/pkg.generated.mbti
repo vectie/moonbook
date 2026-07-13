@@ -827,6 +827,7 @@ pub(all) struct SpatialReferenceStudy {
   observed_facts : Array[String]
   inferred_hypotheses : Array[String]
   unknowns : Array[String]
+  blocking_unknowns : Array[String]
   scale_basis : String
   artifact_refs : Array[String]
   transform_refs : Array[String]

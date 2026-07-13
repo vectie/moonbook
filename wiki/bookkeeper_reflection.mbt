@@ -106,6 +106,7 @@ pub(all) struct SpatialReferenceStudy {
   observed_facts : Array[String]
   inferred_hypotheses : Array[String]
   unknowns : Array[String]
+  blocking_unknowns : Array[String]
   scale_basis : String
   artifact_refs : Array[String]
   transform_refs : Array[String]
@@ -501,6 +502,11 @@ fn SpatialReferenceStudy::quality_issues(
       "observed_facts must separate direct observations from inference",
     )
   }
+  for blocking in self.blocking_unknowns {
+    if !self.unknowns.contains(blocking) {
+      issues.push("blocking_unknowns must also be declared in unknowns")
+    }
+  }
   if self.scale_basis != "measured" &&
     self.scale_basis != "declared" &&
     self.scale_basis != "inferred" &&
@@ -635,6 +641,41 @@ pub async fn record_spatial_reference_file(
     let detail = issues.join("; ")
     fail("unqualified spatial reference study: \{detail}")
   }
+  let study_path = @pathx.join(
+    normalized_root,
+    "research/spatial/\{study.study_id}.json",
+  )
+  let canonical_study = study.to_json().stringify(indent=2) + "\n"
+  if @fsx.exists(study_path) {
+    if @fsx.read_file(study_path) != canonical_study {
+      fail("spatial study identity already exists with different content")
+    }
+    let reflection_id = "reflection-spatial-\{study.study_id}"
+    let reflection_path = @pathx.join(
+      normalized_root,
+      "memory/reflections/\{reflection_id}.json",
+    )
+    let episode_path = @pathx.join(
+      normalized_root,
+      "memory/episodes/spatial-\{study.study_id}.json",
+    )
+    let proposals_path = @pathx.join(
+      normalized_root,
+      "flow/proposals/\{reflection_id}.json",
+    )
+    let reflection : BookkeeperReflection = @json.from_json(
+      @json.parse(@fsx.read_file(reflection_path)),
+    )
+    return {
+      study_path,
+      reflection_record: {
+        reflection_path,
+        episode_path,
+        proposals_path,
+        reflection,
+      },
+    }
+  }
   for
     reference in study.reference_refs +
     study.artifact_refs +
@@ -643,7 +684,8 @@ pub async fn record_spatial_reference_file(
       fail("spatial lineage reference does not exist: \{reference}")
     }
   }
-  let unresolved = !study.unknowns.is_empty() || study.scale_basis == "unknown"
+  let unresolved = !study.blocking_unknowns.is_empty() ||
+    study.scale_basis == "unknown"
   let evidence_refs = if unresolved {
     []
   } else {
@@ -652,13 +694,14 @@ pub async fn record_spatial_reference_file(
   let observed = study.observed_facts.join(" | ")
   let inferred = study.inferred_hypotheses.join(" | ")
   let unknown = study.unknowns.join(" | ")
+  let blocking = study.blocking_unknowns.join(" | ")
   let observation : BookkeeperObservation = {
     observation_id: "spatial-\{safe_observation_id(study.study_id)}",
     book_id: study.book_id,
     subject: study.subject,
     requirement_id: study.requirement_id,
     constraint_name: "traceable spatial interpretation",
-    statement: "Observed: \{observed}; inferred: \{inferred}; unknown: \{unknown}; scale basis: \{study.scale_basis}",
+    statement: "Observed: \{observed}; inferred: \{inferred}; unknown: \{unknown}; blocking unknown: \{blocking}; scale basis: \{study.scale_basis}",
     evidence_refs,
     comparison: "none",
     measured_value: 0.0,
@@ -680,15 +723,7 @@ pub async fn record_spatial_reference_file(
   let reflection_record = persist_bookkeeper_observation(
     normalized_root, observation,
   )
-  let study_path = @pathx.join(
-    normalized_root,
-    "research/spatial/\{study.study_id}.json",
-  )
-  @fsx.write_to_file(
-    study_path,
-    study.to_json().stringify(indent=2) + "\n",
-    create=0o644,
-  )
+  @fsx.write_to_file(study_path, canonical_study, create=0o644)
   { study_path, reflection_record }
 }
 

@@ -82,8 +82,13 @@ unknown; and link workspace-relative sources, derived artifacts, and transform
 records. MoonBook verifies that every reference exists inside the book before
 recording the study under `research/spatial/`.
 
-Unknown facts or scale compile to an information gap and cannot produce trusted
-procedural memory. A complete study may only produce a procedure candidate; it
+Study identities are immutable: an exact repeat is an idempotent read of the
+existing record, while reusing the identity with different content fails.
+
+Known unknowns remain explicit boundaries and do not by themselves prevent
+learning a bounded method. Unknown scale or unknowns explicitly marked as
+blocking compile to an information gap and cannot produce trusted procedural
+memory. A complete study may only produce a procedure candidate; it
 still needs repeated accepted evidence or explicit review before promotion.
 The stored procedure describes how to interpret and reproduce the model, not a
 claim that a styled model is engineering-ready, simulation evidence, or safe to
