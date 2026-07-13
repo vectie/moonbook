@@ -97,6 +97,32 @@ pub(all) struct BookkeeperReflectionRecord {
 } derive(Debug, Eq, ToJson)
 
 ///|
+pub(all) struct SpatialReferenceStudy {
+  study_id : String
+  book_id : String
+  subject : String
+  requirement_id : String
+  reference_refs : Array[String]
+  observed_facts : Array[String]
+  inferred_hypotheses : Array[String]
+  unknowns : Array[String]
+  scale_basis : String
+  artifact_refs : Array[String]
+  transform_refs : Array[String]
+  applicability : Array[String]
+  procedure_steps : Array[String]
+  verification_criteria : Array[String]
+  failure_modes : Array[String]
+  recorded_at : String
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+pub(all) struct SpatialReferenceRecord {
+  study_path : String
+  reflection_record : BookkeeperReflectionRecord
+} derive(Debug, Eq, ToJson)
+
+///|
 fn bk_object(value : Json) -> Map[String, Json] raise {
   match value {
     Object(fields) => fields
@@ -436,7 +462,7 @@ async fn ensure_bookkeeper_learning_dirs(root : String) -> Unit {
   for
     relative in [
       "memory/episodes", "memory/reflections", "memory/beliefs", "memory/procedures",
-      "flow/declarations", "flow/proposals",
+      "flow/declarations", "flow/proposals", "research/spatial",
     ] {
     @fsx.make_directory(
       moonbook_wiki_path(root).join(moonbook_wiki_path(relative)).to_string(),
@@ -447,14 +473,75 @@ async fn ensure_bookkeeper_learning_dirs(root : String) -> Unit {
 }
 
 ///|
+fn spatial_reference_is_safe(reference : String) -> Bool {
+  revision_artifact_ref_is_safe(reference) && !reference.trim().is_empty()
+}
+
+///|
+fn SpatialReferenceStudy::quality_issues(
+  self : SpatialReferenceStudy,
+) -> Array[String] {
+  let issues : Array[String] = []
+  if self.study_id.trim().is_empty() ||
+    self.study_id.contains("/") ||
+    self.study_id.contains("\\") ||
+    self.study_id.contains("..") {
+    issues.push("study_id must be a safe relative identifier")
+  }
+  if self.book_id.trim().is_empty() ||
+    self.subject.trim().is_empty() ||
+    self.requirement_id.trim().is_empty() {
+    issues.push("book_id, subject, and requirement_id are required")
+  }
+  if self.reference_refs.is_empty() {
+    issues.push("at least one workspace-relative source reference is required")
+  }
+  if self.observed_facts.is_empty() {
+    issues.push(
+      "observed_facts must separate direct observations from inference",
+    )
+  }
+  if self.scale_basis != "measured" &&
+    self.scale_basis != "declared" &&
+    self.scale_basis != "inferred" &&
+    self.scale_basis != "unknown" {
+    issues.push("scale_basis must be measured, declared, inferred, or unknown")
+  }
+  if self.artifact_refs.is_empty() || self.transform_refs.is_empty() {
+    issues.push("spatial studies require artifact and transform lineage")
+  }
+  for
+    reference in self.reference_refs + self.artifact_refs + self.transform_refs {
+    if !spatial_reference_is_safe(reference) {
+      issues.push("all spatial lineage references must be workspace-relative")
+    }
+  }
+  if self.applicability.is_empty() ||
+    self.procedure_steps.is_empty() ||
+    self.verification_criteria.is_empty() ||
+    self.failure_modes.is_empty() {
+    issues.push("reusable spatial studies require bounded procedure metadata")
+  }
+  issues
+}
+
+///|
 pub async fn reflect_bookkeeper_file(
   root : String,
   observation_path : String,
 ) -> BookkeeperReflectionRecord {
-  let normalized_root = @pathx.normalize(root)
-  ensure_bookkeeper_learning_dirs(normalized_root)
   let source = @fsx.read_file(observation_path)
   let observation = decode_bookkeeper_observation(@json.parse(source))
+  persist_bookkeeper_observation(root, observation)
+}
+
+///|
+async fn persist_bookkeeper_observation(
+  root : String,
+  observation : BookkeeperObservation,
+) -> BookkeeperReflectionRecord {
+  let normalized_root = @pathx.normalize(root)
+  ensure_bookkeeper_learning_dirs(normalized_root)
   let reflection = reflect_on_observation(observation)
   let issues = reflection.quality_issues()
   if !issues.is_empty() {
@@ -531,6 +618,78 @@ pub async fn reflect_bookkeeper_file(
     create=0o644,
   )
   { reflection_path, episode_path, proposals_path, reflection }
+}
+
+///|
+pub async fn record_spatial_reference_file(
+  root : String,
+  study_file : String,
+) -> SpatialReferenceRecord {
+  let normalized_root = @pathx.normalize(root)
+  ensure_bookkeeper_learning_dirs(normalized_root)
+  let study : SpatialReferenceStudy = @json.from_json(
+    @json.parse(@fsx.read_file(study_file)),
+  )
+  let issues = study.quality_issues()
+  if !issues.is_empty() {
+    let detail = issues.join("; ")
+    fail("unqualified spatial reference study: \{detail}")
+  }
+  for
+    reference in study.reference_refs +
+    study.artifact_refs +
+    study.transform_refs {
+    if !@fsx.exists(@pathx.join(normalized_root, reference)) {
+      fail("spatial lineage reference does not exist: \{reference}")
+    }
+  }
+  let unresolved = !study.unknowns.is_empty() || study.scale_basis == "unknown"
+  let evidence_refs = if unresolved {
+    []
+  } else {
+    study.reference_refs + study.artifact_refs + study.transform_refs
+  }
+  let observed = study.observed_facts.join(" | ")
+  let inferred = study.inferred_hypotheses.join(" | ")
+  let unknown = study.unknowns.join(" | ")
+  let observation : BookkeeperObservation = {
+    observation_id: "spatial-\{safe_observation_id(study.study_id)}",
+    book_id: study.book_id,
+    subject: study.subject,
+    requirement_id: study.requirement_id,
+    constraint_name: "traceable spatial interpretation",
+    statement: "Observed: \{observed}; inferred: \{inferred}; unknown: \{unknown}; scale basis: \{study.scale_basis}",
+    evidence_refs,
+    comparison: "none",
+    measured_value: 0.0,
+    limit_value: 0.0,
+    unit: "",
+    outcome: if unresolved {
+      "provisional"
+    } else {
+      "accepted"
+    },
+    next_action_present: !unresolved,
+    validator_product: "moonmold",
+    applicability: study.applicability,
+    procedure_steps: study.procedure_steps,
+    verification_criteria: study.verification_criteria,
+    failure_modes: study.failure_modes,
+    recorded_at: study.recorded_at,
+  }
+  let reflection_record = persist_bookkeeper_observation(
+    normalized_root, observation,
+  )
+  let study_path = @pathx.join(
+    normalized_root,
+    "research/spatial/\{study.study_id}.json",
+  )
+  @fsx.write_to_file(
+    study_path,
+    study.to_json().stringify(indent=2) + "\n",
+    create=0o644,
+  )
+  { study_path, reflection_record }
 }
 
 ///|

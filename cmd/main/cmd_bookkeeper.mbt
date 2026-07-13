@@ -10,6 +10,15 @@ async fn run_bookkeeper(args : Array[String]) -> Unit {
       }
       print_json(record)
     }
+    ["record-spatial", root, study_path] => {
+      let record = @wiki.record_spatial_reference_file(root, study_path) catch {
+        error => {
+          println("moonbook bookkeeper record-spatial failed: \{error}")
+          @os.exit(1)
+        }
+      }
+      print_json(record)
+    }
     ["promote", root, reflection_id, review_ref] => {
       let paths = @wiki.promote_bookkeeper_procedures(
         root, reflection_id, review_ref,
@@ -63,7 +72,7 @@ async fn run_bookkeeper(args : Array[String]) -> Unit {
     }
     _ =>
       println(
-        "moonbook bookkeeper usage:\n  moonbook bookkeeper reflect <book-root> <observation.json>\n  moonbook bookkeeper promote <book-root> <reflection-id> <review-receipt-ref>\n  moonbook bookkeeper reconcile-flow <book-root> <projection.json> <work-item-id> <recorded-at>\n  moonbook bookkeeper reconcile-run <book-root> <projection.json> <recorded-at>\n  moonbook bookkeeper propose-revision <book-root> <request.json>\n  moonbook bookkeeper metacognition <book-root>",
+        "moonbook bookkeeper usage:\n  moonbook bookkeeper reflect <book-root> <observation.json>\n  moonbook bookkeeper record-spatial <book-root> <study.json>\n  moonbook bookkeeper promote <book-root> <reflection-id> <review-receipt-ref>\n  moonbook bookkeeper reconcile-flow <book-root> <projection.json> <work-item-id> <recorded-at>\n  moonbook bookkeeper reconcile-run <book-root> <projection.json> <recorded-at>\n  moonbook bookkeeper propose-revision <book-root> <request.json>\n  moonbook bookkeeper metacognition <book-root>",
       )
   }
 }

@@ -67,6 +67,8 @@ pub async fn generate_knowledge_bundle(String) -> KnowledgeBundle
 
 pub async fn generate_ui_state(String) -> UiState
 
+pub fn goal_artifact_prefixes(String) -> Array[String] raise
+
 pub async fn hydrate_worker_context(String, BookTask) -> WorkerContextBundle
 
 pub async fn ingest_source(String, String) -> IngestResult
@@ -87,6 +89,8 @@ pub fn make_skill_hub_serve_options(String, String, Int, Bool) -> SkillHubServeO
 
 pub async fn metacognition_status_json(String) -> Json
 
+pub fn native_attestor_executable(String, String) -> String raise
+
 pub async fn persist_metacognition(String, String, BookkeeperReflection) -> MetacognitionSnapshot
 
 pub async fn persist_result(String, BookResult, lifecycle_proof? : ExecutableBookLifecycleProof?) -> PersistResultOutcome
@@ -103,6 +107,8 @@ pub async fn reconcile_flow_projection_file(String, String, String, String) -> B
 
 pub async fn reconcile_flow_run_file(String, String, String) -> FlowRunReconciliation
 
+pub async fn record_spatial_reference_file(String, String) -> SpatialReferenceRecord
+
 pub async fn reflect_bookkeeper_file(String, String) -> BookkeeperReflectionRecord
 
 pub fn reflect_on_flow_outcome(FlowOutcomeObservation) -> BookkeeperReflection raise
@@ -115,6 +121,8 @@ pub async fn report_health(String) -> BookHealthReport
 
 pub async fn resolve_task_for_goal(String, String, task_id? : String?) -> BookTask?
 
+pub fn retrieve_applicable_procedures(ProcedureLearningIndex, Array[String], Array[String]) -> Json
+
 pub async fn scaffold_skill(String, String) -> SkillInstallResult
 
 pub async fn serve_skill_hub(SkillHubServeOptions) -> Unit
@@ -124,6 +132,8 @@ pub async fn summarize_state(String) -> BookStateSummary
 pub fn supported_extensions() -> Array[String]
 
 pub async fn sync_skill(String, String) -> SkillSyncResult
+
+pub fn unattended_budget_reservations(Int) -> Int
 
 pub fn wiki_readiness_accepted(Json) -> Bool
 
@@ -458,6 +468,9 @@ pub(all) struct FlowRunReconciliation {
   run_id : String
   reconciled_work_items : Array[String]
   reflection_paths : Array[String]
+  recovery_graph_path : String
+  recovery_graph_ref : String
+  recovery_proposal_ref : String
   metacognition : Json
   recorded_at : String
 } derive(Eq, ToJson, @debug.Debug)
@@ -799,6 +812,30 @@ pub struct SkillSyncResult {
   baseline_path : String
   summary : String
 } derive(ToJson, @debug.Debug)
+
+pub(all) struct SpatialReferenceRecord {
+  study_path : String
+  reflection_record : BookkeeperReflectionRecord
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct SpatialReferenceStudy {
+  study_id : String
+  book_id : String
+  subject : String
+  requirement_id : String
+  reference_refs : Array[String]
+  observed_facts : Array[String]
+  inferred_hypotheses : Array[String]
+  unknowns : Array[String]
+  scale_basis : String
+  artifact_refs : Array[String]
+  transform_refs : Array[String]
+  applicability : Array[String]
+  procedure_steps : Array[String]
+  verification_criteria : Array[String]
+  failure_modes : Array[String]
+  recorded_at : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiChapterLink {
   title : String

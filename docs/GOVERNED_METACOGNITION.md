@@ -67,3 +67,24 @@ moonbook bookkeeper metacognition <book-root>
 The status contract returns the gap graph, belief index, and procedure learning
 index as one inspectable projection. It is intended for MoonDesk and autonomous
 planning, not as a substitute for the underlying durable files.
+
+## Spatial-reference learning
+
+MoonMold reference studies enter a MoonBook through:
+
+```text
+moonbook bookkeeper record-spatial <book-root> <study.json>
+```
+
+The study must keep direct observations, inferred hypotheses, and unknowns in
+separate fields; declare whether scale is measured, user-declared, inferred, or
+unknown; and link workspace-relative sources, derived artifacts, and transform
+records. MoonBook verifies that every reference exists inside the book before
+recording the study under `research/spatial/`.
+
+Unknown facts or scale compile to an information gap and cannot produce trusted
+procedural memory. A complete study may only produce a procedure candidate; it
+still needs repeated accepted evidence or explicit review before promotion.
+The stored procedure describes how to interpret and reproduce the model, not a
+claim that a styled model is engineering-ready, simulation evidence, or safe to
+manufacture.

@@ -137,3 +137,78 @@ async test "reviewed high-confidence procedure promotion becomes durable memory"
   assert_eq(paths.length(), 1)
   assert_true(@fsx.read_file(paths[0]).contains("\"status\": \"accepted\""))
 }
+
+///|
+fn spatial_study(unknowns? : Array[String] = []) -> @wiki.SpatialReferenceStudy {
+  {
+    study_id: if unknowns.is_empty() {
+      "habitat-complete"
+    } else {
+      "habitat-provisional"
+    },
+    book_id: "lunar-habitat-book",
+    subject: "reference-derived habitat shell",
+    requirement_id: "habitat-spatial-lineage",
+    reference_refs: ["inputs/reference.png"],
+    observed_facts: ["the source image shows a rectangular central volume"],
+    inferred_hypotheses: ["the visible wings may be service volumes"],
+    unknowns,
+    scale_basis: if unknowns.is_empty() {
+      "declared"
+    } else {
+      "unknown"
+    },
+    artifact_refs: ["artifacts/habitat.glb"],
+    transform_refs: ["artifacts/habitat-transform.json"],
+    applicability: ["a user supplies a workspace-local visual reference"],
+    procedure_steps: [
+      "separate observed geometry from inferred geometry", "declare the scale basis",
+      "preserve transform lineage for each derived representation",
+    ],
+    verification_criteria: [
+      "all source and output references resolve inside the MoonBook",
+    ],
+    failure_modes: ["treating an inferred dimension as a measured fact"],
+    recorded_at: "2026-07-13T00:00:00Z",
+  }
+}
+
+///|
+async test "complete spatial reference study becomes candidate procedural memory" {
+  let root = "/tmp/moonbook-spatial-complete-wbtest"
+  @fsx.make_directory(root + "/inputs", recursive=true, exists_ok=true)
+  @fsx.make_directory(root + "/artifacts", recursive=true, exists_ok=true)
+  @fsx.write_to_file(root + "/inputs/reference.png", "fixture")
+  @fsx.write_to_file(root + "/artifacts/habitat.glb", "fixture")
+  @fsx.write_to_file(root + "/artifacts/habitat-transform.json", "{}")
+  let study_path = root + "/study.json"
+  @fsx.write_to_file(study_path, spatial_study().to_json().stringify(indent=2))
+  let record = @wiki.record_spatial_reference_file(root, study_path)
+  assert_true(@fsx.exists(record.study_path))
+  assert_true(record.reflection_record.reflection.gaps.is_empty())
+  assert_eq(record.reflection_record.reflection.learned_procedures.length(), 1)
+}
+
+///|
+async test "unknown spatial scale remains an information gap and cannot become habit" {
+  let root = "/tmp/moonbook-spatial-provisional-wbtest"
+  @fsx.make_directory(root + "/inputs", recursive=true, exists_ok=true)
+  @fsx.make_directory(root + "/artifacts", recursive=true, exists_ok=true)
+  @fsx.write_to_file(root + "/inputs/reference.png", "fixture")
+  @fsx.write_to_file(root + "/artifacts/habitat.glb", "fixture")
+  @fsx.write_to_file(root + "/artifacts/habitat-transform.json", "{}")
+  let study_path = root + "/study.json"
+  @fsx.write_to_file(
+    study_path,
+    spatial_study(unknowns=["no reliable real-world dimension is visible"])
+    .to_json()
+    .stringify(indent=2),
+  )
+  let record = @wiki.record_spatial_reference_file(root, study_path)
+  assert_true(
+    record.reflection_record.reflection.gaps.any(gap => {
+      gap.kind == "information-gap"
+    }),
+  )
+  assert_true(record.reflection_record.reflection.learned_procedures.is_empty())
+}
