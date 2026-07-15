@@ -37,11 +37,13 @@ async fn run_pack(args : Array[String]) -> Unit {
       print_json(@packhost.verify(workspace, pack_id, version))
     ["activate", workspace, pack_id, version] =>
       print_json(@packhost.activate(workspace, pack_id, version))
+    ["rollback", workspace, pack_id, version] =>
+      print_json(@packhost.activate(workspace, pack_id, version))
     ["deactivate", workspace, pack_id] =>
       print_json(@packhost.deactivate(workspace, pack_id))
     _ =>
       println(
-        "moonbook pack usage:\n  moonbook pack list\n  moonbook pack enable <extension> [root]\n  moonbook pack inspect <source>\n  moonbook pack install <source> <workspace> [host-profile.json]\n  moonbook pack active [workspace]\n  moonbook pack project <workspace> <pack-id>\n  moonbook pack verify <workspace> <pack-id> <version>\n  moonbook pack activate <workspace> <pack-id> <version>\n  moonbook pack deactivate <workspace> <pack-id>",
+        "moonbook pack usage:\n  moonbook pack list\n  moonbook pack enable <extension> [root]\n  moonbook pack inspect <source>\n  moonbook pack install <source> <workspace> [host-profile.json]\n  moonbook pack active [workspace]\n  moonbook pack project <workspace> <pack-id>\n  moonbook pack verify <workspace> <pack-id> <version>\n  moonbook pack activate <workspace> <pack-id> <version>\n  moonbook pack rollback <workspace> <pack-id> <version>\n  moonbook pack deactivate <workspace> <pack-id>",
       )
   }
 }
