@@ -168,6 +168,63 @@ fn result_record_references(
 }
 
 ///|
+fn bookkeeper_moonclaw_fenced_result(content : String) -> Json raise {
+  let sections : Array[String] = []
+  for section in content.split("```") {
+    sections.push(section.to_owned())
+  }
+  if sections.length() != 3 {
+    fail(
+      "MoonClaw step result content must contain exactly one fenced JSON object",
+    )
+  }
+  let fenced = sections[1]
+  guard fenced.find("\n") is Some(first_line_end) else {
+    fail("MoonClaw step result JSON fence is malformed")
+  }
+  let language = fenced[:first_line_end].trim().to_owned()
+  if language != "json" {
+    fail("MoonClaw step result fence must use the json language tag")
+  }
+  let body = fenced[first_line_end + 1:].trim().to_owned()
+  if body.is_blank() {
+    fail("MoonClaw step result JSON fence is empty")
+  }
+  let value = @json.parse(body)
+  guard value is Object(_) else {
+    fail("MoonClaw step result fence must contain one JSON object")
+  }
+  value
+}
+
+///|
+fn unwrap_bookkeeper_moonclaw_result(value : Json) -> Json raise {
+  guard value is Object(fields) else {
+    fail("Bookkeeper MoonClaw result must be an object")
+  }
+  let step_id = fields.get("step_id")
+  let result_decision = fields.get("result_decision")
+  let content = fields.get("content")
+  match (step_id, result_decision, content) {
+    (None, None, None) => value
+    (Some(String(step)), Some(String(decision)), Some(String(body))) => {
+      if step.is_blank() || decision.is_blank() {
+        fail("MoonClaw step result wrapper identity is incomplete")
+      }
+      bookkeeper_moonclaw_fenced_result(body)
+    }
+    _ => fail("MoonClaw step result wrapper is incomplete or ambiguous")
+  }
+}
+
+///|
+fn decode_bookkeeper_moonclaw_result_input(
+  value : Json,
+) -> BookkeeperMoonClawResult raise {
+  decode_bookkeeper_moonclaw_result(unwrap_bookkeeper_moonclaw_result(value))
+}
+
+///|
 fn decode_bookkeeper_moonclaw_result(
   value : Json,
 ) -> BookkeeperMoonClawResult raise {
@@ -638,7 +695,7 @@ async fn ingest_bookkeeper_moonclaw_result(
 ) -> @bookkeeper_store.BookkeeperMutationResult {
   let packet_json = @json.parse(@fsx.read_file(packet_path))
   let verified = verify_bookkeeper_moonclaw_packet(packet_json)
-  let result = decode_bookkeeper_moonclaw_result(result_json)
+  let result = decode_bookkeeper_moonclaw_result_input(result_json)
   let current = @bookkeeper_store.replay_bookkeeper_store(root)
   let record = materialize_bookkeeper_moonclaw_record(verified, current, result)
   @bookkeeper_store.persist_bookkeeper_record(root, record)

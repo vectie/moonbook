@@ -23,6 +23,75 @@ fn moonclaw_result_test_evidence(
 }
 
 ///|
+async fn moonclaw_result_fixture_json() -> Json {
+  let fixture_path = moonbook_cmd_path(@env.current_dir().unwrap_or("."))
+    .join(moonbook_cmd_path("docs/BOOKKEEPER_MOONCLAW_RESULT.fixture.json"))
+    .to_string()
+  @json.parse(@fsx.read_file(fixture_path))
+}
+
+///|
+fn moonclaw_step_result_wrapper(content : String) -> Json {
+  {
+    "step_id": "bookkeeper-result",
+    "result_decision": "accepted",
+    "requires_review": false,
+    "notify_town": true,
+    "model": "gpt-5.6-sol",
+    "content": content,
+    "metadata": {},
+  }
+}
+
+///|
+async test "Bookkeeper MoonClaw result accepts raw canonical result" {
+  let decoded = decode_bookkeeper_moonclaw_result_input(
+    moonclaw_result_fixture_json(),
+  )
+  inspect(
+    decoded.contract_version,
+    content="moonbook.bookkeeper.moonclaw-result.v1",
+  )
+}
+
+///|
+async test "Bookkeeper MoonClaw result unwraps standard step result artifact" {
+  let raw = moonclaw_result_fixture_json()
+  let wrapped = moonclaw_step_result_wrapper(
+    "MoonClaw completed the bounded step.\n```json\n" +
+    raw.stringify() +
+    "\n```\n",
+  )
+  let decoded = decode_bookkeeper_moonclaw_result_input(wrapped)
+  inspect(decoded.packet_id, content="bookkeeper-learning-example-v1")
+}
+
+///|
+async test "Bookkeeper MoonClaw result rejects multiple fenced blocks" {
+  let raw = moonclaw_result_fixture_json().stringify()
+  let wrapped = moonclaw_step_result_wrapper(
+    "```json\n" + raw + "\n```\n```json\n" + raw + "\n```",
+  )
+  try decode_bookkeeper_moonclaw_result_input(wrapped) catch {
+    error => assert_true("\{error}".contains("exactly one fenced JSON object"))
+  } noraise {
+    _ => fail("multiple fenced result blocks must be rejected")
+  }
+}
+
+///|
+async test "Bookkeeper MoonClaw result rejects wrong fenced schema" {
+  let wrapped = moonclaw_step_result_wrapper(
+    "```json\n{\"contract_version\":\"wrong.result.v1\"}\n```",
+  )
+  try decode_bookkeeper_moonclaw_result_input(wrapped) catch {
+    error => assert_true("\{error}".contains("missing candidate"))
+  } noraise {
+    _ => fail("wrong fenced result schema must be rejected")
+  }
+}
+
+///|
 async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queue" {
   let root = "/tmp/moonbook-moonclaw-result-\{@async.now().to_int()}"
   let deliverable_evidence = moonclaw_result_test_evidence(
@@ -154,11 +223,8 @@ async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queu
     packet_metadata, "source_packet_digest", "fixture packet metadata",
   )
 
-  let fixture_path = moonbook_cmd_path(@env.current_dir().unwrap_or("."))
-    .join(moonbook_cmd_path("docs/BOOKKEEPER_MOONCLAW_RESULT.fixture.json"))
-    .to_string()
   let fixture = decode_bookkeeper_moonclaw_result(
-    @json.parse(@fsx.read_file(fixture_path)),
+    moonclaw_result_fixture_json(),
   )
   let summary = fixture.candidate.summary
   let owner_route = fixture.candidate.owner_route
