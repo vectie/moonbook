@@ -20,9 +20,24 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"analyze_three_gaps\",\n" +
   "            \"title\": \"Analyze outcome evidence through Three-Gap theory\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Act as MoonBook Bookkeeper on MoonClaw for ${proposal.title}. Read the external packet, the exact Bookkeeper snapshot, and its evidence before reasoning. If the subject is an outcome binding, identify only evidence-supported Information (Unknown to Known), Recognition (Known to Matters), and Decisiveness (Matters to Act) gaps. Separate observed facts from inference, cite exact versioned evidence, and draft reviewable Three-Gap finding records. Do not mutate .moonbook/bookkeeper, do not install authority, and do not claim human acceptance. If the subject is not an outcome binding, return an explicit not-applicable result for this step.\",\n" +
+  "            \"prompt_template\": \"" +
+  escape_json_string(bookkeeper_three_gap_analyze_prompt()) +
+  "\",\n" +
   "            \"metadata\": {\n" +
   "              \"model\": \"gpt-5.6-sol\",\n" +
+  "              \"output_contract\": \"moonbook.bookkeeper.moonclaw-result.v1\",\n" +
+  "              \"result_contract\": {\n" +
+  "                \"contract_version\": \"moonbook.bookkeeper.moonclaw-result.v1\",\n" +
+  "                \"candidate_schema\": \"three_gap_finding.v1\",\n" +
+  "                \"candidate_cardinality\": 1,\n" +
+  "                \"candidate_stage\": \"three_gap_finding\",\n" +
+  "                \"composite_candidates_allowed\": false,\n" +
+  "                \"learning_key_source\": \"packet.metadata.result_contract.learning_key\",\n" +
+  "                \"canonical_evidence_source\": \"packet.metadata.canonical_evidence_refs\",\n" +
+  "                \"required_top_level_keys\": [\"contract_version\", \"packet_id\", \"source_packet_digest\", \"source_snapshot_digest\", \"subject\", \"subject_stage\", \"evidence_refs\", \"producer\", \"model\", \"candidate\"],\n" +
+  "                \"required_candidate_keys\": [\"record_id\", \"record_version\", \"stage\", \"title\", \"summary\", \"owner_route\", \"recorded_at\", \"links\", \"issue_refs\", \"next_action\", \"payload\"],\n" +
+  "                \"required_payload_keys\": [\"contract_version\", \"candidate_schema\", \"subject\", \"learning_key\", \"gap_class\", \"transition\", \"severity\", \"owner_route\", \"summary\", \"evidence_refs\", \"source_snapshot_digest\", \"source_packet_digest\"]\n" +
+  "              },\n" +
   "              \"system_prompt\": \"MoonClaw is the agent runtime. MoonBook owns durable Bookkeeper truth. Produce evidence-bound candidate values only; never impersonate a named human reviewer or directly alter Bookkeeper state.\",\n" +
   "              \"preferred_skills\": [\"wiki-review\"],\n" +
   "              \"enable_tools\": true,\n" +
@@ -37,9 +52,13 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"aggregate_capability_proposal\",\n" +
   "            \"title\": \"Aggregate reviewed gaps into a capability proposal\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Inspect the exact Bookkeeper snapshot and the prior analysis for ${proposal.title}. Aggregate a capability proposal only from Three-Gap finding records that already have exact named-human Accept receipts in the snapshot and satisfy the declared evidence and promotion policy. Never treat a finding drafted earlier in this same run as reviewed. If the gate is not met, emit a non-promotion decision with missing evidence or review links. Keep MoonCode work-order projection separate and non-executing. Do not persist or review any record.\",\n" +
+  "            \"prompt_template\": \"" +
+  escape_json_string(bookkeeper_capability_aggregate_prompt()) +
+  "\",\n" +
   "            \"metadata\": {\n" +
   "              \"model\": \"gpt-5.6-sol\",\n" +
+  "              \"disable_waiting_for_input\": true,\n" +
+  "              \"best_effort_on_missing_input\": true,\n" +
   "              \"system_prompt\": \"Use MoonClaw reasoning for proposal drafting while MoonBook remains the durable source of truth. Human review and deterministic MoonBook validation are mandatory gates.\",\n" +
   "              \"preferred_skills\": [\"wiki-review\"],\n" +
   "              \"enable_tools\": true,\n" +
@@ -54,7 +73,9 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"prepare_moonbook_handoff\",\n" +
   "            \"title\": \"Prepare deterministic MoonBook handoff\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Package exactly one valid candidate as moonbook.bookkeeper.moonclaw-result.v1. Copy packet_id, source_packet_digest, source_snapshot_digest, subject, subject_stage, and canonical evidence_refs exactly from the packet. Set producer to moonclaw and model to gpt-5.6-sol. The candidate object must contain exactly record_id, record_version, stage, title, summary, owner_route, recorded_at, links, issue_refs, next_action, and payload. For an outcome_binding, emit only a three_gap_finding.v1 payload linked exactly to the subject. For a human-accepted three_gap_finding, emit capability_proposal.v1 only when at least two exact accepted source findings satisfy the promotion policy. The payload must repeat the exact source digests and evidence; never invent evidence, authority, acceptance, receipts, or capability application. The next deterministic command is `moonbook bookkeeper moonclaw ingest-result <root> <packet.json> <result.json>`; named-human `moonbook bookkeeper review` remains later. Return no extra JSON fields and do not execute either mutation.\",\n" +
+  "            \"prompt_template\": \"" +
+  escape_json_string(bookkeeper_moonbook_handoff_prompt()) +
+  "\",\n" +
   "            \"metadata\": {\n" +
   "              \"model\": \"gpt-5.6-sol\",\n" +
   "              \"system_prompt\": \"Return a machine-readable handoff, not an applied mutation. Preserve exact linkage and fail closed when evidence or human review is absent.\",\n" +

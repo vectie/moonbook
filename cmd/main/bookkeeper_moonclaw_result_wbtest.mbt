@@ -44,6 +44,25 @@ fn moonclaw_step_result_wrapper(content : String) -> Json {
 }
 
 ///|
+test "Bookkeeper derives a stable versioned learning key from policy and outcome" {
+  let subject : @bookkeeper.VersionedRecordReference = {
+    record_id: "outcome-stable",
+    record_version: "v3",
+    record_digest: "sha256:outcome-stable-v3",
+  }
+  let first = bookkeeper_outcome_learning_key(subject)
+  let replay = bookkeeper_outcome_learning_key(subject)
+  assert_true(first == replay)
+  assert_true(first.record_id.has_prefix("three-gap-learning-"))
+  assert_true(first.record_version == "v1")
+  let changed = bookkeeper_outcome_learning_key({
+    ..subject,
+    record_digest: "sha256:outcome-stable-v3-corrected",
+  })
+  assert_true(first != changed)
+}
+
+///|
 async test "Bookkeeper MoonClaw result accepts raw canonical result" {
   let decoded = decode_bookkeeper_moonclaw_result_input(
     moonclaw_result_fixture_json(),
@@ -171,6 +190,9 @@ async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queu
   inspect(accepted.accepted, content="true")
 
   let outcome_evidence = moonclaw_result_test_evidence("evidence-outcome")
+  let performance_evidence = moonclaw_result_test_evidence(
+    "evidence-performance",
+  )
   let outcome_payload : Json = {
     "contract_version": @bookkeeper.three_gap_contract_version(),
     "fixture": "observed-outcome",
@@ -188,7 +210,9 @@ async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queu
     summary: "Outcome evidence bound to the accepted deliverable.",
     owner_route: "bookkeeper://outcomes",
     status: "observed",
-    evidence_refs: [outcome_evidence],
+    evidence_refs: [
+      outcome_evidence, deliverable_evidence, performance_evidence,
+    ],
     issue_refs: [],
     requires_human_review: false,
     next_action: "analyze Three-Gap finding",
@@ -222,6 +246,26 @@ async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queu
   let packet_digest = result_required_string(
     packet_metadata, "source_packet_digest", "fixture packet metadata",
   )
+  let learning_key = bookkeeper_moonclaw_learning_key(outcome)
+  guard result_required_json(
+      packet_metadata, "result_contract", "fixture packet metadata",
+    )
+    is { "learning_key": packet_learning_key, .. } else {
+    fail("fixture packet result contract is missing learning_key")
+  }
+  assert_true(packet_learning_key == learning_key.to_json())
+  let canonical_evidence = bookkeeper_moonclaw_canonical_evidence([outcome])
+  let packet_evidence = result_evidence_references(
+    result_required_json(
+      packet_metadata, "canonical_evidence_refs", "fixture packet metadata",
+    ),
+    "fixture packet canonical evidence",
+  )
+  assert_true(packet_evidence == canonical_evidence)
+  assert_true(packet_evidence.length() == 3)
+  assert_true(packet_evidence[0].reference_id == "evidence-outcome")
+  assert_true(packet_evidence[1].reference_id == "evidence-deliverable")
+  assert_true(packet_evidence[2].reference_id == "evidence-performance")
 
   let fixture = decode_bookkeeper_moonclaw_result(
     moonclaw_result_fixture_json(),
@@ -232,17 +276,13 @@ async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queu
     "contract_version": @bookkeeper.three_gap_contract_version(),
     "candidate_schema": "three_gap_finding.v1",
     "subject": outcome_ref.to_json(),
-    "learning_key": {
-      "record_id": "learning-key-fixture",
-      "record_version": "v1",
-      "record_digest": "sha256:learning-key-fixture",
-    },
+    "learning_key": learning_key.to_json(),
     "gap_class": "information_gap",
     "transition": "unknown_to_known",
     "severity": 4,
     "owner_route": owner_route,
     "summary": summary,
-    "evidence_refs": [outcome_evidence.to_json()],
+    "evidence_refs": canonical_evidence.to_json(),
     "source_snapshot_digest": snapshot_digest,
     "source_packet_digest": packet_digest,
   }
@@ -253,7 +293,7 @@ async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queu
     source_snapshot_digest: snapshot_digest,
     subject: outcome_ref,
     subject_stage: "outcome_binding",
-    evidence_refs: [outcome_evidence],
+    evidence_refs: canonical_evidence,
     producer: "moonclaw",
     model: "gpt-5.6-sol",
     candidate: {
@@ -269,6 +309,40 @@ async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queu
       next_action: fixture.candidate.next_action,
       payload: finding_payload,
     },
+  }
+  let invented_payload : Json = {
+    "contract_version": @bookkeeper.three_gap_contract_version(),
+    "candidate_schema": "three_gap_finding.v1",
+    "subject": outcome_ref.to_json(),
+    "learning_key": {
+      "record_id": "model-invented-learning-key",
+      "record_version": "v1",
+      "record_digest": "sha256:model-invented-learning-key",
+    },
+    "gap_class": "information_gap",
+    "transition": "unknown_to_known",
+    "severity": 4,
+    "owner_route": owner_route,
+    "summary": summary,
+    "evidence_refs": canonical_evidence.to_json(),
+    "source_snapshot_digest": snapshot_digest,
+    "source_packet_digest": packet_digest,
+  }
+  let invented = {
+    ..result,
+    candidate: { ..result.candidate, payload: invented_payload },
+  }
+  try
+    ingest_bookkeeper_moonclaw_result(root, packet_path, invented.to_json())
+  catch {
+    error =>
+      assert_true(
+        "\{error}".contains(
+          "learning_key must exactly copy the MoonBook packet",
+        ),
+      )
+  } noraise {
+    _ => fail("model-invented learning_key must be rejected")
   }
   let first = ingest_bookkeeper_moonclaw_result(
     root,
@@ -299,17 +373,13 @@ async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queu
     "contract_version": @bookkeeper.three_gap_contract_version(),
     "candidate_schema": "three_gap_finding.v1",
     "subject": outcome_ref.to_json(),
-    "learning_key": {
-      "record_id": "learning-key-fixture",
-      "record_version": "v1",
-      "record_digest": "sha256:learning-key-fixture",
-    },
+    "learning_key": learning_key.to_json(),
     "gap_class": "information_gap",
     "transition": "unknown_to_known",
     "severity": 4,
     "owner_route": owner_route,
     "summary": conflict_summary,
-    "evidence_refs": [outcome_evidence.to_json()],
+    "evidence_refs": canonical_evidence.to_json(),
     "source_snapshot_digest": snapshot_digest,
     "source_packet_digest": packet_digest,
   }
