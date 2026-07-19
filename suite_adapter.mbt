@@ -40,6 +40,7 @@ pub fn moonbook_moonflow_adapter_capability_json() -> Json {
     "operations": [
       "compile-executable-declaration", "inspect-declaration-revision", "reconcile-flow-outcome",
       "reflect-on-outcome", "propose-memory-promotion", "record-acceptance-review",
+      "deliver-reviewed-mooncode-draft",
     ],
     "authority_classes": [
       "observe", "cognitive-maintenance", "workspace-mutation",
@@ -48,9 +49,43 @@ pub fn moonbook_moonflow_adapter_capability_json() -> Json {
     "supports_reconcile": true,
     "receipt_contracts": [
       "moonbook.executable-document.v1", "moonbook.bookkeeper-reflection.v1", "moonbook.acceptance-review.v1",
+      "moonbook.bookkeeper.mooncode-draft-delivery.v1",
     ],
     "execution_state_owner": "moonflow",
     "accepted_truth_requires_review": true,
     "external_effect_forbidden": true,
+    "mooncode_draft_delivery": {
+      "adapter_id": "moonbook-mooncode-draft-delivery",
+      "adapter_version": "v1",
+      "agent_runtime": "moonclaw",
+      "implementation_surface": "mooncode",
+      "confirmation_allowed": false,
+      "execution_allowed": false,
+      "external_effect_allowed": false,
+    },
+  }
+}
+
+///|
+/// Generic MoonFlow capability for the one product-owned mutation that turns
+/// an exact reviewed Bookkeeper egress into an inert MoonClaw proposal draft.
+pub fn moonbook_mooncode_draft_delivery_capability_json() -> Json {
+  {
+    "adapter_id": "moonbook-mooncode-draft-delivery",
+    "product_id": "moonbook",
+    "protocol": "moonflow.adapter.v1",
+    "operations": ["deliver-reviewed-mooncode-draft"],
+    "authority_classes": ["workspace-mutation"],
+    "input_contracts": ["moonbook.bookkeeper.mooncode-draft-delivery.v1"],
+    "output_contracts": ["moonbook.bookkeeper.mooncode-draft-delivery.v1"],
+    "claim_ceiling": "digital-artifact",
+    "healthy": true,
+    "supports_cancel": false,
+    "supports_reconcile": true,
+    "agent_runtime": "moonclaw",
+    "implementation_surface": "mooncode",
+    "confirmation_allowed": false,
+    "execution_allowed": false,
+    "external_effect_allowed": false,
   }
 }

@@ -15,9 +15,14 @@ The call path is deliberately split into independently reviewed stages:
 4. A second explicit action creates a generic `mooncode.work_order` egress for
    MoonFlow. The envelope carries exact evidence and review links and always has
    `external_activation_allowed=false` and `side_effects_applied=false`.
-5. The optional draft importer materializes the egress payload and invokes
-   MoonClaw's existing `proposal import` path without `--confirm`. It creates a
-   draft only; no code runs until a later human confirms it in MoonClaw.
+5. MoonBook's product-owned MoonFlow adapter binds an exact envelope reference
+   and digest, materializes the deterministic packet, and invokes MoonClaw's
+   existing `proposal import` path without `--confirm` or `--inline`. It creates
+   a draft only; no code runs until a later human confirms it in MoonClaw.
+6. The adapter stores an immutable, idempotent receipt. A distinct MoonBook
+   attestor verifies the exact delivery request, receipt digest, `Draft` status,
+   and all false authority flags before MoonFlow can ask its independently
+   configured reviewer to accept the transport result.
 
 MoonClaw remains the sole model and agent runtime. MoonCode is the reviewed
 coding surface. MoonBook owns the durable proposal, authority, review,
@@ -38,6 +43,6 @@ The Rabbita Bookkeeper operator panel exposes the projection and egress actions
 and explains why either action is disabled. It reuses the existing application;
 there is no separate Bookkeeper UI.
 
-The remaining deployment integration is a concrete generic MoonFlow delivery
-adapter that transports the accepted egress to the draft importer. That adapter
-must not confirm the MoonClaw proposal or execute MoonCode.
+See [MOONFLOW_MOONCODE_DRAFT_DELIVERY.md](MOONFLOW_MOONCODE_DRAFT_DELIVERY.md)
+for direct and generic unattended deployment. MoonFlow core does not contain a
+Bookkeeper, MoonCode, or MoonClaw-specific branch.

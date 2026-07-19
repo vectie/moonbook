@@ -137,3 +137,106 @@ async test "MoonBook attests ordered criteria and creates metacognitive reflecti
   assert_true(text.contains("\"scenario-qualified\""))
   assert_true(text.contains("\"execution-gap\""))
 }
+
+///|
+async test "MoonBook attests only an exact inert MoonCode draft receipt" {
+  let workspace = "/tmp/moonbook-flow-attestor-mooncode-draft-test"
+  let delivery_request : @bookkeeper_store.MoonCodeDraftDeliveryRequest = {
+    contract_version: @bookkeeper_store.mooncode_draft_delivery_contract_version(),
+    delivery_id: "delivery-one",
+    delivery_version: "v1",
+    envelope: {
+      record_id: "envelope-one",
+      record_version: "v1",
+      record_digest: "sha256:envelope",
+    },
+    expected_envelope_digest: "sha256:envelope",
+  }
+  write_json(
+    scoped_path(workspace, "inputs/delivery.json"),
+    delivery_request.to_json(),
+  )
+  write_json(scoped_path(workspace, "runtime/request.json"), {
+    "request_id": "request-delivery",
+    "book_id": "bookkeeper",
+    "product_id": "moonbook",
+    "operation": "deliver-reviewed-mooncode-draft",
+    "requested_authority": "workspace-mutation",
+    "acceptance_criteria": ["the MoonClaw proposal remains Draft"],
+    "input_contracts": [
+      @bookkeeper_store.mooncode_draft_delivery_contract_version(),
+    ],
+    "output_contracts": [
+      @bookkeeper_store.mooncode_draft_delivery_contract_version(),
+    ],
+    "input_artifacts": ["inputs/delivery.json"],
+  })
+  write_json(scoped_path(workspace, "runtime/result.json"), {
+    "result_id": "result-delivery",
+    "output_digest": "sha256:draft",
+  })
+  let mut receipt : @bookkeeper_store.MoonCodeDraftImportReceipt = {
+    contract_version: @bookkeeper_store.mooncode_draft_delivery_contract_version(),
+    receipt: {
+      record_id: "mooncode-draft-import:delivery-one",
+      record_version: "v1",
+      record_digest: "pending",
+    },
+    request: delivery_request,
+    request_digest: @bookkeeper_store.bookkeeper_payload_digest(
+      delivery_request.to_json(),
+    ),
+    adapter_id: "moonbook-mooncode-draft-delivery",
+    adapter_version: "v1",
+    envelope: delivery_request.envelope,
+    work_order: {
+      record_id: "work-order-one",
+      record_version: "v1",
+      record_digest: "sha256:work-order",
+    },
+    packet_digest: "sha256:packet",
+    moonclaw_proposal_id: "proposal-one",
+    moonclaw_status: "Draft",
+    moonclaw_output_digest: "sha256:moonclaw-output",
+    confirmed: false,
+    executed: false,
+    external_effect_authorized: false,
+    side_effects_applied: false,
+  }
+  let core : Json = {
+    "contract_version": receipt.contract_version,
+    "request": receipt.request.to_json(),
+    "request_digest": receipt.request_digest,
+    "adapter_id": receipt.adapter_id,
+    "adapter_version": receipt.adapter_version,
+    "envelope": receipt.envelope.to_json(),
+    "work_order": receipt.work_order.to_json(),
+    "packet_digest": receipt.packet_digest,
+    "moonclaw_proposal_id": receipt.moonclaw_proposal_id,
+    "moonclaw_status": receipt.moonclaw_status,
+    "moonclaw_output_digest": receipt.moonclaw_output_digest,
+    "confirmed": false,
+    "executed": false,
+    "external_effect_authorized": false,
+    "side_effects_applied": false,
+  }
+  receipt = {
+    ..receipt,
+    receipt: {
+      ..receipt.receipt,
+      record_digest: @bookkeeper_store.bookkeeper_payload_digest(core),
+    },
+  }
+  write_json(scoped_path(workspace, "drafts/delivery.json"), receipt.to_json())
+  attest(
+    workspace, "runtime/request.json", "runtime/result.json", "runtime/attestation.json",
+    "moonbook-native-attestor-v1", "drafts/delivery.json", "outputs/delivery.json",
+  )
+  let final_output = read_json(scoped_path(workspace, "outputs/delivery.json"))
+  assert_true(final_output == receipt.to_json())
+  assert_true(
+    read_json(scoped_path(workspace, "runtime/attestation.json"))
+    .stringify()
+    .contains("\"accepted\":true"),
+  )
+}

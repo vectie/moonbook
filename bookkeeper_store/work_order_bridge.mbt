@@ -460,6 +460,28 @@ fn bridge_moonclaw_packet(
 }
 
 ///|
+fn mooncode_work_order_envelope_basis(
+  work_order : DurableBookkeeperRecord,
+  review : GovernedReviewReceipt,
+  packet : Json,
+) -> Json {
+  {
+    "contract_version": bookkeeper_transport_contract_version(),
+    "direction": "Egress",
+    "source_product": "moonbook",
+    "destination_product": "moonflow",
+    "message_kind": "mooncode.work_order",
+    "subject": work_order.record.to_json(),
+    "links": [review.receipt.to_json()],
+    "evidence_refs": work_order.evidence_refs.to_json(),
+    "authority_ref": review.reviewer.authority_ref,
+    "payload": packet,
+    "external_activation_allowed": false,
+    "side_effects_applied": false,
+  }
+}
+
+///|
 pub async fn emit_governed_mooncode_work_order(
   root : String,
   request : GovernedWorkOrderEgressRequest,
@@ -492,20 +514,9 @@ pub async fn emit_governed_mooncode_work_order(
     ])
   }
   let packet = bridge_moonclaw_packet(work_order, review)
-  let envelope_basis : Json = {
-    "contract_version": bookkeeper_transport_contract_version(),
-    "direction": "Egress",
-    "source_product": "moonbook",
-    "destination_product": "moonflow",
-    "message_kind": "mooncode.work_order",
-    "subject": work_order.record.to_json(),
-    "links": [review.receipt.to_json()],
-    "evidence_refs": work_order.evidence_refs.to_json(),
-    "authority_ref": review.reviewer.authority_ref,
-    "payload": packet,
-    "external_activation_allowed": false,
-    "side_effects_applied": false,
-  }
+  let envelope_basis = mooncode_work_order_envelope_basis(
+    work_order, review, packet,
+  )
   let envelope : BookkeeperTransportEnvelope = {
     contract_version: bookkeeper_transport_contract_version(),
     envelope: {
@@ -538,6 +549,9 @@ pub async fn materialize_mooncode_draft_packet(
     return Err("unsupported work-order bridge contract")
   }
   let snapshot = replay_bookkeeper_store(root)
+  if !snapshot.replay_issues.is_empty() {
+    return Err("Bookkeeper journal has replay issues")
+  }
   let mut selected : BookkeeperTransportEnvelope? = None
   for item in snapshot.envelopes {
     if item.envelope == request.envelope {

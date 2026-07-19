@@ -1,0 +1,67 @@
+{
+  "adapter_id": "moonbook-mooncode-draft-delivery",
+  "executable": "/absolute/path/to/moonbook-moonflow-adapter",
+  "arguments": [
+    "unattended",
+    "--workspace",
+    "{workspace}",
+    "--request",
+    "{request}",
+    "--result",
+    "{result}",
+    "--output",
+    "runtime/mooncode-delivery/capability-example--v1.draft.json",
+    "--moonclaw",
+    "/absolute/path/to/moonclaw",
+    "--home",
+    "/absolute/path/to/moonsuite-home",
+    "--cwd",
+    "/absolute/path/to/mooncode-workspace"
+  ],
+  "draft_output_artifacts": [
+    "runtime/mooncode-delivery/capability-example--v1.draft.json"
+  ],
+  "expected_output_artifacts": [
+    "runtime/mooncode-delivery/capability-example--v1.final.json"
+  ],
+  "attestor_id": "moonbook-native-attestor-v1",
+  "attestor_executable": "/absolute/path/to/moonbook-moonflow-attestor",
+  "attestor_arguments": [
+    "--workspace",
+    "{workspace}",
+    "--request",
+    "{request}",
+    "--result",
+    "{result}",
+    "--attestation",
+    "{attestation}",
+    "--attestor-id",
+    "moonbook-native-attestor-v1",
+    "--draft",
+    "{draft}",
+    "--final",
+    "{final}"
+  ],
+  "reviewer_id": "replace-with-independent-reviewer-id",
+  "reviewer_executable": "/absolute/path/to/independent-reviewer",
+  "reviewer_arguments": [
+    "--workspace",
+    "{workspace}",
+    "--request",
+    "{request}",
+    "--result",
+    "{result}",
+    "--receipt",
+    "{receipt}",
+    "--review",
+    "{review}"
+  ],
+  "review_authority_id": "replace-with-governed-review-authority-id",
+  "budget_request": {
+    "model_tokens": 0,
+    "tool_calls": 1,
+    "storage_bytes": 1048576,
+    "attempts": 1,
+    "concurrency": 1
+  }
+}

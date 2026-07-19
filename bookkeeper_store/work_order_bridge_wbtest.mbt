@@ -244,4 +244,44 @@ async test "governed bridge projects, separately reviews, and emits draft-only w
   let packet = @json.parse(@fsx.read_file(packet_path))
   assert_true(packet.stringify().contains("mooncode_work_order_controller"))
   assert_true(packet.stringify().contains("\"auto_execute\":false"))
+  let delivery_request : MoonCodeDraftDeliveryRequest = {
+    contract_version: mooncode_draft_delivery_contract_version(),
+    delivery_id: "delivery-one",
+    delivery_version: "v1",
+    envelope: envelope.envelope,
+    expected_envelope_digest: envelope.envelope.record_digest,
+  }
+  let delivery_plan = prepare_mooncode_draft_delivery(root, delivery_request).unwrap()
+  assert_false(delivery_plan.already_imported)
+  assert_true(delivery_plan.work_order == work_order.record)
+  let denied_completion = complete_mooncode_draft_delivery(
+    root,
+    delivery_plan,
+    {
+      "proposal_id": "unexpected-execution",
+      "status": "Draft",
+      "run_id": "must-not-exist",
+    },
+  )
+  assert_true(denied_completion is Err(_))
+  let receipt = complete_mooncode_draft_delivery(root, delivery_plan, {
+    "proposal_id": "draft-proposal-one",
+    "status": "Draft",
+  }).unwrap()
+  assert_true(receipt.envelope == envelope.envelope)
+  assert_true(receipt.work_order == work_order.record)
+  assert_eq(receipt.moonclaw_status, "Draft")
+  assert_false(receipt.confirmed)
+  assert_false(receipt.executed)
+  assert_false(receipt.external_effect_authorized)
+  let replayed_delivery = prepare_mooncode_draft_delivery(
+    root, delivery_request,
+  ).unwrap()
+  assert_true(replayed_delivery.already_imported)
+  assert_true(replayed_delivery.existing_receipt.unwrap() == receipt)
+  let stale_delivery = prepare_mooncode_draft_delivery(root, {
+    ..delivery_request,
+    expected_envelope_digest: "sha256:stale",
+  })
+  assert_true(stale_delivery is Err(_))
 }
