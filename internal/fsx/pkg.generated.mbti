@@ -2,6 +2,8 @@
 package "vectie/moonbook/internal/fsx"
 
 // Values
+pub fn atomic_replace(StringView, StringView) -> Unit raise
+
 pub async fn exists(StringView) -> Bool
 
 pub async fn list_directory(StringView) -> Array[String]

@@ -1,0 +1,187 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "vectie/moonbook/bookkeeper_store"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "vectie/moonbook/bookkeeper",
+}
+
+// Values
+pub async fn apply_governed_review(String, GovernedReviewMutation) -> BookkeeperMutationResult
+
+pub async fn bookkeeper_authority_registry(String) -> BookkeeperAuthorityRegistry
+
+pub fn bookkeeper_authority_registry_path(String) -> String
+
+pub fn bookkeeper_payload_digest(Json) -> String
+
+pub fn bookkeeper_snapshot_path(String) -> String
+
+pub fn bookkeeper_store_contract_version() -> String
+
+pub fn bookkeeper_transport_contract_version() -> String
+
+pub fn bookkeeper_ui_state_path(String) -> String
+
+pub async fn install_bookkeeper_authority_grant(String, BookkeeperAuthorityGrant) -> BookkeeperAuthorityRegistry
+
+pub async fn persist_bookkeeper_record(String, DurableBookkeeperRecord) -> BookkeeperMutationResult
+
+pub async fn persist_transport_envelope(String, BookkeeperTransportEnvelope) -> BookkeeperMutationResult
+
+pub fn project_bookkeeper_ui_state(String, BookkeeperStoreSnapshot) -> @bookkeeper.BookkeeperUiState
+
+pub async fn rebuild_bookkeeper_projection(String) -> BookkeeperStoreSnapshot
+
+pub async fn replay_bookkeeper_store(String) -> BookkeeperStoreSnapshot
+
+// Errors
+
+// Types and methods
+pub(all) struct BookkeeperAuthorityGrant {
+  contract_version : String
+  grant : @bookkeeper.VersionedRecordReference
+  reviewer_id : String
+  reviewer_kind : @bookkeeper.ReviewerKind
+  authority_ref : String
+  evidence_refs : Array[String]
+  active : Bool
+  granted_at : Int
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct BookkeeperAuthorityRegistry {
+  contract_version : String
+  grants : Array[BookkeeperAuthorityGrant]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct BookkeeperJournalEvent {
+  contract_version : String
+  sequence : Int
+  event : @bookkeeper.VersionedRecordReference
+  event_kind : String
+  recorded_at : Int
+  record : DurableBookkeeperRecord?
+  review : GovernedReviewReceipt?
+  envelope : BookkeeperTransportEnvelope?
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct BookkeeperMutationResult {
+  accepted : Bool
+  idempotent : Bool
+  event : @bookkeeper.VersionedRecordReference?
+  review : GovernedReviewReceipt?
+  issues : Array[String]
+  ui_state_path : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) enum BookkeeperStage {
+  DeliverableAcceptance
+  OutcomeBinding
+  ThreeGapFinding
+  ThreeGapReview
+  CapabilityProposal
+  CapabilityReview
+  MoonCodeWorkOrder
+  MoonCodeResult
+  Evaluation
+  Adoption
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn BookkeeperStage::id(Self) -> String
+pub fn BookkeeperStage::is_reviewable(Self) -> Bool
+
+pub(all) struct BookkeeperStoreSnapshot {
+  contract_version : String
+  mut last_sequence : Int
+  records : Array[DurableBookkeeperRecord]
+  reviews : Array[GovernedReviewReceipt]
+  envelopes : Array[BookkeeperTransportEnvelope]
+  replay_issues : Array[String]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct BookkeeperTransportEnvelope {
+  contract_version : String
+  envelope : @bookkeeper.VersionedRecordReference
+  direction : EnvelopeDirection
+  source_product : String
+  destination_product : String
+  message_kind : String
+  subject : @bookkeeper.VersionedRecordReference
+  links : Array[@bookkeeper.VersionedRecordReference]
+  evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
+  authority_ref : String
+  recorded_at : Int
+  payload : Json
+  external_activation_allowed : Bool
+  side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct DurableBookkeeperRecord {
+  contract_version : String
+  record : @bookkeeper.VersionedRecordReference
+  stage : BookkeeperStage
+  subject : @bookkeeper.VersionedRecordReference?
+  links : Array[@bookkeeper.VersionedRecordReference]
+  title : String
+  summary : String
+  owner_route : String
+  status : String
+  evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
+  issue_refs : Array[String]
+  requires_human_review : Bool
+  next_action : String
+  source_product : String
+  recorded_at : Int
+  payload : Json
+  side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) enum EnvelopeDirection {
+  Ingress
+  Egress
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct GovernedReviewMutation {
+  contract_version : String
+  mutation : @bookkeeper.VersionedRecordReference
+  receipt : @bookkeeper.VersionedRecordReference
+  stage : BookkeeperStage
+  subject : @bookkeeper.VersionedRecordReference
+  requested : @bookkeeper.BookkeeperDisposition
+  reviewer_kind : @bookkeeper.ReviewerKind
+  reviewer : StoreReviewerAuthority
+  evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
+  summary : String
+  decided_at : Int
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct GovernedReviewReceipt {
+  contract_version : String
+  mutation : @bookkeeper.VersionedRecordReference
+  receipt : @bookkeeper.VersionedRecordReference
+  stage : BookkeeperStage
+  subject : @bookkeeper.VersionedRecordReference
+  requested : @bookkeeper.BookkeeperDisposition
+  disposition : @bookkeeper.BookkeeperDisposition
+  reviewer_kind : @bookkeeper.ReviewerKind
+  reviewer : StoreReviewerAuthority
+  evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
+  summary : String
+  decided_at : Int
+  issues : Array[String]
+  review_complete : Bool
+  side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct StoreReviewerAuthority {
+  grant : @bookkeeper.VersionedRecordReference
+  reviewer_id : String
+  authority_ref : String
+  authorized : Bool
+  evidence_refs : Array[String]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+// Type aliases
+
+// Traits
+
