@@ -79,7 +79,7 @@ struct BookkeeperRecordReference {
   record_id : String
   record_version : String
   record_digest : String
-} derive(Debug, ToJson, FromJson)
+} derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 struct BookkeeperEvidenceReference {
