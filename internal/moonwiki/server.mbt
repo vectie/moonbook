@@ -162,10 +162,288 @@ async fn handle_file_request(
 }
 
 ///|
+fn request_path_without_query(path : String) -> String {
+  match path.find("?") {
+    Some(index) => path[:index].to_owned()
+    None => path
+  }
+}
+
+///|
+async fn[T : @json.FromJson] parse_json_body(body : &@io.Reader) -> T {
+  let text = body.read_all().text()
+  @json.from_json(@json.parse(text)) catch {
+    error => fail("invalid JSON request: \{error}")
+  }
+}
+
+///|
+async fn send_json_status(
+  conn : @http.ServerConnection,
+  code : Int,
+  reason : String,
+  value : Json,
+) -> Unit {
+  conn.send_response(code, reason, extra_headers={
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+  })
+  conn.write(value.stringify(indent=2))
+  conn.end_response()
+}
+
+///|
+fn route_rejection(
+  workspace_root : String,
+  issue : String,
+) -> @bookkeeper_store.BookkeeperMutationResult {
+  {
+    accepted: false,
+    idempotent: false,
+    event: None,
+    review: None,
+    issues: [issue],
+    ui_state_path: @bookkeeper_store.bookkeeper_ui_state_path(workspace_root),
+  }
+}
+
+///|
+async fn handle_bookkeeper_request(
+  static_root : String,
+  workspace_root : String,
+  request : @http.Request,
+  body : &@io.Reader,
+  conn : @http.ServerConnection,
+) -> Bool {
+  let path = request_path_without_query(request.path)
+  match (request.meth, path) {
+    (Get, "/api/bookkeeper/state") => {
+      let snapshot = @bookkeeper_store.replay_bookkeeper_store(workspace_root)
+      send_json_status(conn, 200, "OK", snapshot.to_json())
+      true
+    }
+    (Get, "/api/bookkeeper/ui-state") => {
+      let snapshot = @bookkeeper_store.replay_bookkeeper_store(workspace_root)
+      let state = @bookkeeper_store.project_bookkeeper_ui_state(
+        workspace_root, snapshot,
+      )
+      send_json_status(conn, 200, "OK", state.to_json())
+      true
+    }
+    (Get, "/api/bookkeeper/authorities") => {
+      let registry = @bookkeeper_store.bookkeeper_authority_registry(
+        workspace_root,
+      )
+      send_json_status(conn, 200, "OK", registry.to_json())
+      true
+    }
+    (Post, "/api/bookkeeper/replay") => {
+      let snapshot = @bookkeeper_store.rebuild_bookkeeper_projection(
+        workspace_root,
+      )
+      sync_bookkeeper_projection_to_served_ui(static_root, workspace_root)
+      send_json_status(conn, 200, "OK", snapshot.to_json())
+      true
+    }
+    (Post, "/api/bookkeeper/records") => {
+      let payload : @bookkeeper_store.DurableBookkeeperRecord = parse_json_body(
+        body,
+      ) catch {
+        error => {
+          send_json_status(
+            conn,
+            400,
+            "Bad Request",
+            route_rejection(workspace_root, "\{error}").to_json(),
+          )
+          return true
+        }
+      }
+      let result = @bookkeeper_store.persist_bookkeeper_record(
+        workspace_root, payload,
+      )
+      if result.accepted {
+        sync_bookkeeper_projection_to_served_ui(static_root, workspace_root)
+      }
+      send_json_status(
+        conn,
+        if result.accepted {
+          200
+        } else {
+          422
+        },
+        if result.accepted {
+          "OK"
+        } else {
+          "Unprocessable Content"
+        },
+        result.to_json(),
+      )
+      true
+    }
+    (Post, "/api/bookkeeper/reviews") => {
+      let payload : @bookkeeper_store.GovernedReviewMutation = parse_json_body(
+        body,
+      ) catch {
+        error => {
+          send_json_status(
+            conn,
+            400,
+            "Bad Request",
+            route_rejection(workspace_root, "\{error}").to_json(),
+          )
+          return true
+        }
+      }
+      let result = @bookkeeper_store.apply_governed_review(
+        workspace_root, payload,
+      )
+      if result.accepted {
+        sync_bookkeeper_projection_to_served_ui(static_root, workspace_root)
+      }
+      send_json_status(
+        conn,
+        if result.accepted {
+          200
+        } else {
+          422
+        },
+        if result.accepted {
+          "OK"
+        } else {
+          "Unprocessable Content"
+        },
+        result.to_json(),
+      )
+      true
+    }
+    (Post, "/api/bookkeeper/envelopes/ingress")
+    | (Post, "/api/bookkeeper/envelopes/egress") => {
+      let payload : @bookkeeper_store.BookkeeperTransportEnvelope = parse_json_body(
+        body,
+      ) catch {
+        error => {
+          send_json_status(
+            conn,
+            400,
+            "Bad Request",
+            route_rejection(workspace_root, "\{error}").to_json(),
+          )
+          return true
+        }
+      }
+      let expected_direction = if path.has_suffix("/ingress") {
+        @bookkeeper_store.Ingress
+      } else {
+        @bookkeeper_store.Egress
+      }
+      let result = if payload.direction != expected_direction {
+        route_rejection(
+          workspace_root, "envelope direction does not match the requested route",
+        )
+      } else {
+        @bookkeeper_store.persist_transport_envelope(workspace_root, payload)
+      }
+      if result.accepted {
+        sync_bookkeeper_projection_to_served_ui(static_root, workspace_root)
+      }
+      send_json_status(
+        conn,
+        if result.accepted {
+          200
+        } else {
+          422
+        },
+        if result.accepted {
+          "OK"
+        } else {
+          "Unprocessable Content"
+        },
+        result.to_json(),
+      )
+      true
+    }
+    _ => false
+  }
+}
+
+///|
+/// Keep the already-served Rabbita state synchronized without spawning another
+/// build host. Both the state file and reload token use same-directory atomic
+/// replacement, so clients never observe a partial JSON snapshot.
+async fn sync_bookkeeper_projection_to_served_ui(
+  static_root : String,
+  workspace_root : String,
+) -> Unit {
+  let root_state_path = @pathx.join(static_root, "moonbook-ui-state.json")
+  if !@fsx.exists(root_state_path) {
+    return
+  }
+  let snapshot = @bookkeeper_store.replay_bookkeeper_store(workspace_root)
+  let projection = @bookkeeper_store.project_bookkeeper_ui_state(
+    workspace_root, snapshot,
+  )
+  let state_json = @json.parse(@fsx.read_file(root_state_path))
+  guard state_json is Object(fields) else {
+    fail("served MoonBook UI state must be a JSON object")
+  }
+  fields.set("bookkeeper", projection.to_json())
+  let suffix = @async.now().to_int().to_string()
+  let state = Json::object(fields).stringify(indent=2)
+  for
+    target in [
+      @pathx.join(static_root, "moonbook-ui-state.json"),
+      @pathx.join(static_root, "apps/moonbook/moonbook-ui-state.json"),
+    ] {
+    let parent = @pathx.dirname(target)
+    @fsx.make_directory(parent, recursive=true, exists_ok=true)
+    let temporary = target + ".tmp-" + suffix
+    @fsx.write_to_file(temporary, state, create=0o644)
+    @fsx.atomic_replace(temporary, target)
+  }
+  let token = @pathx.join(static_root, live_reload_token_file)
+  let token_temporary = token + ".tmp-" + suffix
+  @fsx.write_to_file(token_temporary, suffix, create=0o644)
+  @fsx.atomic_replace(token_temporary, token)
+}
+
+///|
+async fn handle_application_request(
+  static_root : String,
+  workspace_root : String?,
+  request : @http.Request,
+  body : &@io.Reader,
+  conn : @http.ServerConnection,
+  live_reload_endpoint : String?,
+) -> Unit {
+  match workspace_root {
+    Some(root) =>
+      if request.path.has_prefix("/api/bookkeeper/") &&
+        handle_bookkeeper_request(static_root, root, request, body, conn) {
+        return
+      }
+    None => ()
+  }
+  handle_file_request(
+    static_root,
+    request.meth,
+    request.path,
+    conn,
+    live_reload_endpoint~,
+  )
+}
+
+///|
 fn resolve_request_path(root : String, request_path : StringView) -> String? {
-  let relative = match request_path {
+  let path = request_path_without_query(request_path.to_owned())
+  let relative = match path {
     "/" => "index.html"
-    ['/', .. path] => path.to_owned()
+    ['/', .. path] =>
+      if path.has_suffix("/") {
+        path.to_owned() + "index.html"
+      } else {
+        path.to_owned()
+      }
     _ => return None
   }
   let normalized = @pathx.normalize(relative)
@@ -213,15 +491,12 @@ pub async fn Server::serve_directory(
   self : Server,
   root : String,
   live_reload_endpoint? : String? = None,
+  workspace_root? : String? = None,
 ) -> Unit {
   self.server.run_forever(
-    (request, _, conn) => {
-      handle_file_request(
-        root,
-        request.meth,
-        request.path,
-        conn,
-        live_reload_endpoint~,
+    (request, body, conn) => {
+      handle_application_request(
+        root, workspace_root, request, body, conn, live_reload_endpoint,
       )
     },
     allow_failure=true,
@@ -370,6 +645,14 @@ test "resolve request path normalizes and rejects traversal" {
     resolve_request_path("/tmp/moonbook-serve", "/nested/page.html") ==
     Some("/tmp/moonbook-serve/nested/page.html"),
   )
+  assert_true(
+    resolve_request_path("/tmp/moonbook-serve", "/apps/moonbook/") ==
+    Some("/tmp/moonbook-serve/apps/moonbook/index.html"),
+  )
+  assert_true(
+    resolve_request_path("/tmp/moonbook-serve", "/apps/moonbook/main.js?v=1") ==
+    Some("/tmp/moonbook-serve/apps/moonbook/main.js"),
+  )
   assert_true(resolve_request_path("/tmp/moonbook-serve", "/../secret") == None)
 }
 
@@ -391,4 +674,40 @@ test "live reload events use sse framing" {
   assert_true(
     live_reload_event("reload", "42") == "event: reload\ndata: 42\n\n",
   )
+}
+
+///|
+async test "Bookkeeper projection sync atomically refreshes served UI state" {
+  let suffix = @async.now().to_int().to_string()
+  let workspace = "/tmp/moonbook-bookkeeper-host-workspace-" + suffix
+  let static_root = "/tmp/moonbook-bookkeeper-host-static-" + suffix
+  @fsx.make_directory(
+    @pathx.join(static_root, "state"),
+    recursive=true,
+    exists_ok=true,
+  )
+  ignore(@bookkeeper_store.rebuild_bookkeeper_projection(workspace))
+  let fixture_state : Json = {
+    "title": "Fixture book",
+    "bookkeeper": Json::object({}),
+  }
+  @fsx.write_to_file(
+    @pathx.join(static_root, "moonbook-ui-state.json"),
+    fixture_state.stringify(indent=2),
+    create=0o644,
+  )
+  sync_bookkeeper_projection_to_served_ui(static_root, workspace)
+  let served_state = @pathx.join(static_root, "moonbook-ui-state.json")
+  let served_app_state = @pathx.join(
+    static_root, "apps/moonbook/moonbook-ui-state.json",
+  )
+  let token = @pathx.join(static_root, live_reload_token_file)
+  assert_true(@fsx.exists(served_state))
+  assert_true(@fsx.exists(served_app_state))
+  assert_true(@fsx.exists(token))
+  assert_true(
+    @fsx.read_file(served_state).contains("moonbook.bookkeeper.ui.v1"),
+  )
+  assert_true(@fsx.read_file(served_state).contains("Fixture book"))
+  assert_eq(@fsx.read_file(served_app_state), @fsx.read_file(served_state))
 }

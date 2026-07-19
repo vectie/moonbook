@@ -138,6 +138,7 @@ pub struct UiState {
   research_long_report : String
   research_report : Array[UiResearchReportSection]
   synthesis_preview : String
+  bookkeeper : @bookkeeper.BookkeeperUiState
 } derive(Debug, ToJson, FromJson)
 
 ///|
@@ -224,7 +225,32 @@ pub async fn generate_ui_state(root : String) -> UiState {
     research_long_report: ui_research_long_report(root),
     research_report: ui_research_report(root, project_title),
     synthesis_preview: ui_synthesis_preview(root),
+    bookkeeper: ui_bookkeeper_state(root),
   }
+}
+
+///|
+/// Load the domain-neutral, read-only Bookkeeper projection produced by the
+/// persistence boundary. Missing, malformed, or incompatible snapshots fail
+/// closed to an explicit empty state instead of inventing workflow progress.
+async fn ui_bookkeeper_state(root : String) -> @bookkeeper.BookkeeperUiState {
+  let path = moonbook_wiki_path(root)
+    .join(moonbook_wiki_path(".moonbook/bookkeeper/ui-state.json"))
+    .to_string()
+  let empty = @bookkeeper.empty_bookkeeper_ui_state(path)
+  if !@fsx.exists(path) {
+    return empty
+  }
+  let parsed : @bookkeeper.BookkeeperUiState = @json.from_json(
+    @json.parse(@fsx.read_file(path)),
+  ) catch {
+    _ => return empty
+  }
+  if parsed.contract_version != @bookkeeper.bookkeeper_contract_version() ||
+    parsed.projection_version != "moonbook.bookkeeper.ui.v1" {
+    return empty
+  }
+  { ..parsed, source_path: path, loaded: true }
 }
 
 ///|

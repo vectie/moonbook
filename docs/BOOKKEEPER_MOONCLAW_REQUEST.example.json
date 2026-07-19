@@ -1,0 +1,12 @@
+{
+  "contract_version": "moonbook.bookkeeper.moonclaw-request.v1",
+  "request_id": "outcome-learning-001",
+  "request_version": "v1",
+  "subject": {
+    "record_id": "replace-with-exact-outcome-or-reviewed-gap-id",
+    "record_version": "replace-with-exact-version",
+    "record_digest": "sha256:replace-with-exact-durable-record-digest"
+  },
+  "objective": "Analyze the observed outcome through Three-Gap theory and prepare evidence-bound candidate records without applying them.",
+  "recorded_at": 1784390400000
+}

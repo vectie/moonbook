@@ -1,15 +1,12 @@
 import {
   "moonbitlang/async",
   "moonbitlang/async/fs",
-  "moonbitlang/async/http",
-  "moonbitlang/async/io",
-  "moonbitlang/async/socket",
-  "moonbitlang/core/string",
+  "moonbitlang/core/encoding/utf8" @encoding/utf8,
   "moonbitlang/core/json",
-  "vectie/moonbook/bookkeeper_store",
+  "moonbitlang/x/crypto",
+  "vectie/moonbook/bookkeeper",
   "vectie/moonbook/internal/fsx",
   "vectie/moonbook/internal/pathx",
-  "vectie/moonbook/internal/watcher",
 }
 
 import {

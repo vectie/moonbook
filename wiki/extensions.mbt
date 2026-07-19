@@ -80,6 +80,8 @@ test "moonclaw manifest declares config and jobs entrypoints" {
 ///|
 test "moonclaw jobs seed wiki profiles" {
   let text = moonclaw_jobs_text()
+  ignore(@json.parse(text))
+  assert_true(text.contains("\"bookkeeper_three_gap_controller\""))
   assert_true(text.contains("\"wiki_ingest_controller\""))
   assert_true(text.contains("\"wiki_course_controller\""))
   assert_true(text.contains("\"wiki_planbook_controller\""))
@@ -93,6 +95,47 @@ test "moonclaw jobs seed wiki profiles" {
 }
 
 ///|
+test "MoonClaw profile refresh preserves unrelated user profiles" {
+  let existing : Json = {
+    "custom_top_level": "preserve-me",
+    "jobs": {
+      "custom_jobs_setting": true,
+      "profiles": {
+        "user_profile": {
+          "family": "user_profile",
+          "steps": [],
+          "metadata": { "owner": "user" },
+        },
+        "bookkeeper_three_gap_controller": {
+          "family": "stale-bookkeeper-profile",
+          "steps": [],
+        },
+      },
+    },
+  }
+  let merged = merged_moonclaw_jobs(existing, @json.parse(moonclaw_jobs_text()))
+  guard merged
+    is {
+      "custom_top_level": "preserve-me",
+      "jobs": {
+        "custom_jobs_setting": True,
+        "profiles": {
+          "user_profile": { "metadata": { "owner": "user", .. }, .. },
+          "bookkeeper_three_gap_controller": {
+            "family": "bookkeeper_three_gap_controller",
+            ..
+          },
+          ..
+        },
+        ..
+      },
+      ..
+    } else {
+    fail("generated profile upsert did not preserve unrelated configuration")
+  }
+}
+
+///|
 test "moonclaw jobs include role runtime metadata" {
   let text = moonclaw_jobs_text()
   assert_true(text.contains("\"role_runtime\""))
@@ -103,6 +146,12 @@ test "moonclaw jobs include role runtime metadata" {
     text.contains("\"output_contract\": \"keeper.planbook.packet.v1\""),
   )
   assert_true(text.contains("\"output_contract\": \"wiki.gather.result.v1\""))
+  assert_true(
+    text.contains(
+      "\"output_contract\": \"moonbook.bookkeeper.moonclaw-result.v1\"",
+    ),
+  )
+  assert_true(text.contains("\"model\": \"gpt-5.6-sol\""))
 }
 
 ///|

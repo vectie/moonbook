@@ -1,0 +1,744 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "vectie/moonbook/bookkeeper"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn aggregate_capability_proposal(CapabilityPromotionPolicy, ArrayView[ReviewedGapFinding], proposal_id~ : String, proposal_version~ : String, capability_id~ : String, capability_version~ : String, owner_route~ : String, proposal_digest~ : String, summary~ : String, supersedes_version? : String) -> CapabilityAggregationDecision
+
+pub fn bind_mooncode_work_result_candidate(CapabilityProposal, LearningReceipt, MoonCodeWorkOrderProjection, result~ : VersionedRecordReference, old_capability~ : VersionedRecordReference, new_capability~ : VersionedRecordReference, changed_artifacts~ : ArrayView[ChangedArtifactReference], evidence_refs~ : ArrayView[VersionedEvidenceReference]) -> MoonCodeWorkResultDecision
+
+pub fn bind_outcome_evidence(DeliverableBundle, OutcomeObservation, binding~ : VersionedRecordReference, ArrayView[OutcomeEvidenceRecord]) -> OutcomeEvidenceBindingDecision
+
+pub fn bookkeeper_contract_version() -> String
+
+pub fn capability_adoption_contract_version() -> String
+
+pub fn decide_capability_adoption(CapabilityProposal, LearningReceipt, MoonCodeWorkOrderProjection, MoonCodeWorkResultCandidate, CapabilityEvaluation, decision~ : VersionedRecordReference, requested~ : BookkeeperDisposition, reviewer~ : ReviewerAuthority, CapabilityAdoptionAttestation?) -> CapabilityAdoptionDecision
+
+pub fn empty_bookkeeper_ui_state(String) -> BookkeeperUiState
+
+pub fn finalize_deliverable(DeliverableCandidate, requested~ : BookkeeperDisposition, decision_id~ : String, decided_at~ : Int, outcome? : OutcomeObservation) -> BookkeeperDecision
+
+pub fn project_acceptance_requirements(pack_id~ : String, pack_version~ : String, ArrayView[PackAcceptanceRequirement]) -> ReadOnlyArray[AcceptanceRequirement]
+
+pub fn project_capability_adoption_ui(CapabilityAdoptionDecision) -> BookkeeperUiItem
+
+pub fn project_capability_evaluation_ui(CapabilityEvaluation) -> BookkeeperUiItem
+
+pub fn project_capability_proposal_ui(CapabilityAggregationDecision) -> BookkeeperUiItem
+
+pub fn project_capability_review_ui(LearningReceipt) -> BookkeeperUiItem
+
+pub fn project_deliverable_acceptance_ui(BookkeeperDecision) -> BookkeeperUiItem
+
+pub fn project_mooncode_work_order(CapabilityProposal, LearningReceipt, WorkOrderProjectionRequest, ReviewAuthorityAttestation?) -> WorkOrderProjectionDecision
+
+pub fn project_mooncode_work_order_ui(WorkOrderProjectionDecision) -> BookkeeperUiItem
+
+pub fn project_outcome_binding_ui(OutcomeEvidenceBindingDecision) -> BookkeeperUiItem
+
+pub fn project_three_gap_finding_ui(CanonicalGapFinding) -> BookkeeperUiItem
+
+pub fn project_three_gap_review_ui(GapFindingReviewDecision) -> BookkeeperUiItem
+
+pub fn review_capability_proposal(CapabilityProposal, receipt_id~ : String, receipt_version~ : String, receipt_digest? : String, reviewer~ : ReviewerAuthority, requested~ : BookkeeperDisposition, evidence_refs~ : ArrayView[EvidenceReference]) -> LearningReceipt
+
+pub fn review_three_gap_finding(CanonicalGapFinding, receipt~ : VersionedRecordReference, reviewer~ : ReviewerAuthority, requested~ : BookkeeperDisposition, FindingReviewAuthorityAttestation?) -> GapFindingReviewDecision
+
+pub fn three_gap_contract_version() -> String
+
+pub fn validate_outcome_linkage(DeliverableBundle, OutcomeObservation) -> ReadOnlyArray[BookkeeperIssue]
+
+// Errors
+
+// Types and methods
+pub struct AcceptanceRequirement {
+  pack_id : String
+  pack_version : String
+  requirement_id : String
+  kind : AcceptanceRequirementKind
+  description : String
+  required : Bool
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) enum AcceptanceRequirementKind {
+  Evidence
+  Provenance
+  Workflow
+  Gate
+  Cost
+  Authority
+  Checklist
+  Artifact
+  Release
+  Acceptance
+  Retention
+  Rollback
+  DeliveryAuthorization
+  PublicationAuthorization
+  Custom(String)
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct ArtifactBinding {
+  artifact_id : String
+  candidate_id : String
+  candidate_version : String
+  declared_version : String
+  observed_version : String
+  declared_digest : String
+  observed_digest : String
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) enum AuthorizationState {
+  NotRequested
+  Authorized(String)
+  Unauthorized(String)
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct BindingReceipt {
+  receipt_id : String
+  candidate_id : String
+  candidate_version : String
+  candidate_digest : String
+  complete : Bool
+  evidence_refs : ReadOnlyArray[String]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct BookkeeperDecision {
+  contract_version : String
+  decision_id : String
+  decided_at : Int
+  requested : BookkeeperDisposition
+  disposition : BookkeeperDisposition
+  candidate_id : String
+  candidate_version : String
+  candidate_digest : String
+  reviewer_id : String
+  reviewer_authority_ref : String
+  issues : ReadOnlyArray[BookkeeperIssue]
+  bundle : DeliverableBundle?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn BookkeeperDecision::accepted_bundle(Self) -> DeliverableBundle?
+pub fn BookkeeperDecision::is_deliverable(Self) -> Bool
+
+pub(all) enum BookkeeperDisposition {
+  Accept
+  Reject
+  Revise
+  Escalate
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) enum BookkeeperIssue {
+  MissingReference(String)
+  MissingRequirement(String)
+  RequirementFailed(String)
+  DuplicateRequirement(String)
+  CandidateBindingMismatch(String)
+  ArtifactVersionMismatch(String)
+  ArtifactDigestMismatch(String)
+  IncompleteReceipt(String)
+  UnauthorizedAction(String)
+  ReviewerAuthorityMissing
+  OutcomeLinkMismatch(String)
+  InvalidContract(String)
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct BookkeeperUiItem {
+  stage : String
+  title : String
+  record_id : String
+  record_version : String
+  status : String
+  tone : String
+  summary : String
+  owner_route : String
+  evidence_count : Int
+  issue_count : Int
+  requires_human_review : Bool
+  next_action : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct BookkeeperUiState {
+  contract_version : String
+  projection_version : String
+  source_path : String
+  loaded : Bool
+  deliverable_acceptance : Array[BookkeeperUiItem]
+  outcome_binding : Array[BookkeeperUiItem]
+  three_gap_findings : Array[BookkeeperUiItem]
+  three_gap_review : Array[BookkeeperUiItem]
+  capability_proposal : Array[BookkeeperUiItem]
+  capability_review : Array[BookkeeperUiItem]
+  mooncode_work_order : Array[BookkeeperUiItem]
+  evaluation : Array[BookkeeperUiItem]
+  adoption : Array[BookkeeperUiItem]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn BookkeeperUiState::item_count(Self) -> Int
+pub fn BookkeeperUiState::pending_human_review_count(Self) -> Int
+
+pub struct CanonicalGapFinding {
+  contract_version : String
+  finding : VersionedRecordReference
+  learning_key : VersionedRecordReference
+  subject : VersionedRecordReference
+  gap_class : ThreeGapClass
+  transition : GapTransition
+  severity : Int
+  owner_route : String
+  summary : String
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn CanonicalGapFinding::new(finding~ : VersionedRecordReference, learning_key~ : VersionedRecordReference, subject~ : VersionedRecordReference, gap_class~ : ThreeGapClass, severity~ : Int, owner_route~ : String, summary~ : String, evidence_refs~ : ArrayView[VersionedEvidenceReference]) -> Self
+
+pub struct CanonicalLearningReceipt {
+  contract_version : String
+  receipt : VersionedRecordReference
+  finding : VersionedRecordReference
+  learning_key : VersionedRecordReference
+  gap_class : ThreeGapClass
+  transition : GapTransition
+  owner_route : String
+  reviewer : ReviewerAuthority
+  requested : BookkeeperDisposition
+  disposition : BookkeeperDisposition
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+  review_complete : Bool
+  source_change_applied : Bool
+  policy_change_applied : Bool
+  skill_change_applied : Bool
+  capability_change_applied : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn CanonicalLearningReceipt::has_side_effects(Self) -> Bool
+
+pub struct CapabilityAdoptionAttestation {
+  contract_version : String
+  attestation : VersionedRecordReference
+  result_candidate : VersionedRecordReference
+  evaluation : VersionedRecordReference
+  proposal : VersionedRecordReference
+  learning_receipt : VersionedRecordReference
+  projection : VersionedRecordReference
+  work_order : VersionedRecordReference
+  work_order_review_attestation : VersionedRecordReference
+  work_order_reviewer_id : String
+  work_order_reviewer_authority_ref : String
+  reviewer_kind : ReviewerKind
+  reviewer : ReviewerAuthority
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+  changed_artifacts : ReadOnlyArray[ChangedArtifactReference]
+  requested : BookkeeperDisposition
+  old_capability : VersionedRecordReference
+  new_capability : VersionedRecordReference
+  rollback : VersionedRecordReference
+} derive(Eq, ToJson, @debug.Debug)
+pub fn CapabilityAdoptionAttestation::new(attestation~ : VersionedRecordReference, MoonCodeWorkResultCandidate, CapabilityEvaluation, CapabilityProposal, LearningReceipt, MoonCodeWorkOrderProjection, reviewer_kind~ : ReviewerKind, reviewer~ : ReviewerAuthority, evidence_refs~ : ArrayView[VersionedEvidenceReference], requested~ : BookkeeperDisposition, old_capability~ : VersionedRecordReference, new_capability~ : VersionedRecordReference, rollback~ : VersionedRecordReference) -> Self
+
+pub struct CapabilityAdoptionDecision {
+  contract_version : String
+  decision : VersionedRecordReference
+  requested : BookkeeperDisposition
+  disposition : BookkeeperDisposition
+  result_candidate : VersionedRecordReference
+  evaluation : VersionedRecordReference
+  issues : ReadOnlyArray[CapabilityAdoptionIssue]
+  version_receipt : CapabilityVersionReceipt?
+  side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn CapabilityAdoptionDecision::authorized_version_receipt(Self) -> CapabilityVersionReceipt?
+pub fn CapabilityAdoptionDecision::is_authorized(Self) -> Bool
+
+pub(all) enum CapabilityAdoptionIssue {
+  MissingAdoptionReference(String)
+  InvalidAdoptionContract(String)
+  AdoptionLinkMismatch(String)
+  ConflictingArtifactIdentity(String)
+  ConflictingEvidenceIdentity(String)
+  ConflictingTestIdentity(String)
+  ConflictingMetricIdentity(String)
+  CapabilityReviewNotAccepted
+  WorkOrderNotHumanAttested
+  EvaluationEvidenceMissing
+  EvaluationTestsMissing
+  EvaluationMetricsMissing
+  EvaluationTestIncomplete(String)
+  EvaluationTestFailed(String)
+  EvaluationNotPassing
+  RollbackReferenceInvalid
+  AdoptionAttestationMissing
+  AdoptionAttestationMismatch(String)
+  NonHumanAdoptionAttestation(ReviewerKind)
+  UnauthorizedAdoptionReviewer
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct CapabilityAggregationDecision {
+  contract_version : String
+  policy : VersionedRecordReference
+  learning_key : VersionedRecordReference?
+  source_finding_refs : ReadOnlyArray[VersionedRecordReference]
+  non_promotion_reasons : ReadOnlyArray[LearningProtocolIssue]
+  proposal : CapabilityProposal?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn CapabilityAggregationDecision::is_promoted(Self) -> Bool
+
+pub struct CapabilityEvaluation {
+  contract_version : String
+  evaluation : VersionedRecordReference
+  result_candidate : VersionedRecordReference
+  declared_result : CapabilityEvaluationResult
+  test_results : ReadOnlyArray[CapabilityTestResult]
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+  metric_records : ReadOnlyArray[CapabilityMetricRecord]
+  rollback : VersionedRecordReference
+  issues : ReadOnlyArray[CapabilityAdoptionIssue]
+  passing : Bool
+  side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn CapabilityEvaluation::is_passing(Self) -> Bool
+pub fn CapabilityEvaluation::new(MoonCodeWorkResultCandidate, evaluation~ : VersionedRecordReference, test_results~ : ArrayView[CapabilityTestResult], evidence_refs~ : ArrayView[VersionedEvidenceReference], metric_records~ : ArrayView[CapabilityMetricRecord], declared_result~ : CapabilityEvaluationResult, rollback~ : VersionedRecordReference) -> Self
+
+pub(all) enum CapabilityEvaluationResult {
+  Passed
+  Failed
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) enum CapabilityMetricKind {
+  MetricObservation
+  MetricReceipt
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct CapabilityMetricRecord {
+  metric : VersionedRecordReference
+  kind : CapabilityMetricKind
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct CapabilityPromotionPolicy {
+  contract_version : String
+  policy : VersionedRecordReference
+  minimum_reviewed_findings : Int
+  minimum_severity : Int
+  required_gap_classes : ReadOnlyArray[ThreeGapClass]
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn CapabilityPromotionPolicy::new(policy~ : VersionedRecordReference, minimum_reviewed_findings~ : Int, minimum_severity~ : Int, required_gap_classes~ : ArrayView[ThreeGapClass], evidence_refs~ : ArrayView[VersionedEvidenceReference]) -> Self
+
+pub struct CapabilityProposal {
+  contract_version : String
+  proposal_id : String
+  proposal_version : String
+  capability_id : String
+  capability_version : String
+  owner_route : String
+  change_digest : String
+  summary : String
+  evidence_refs : ReadOnlyArray[EvidenceReference]
+  supersedes_version : String?
+  source_finding_refs : ReadOnlyArray[VersionedRecordReference]
+  promotion_policy_ref : VersionedRecordReference?
+  aggregation_digest : String?
+  policy_promoted : Bool
+  review_required : Bool
+  self_application_allowed : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn CapabilityProposal::is_policy_promoted(Self) -> Bool
+pub fn CapabilityProposal::is_reviewable(Self) -> Bool
+pub fn CapabilityProposal::new(proposal_id~ : String, proposal_version~ : String, capability_id~ : String, capability_version~ : String, owner_route~ : String, change_digest~ : String, summary~ : String, evidence_refs~ : ArrayView[EvidenceReference], supersedes_version? : String) -> Self
+
+pub(all) struct CapabilityTestResult {
+  test_record : VersionedRecordReference
+  complete : Bool
+  passed : Bool
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct CapabilityVersionReceipt {
+  contract_version : String
+  receipt : VersionedRecordReference
+  old_capability : VersionedRecordReference
+  new_capability : VersionedRecordReference
+  result_candidate : VersionedRecordReference
+  evaluation : VersionedRecordReference
+  proposal : VersionedRecordReference
+  source_finding_refs : ReadOnlyArray[VersionedRecordReference]
+  learning_receipt : VersionedRecordReference
+  projection : VersionedRecordReference
+  work_order : VersionedRecordReference
+  work_order_review_attestation : VersionedRecordReference
+  work_order_reviewer_id : String
+  work_order_reviewer_authority_ref : String
+  changed_artifacts : ReadOnlyArray[ChangedArtifactReference]
+  result_evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+  evaluation_evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+  test_results : ReadOnlyArray[CapabilityTestResult]
+  metric_records : ReadOnlyArray[CapabilityMetricRecord]
+  adoption_attestation : VersionedRecordReference
+  adoption_reviewer_kind : ReviewerKind
+  adoption_reviewer_id : String
+  adoption_reviewer_authority_ref : String
+  adoption_evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+  rollback : VersionedRecordReference
+  adoption_authorized : Bool
+  side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn CapabilityVersionReceipt::has_side_effects(Self) -> Bool
+
+pub(all) struct ChangedArtifactReference {
+  artifact_id : String
+  artifact_version : String
+  artifact_digest : String
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct ChecklistResult {
+  checklist_id : String
+  candidate_id : String
+  candidate_version : String
+  candidate_digest : String
+  passed : Bool
+  evidence_refs : ReadOnlyArray[String]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct DeliverableBundle {
+  contract_version : String
+  bundle_id : String
+  bundle_version : String
+  bundle_digest : String
+  decision_id : String
+  decided_at : Int
+  candidate_id : String
+  candidate_version : String
+  candidate_digest : String
+  pack_id : String
+  pack_version : String
+  artifacts : ReadOnlyArray[ArtifactBinding]
+  acceptance_requirements : ReadOnlyArray[AcceptanceRequirement]
+  requirement_results : ReadOnlyArray[RequirementResult]
+  evidence_refs : ReadOnlyArray[EvidenceReference]
+  provenance_refs : ReadOnlyArray[String]
+  workflow_receipts : ReadOnlyArray[BindingReceipt]
+  gate_receipts : ReadOnlyArray[BindingReceipt]
+  cost_receipts : ReadOnlyArray[BindingReceipt]
+  authority_receipts : ReadOnlyArray[BindingReceipt]
+  checklist_results : ReadOnlyArray[ChecklistResult]
+  reviewer : ReviewerAuthority
+  release_receipt : BindingReceipt
+  acceptance_receipt : BindingReceipt
+  retention_ref : String
+  rollback_ref : String
+  delivery_authorization : AuthorizationState
+  publication_authorization : AuthorizationState
+} derive(Eq, ToJson, @debug.Debug)
+pub fn DeliverableBundle::matches_outcome(Self, OutcomeObservation) -> Bool
+
+pub struct DeliverableCandidate {
+  contract_version : String
+  candidate_id : String
+  candidate_version : String
+  candidate_digest : String
+  proposed_bundle_id : String
+  proposed_bundle_version : String
+  proposed_bundle_digest : String
+  pack_id : String
+  pack_version : String
+  artifacts : ReadOnlyArray[ArtifactBinding]
+  acceptance_requirements : ReadOnlyArray[AcceptanceRequirement]
+  requirement_results : ReadOnlyArray[RequirementResult]
+  evidence_refs : ReadOnlyArray[EvidenceReference]
+  provenance_refs : ReadOnlyArray[String]
+  workflow_receipts : ReadOnlyArray[BindingReceipt]
+  gate_receipts : ReadOnlyArray[BindingReceipt]
+  cost_receipts : ReadOnlyArray[BindingReceipt]
+  authority_receipts : ReadOnlyArray[BindingReceipt]
+  checklist_results : ReadOnlyArray[ChecklistResult]
+  reviewer : ReviewerAuthority
+  release_receipt : BindingReceipt
+  acceptance_receipt : BindingReceipt
+  retention_ref : String
+  rollback_ref : String
+  delivery_authorization : AuthorizationState
+  publication_authorization : AuthorizationState
+} derive(Eq, ToJson, @debug.Debug)
+pub fn DeliverableCandidate::new(candidate_id~ : String, candidate_version~ : String, candidate_digest~ : String, proposed_bundle_id~ : String, proposed_bundle_version~ : String, proposed_bundle_digest? : String, pack_id~ : String, pack_version~ : String, artifacts~ : ArrayView[ArtifactBinding], acceptance_requirements~ : ArrayView[AcceptanceRequirement], requirement_results~ : ArrayView[RequirementResult], evidence_refs~ : ArrayView[EvidenceReference], provenance_refs~ : ArrayView[String], workflow_receipts~ : ArrayView[BindingReceipt], gate_receipts~ : ArrayView[BindingReceipt], cost_receipts~ : ArrayView[BindingReceipt], authority_receipts~ : ArrayView[BindingReceipt], checklist_results~ : ArrayView[ChecklistResult], reviewer~ : ReviewerAuthority, release_receipt~ : BindingReceipt, acceptance_receipt~ : BindingReceipt, retention_ref~ : String, rollback_ref~ : String, delivery_authorization~ : AuthorizationState, publication_authorization~ : AuthorizationState) -> Self
+
+pub(all) struct DeliverableReference {
+  bundle_id : String
+  bundle_version : String
+  bundle_digest : String
+  candidate_id : String
+  candidate_version : String
+  candidate_digest : String
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct EvidenceReference {
+  reference_id : String
+  digest : String
+  provenance_ref : String
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct FindingReviewAuthorityAttestation {
+  contract_version : String
+  attestation : VersionedRecordReference
+  finding : VersionedRecordReference
+  learning_key : VersionedRecordReference
+  subject : VersionedRecordReference
+  learning_receipt : VersionedRecordReference
+  reviewer_kind : ReviewerKind
+  reviewer : ReviewerAuthority
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+  requested : BookkeeperDisposition
+} derive(Eq, ToJson, @debug.Debug)
+pub fn FindingReviewAuthorityAttestation::new(attestation~ : VersionedRecordReference, CanonicalGapFinding, receipt~ : VersionedRecordReference, reviewer_kind~ : ReviewerKind, reviewer~ : ReviewerAuthority, evidence_refs~ : ArrayView[VersionedEvidenceReference], requested~ : BookkeeperDisposition) -> Self
+
+pub(all) struct GapFinding {
+  present : Bool
+  severity : Int
+  summary : String
+  evidence_refs : ReadOnlyArray[String]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct GapFindingReviewDecision {
+  contract_version : String
+  issues : ReadOnlyArray[LearningProtocolIssue]
+  receipt : CanonicalLearningReceipt
+  reviewed_finding : ReviewedGapFinding?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn GapFindingReviewDecision::is_reviewed(Self) -> Bool
+
+pub(all) enum GapTransition {
+  UnknownToKnown
+  KnownToMatters
+  MattersToAct
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) enum LearningProtocolIssue {
+  MissingLearningReference(String)
+  InvalidProtocolContract(String)
+  ExactLinkMismatch(String)
+  ConflictingRecordIdentity(String)
+  MissingOutcomeEvidenceKind(OutcomeEvidenceKind)
+  InvalidSeverity(Int)
+  UnauthorizedLearningReview
+  LearningReceiptMismatch(String)
+  InvalidPromotionPolicy(String)
+  InsufficientReviewedFindings(Int, Int)
+  InsufficientSeverity(Int, Int)
+  MissingRequiredGapClass(ThreeGapClass)
+  WorkOrderProjectionDenied(String)
+  ReviewAttestationMissing
+  ReviewAttestationMismatch(String)
+  NonHumanReviewAttestation(ReviewerKind)
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct LearningReceipt {
+  contract_version : String
+  receipt_id : String
+  receipt_version : String
+  receipt_digest : String
+  proposal_id : String
+  proposal_version : String
+  capability_id : String
+  capability_version : String
+  owner_route : String
+  reviewer : ReviewerAuthority
+  requested : BookkeeperDisposition
+  disposition : BookkeeperDisposition
+  evidence_refs : ReadOnlyArray[EvidenceReference]
+  review_complete : Bool
+  self_modification_applied : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn LearningReceipt::permits_self_modification(Self) -> Bool
+
+pub struct MoonCodeWorkOrderProjection {
+  contract_version : String
+  projection_request : VersionedRecordReference
+  work_order : VersionedRecordReference
+  proposal : VersionedRecordReference
+  capability : VersionedRecordReference
+  promotion_policy : VersionedRecordReference
+  owner_route : String
+  summary : String
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+  reviewer_kind : ReviewerKind
+  reviewer_id : String
+  reviewer_authority_ref : String
+  review_receipt : VersionedRecordReference
+  review_attestation : VersionedRecordReference
+  side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct MoonCodeWorkResultCandidate {
+  contract_version : String
+  result : VersionedRecordReference
+  proposal : VersionedRecordReference
+  learning_receipt : VersionedRecordReference
+  projection : VersionedRecordReference
+  work_order : VersionedRecordReference
+  work_order_review_attestation : VersionedRecordReference
+  work_order_reviewer_id : String
+  work_order_reviewer_authority_ref : String
+  old_capability : VersionedRecordReference
+  new_capability : VersionedRecordReference
+  changed_artifacts : ReadOnlyArray[ChangedArtifactReference]
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+  side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct MoonCodeWorkResultDecision {
+  contract_version : String
+  issues : ReadOnlyArray[CapabilityAdoptionIssue]
+  candidate : MoonCodeWorkResultCandidate?
+  side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug)
+pub fn MoonCodeWorkResultDecision::is_candidate(Self) -> Bool
+
+pub struct OutcomeEvidenceBinding {
+  contract_version : String
+  binding : VersionedRecordReference
+  deliverable : DeliverableReference
+  observation : VersionedRecordReference
+  records : ReadOnlyArray[OutcomeEvidenceRecord]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct OutcomeEvidenceBindingDecision {
+  contract_version : String
+  issues : ReadOnlyArray[LearningProtocolIssue]
+  binding : OutcomeEvidenceBinding?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn OutcomeEvidenceBindingDecision::is_bound(Self) -> Bool
+
+pub(all) enum OutcomeEvidenceKind {
+  FeedbackEvidence
+  DefectEvidence
+  CostEvidence
+  OperatorTimeEvidence
+  MetricEvidence
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct OutcomeEvidenceRecord {
+  contract_version : String
+  record : VersionedRecordReference
+  kind : OutcomeEvidenceKind
+  deliverable : DeliverableReference
+  observation : VersionedRecordReference
+  summary : String
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn OutcomeEvidenceRecord::new(record~ : VersionedRecordReference, kind~ : OutcomeEvidenceKind, deliverable~ : DeliverableReference, observation~ : VersionedRecordReference, summary~ : String, evidence_refs~ : ArrayView[VersionedEvidenceReference]) -> Self
+
+pub struct OutcomeObservation {
+  contract_version : String
+  observation_id : String
+  observation_version : String
+  observation_digest : String
+  bundle_id : String
+  bundle_version : String
+  bundle_digest : String
+  candidate_id : String
+  candidate_version : String
+  candidate_digest : String
+  observed_at : Int
+  summary : String
+  evidence_refs : ReadOnlyArray[EvidenceReference]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn OutcomeObservation::new(observation_id~ : String, observation_version~ : String, observation_digest? : String, bundle_id~ : String, bundle_version~ : String, bundle_digest? : String, candidate_id~ : String, candidate_version~ : String, candidate_digest~ : String, observed_at~ : Int, summary~ : String, evidence_refs~ : ArrayView[EvidenceReference]) -> Self
+
+pub(all) struct PackAcceptanceRequirement {
+  requirement_id : String
+  kind : AcceptanceRequirementKind
+  description : String
+  required : Bool
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct RequirementResult {
+  requirement_id : String
+  satisfied : Bool
+  evidence_refs : ReadOnlyArray[String]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct ReviewAuthorityAttestation {
+  contract_version : String
+  attestation : VersionedRecordReference
+  proposal : VersionedRecordReference
+  learning_receipt : VersionedRecordReference
+  reviewer_kind : ReviewerKind
+  reviewer : ReviewerAuthority
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+  projection_request : VersionedRecordReference
+  work_order : VersionedRecordReference
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReviewAuthorityAttestation::new(attestation~ : VersionedRecordReference, CapabilityProposal, LearningReceipt, reviewer_kind~ : ReviewerKind, reviewer~ : ReviewerAuthority, evidence_refs~ : ArrayView[VersionedEvidenceReference], projection_request~ : WorkOrderProjectionRequest) -> Self
+
+pub struct ReviewedGapFinding {
+  finding : CanonicalGapFinding
+  receipt : CanonicalLearningReceipt
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct ReviewerAuthority {
+  reviewer_id : String
+  authority_ref : String
+  authorized : Bool
+  evidence_refs : ReadOnlyArray[String]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) enum ReviewerKind {
+  Human
+  Automation
+  Agent
+  System
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct ThreeGapAssessment {
+  contract_version : String
+  assessment_id : String
+  assessment_version : String
+  subject_id : String
+  subject_version : String
+  owner_route : String
+  information_gap : GapFinding
+  recognition_gap : GapFinding
+  decisiveness_gap : GapFinding
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ThreeGapAssessment::new(assessment_id~ : String, assessment_version~ : String, subject_id~ : String, subject_version~ : String, owner_route~ : String, information_gap~ : GapFinding, recognition_gap~ : GapFinding, decisiveness_gap~ : GapFinding) -> Self
+
+pub(all) enum ThreeGapClass {
+  InformationGap
+  RecognitionGap
+  DecisivenessGap
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ThreeGapClass::transition(Self) -> GapTransition
+
+pub(all) struct VersionedEvidenceReference {
+  reference_id : String
+  reference_version : String
+  digest : String
+  provenance_ref : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct VersionedRecordReference {
+  record_id : String
+  record_version : String
+  record_digest : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct WorkOrderProjectionDecision {
+  contract_version : String
+  issues : ReadOnlyArray[LearningProtocolIssue]
+  work_order : MoonCodeWorkOrderProjection?
+} derive(Eq, ToJson, @debug.Debug)
+pub fn WorkOrderProjectionDecision::is_ready(Self) -> Bool
+
+pub struct WorkOrderProjectionRequest {
+  contract_version : String
+  request : VersionedRecordReference
+  work_order : VersionedRecordReference
+  evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn WorkOrderProjectionRequest::new(request~ : VersionedRecordReference, work_order~ : VersionedRecordReference, evidence_refs~ : ArrayView[VersionedEvidenceReference]) -> Self
+
+// Type aliases
+
+// Traits
+

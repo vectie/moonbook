@@ -15,7 +15,7 @@ MoonBook must run as its own checkout. It may persist artifacts produced by exte
 MoonBook = executable book
 MoonWiki = human-language book editing
 MoonCode = executable/code-language book editing
-MoonClaw = bounded execution engine
+MoonClaw = the single bounded agent runtime
 MoonTown = coordination network for books
 Bookkeeper = acceptance gate
 ```
@@ -23,6 +23,31 @@ Bookkeeper = acceptance gate
 MoonBook should not become an agent runtime. It stores accepted knowledge,
 accepted code, sources, evidence, review receipts, generated sites, package
 manifests, and durable outputs.
+
+Bookkeeper agent work runs on MoonClaw. Bookkeeper's existing visual surface is
+MoonBook Rabbita; it does not introduce another runtime or frontend. When that
+work needs durable orchestration, MoonClaw may use MoonFlow as a generic engine,
+but MoonFlow has no agent model loop, persona, or reasoning lifecycle.
+
+For the Three-Gap closed loop, MoonBook emits a snapshot-bound
+`moonbook.bookkeeper.moonclaw-request.v1` packet and submits it to MoonClaw's
+existing external-proposal runtime using the generated
+`bookkeeper_three_gap_controller` profile. Its analysis steps use
+`gpt-5.6-sol`. MoonClaw performs evidence interpretation and candidate proposal
+work; MoonBook still owns every durable record, deterministic validation,
+Rabbita projection, and named-human acceptance gate. A MoonClaw run result is
+never itself a persisted finding, accepted proposal, MoonCode dispatch, or
+capability adoption.
+
+MoonBook closes the runtime-to-book boundary with the deterministic command
+`bookkeeper moonclaw ingest-result <root> <packet.json> <result.json>`. It
+validates the strict `moonbook.bookkeeper.moonclaw-result.v1` shape against the
+packet's embedded immutable snapshot and binding digest, then materializes only
+a review-gated Three-Gap finding or capability proposal into the journal and
+Rabbita queue. Exact replay is idempotent; changed content under the same
+identity/version fails closed. This path never installs reviewer authority,
+creates an acceptance receipt, or applies the proposed capability. Named-human
+`bookkeeper review` remains a later, separately authorized operation.
 
 ## Durable Layout
 
@@ -67,6 +92,164 @@ as normal MoonBook surfaces, not only as MoonDesk or MoonClaw side effects.
 - Bookkeeper/user review decides what is accepted.
 - MoonTown schedules and coordinates book work, but does not own topic memory.
 - MoonDesk projects and edits the book, but should not own book semantics.
+
+## Generic Bookkeeper Finalization
+
+The public bookkeeper package owns the domain-neutral finalization boundary. It
+is separate from the wiki persistence API so packs can declare acceptance
+requirements without adding domain branches to Bookkeeper.
+
+The stable moonbook.bookkeeper.v1 contracts are:
+
+- DeliverableCandidate
+- BookkeeperDecision
+- DeliverableBundle
+- OutcomeObservation
+- ThreeGapAssessment
+- CapabilityProposal
+- LearningReceipt
+
+project_acceptance_requirements copies pack identity, pack version, and ordered
+declarations into the candidate snapshot. finalize_deliverable produces an
+immutable bundle only for Accept after artifacts, evidence, provenance,
+requirements, checklists, workflow/gate/cost/authority receipts, reviewer
+authority, release/acceptance receipts, retention/rollback references, and
+delivery/publication authorization pass validation. A supplied outcome must
+match the exact bundle id/version and candidate id/version/digest. Invalid
+accept requests fail closed to Revise; Reject, Revise, and Escalate never carry
+a deliverable bundle.
+
+Capability proposals and learning receipts are versioned, owner-routed,
+evidence-linked review records. They deliberately expose no self-application
+path: an accepted learning receipt records review but does not modify the
+capability.
+
+### Bookkeeper Rabbita Projection
+
+MoonBook's existing Rabbita application contains the sole generic Bookkeeper
+operator surface. Its UI snapshot contract is `moonbook.bookkeeper.ui.v1` and
+is loaded from `.moonbook/bookkeeper/ui-state.json` inside the active workspace.
+The snapshot is a projection of the contracts above, not a second source of
+truth and not an authority token. It exposes the acceptance, outcome,
+Three-Gap, proposal, review, MoonCode work-order, evaluation, and adoption
+lanes, including evidence/issue counts, owner routes, human-review requirements,
+and next-action labels.
+
+Missing, malformed, or incompatible snapshots fail closed to visibly empty
+lanes. MoonBook's native Bookkeeper store now persists immutable JSON journal
+events under `.moonbook/bookkeeper/journal/`, replays every event with exact
+identity/version/digest linkage, and atomically rebuilds both `snapshot.json`
+and `ui-state.json`. A process lock serializes mutations; same-reference replay
+is idempotent and conflicting content fails closed. Each stage also validates
+the canonical payload contract (`moonbook.bookkeeper.v1`, Three-Gap v1, or
+capability-adoption v1 as appropriate) before journaling, and recomputes the
+record's SHA-256 digest from canonical persisted JSON rather than trusting a
+declared payload digest.
+
+The existing MoonBook host exposes domain-neutral routes inside the normal
+`moonbook serve` process:
+
+- `GET /api/bookkeeper/state`
+- `GET /api/bookkeeper/ui-state`
+- `GET /api/bookkeeper/authorities`
+- `POST /api/bookkeeper/replay`
+- `POST /api/bookkeeper/records`
+- `POST /api/bookkeeper/reviews`
+- `POST /api/bookkeeper/envelopes/ingress`
+- `POST /api/bookkeeper/envelopes/egress`
+
+There is no separate Bookkeeper application, frontend build, app entrypoint, or
+server. The existing Rabbita UI remains the only visual surface. Successful
+mutations atomically refresh its served `moonbook-ui-state.json` and live-reload
+token. The same Rabbita surface now includes an operator console for selecting
+an exact durable record, binding an active CLI-installed authority, preparing a
+governed review, replaying the journal, and submitting generic ingress, record,
+review, and egress JSON values. It never installs authority or performs the
+external action represented by an envelope.
+
+For normal builds, MoonBook compiles the existing `ui/rabbita-book` module and
+copies its app shell, JavaScript, UI state, and client config into
+`<build-dir>/apps/moonbook/`. Normal `moonbook serve` keeps the rendered book at
+`/` and serves that application at `/apps/moonbook/`; the nested app uses the
+same workspace-bound `/api/bookkeeper/**` routes. This is static application
+mounting inside the normal MoonBook host, not a second Bookkeeper app, server,
+or agent runtime.
+
+Review acceptance requires an exact active human authority grant installed by
+the local `moonbook bookkeeper authority install` CLI. The HTTP API cannot
+create authority grants. Reviews bind the exact subject, evidence snapshot,
+reviewer grant, requested disposition, and receipt. Invalid accept requests
+fail closed to `Revise` and are not journaled.
+
+Generic ingress and egress envelopes can carry MoonFlow handoffs, MoonCode work
+orders, and MoonCode results. They require exact durable links and explicitly
+set both external activation and side effects to false. No envelope, API route,
+or CLI command can execute MoonCode, activate a capability, deploy, publish, or
+trade.
+
+### Canonical Three-Gap Protocol
+
+The canonical protocol exactly binds an accepted `DeliverableBundle` and its
+`OutcomeObservation` to versioned feedback, defect, cost, operator-time, and
+metric evidence. The binding preserves the exact deliverable and outcome
+identity, version, and digest references rather than inferring association.
+
+The fast loop classifies each finding with an exact transition: Information gap
+(`Unknown` → `Known`), Recognition gap (`Known` → `Matters`), or
+Decisiveness gap (`Matters` → `Act`). Every finding is versioned,
+evidence-linked, severity-rated, owner-routed, and immediately represented by a
+non-applying `LearningReceipt` reviewed by a named human. The fast-loop review
+requires an opaque, versioned authority attestation whose explicit
+`ReviewerKind` is `Human` and whose finding, learning key, subject, proposed
+receipt, reviewer authority, evidence set, and requested disposition exactly
+match the attempted review. Missing, stale, mismatched, unnamed, unauthorized,
+`Automation`, `Agent`, and `System` attestations fail closed and emit no
+reviewed finding.
+
+The slow loop deterministically deduplicates and aggregates repeated reviewed
+findings. It creates a versioned `CapabilityProposal` only when explicit policy
+thresholds pass; threshold failure remains an explicit non-promotion decision
+with no proposal.
+
+MoonCode-ready work-order projection requires an exact, versioned review
+attestation with an explicit `ReviewerKind`. Only `Human` is accepted;
+`Automation`, `Agent`, and `System` fail closed. The projection is a
+review-bound value, not submission or execution.
+
+MoonCode result closure is a separate governed boundary. A
+`MoonCodeWorkResultCandidate` is emitted only when one versioned result and its
+canonical changed-artifact and evidence snapshots exactly bind to the prior
+human-attested work-order projection, policy-promoted `CapabilityProposal`, and
+accepted `LearningReceipt`. Exact duplicate replay is idempotent; conflicting,
+stale, incomplete, or mismatched identities, versions, digests, provenance, or
+authority references fail closed with typed issues and no candidate.
+
+A versioned `CapabilityEvaluation` remains auditable whether it passes or
+fails. Passing requires complete declared tests, valid versioned evidence and
+metric observations or receipts, an explicit pass result, and a nonblank
+versioned rollback reference. A failed or incomplete evaluation cannot
+authorize adoption.
+
+Capability adoption uses the same `Accept`, `Reject`, `Revise`, and `Escalate`
+vocabulary. Only a requested `Accept` with the exact result candidate, passing
+evaluation, and opaque exact attestation from a named, authorized `Human` emits
+an immutable `CapabilityVersionReceipt`. Invalid accepts fail closed to
+`Revise`; the other dispositions are always non-adopting. The receipt links the
+old and new capability versions and digests to the originating Three-Gap
+findings, proposal, accepted learning receipt, work-order review authority and
+attestation, changed artifacts, evaluation evidence/tests/metrics, named-human
+adoption authority, and rollback reference.
+
+The version receipt authorizes adoption as a reviewed value only. Bookkeeper
+does not execute MoonCode, apply or activate the capability, mutate memory,
+policy, or skills, persist the decision, deploy or publish artifacts, or
+integrate MoonFlow. Every result, evaluation, attestation, decision, and receipt
+keeps the non-applying boundary explicit.
+
+Bookkeeper performs no silent self-modification and applies no code, policy,
+skill, or capability change. Named human review and MoonCode remain separate
+authority boundaries, and Bookkeeper exposes no path that collapses either
+boundary into application.
 
 ## Portable Event Contract
 

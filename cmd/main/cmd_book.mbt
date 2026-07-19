@@ -46,7 +46,7 @@ async fn run_build(root : String) -> Unit {
       return
     }
   }
-  book.build() catch {
+  build_book_with_rabbita_operator(root, book) catch {
     error => {
       println("moonbook render failed: \{error}")
       return
@@ -147,7 +147,7 @@ async fn run_serve(args : Array[String]) -> Unit {
       return
     }
   }
-  let live_reload_endpoint = "__livereload"
+  let live_reload_endpoint = "/__livereload"
   let serve_config = build_serve_config(
     base_book.config,
     live_reload_endpoint,
@@ -159,7 +159,7 @@ async fn run_serve(args : Array[String]) -> Unit {
       return
     }
   }
-  book.build() catch {
+  build_book_with_rabbita_operator(options.root, book) catch {
     error => {
       println("moonbook serve failed to build: \{error}")
       return
@@ -177,6 +177,14 @@ async fn run_serve(args : Array[String]) -> Unit {
   println("serving \{build_dir}")
   let serving_url = "http://\{options.hostname}:\{server.port()}"
   println("listening on \{serving_url}")
+  if @fsx.exists(
+      moonbook_cmd_path(build_dir)
+      .join(moonbook_cmd_path(rabbita_book_app_relative_root))
+      .join(moonbook_cmd_path("index.html"))
+      .to_string(),
+    ) {
+    println("MoonBook Rabbita operator UI: \{serving_url}/apps/moonbook/")
+  }
   @async.with_task_group(group => {
     group.spawn_bg(
       () => print_moongate_startup_status(),
@@ -195,6 +203,7 @@ async fn run_serve(args : Array[String]) -> Unit {
         server.serve_directory(
           build_dir,
           live_reload_endpoint=Some(live_reload_endpoint),
+          workspace_root=Some(options.root),
         )
       },
       no_wait=true,
@@ -218,7 +227,7 @@ async fn run_serve(args : Array[String]) -> Unit {
           return
         }
       }
-      book.build() catch {
+      build_book_with_rabbita_operator(options.root, book) catch {
         error => {
           println("moonbook serve rebuild failed: \{error}")
           return
@@ -267,7 +276,7 @@ async fn run_watch(args : Array[String]) -> Unit {
     .to_string()
   let watch_paths = [src_dir, config_path]
   let watch_filter = @watcher.load_watch_filter(options.root)
-  book.build() catch {
+  build_book_with_rabbita_operator(options.root, book) catch {
     error => {
       println("moonbook watch initial build failed: \{error}")
       return
@@ -298,7 +307,7 @@ async fn run_watch(args : Array[String]) -> Unit {
           return
         }
       }
-      book.build() catch {
+      build_book_with_rabbita_operator(options.root, book) catch {
         error => {
           println("moonbook watch rebuild failed: \{error}")
           return

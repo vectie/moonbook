@@ -11,7 +11,15 @@ import {
 // Errors
 
 // Types and methods
+type BookkeeperItem derive(@debug.Debug, @json.FromJson)
+
+type BookkeeperState derive(@debug.Debug, @json.FromJson)
+
 type ChapterLink derive(@debug.Debug, @json.FromJson)
+
+type InterfaceLocale derive(Eq)
+
+type InterfaceMessage
 
 type Model
 
