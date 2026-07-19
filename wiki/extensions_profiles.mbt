@@ -34,6 +34,8 @@ fn moonclaw_jobs_text() -> String {
   "                \"composite_candidates_allowed\": false,\n" +
   "                \"learning_key_source\": \"packet.metadata.result_contract.learning_key\",\n" +
   "                \"canonical_evidence_source\": \"packet.metadata.canonical_evidence_refs\",\n" +
+  "                \"payload_summary_constraint\": \"equals candidate.summary byte-for-byte\",\n" +
+  "                \"payload_owner_route_constraint\": \"equals candidate.owner_route byte-for-byte\",\n" +
   "                \"required_top_level_keys\": [\"contract_version\", \"packet_id\", \"source_packet_digest\", \"source_snapshot_digest\", \"subject\", \"subject_stage\", \"evidence_refs\", \"producer\", \"model\", \"candidate\"],\n" +
   "                \"required_candidate_keys\": [\"record_id\", \"record_version\", \"stage\", \"title\", \"summary\", \"owner_route\", \"recorded_at\", \"links\", \"issue_refs\", \"next_action\", \"payload\"],\n" +
   "                \"required_payload_keys\": [\"contract_version\", \"candidate_schema\", \"subject\", \"learning_key\", \"gap_class\", \"transition\", \"severity\", \"owner_route\", \"summary\", \"evidence_refs\", \"source_snapshot_digest\", \"source_packet_digest\"]\n" +

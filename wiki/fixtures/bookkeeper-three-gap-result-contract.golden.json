@@ -6,6 +6,8 @@
   "composite_candidates_allowed": false,
   "learning_key_source": "packet.metadata.result_contract.learning_key",
   "canonical_evidence_source": "packet.metadata.canonical_evidence_refs",
+  "payload_summary_constraint": "equals candidate.summary byte-for-byte",
+  "payload_owner_route_constraint": "equals candidate.owner_route byte-for-byte",
   "required_top_level_keys": [
     "contract_version",
     "packet_id",
