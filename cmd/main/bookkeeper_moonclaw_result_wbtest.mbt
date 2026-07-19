@@ -344,6 +344,48 @@ async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queu
   } noraise {
     _ => fail("model-invented learning_key must be rejected")
   }
+  let summary_mismatch = {
+    ..result,
+    candidate: {
+      ..result.candidate,
+      summary: result.candidate.summary + " model-only variation",
+    },
+  }
+  try
+    ingest_bookkeeper_moonclaw_result(
+      root,
+      packet_path,
+      summary_mismatch.to_json(),
+    )
+  catch {
+    error =>
+      assert_true(
+        "\{error}".contains("summary or owner route does not match candidate"),
+      )
+  } noraise {
+    _ => fail("candidate and payload summary mismatch must be rejected")
+  }
+  let owner_route_mismatch = {
+    ..result,
+    candidate: {
+      ..result.candidate,
+      owner_route: result.candidate.owner_route + "/model-only-variation",
+    },
+  }
+  try
+    ingest_bookkeeper_moonclaw_result(
+      root,
+      packet_path,
+      owner_route_mismatch.to_json(),
+    )
+  catch {
+    error =>
+      assert_true(
+        "\{error}".contains("summary or owner route does not match candidate"),
+      )
+  } noraise {
+    _ => fail("candidate and payload owner_route mismatch must be rejected")
+  }
   let first = ingest_bookkeeper_moonclaw_result(
     root,
     packet_path,

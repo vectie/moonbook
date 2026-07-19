@@ -78,6 +78,24 @@ async test "Bookkeeper analysis step carries the exact single-finding result con
       "evidence_refs exactly from packet metadata.canonical_evidence_refs",
     ),
   )
+  assert_true(
+    prompt.contains(
+      "payload.summary must equal candidate.summary byte-for-byte",
+    ),
+  )
+  assert_true(
+    prompt.contains(
+      "payload.owner_route must equal candidate.owner_route byte-for-byte",
+    ),
+  )
+  guard result_contract
+    is {
+      "payload_summary_constraint": "equals candidate.summary byte-for-byte",
+      "payload_owner_route_constraint": "equals candidate.owner_route byte-for-byte",
+      ..
+    } else {
+    fail("generated result contract omits exact candidate/payload invariants")
+  }
   assert_true(prompt.contains("Do not emit three findings"))
   assert_true(prompt.contains("MoonBook alone validates and durably records"))
 }
@@ -110,6 +128,16 @@ test "Bookkeeper handoff emits directly ingestible standard MoonClaw content" {
   assert_true(
     prompt.contains(
       "evidence_refs exactly from packet metadata.canonical_evidence_refs",
+    ),
+  )
+  assert_true(
+    prompt.contains(
+      "payload.summary must equal candidate.summary byte-for-byte",
+    ),
+  )
+  assert_true(
+    prompt.contains(
+      "payload.owner_route must equal candidate.owner_route byte-for-byte",
     ),
   )
   assert_true(
