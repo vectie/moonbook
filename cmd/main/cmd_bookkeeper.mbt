@@ -152,11 +152,147 @@ fn bookkeeper_moonclaw_result_contract_version() -> String {
 }
 
 ///|
+fn bookkeeper_three_gap_learning_policy_ref() -> @bookkeeper.VersionedRecordReference {
+  let payload : Json = {
+    "contract_version": @bookkeeper.three_gap_contract_version(),
+    "policy_id": "moonbook-three-gap-learning-key-policy",
+    "policy_version": "v1",
+    "key_basis": "exact_outcome_subject",
+    "candidate_cardinality": 1,
+  }
+  {
+    record_id: "moonbook-three-gap-learning-key-policy",
+    record_version: "v1",
+    record_digest: @bookkeeper_store.bookkeeper_payload_digest(payload),
+  }
+}
+
+///|
+fn bookkeeper_outcome_learning_key(
+  subject : @bookkeeper.VersionedRecordReference,
+) -> @bookkeeper.VersionedRecordReference {
+  let policy = bookkeeper_three_gap_learning_policy_ref()
+  let binding : Json = {
+    "contract_version": "moonbook.bookkeeper.learning-key.v1",
+    "policy": policy.to_json(),
+    "outcome_subject": subject.to_json(),
+  }
+  let digest = @bookkeeper_store.bookkeeper_payload_digest(binding)
+  {
+    record_id: "three-gap-learning-" + digest[7:].to_owned(),
+    record_version: policy.record_version,
+    record_digest: digest,
+  }
+}
+
+///|
+fn bookkeeper_moonclaw_learning_key(
+  subject : @bookkeeper_store.DurableBookkeeperRecord,
+) -> @bookkeeper.VersionedRecordReference raise {
+  match subject.stage {
+    OutcomeBinding => bookkeeper_outcome_learning_key(subject.record)
+    ThreeGapFinding => {
+      guard subject.payload is Object(fields) else {
+        fail("Three-Gap subject payload must be an object")
+      }
+      guard fields.get("learning_key") is Some(value) else {
+        fail("Three-Gap subject payload is missing learning_key")
+      }
+      let key : @bookkeeper.VersionedRecordReference = @json.from_json(value)
+      if key.record_id.is_blank() ||
+        key.record_version.is_blank() ||
+        key.record_digest.is_blank() {
+        fail("Three-Gap subject learning_key is incomplete")
+      }
+      key
+    }
+    _ => fail("unsupported Bookkeeper MoonClaw learning subject")
+  }
+}
+
+///|
+fn bookkeeper_moonclaw_evidence_compare(
+  left : @bookkeeper.VersionedEvidenceReference,
+  right : @bookkeeper.VersionedEvidenceReference,
+) -> Int {
+  let by_id = left.reference_id.compare(right.reference_id)
+  if by_id != 0 {
+    return by_id
+  }
+  let by_version = left.reference_version.compare(right.reference_version)
+  if by_version != 0 {
+    return by_version
+  }
+  let by_digest = left.digest.compare(right.digest)
+  if by_digest != 0 {
+    return by_digest
+  }
+  left.provenance_ref.compare(right.provenance_ref)
+}
+
+///|
+fn bookkeeper_moonclaw_canonical_evidence(
+  records : ArrayView[@bookkeeper_store.DurableBookkeeperRecord],
+) -> Array[@bookkeeper.VersionedEvidenceReference] raise {
+  let evidence : Array[@bookkeeper.VersionedEvidenceReference] = []
+  for record in records {
+    for reference in record.evidence_refs {
+      evidence.push(reference)
+    }
+  }
+  evidence.sort_by(bookkeeper_moonclaw_evidence_compare)
+  let unique : Array[@bookkeeper.VersionedEvidenceReference] = []
+  for reference in evidence {
+    match unique.last() {
+      Some(previous) if previous.reference_id == reference.reference_id &&
+        previous.reference_version == reference.reference_version =>
+        if previous != reference {
+          fail("conflicting exact evidence identity in source records")
+        }
+      _ => unique.push(reference)
+    }
+  }
+  unique
+}
+
+///|
+fn bookkeeper_moonclaw_result_contract(
+  subject : @bookkeeper_store.DurableBookkeeperRecord,
+  learning_key : @bookkeeper.VersionedRecordReference,
+) -> Json {
+  let (candidate_schema, candidate_stage, canonical_evidence_source) = match
+    subject.stage {
+    OutcomeBinding =>
+      (
+        "three_gap_finding.v1", "three_gap_finding", "metadata.canonical_evidence_refs",
+      )
+    ThreeGapFinding =>
+      (
+        "capability_proposal.v1", "capability_proposal", "candidate.links exact accepted findings",
+      )
+    _ => ("not_applicable", "not_applicable", "not_applicable")
+  }
+  {
+    "contract_version": bookkeeper_moonclaw_result_contract_version(),
+    "candidate_schema": candidate_schema,
+    "candidate_stage": candidate_stage,
+    "candidate_cardinality": 1,
+    "composite_candidates_allowed": false,
+    "learning_key": learning_key.to_json(),
+    "learning_key_source": "moonbook",
+    "learning_key_policy": bookkeeper_three_gap_learning_policy_ref().to_json(),
+    "canonical_evidence_source": canonical_evidence_source,
+  }
+}
+
+///|
 fn bookkeeper_moonclaw_packet_binding_digest(
   packet_id : String,
   request : BookkeeperMoonClawRequest,
   subject : @bookkeeper_store.DurableBookkeeperRecord,
   source_snapshot_digest : String,
+  result_contract : Json,
+  canonical_evidence_refs : Array[@bookkeeper.VersionedEvidenceReference],
 ) -> String {
   @bookkeeper_store.bookkeeper_payload_digest({
     "packet_id": packet_id,
@@ -165,6 +301,8 @@ fn bookkeeper_moonclaw_packet_binding_digest(
     "request": request.to_json(),
     "subject_record": subject.to_json(),
     "source_snapshot_digest": source_snapshot_digest,
+    "result_contract": result_contract,
+    "canonical_evidence_refs": canonical_evidence_refs.to_json(),
   })
 }
 
@@ -253,15 +391,20 @@ fn bookkeeper_moonclaw_packet(
   request : BookkeeperMoonClawRequest,
   subject : @bookkeeper_store.DurableBookkeeperRecord,
   snapshot : @bookkeeper_store.BookkeeperStoreSnapshot,
-) -> BookkeeperMoonClawPacket {
+) -> BookkeeperMoonClawPacket raise {
   let snapshot_path = ".moonbook/bookkeeper/snapshot.json"
   let ui_state_path = ".moonbook/bookkeeper/ui-state.json"
   let snapshot_digest = @bookkeeper_store.bookkeeper_payload_digest(
     snapshot.to_json(),
   )
   let packet_id = "bookkeeper-\{request.request_id}-\{request.request_version}"
+  let learning_key = bookkeeper_moonclaw_learning_key(subject)
+  let result_contract = bookkeeper_moonclaw_result_contract(
+    subject, learning_key,
+  )
+  let canonical_evidence_refs = bookkeeper_moonclaw_canonical_evidence([subject])
   let packet_digest = bookkeeper_moonclaw_packet_binding_digest(
-    packet_id, request, subject, snapshot_digest,
+    packet_id, request, subject, snapshot_digest, result_contract, canonical_evidence_refs,
   )
   {
     packet_id,
@@ -277,6 +420,7 @@ fn bookkeeper_moonclaw_packet(
     notes: [
       "MoonClaw is the agent runtime; MoonBook owns the durable Bookkeeper journal and Rabbita projection.",
       "Read-only state: moonbook bookkeeper state <workspace>.", "Candidate persistence from this packet uses: moonbook bookkeeper moonclaw ingest-result <workspace> <packet.json> <moonclaw-result.json>.",
+      "Copy metadata.result_contract.learning_key and metadata.canonical_evidence_refs exactly; MoonClaw must not derive, reorder, or invent them.",
       "Acceptance remains a later named-human call with a CLI-installed grant: moonbook bookkeeper review <workspace> <mutation.json>.",
       "Never modify .moonbook/bookkeeper directly and never fabricate authority, review, or adoption.",
     ],
@@ -286,6 +430,8 @@ fn bookkeeper_moonclaw_packet(
       "request": request.to_json(),
       "subject_stage": subject.stage.id(),
       "subject_record": subject.to_json(),
+      "result_contract": result_contract,
+      "canonical_evidence_refs": canonical_evidence_refs.to_json(),
       "source_snapshot_digest": snapshot_digest,
       "source_snapshot": snapshot.to_json(),
       "source_packet_digest": packet_digest,

@@ -1,0 +1,48 @@
+{
+  "contract_version": "moonbook.bookkeeper.moonclaw-result.v1",
+  "candidate_schema": "three_gap_finding.v1",
+  "candidate_cardinality": 1,
+  "candidate_stage": "three_gap_finding",
+  "composite_candidates_allowed": false,
+  "learning_key_source": "packet.metadata.result_contract.learning_key",
+  "canonical_evidence_source": "packet.metadata.canonical_evidence_refs",
+  "required_top_level_keys": [
+    "contract_version",
+    "packet_id",
+    "source_packet_digest",
+    "source_snapshot_digest",
+    "subject",
+    "subject_stage",
+    "evidence_refs",
+    "producer",
+    "model",
+    "candidate"
+  ],
+  "required_candidate_keys": [
+    "record_id",
+    "record_version",
+    "stage",
+    "title",
+    "summary",
+    "owner_route",
+    "recorded_at",
+    "links",
+    "issue_refs",
+    "next_action",
+    "payload"
+  ],
+  "required_payload_keys": [
+    "contract_version",
+    "candidate_schema",
+    "subject",
+    "learning_key",
+    "gap_class",
+    "transition",
+    "severity",
+    "owner_route",
+    "summary",
+    "evidence_refs",
+    "source_snapshot_digest",
+    "source_packet_digest"
+  ]
+}

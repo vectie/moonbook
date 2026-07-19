@@ -35,6 +35,8 @@ struct VerifiedBookkeeperMoonClawPacket {
   subject : @bookkeeper_store.DurableBookkeeperRecord
   source_snapshot_digest : String
   source_packet_digest : String
+  learning_key : @bookkeeper.VersionedRecordReference
+  canonical_evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
 }
 
 ///|
@@ -168,6 +170,63 @@ fn result_record_references(
 }
 
 ///|
+fn bookkeeper_moonclaw_fenced_result(content : String) -> Json raise {
+  let sections : Array[String] = []
+  for section in content.split("```") {
+    sections.push(section.to_owned())
+  }
+  if sections.length() != 3 {
+    fail(
+      "MoonClaw step result content must contain exactly one fenced JSON object",
+    )
+  }
+  let fenced = sections[1]
+  guard fenced.find("\n") is Some(first_line_end) else {
+    fail("MoonClaw step result JSON fence is malformed")
+  }
+  let language = fenced[:first_line_end].trim().to_owned()
+  if language != "json" {
+    fail("MoonClaw step result fence must use the json language tag")
+  }
+  let body = fenced[first_line_end + 1:].trim().to_owned()
+  if body.is_blank() {
+    fail("MoonClaw step result JSON fence is empty")
+  }
+  let value = @json.parse(body)
+  guard value is Object(_) else {
+    fail("MoonClaw step result fence must contain one JSON object")
+  }
+  value
+}
+
+///|
+fn unwrap_bookkeeper_moonclaw_result(value : Json) -> Json raise {
+  guard value is Object(fields) else {
+    fail("Bookkeeper MoonClaw result must be an object")
+  }
+  let step_id = fields.get("step_id")
+  let result_decision = fields.get("result_decision")
+  let content = fields.get("content")
+  match (step_id, result_decision, content) {
+    (None, None, None) => value
+    (Some(String(step)), Some(String(decision)), Some(String(body))) => {
+      if step.is_blank() || decision.is_blank() {
+        fail("MoonClaw step result wrapper identity is incomplete")
+      }
+      bookkeeper_moonclaw_fenced_result(body)
+    }
+    _ => fail("MoonClaw step result wrapper is incomplete or ambiguous")
+  }
+}
+
+///|
+fn decode_bookkeeper_moonclaw_result_input(
+  value : Json,
+) -> BookkeeperMoonClawResult raise {
+  decode_bookkeeper_moonclaw_result(unwrap_bookkeeper_moonclaw_result(value))
+}
+
+///|
 fn decode_bookkeeper_moonclaw_result(
   value : Json,
 ) -> BookkeeperMoonClawResult raise {
@@ -284,6 +343,22 @@ fn verify_bookkeeper_moonclaw_packet(
     subject.stage.id() {
     fail("packet subject stage does not match subject record")
   }
+  let learning_key = bookkeeper_moonclaw_learning_key(subject)
+  let result_contract = result_required_json(
+    metadata, "result_contract", "packet metadata",
+  )
+  if result_contract !=
+    bookkeeper_moonclaw_result_contract(subject, learning_key) {
+    fail("packet result contract is not the deterministic MoonBook contract")
+  }
+  let canonical_evidence_refs = result_evidence_references(
+    result_required_json(metadata, "canonical_evidence_refs", "packet metadata"),
+    "packet metadata.canonical_evidence_refs",
+  )
+  if canonical_evidence_refs !=
+    bookkeeper_moonclaw_canonical_evidence([subject]) {
+    fail("packet canonical evidence is not derived from its exact subject")
+  }
   if result_required_string(metadata, "model", "packet metadata") !=
     "gpt-5.6-sol" ||
     result_required_string(metadata, "agent_runtime", "packet metadata") !=
@@ -302,6 +377,8 @@ fn verify_bookkeeper_moonclaw_packet(
     request,
     subject,
     source_snapshot_digest,
+    result_contract,
+    canonical_evidence_refs,
   )
   if source_packet_digest != expected_packet_digest {
     fail("packet binding digest is invalid")
@@ -313,6 +390,8 @@ fn verify_bookkeeper_moonclaw_packet(
     subject,
     source_snapshot_digest,
     source_packet_digest,
+    learning_key,
+    canonical_evidence_refs,
   }
 }
 
@@ -343,51 +422,6 @@ fn result_has_human_accept(
     review.disposition == Accept &&
     review.reviewer_kind == Human
   })
-}
-
-///|
-fn result_evidence_compare(
-  left : @bookkeeper.VersionedEvidenceReference,
-  right : @bookkeeper.VersionedEvidenceReference,
-) -> Int {
-  let by_id = left.reference_id.compare(right.reference_id)
-  if by_id != 0 {
-    return by_id
-  }
-  let by_version = left.reference_version.compare(right.reference_version)
-  if by_version != 0 {
-    return by_version
-  }
-  let by_digest = left.digest.compare(right.digest)
-  if by_digest != 0 {
-    return by_digest
-  }
-  left.provenance_ref.compare(right.provenance_ref)
-}
-
-///|
-fn result_canonical_evidence(
-  records : ArrayView[@bookkeeper_store.DurableBookkeeperRecord],
-) -> Array[@bookkeeper.VersionedEvidenceReference] raise {
-  let evidence : Array[@bookkeeper.VersionedEvidenceReference] = []
-  for record in records {
-    for reference in record.evidence_refs {
-      evidence.push(reference)
-    }
-  }
-  evidence.sort_by(result_evidence_compare)
-  let unique : Array[@bookkeeper.VersionedEvidenceReference] = []
-  for reference in evidence {
-    match unique.last() {
-      Some(previous) if previous.reference_id == reference.reference_id &&
-        previous.reference_version == reference.reference_version =>
-        if previous != reference {
-          fail("conflicting exact evidence identity in source findings")
-        }
-      _ => unique.push(reference)
-    }
-  }
-  unique
 }
 
 ///|
@@ -449,12 +483,13 @@ fn result_validate_gap_payload(
   if subject != result.subject {
     fail("Three-Gap payload subject does not match result subject")
   }
-  ignore(
-    result_record_reference(
-      result_required_json(fields, "learning_key", label),
-      "payload learning_key",
-    ),
+  let learning_key = result_record_reference(
+    result_required_json(fields, "learning_key", label),
+    "payload learning_key",
   )
+  if learning_key != verified.learning_key {
+    fail("Three-Gap payload learning_key must exactly copy the MoonBook packet")
+  }
   let gap_class = result_required_string(fields, "gap_class", label)
   let transition = result_required_string(fields, "transition", label)
   let expected_transition = match gap_class {
@@ -594,7 +629,11 @@ fn materialize_bookkeeper_moonclaw_record(
     }
     _ => fail("unsupported Bookkeeper MoonClaw candidate stage")
   }
-  let expected_evidence = result_canonical_evidence(source_records)
+  let expected_evidence = bookkeeper_moonclaw_canonical_evidence(source_records)
+  if verified.subject.stage == OutcomeBinding &&
+    expected_evidence != verified.canonical_evidence_refs {
+    fail("MoonClaw source evidence differs from the packet canonical evidence")
+  }
   if result.evidence_refs != expected_evidence {
     fail("MoonClaw result evidence is not the exact canonical source evidence")
   }
@@ -638,7 +677,7 @@ async fn ingest_bookkeeper_moonclaw_result(
 ) -> @bookkeeper_store.BookkeeperMutationResult {
   let packet_json = @json.parse(@fsx.read_file(packet_path))
   let verified = verify_bookkeeper_moonclaw_packet(packet_json)
-  let result = decode_bookkeeper_moonclaw_result(result_json)
+  let result = decode_bookkeeper_moonclaw_result_input(result_json)
   let current = @bookkeeper_store.replay_bookkeeper_store(root)
   let record = materialize_bookkeeper_moonclaw_record(verified, current, result)
   @bookkeeper_store.persist_bookkeeper_record(root, record)
