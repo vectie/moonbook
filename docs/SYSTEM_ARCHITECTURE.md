@@ -7,6 +7,41 @@ MoonBook has two major product layers in one repo:
 
 They share rendering/build/serve infrastructure, but they are not the same subsystem. In the wider Moon architecture, MoonBook is also the durable executable book: MoonWiki edits prose/knowledge, MoonCode edits executable behavior, and MoonClaw executes bounded work. See [EXECUTABLE_BOOK_BOUNDARY.md](EXECUTABLE_BOOK_BOUNDARY.md).
 
+The public bookkeeper package is a cross-cutting acceptance boundary rather
+than an agent runtime. Bookkeeper runs through MoonClaw, the suite's one agent
+runtime, and uses MoonBook's existing Rabbita application as its operator UI.
+It owns generic deliverable candidates, typed decisions, immutable accepted
+bundles, exact outcome linkage, three-gap assessments, and review-only
+capability learning receipts.
+
+Its canonical Three-Gap protocol uses a fast, non-applying learning-receipt
+loop for reviewed findings, a slow deterministic threshold-and-proposal loop,
+an exact, versioned projection of review-bound values for MoonCode attested by a
+named human, and a separate result/evaluation/adoption boundary that can emit a
+non-applying capability-version receipt but cannot execute, mutate, persist, or
+deploy anything. The complete authority and fail-closed rules are defined in
+[EXECUTABLE_BOOK_BOUNDARY.md](EXECUTABLE_BOOK_BOUNDARY.md#canonical-three-gap-protocol).
+
+The existing `ui/rabbita-book` application renders a domain-neutral Bookkeeper
+closed-loop projection alongside the wiki workspace. The native workspace state
+loader reads `.moonbook/bookkeeper/ui-state.json`, validates
+`moonbook.bookkeeper.v1` and `moonbook.bookkeeper.ui.v1`, and otherwise exposes
+an explicit empty/awaiting state. The projection covers deliverable acceptance,
+outcome binding, Three-Gap findings and review, capability proposal and review,
+MoonCode work-order projection, capability evaluation, and adoption. It is a
+read-only view model: review authority, persistence, work-order dispatch, and
+adoption remain separate governed backend boundaries.
+
+`bookkeeper_store/` is the native persistence and projection adapter behind
+that view. It owns an immutable journal, deterministic restart replay, exact
+link validation, human-authority grants, governed review receipts, atomic
+snapshot replacement, and non-activating transport envelopes. The existing
+MoonBook host and CLI import this package; it is not an application, agent
+runtime, or orchestrator. MoonClaw runs Bookkeeper agent work and may use
+MoonFlow as a generic durable orchestration engine. MoonFlow has no model loop,
+persona, or reasoning lifecycle of its own. MoonCode remains the only
+code-change executor.
+
 ## Layered View
 
 ```text
@@ -238,6 +273,10 @@ The current split is:
 
 - `driver/` and `html/`
   book rendering/runtime
+- bookkeeper/
+  public domain-neutral finalization contracts and fail-closed acceptance
+- bookkeeper_store/
+  native durable journal, replay, governed mutations, and UI projection adapter
 - `wiki/`
   persistent wiki maintenance logic
 - `internal/`

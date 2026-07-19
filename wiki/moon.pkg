@@ -7,6 +7,7 @@ import {
   "moonbitlang/async/socket",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
+  "vectie/moonbook/bookkeeper",
   "vectie/moonbook/core",
   "vectie/moonbook/internal/fsx",
   "vectie/moonbook/internal/watcher",

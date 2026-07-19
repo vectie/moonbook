@@ -56,6 +56,9 @@ Implemented behaviors:
 - `serve` supports `--open`
 - `serve` accepts `--watcher poll|native`
 - `serve` serves `index.html` at `/`
+- builds bundle the existing Rabbita application under
+  `<build-dir>/apps/moonbook/`, and `serve` mounts it at `/apps/moonbook/` while
+  preserving the rendered book at `/`
 - `serve` serves `404.html` as a fallback when present
 - `build` and `serve` copy an optional root `site/` authored website into `book/site/`
 - the authored `site/` layer remains standalone and should not assume generated files already exist

@@ -45,6 +45,25 @@ Runs a local static HTTP server for the built book:
 8. serve `404.html` for missing paths when present
 9. poll for source/config changes and rebuild the served output
 
+The same build also compiles the existing
+`ui/rabbita-book` MoonBit/Rabbita application and installs its runnable assets
+under `<build-dir>/apps/moonbook/`. The normal server preserves the rendered
+book at `/` and mounts the full MoonBook operator application at:
+
+```text
+http://<hostname>:<port>/apps/moonbook/
+```
+
+The nested application receives app-local copies of `moonbook-ui-state.json`
+and `moonbook-ui-config.json`; its absolute `/api/bookkeeper/**` requests are
+handled by the same `moonbook serve` process and workspace. It is the existing
+domain-neutral Rabbita application—including the Bookkeeper lanes and governed
+human-review console—not a separate Bookkeeper frontend or runtime. Set
+`MOONBOOK_MODULE_ROOT` only when the executable cannot infer the MoonBook source
+checkout containing `ui/rabbita-book`. Non-wiki books receive a minimal,
+domain-neutral workspace snapshot rather than having wiki directories created
+as a side effect; their Bookkeeper projection remains live.
+
 ### `moon run cmd/main -- wiki init [root]`
 
 Bootstraps a wiki workspace:
@@ -732,4 +751,95 @@ This pack does not change the core wiki directories or make MoonBook depend on M
 
 ### `ui/`
 
-Contains Rabbita frontend work. The current Rabbita package renders a documentation-first operator dashboard for MoonBook, loads generated workspace state from `moonbook-ui-state.json`, and subscribes to rebuild-triggered live refresh when a serve-time event endpoint is available.
+Contains Rabbita frontend work. The current Rabbita package renders MoonBook's
+documentation workspace and domain-neutral Bookkeeper closed-loop console in a
+single operator application. It loads generated workspace state from
+`moonbook-ui-state.json`, including the validated read-only Bookkeeper projection,
+and subscribes to rebuild-triggered live refresh when a serve-time event endpoint
+is available. `moonbook build` compiles and copies this existing application to
+`<build-dir>/apps/moonbook/`; `moonbook serve` exposes it at
+`/apps/moonbook/` without replacing the rendered book root.
+
+### `moonbook bookkeeper`
+
+The Bookkeeper commands use the same MoonBook binary and workspace as the
+existing build/serve/wiki commands:
+
+These commands are an operator surface, not a Bookkeeper agent runtime.
+Bookkeeper agent work runs on MoonClaw, while the existing MoonBook Rabbita UI
+remains its visual operator surface. MoonClaw may invoke MoonFlow for generic
+durable orchestration; MoonFlow is an engine, not another agent.
+
+The model-backed closed-loop entrypoint emits a snapshot-bound external
+proposal packet, refreshes the MoonBook-generated MoonClaw profile, and submits
+the packet through MoonClaw's existing `proposal import` contract:
+
+```text
+moonbook bookkeeper moonclaw submit <root> <request.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]
+```
+
+From the MoonBook source checkout, the equivalent invocation is:
+
+```text
+moon run cmd/main -- bookkeeper moonclaw submit <root> <request.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]
+```
+
+`request.json` is resolved relative to `<root>` unless it is absolute. Its
+contract is `moonbook.bookkeeper.moonclaw-request.v1`; see
+`docs/BOOKKEEPER_MOONCLAW_REQUEST.example.json`. The exact subject must already
+exist in the durable snapshot and must be either an outcome binding or a
+named-human accepted Three-Gap finding. The generated packet is stored under
+`<root>/keeper/jobs/`, names `bookkeeper_three_gap_controller`, and binds the
+current `.moonbook/bookkeeper/snapshot.json` digest. Each reasoning step is
+configured for `gpt-5.6-sol`.
+
+Without `--confirm`, MoonClaw imports and returns the profiled proposal for
+inspection. With `--confirm`, MoonClaw runs the Three-Gap/capability reasoning
+steps. The run emits candidate handoff values only. Ingest the generated JSON
+through the deterministic MoonBook boundary:
+
+```text
+moonbook bookkeeper moonclaw ingest-result <root> <packet.json> <moonclaw-result.json>
+```
+
+The result contract is `moonbook.bookkeeper.moonclaw-result.v1`; a complete
+Three-Gap example is in `docs/BOOKKEEPER_MOONCLAW_RESULT.fixture.json`. Ingestion
+requires an exact packet id, packet binding digest, embedded snapshot digest,
+subject, stage, evidence set, producer, and `gpt-5.6-sol` model binding. It
+accepts only the `three_gap_finding.v1` and `capability_proposal.v1` candidate
+schemas. The latter requires at least two exact named-human accepted source
+findings. A valid candidate becomes an immutable durable record with
+`requires_human_review=true` and immediately appears in Rabbita's review queue.
+Repeating identical input is idempotent; conflicting identity/version content
+is rejected.
+
+Ingestion cannot install authority, accept a finding/proposal, fabricate a
+receipt, dispatch MoonCode, or adopt a capability. Those remain separate
+deterministic commands and named-human gates below.
+
+```text
+moonbook bookkeeper moonclaw submit <root> <request.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]
+moonbook bookkeeper moonclaw ingest-result <root> <packet.json> <moonclaw-result.json>
+moonbook bookkeeper state [root]
+moonbook bookkeeper replay [root]
+moonbook bookkeeper authority install [root] <grant.json>
+moonbook bookkeeper record [root] <record.json>
+moonbook bookkeeper review [root] <mutation.json>
+moonbook bookkeeper ingress [root] <envelope.json>
+moonbook bookkeeper egress [root] <envelope.json>
+```
+
+Authority installation is deliberately CLI-only. The record, review, and
+transport commands use the same durable service as the `/api/bookkeeper/**`
+routes exposed by `moonbook serve`. Neither surface provides execution,
+deployment, publication, or external activation authority.
+
+An operator's exact live sequence is:
+
+```text
+moon run cmd/main -- bookkeeper moonclaw submit /absolute/book /absolute/book/request.json --confirm --moonclaw /absolute/moonclaw
+moon run cmd/main -- bookkeeper moonclaw ingest-result /absolute/book /absolute/book/keeper/jobs/bookkeeper-<request-id>--<request-version>.json /absolute/path/to/bookkeeper-moonclaw-handoff.json
+moon run cmd/main -- bookkeeper state /absolute/book
+# only after a named human prepares and authorizes a separate mutation:
+moon run cmd/main -- bookkeeper review /absolute/book /absolute/book/review-mutation.json
+```

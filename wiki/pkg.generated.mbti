@@ -4,6 +4,7 @@ package "vectie/moonbook/wiki"
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
+  "vectie/moonbook/bookkeeper",
 }
 
 // Values
@@ -551,6 +552,7 @@ pub struct UiState {
   research_long_report : String
   research_report : Array[UiResearchReportSection]
   synthesis_preview : String
+  bookkeeper : @bookkeeper.BookkeeperUiState
 } derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct UiStatusChip {
