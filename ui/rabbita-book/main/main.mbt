@@ -706,10 +706,7 @@ fn panel_list(
 }
 
 ///|
-fn bookkeeper_stage_label(
-  locale : InterfaceLocale,
-  stage : String,
-) -> String {
+fn bookkeeper_stage_label(locale : InterfaceLocale, stage : String) -> String {
   match (locale, stage) {
     (SimplifiedChinese, "deliverable_acceptance") => "交付验收"
     (SimplifiedChinese, "outcome_binding") => "结果绑定"
@@ -742,9 +739,16 @@ fn bookkeeper_item_card(
 ) -> @rabbita.Html {
   article(
     style=[
-      "padding:16px", "border-radius:18px", "background:rgba(248,250,252,.92)",
-      if selected { "border:2px solid #2563eb" } else { "border:1px solid rgba(148,163,184,.20)" },
-      "display:grid", "gap:12px",
+      "padding:16px",
+      "border-radius:18px",
+      "background:rgba(248,250,252,.92)",
+      if selected {
+        "border:2px solid #2563eb"
+      } else {
+        "border:1px solid rgba(148,163,184,.20)"
+      },
+      "display:grid",
+      "gap:12px",
     ],
     [
       div(
@@ -757,8 +761,7 @@ fn bookkeeper_item_card(
             h3(style=["margin:0", "font-size:16px"], item.title),
             small(
               style=[
-                "display:block", "margin-top:5px", "color:#64748b",
-                "font-family:'Fira Code','SFMono-Regular',monospace",
+                "display:block", "margin-top:5px", "color:#64748b", "font-family:'Fira Code','SFMono-Regular',monospace",
               ],
               if item.record_version.is_blank() {
                 item.record_id
@@ -771,38 +774,39 @@ fn bookkeeper_item_card(
         ],
       ),
       p(style=muted_text_style() + ["margin:0"], item.summary),
-      div(
-        style=["display:flex", "gap:8px", "flex-wrap:wrap"],
-        [
-          span(
-            style=[
-              "padding:6px 9px", "border-radius:10px", "background:#e2e8f0",
-              "color:#334155", "font-size:12px", "font-weight:700",
-            ],
-            "\{item.evidence_count} \{interface_message(locale, BookkeeperEvidence)}",
-          ),
-          span(
-            style=[
-              "padding:6px 9px", "border-radius:10px", "background:#e2e8f0",
-              "color:#334155", "font-size:12px", "font-weight:700",
-            ],
-            "\{item.issue_count} \{interface_message(locale, BookkeeperIssues)}",
-          ),
-          status_chip(
-            if item.requires_human_review {
-              interface_message(locale, BookkeeperHumanReview)
-            } else {
-              interface_message(locale, BookkeeperAutomatedState)
-            },
-            if item.requires_human_review { "review" } else { "info" },
-          ),
-        ],
-      ),
+      div(style=["display:flex", "gap:8px", "flex-wrap:wrap"], [
+        span(
+          style=[
+            "padding:6px 9px", "border-radius:10px", "background:#e2e8f0", "color:#334155",
+            "font-size:12px", "font-weight:700",
+          ],
+          "\{item.evidence_count} \{interface_message(locale, BookkeeperEvidence)}",
+        ),
+        span(
+          style=[
+            "padding:6px 9px", "border-radius:10px", "background:#e2e8f0", "color:#334155",
+            "font-size:12px", "font-weight:700",
+          ],
+          "\{item.issue_count} \{interface_message(locale, BookkeeperIssues)}",
+        ),
+        status_chip(
+          if item.requires_human_review {
+            interface_message(locale, BookkeeperHumanReview)
+          } else {
+            interface_message(locale, BookkeeperAutomatedState)
+          },
+          if item.requires_human_review {
+            "review"
+          } else {
+            "info"
+          },
+        ),
+      ]),
       div(
         style=[
           "display:flex", "justify-content:space-between", "gap:10px", "flex-wrap:wrap",
-          "padding-top:10px", "border-top:1px solid rgba(148,163,184,.18)",
-          "font-size:12px", "color:#475569",
+          "padding-top:10px", "border-top:1px solid rgba(148,163,184,.18)", "font-size:12px",
+          "color:#475569",
         ],
         [
           span("owner · \{item.owner_route}"),
@@ -814,11 +818,15 @@ fn bookkeeper_item_card(
       ),
       button(
         style=[
-          "padding:9px 12px", "border-radius:12px", "border:1px solid #cbd5e1",
-          "background:#fff", "color:#0f172a", "font-weight:700", "cursor:pointer",
+          "padding:9px 12px", "border-radius:12px", "border:1px solid #cbd5e1", "background:#fff",
+          "color:#0f172a", "font-weight:700", "cursor:pointer",
         ],
         on_click=emit(SelectBookkeeperItem(item)),
-        if selected { "Selected for operator action" } else { "Select exact record" },
+        if selected {
+          "Selected for operator action"
+        } else {
+          "Select exact record"
+        },
       ),
     ],
   )
@@ -834,21 +842,24 @@ fn bookkeeper_lane(
 ) -> @rabbita.Html {
   article(
     style=[
-      "padding:18px", "border-radius:22px", "background:rgba(255,255,255,.72)",
-      "border:1px solid rgba(148,163,184,.20)", "display:flex", "flex-direction:column",
-      "gap:14px", "min-width:0",
+      "padding:18px", "border-radius:22px", "background:rgba(255,255,255,.72)", "border:1px solid rgba(148,163,184,.20)",
+      "display:flex", "flex-direction:column", "gap:14px", "min-width:0",
     ],
     [
-      div(
-        style=["display:flex", "justify-content:space-between", "gap:10px"],
-        [
-          h3(
-            style=["margin:0", "font-size:17px"],
-            bookkeeper_stage_label(locale, stage),
-          ),
-          status_chip("\{items.length()}", if items.is_empty() { "info" } else { "healthy" }),
-        ],
-      ),
+      div(style=["display:flex", "justify-content:space-between", "gap:10px"], [
+        h3(
+          style=["margin:0", "font-size:17px"],
+          bookkeeper_stage_label(locale, stage),
+        ),
+        status_chip(
+          "\{items.length()}",
+          if items.is_empty() {
+            "info"
+          } else {
+            "healthy"
+          },
+        ),
+      ]),
       if items.is_empty() {
         p(
           style=muted_text_style() + ["margin:0", "font-size:14px"],
@@ -907,12 +918,14 @@ extern "js" fn bookkeeper_nonce() -> String = "()=>{const id=globalThis.crypto?.
 
 ///|
 #cfg(target="js")
-extern "js" fn bookkeeper_now_ms() -> Int = "()=>Date.now()"
+extern "js" fn bookkeeper_unix_seconds() -> Int = "()=>Math.floor(Date.now()/1000)"
 
 ///|
 fn review_draft_for_selection(model : Model) -> String? {
   guard model.selected_bookkeeper_record is Some(reference) else { return None }
-  guard selected_raw_record(model, reference) is Some(record) else { return None }
+  guard selected_raw_record(model, reference) is Some(record) else {
+    return None
+  }
   guard selected_authority_grant(model) is Some(grant) else { return None }
   let nonce = bookkeeper_nonce()
   let draft : BookkeeperReviewDraft = {
@@ -940,7 +953,7 @@ fn review_draft_for_selection(model : Model) -> String? {
     },
     evidence_refs: record.evidence_refs,
     summary: "Named reviewer accepted the exact selected record and evidence.",
-    decided_at: bookkeeper_now_ms(),
+    decided_at: bookkeeper_unix_seconds(),
   }
   Some(draft.to_json().stringify(indent=2))
 }
@@ -952,13 +965,23 @@ fn bookkeeper_operator_panel(
 ) -> @rabbita.Html {
   let authority_buttons = match model.bookkeeper_authorities {
     Some(registry) =>
-      registry.grants.filter(grant => grant.active).map(fn(grant) {
-        let selected = model.selected_bookkeeper_authority == Some(grant.authority_ref)
+      registry.grants
+      .filter(grant => grant.active)
+      .map(fn(grant) {
+        let selected = model.selected_bookkeeper_authority ==
+          Some(grant.authority_ref)
         button(
           style=[
-            "padding:8px 11px", "border-radius:12px",
-            if selected { "border:2px solid #2563eb" } else { "border:1px solid #cbd5e1" },
-            "background:#fff", "cursor:pointer", "font-weight:700",
+            "padding:8px 11px",
+            "border-radius:12px",
+            if selected {
+              "border:2px solid #2563eb"
+            } else {
+              "border:1px solid #cbd5e1"
+            },
+            "background:#fff",
+            "cursor:pointer",
+            "font-weight:700",
           ],
           on_click=emit(SelectBookkeeperAuthority(grant.authority_ref)),
           "\{grant.reviewer_id} · \{grant.authority_ref}",
@@ -985,15 +1008,23 @@ fn bookkeeper_operator_panel(
         button(on_click=emit(SetBookkeeperMode("review")), "Governed review"),
         button(on_click=emit(SetBookkeeperMode("egress")), "Egress envelope"),
       ]),
-      div(style=["display:flex", "gap:8px", "flex-wrap:wrap"],
+      div(
+        style=["display:flex", "gap:8px", "flex-wrap:wrap"],
         if authority_buttons.is_empty() {
-          [small(style=["color:#fbbf24"], "No active reviewer authority. Install one with `moonbook bookkeeper authority install`.")]
+          [
+            small(
+              style=["color:#fbbf24"],
+              "No active reviewer authority. Install one with `moonbook bookkeeper authority install`.",
+            ),
+          ]
         } else {
           authority_buttons
         },
       ),
       small(
-        style=["color:#93c5fd", "font-family:'Fira Code','SFMono-Regular',monospace"],
+        style=[
+          "color:#93c5fd", "font-family:'Fira Code','SFMono-Regular',monospace",
+        ],
         "mode · \{model.bookkeeper_mode}",
       ),
       textarea(
@@ -1010,7 +1041,8 @@ fn bookkeeper_operator_panel(
       ),
       div(style=["display:flex", "gap:10px", "flex-wrap:wrap"], [
         button(
-          disabled=model.bookkeeper_busy || model.bookkeeper_draft.trim().is_blank(),
+          disabled=model.bookkeeper_busy ||
+            model.bookkeeper_draft.trim().is_blank(),
           on_click=emit(SubmitBookkeeperMutation),
           "Submit governed mutation",
         ),
@@ -1021,8 +1053,16 @@ fn bookkeeper_operator_panel(
         ),
       ]),
       match model.bookkeeper_notice {
-        Some(notice) => pre(style=["margin:0", "white-space:pre-wrap", "color:#bfdbfe"], notice)
-        None => small(style=["color:#94a3b8"], "Select a lane record to bind review JSON to its exact digest and evidence.")
+        Some(notice) =>
+          pre(
+            style=["margin:0", "white-space:pre-wrap", "color:#bfdbfe"],
+            notice,
+          )
+        None =>
+          small(
+            style=["color:#94a3b8"],
+            "Select a lane record to bind review JSON to its exact digest and evidence.",
+          )
       },
     ],
   )
@@ -1063,7 +1103,11 @@ fn bookkeeper_console(
               } else {
                 interface_message(locale, BookkeeperProjectionMissing)
               },
-              if state.loaded { "healthy" } else { "review" },
+              if state.loaded {
+                "healthy"
+              } else {
+                "review"
+              },
             ),
             small(
               style=[
@@ -1089,9 +1133,27 @@ fn bookkeeper_console(
             state.deliverable_acceptance,
             model.selected_bookkeeper_record,
           ),
-          bookkeeper_lane(emit, locale, "outcome_binding", state.outcome_binding, model.selected_bookkeeper_record),
-          bookkeeper_lane(emit, locale, "three_gap_findings", state.three_gap_findings, model.selected_bookkeeper_record),
-          bookkeeper_lane(emit, locale, "three_gap_review", state.three_gap_review, model.selected_bookkeeper_record),
+          bookkeeper_lane(
+            emit,
+            locale,
+            "outcome_binding",
+            state.outcome_binding,
+            model.selected_bookkeeper_record,
+          ),
+          bookkeeper_lane(
+            emit,
+            locale,
+            "three_gap_findings",
+            state.three_gap_findings,
+            model.selected_bookkeeper_record,
+          ),
+          bookkeeper_lane(
+            emit,
+            locale,
+            "three_gap_review",
+            state.three_gap_review,
+            model.selected_bookkeeper_record,
+          ),
           bookkeeper_lane(
             emit,
             locale,
@@ -1099,7 +1161,13 @@ fn bookkeeper_console(
             state.capability_proposal,
             model.selected_bookkeeper_record,
           ),
-          bookkeeper_lane(emit, locale, "capability_review", state.capability_review, model.selected_bookkeeper_record),
+          bookkeeper_lane(
+            emit,
+            locale,
+            "capability_review",
+            state.capability_review,
+            model.selected_bookkeeper_record,
+          ),
           bookkeeper_lane(
             emit,
             locale,
@@ -1107,8 +1175,20 @@ fn bookkeeper_console(
             state.mooncode_work_order,
             model.selected_bookkeeper_record,
           ),
-          bookkeeper_lane(emit, locale, "evaluation", state.evaluation, model.selected_bookkeeper_record),
-          bookkeeper_lane(emit, locale, "adoption", state.adoption, model.selected_bookkeeper_record),
+          bookkeeper_lane(
+            emit,
+            locale,
+            "evaluation",
+            state.evaluation,
+            model.selected_bookkeeper_record,
+          ),
+          bookkeeper_lane(
+            emit,
+            locale,
+            "adoption",
+            state.adoption,
+            model.selected_bookkeeper_record,
+          ),
         ],
       ),
     ],
@@ -1566,10 +1646,7 @@ fn bookkeeper_mutation_route(mode : String) -> String {
 }
 
 ///|
-extern "js" fn post_bookkeeper_json(
-  url : String,
-  body : String,
-) -> @js.Promise =
+extern "js" fn post_bookkeeper_json(url : String, body : String) -> @js.Promise =
   #| async (url, body) => {
   #|   try {
   #|     const response = await fetch(url, {
@@ -1581,7 +1658,6 @@ extern "js" fn post_bookkeeper_json(
   #|       ok: response.ok,
   #|       status: response.status,
   #|       body: await response.text(),
-  #|       error: null,
   #|     });
   #|   } catch (error) {
   #|     return JSON.stringify({ ok: false, status: 0, body: "", error: String(error) });
@@ -1593,9 +1669,9 @@ async fn await_bookkeeper_response(
   promise : @js.Promise,
 ) -> BookkeeperBrowserResponse noraise {
   let text : String = promise.wait().cast() catch {
-    error =>
-      return { ok: false, status: 0, body: "", error: Some("\{error}") }
-  }
+      error =>
+        return { ok: false, status: 0, body: "", error: Some("\{error}") }
+    }
   @json.from_json(@json.parse(text)) catch {
     error => { ok: false, status: 0, body: text, error: Some("\{error}") }
   }
@@ -1609,22 +1685,28 @@ async fn post_bookkeeper_mutation(
   let response = await_bookkeeper_response(
     post_bookkeeper_json(route, payload.stringify()),
   )
-  let decoded : Result[BookkeeperMutationResult, Error] =
-    try? @json.from_json(@json.parse(response.body))
+  let decoded : Result[BookkeeperMutationResult, Error] = try? @json.from_json(
+    @json.parse(response.body),
+  )
   match decoded {
     Ok(result) =>
       if response.ok {
         Ok(result)
       } else {
-        Err(if result.issues.is_empty() {
-          "HTTP \{response.status} rejected the mutation"
-        } else {
-          result.issues.join(", ")
-        })
+        Err(
+          if result.issues.is_empty() {
+            "HTTP \{response.status} rejected the mutation"
+          } else {
+            result.issues.join(", ")
+          },
+        )
       }
-    Err(error) => Err(response.error.unwrap_or(
-      "HTTP \{response.status}: \{error}; \{response.body}",
-    ))
+    Err(error) =>
+      Err(
+        response.error.unwrap_or(
+          "HTTP \{response.status}: \{error}; \{response.body}",
+        ),
+      )
   }
 }
 
@@ -1634,12 +1716,9 @@ fn submit_bookkeeper_mutation_cmd(
   mode : String,
   payload : Json,
 ) -> @rabbita.Cmd {
-  @rabbita.perform(
-    result => emit(BookkeeperMutationFinished(result)),
-    fn() noraise {
-      post_bookkeeper_mutation(bookkeeper_mutation_route(mode), payload)
-    },
-  )
+  @rabbita.perform(result => emit(BookkeeperMutationFinished(result)), fn() noraise {
+    post_bookkeeper_mutation(bookkeeper_mutation_route(mode), payload)
+  })
 }
 
 ///|
@@ -1648,10 +1727,13 @@ async fn post_bookkeeper_replay() -> Result[BookkeeperStoreSnapshot, String] nor
     post_bookkeeper_json("/api/bookkeeper/replay", "{}"),
   )
   if !response.ok {
-    return Err(response.error.unwrap_or("Replay failed with HTTP \{response.status}"))
+    return Err(
+      response.error.unwrap_or("Replay failed with HTTP \{response.status}"),
+    )
   }
-  let decoded : Result[BookkeeperStoreSnapshot, Error] =
-    try? @json.from_json(@json.parse(response.body))
+  let decoded : Result[BookkeeperStoreSnapshot, Error] = try? @json.from_json(
+    @json.parse(response.body),
+  )
   match decoded {
     Ok(snapshot) => Ok(snapshot)
     Err(error) => Err("Replay returned invalid state: \{error}")
@@ -1660,63 +1742,68 @@ async fn post_bookkeeper_replay() -> Result[BookkeeperStoreSnapshot, String] nor
 
 ///|
 fn replay_bookkeeper_cmd(emit : @rabbita.Emit[Msg]) -> @rabbita.Cmd {
-  @rabbita.perform(
-    result => emit(BookkeeperReplayFinished(result)),
-    fn() noraise { post_bookkeeper_replay() },
-  )
+  @rabbita.perform(result => emit(BookkeeperReplayFinished(result)), fn() noraise {
+    post_bookkeeper_replay()
+  })
 }
 
 ///|
 fn bookkeeper_mode_template(mode : String) -> String {
   match mode {
     "record" =>
-      #|{
-      #|  "contract_version": "moonbook.bookkeeper.store.v1",
-      #|  "record": {"record_id":"replace-me","record_version":"v1","record_digest":"sha256:replace-with-canonical-payload-digest"},
-      #|  "stage": "MoonCodeResult",
-      #|  "subject": null,
-      #|  "links": [],
-      #|  "title": "MoonCode result",
-      #|  "summary": "Replace with result summary",
-      #|  "owner_route": "mooncode",
-      #|  "status": "returned",
-      #|  "evidence_refs": [],
-      #|  "issue_refs": [],
-      #|  "requires_human_review": true,
-      #|  "next_action": "evaluate result",
-      #|  "source_product": "mooncode",
-      #|  "recorded_at": 0,
-      #|  "payload": {},
-      #|  "side_effects_applied": false
-      #|}
+      (
+        #|{
+        #|  "contract_version": "moonbook.bookkeeper.store.v1",
+        #|  "record": {"record_id":"replace-me","record_version":"v1","record_digest":"sha256:replace-with-canonical-payload-digest"},
+        #|  "stage": "MoonCodeResult",
+        #|  "subject": null,
+        #|  "links": [],
+        #|  "title": "MoonCode result",
+        #|  "summary": "Replace with result summary",
+        #|  "owner_route": "mooncode",
+        #|  "status": "returned",
+        #|  "evidence_refs": [],
+        #|  "issue_refs": [],
+        #|  "requires_human_review": true,
+        #|  "next_action": "evaluate result",
+        #|  "source_product": "mooncode",
+        #|  "recorded_at": 0,
+        #|  "payload": {},
+        #|  "side_effects_applied": false
+        #|}
+      )
     "review" =>
       "Select an exact lane record and an active CLI-installed authority to prepare this review."
     "egress" =>
-      #|{
-      #|  "contract_version": "moonbook.bookkeeper.transport.v1",
-      #|  "envelope": {"record_id":"replace-me","record_version":"v1","record_digest":"sha256:replace-me"},
-      #|  "direction": "Egress",
-      #|  "source_product": "moonbook",
-      #|  "destination_product": "moonflow",
-      #|  "message_kind": "reviewed_work_order",
-      #|  "subject": {"record_id":"replace-me","record_version":"v1","record_digest":"sha256:replace-me"},
-      #|  "links": [], "evidence_refs": [], "authority_ref": "replace-me",
-      #|  "recorded_at": 0, "payload": {}, "external_activation_allowed": false,
-      #|  "side_effects_applied": false
-      #|}
+      (
+        #|{
+        #|  "contract_version": "moonbook.bookkeeper.transport.v1",
+        #|  "envelope": {"record_id":"replace-me","record_version":"v1","record_digest":"sha256:replace-me"},
+        #|  "direction": "Egress",
+        #|  "source_product": "moonbook",
+        #|  "destination_product": "moonflow",
+        #|  "message_kind": "reviewed_work_order",
+        #|  "subject": {"record_id":"replace-me","record_version":"v1","record_digest":"sha256:replace-me"},
+        #|  "links": [], "evidence_refs": [], "authority_ref": "replace-me",
+        #|  "recorded_at": 0, "payload": {}, "external_activation_allowed": false,
+        #|  "side_effects_applied": false
+        #|}
+      )
     _ =>
-      #|{
-      #|  "contract_version": "moonbook.bookkeeper.transport.v1",
-      #|  "envelope": {"record_id":"replace-me","record_version":"v1","record_digest":"sha256:replace-me"},
-      #|  "direction": "Ingress",
-      #|  "source_product": "moonflow",
-      #|  "destination_product": "moonbook",
-      #|  "message_kind": "deliverable_result",
-      #|  "subject": {"record_id":"replace-me","record_version":"v1","record_digest":"sha256:replace-me"},
-      #|  "links": [], "evidence_refs": [], "authority_ref": "",
-      #|  "recorded_at": 0, "payload": {}, "external_activation_allowed": false,
-      #|  "side_effects_applied": false
-      #|}
+      (
+        #|{
+        #|  "contract_version": "moonbook.bookkeeper.transport.v1",
+        #|  "envelope": {"record_id":"replace-me","record_version":"v1","record_digest":"sha256:replace-me"},
+        #|  "direction": "Ingress",
+        #|  "source_product": "moonflow",
+        #|  "destination_product": "moonbook",
+        #|  "message_kind": "deliverable_result",
+        #|  "subject": {"record_id":"replace-me","record_version":"v1","record_digest":"sha256:replace-me"},
+        #|  "links": [], "evidence_refs": [], "authority_ref": "",
+        #|  "recorded_at": 0, "payload": {}, "external_activation_allowed": false,
+        #|  "side_effects_applied": false
+        #|}
+      )
   }
 }
 
@@ -1783,7 +1870,10 @@ fn update(
     LoadedBookkeeperStore(Err(error)) =>
       (
         @rabbita.none,
-        { ..model, bookkeeper_notice: Some("Store state unavailable: \{error}") },
+        {
+          ..model,
+          bookkeeper_notice: Some("Store state unavailable: \{error}"),
+        },
       )
     LoadedBookkeeperAuthorities(Ok(registry)) => {
       let selected = match model.selected_bookkeeper_authority {
@@ -1798,16 +1888,22 @@ fn update(
           first
         }
       }
-      (@rabbita.none, {
-        ..model,
-        bookkeeper_authorities: Some(registry),
-        selected_bookkeeper_authority: selected,
-      })
+      (
+        @rabbita.none,
+        {
+          ..model,
+          bookkeeper_authorities: Some(registry),
+          selected_bookkeeper_authority: selected,
+        },
+      )
     }
     LoadedBookkeeperAuthorities(Err(error)) =>
       (
         @rabbita.none,
-        { ..model, bookkeeper_notice: Some("Authority status unavailable: \{error}") },
+        {
+          ..model,
+          bookkeeper_notice: Some("Authority status unavailable: \{error}"),
+        },
       )
     SelectBookkeeperItem(item) => {
       let mut selected : BookkeeperRecordReference? = None
@@ -1827,15 +1923,22 @@ fn update(
       } else {
         model.bookkeeper_draft
       }
-      (@rabbita.none, {
-        ..next,
-        bookkeeper_draft: draft,
-        bookkeeper_notice: if selected is Some(_) {
-          Some("Bound operator session to \{item.record_id} · \{item.record_version}.")
-        } else {
-          Some("The projected item has no matching durable record; replay the journal first.")
+      (
+        @rabbita.none,
+        {
+          ..next,
+          bookkeeper_draft: draft,
+          bookkeeper_notice: if selected is Some(_) {
+            Some(
+              "Bound operator session to \{item.record_id} · \{item.record_version}.",
+            )
+          } else {
+            Some(
+              "The projected item has no matching durable record; replay the journal first.",
+            )
+          },
         },
-      })
+      )
     }
     SelectBookkeeperAuthority(authority_ref) => {
       let next = { ..model, selected_bookkeeper_authority: Some(authority_ref) }
@@ -1844,44 +1947,60 @@ fn update(
       } else {
         model.bookkeeper_draft
       }
-      (@rabbita.none, {
-        ..next,
-        bookkeeper_draft: draft,
-        bookkeeper_notice: Some("Reviewer session bound to \{authority_ref}."),
-      })
+      (
+        @rabbita.none,
+        {
+          ..next,
+          bookkeeper_draft: draft,
+          bookkeeper_notice: Some("Reviewer session bound to \{authority_ref}."),
+        },
+      )
     }
     SetBookkeeperMode(mode) => {
       let next = { ..model, bookkeeper_mode: mode }
       let draft = if mode == "review" {
-        review_draft_for_selection(next).unwrap_or(bookkeeper_mode_template(mode))
+        review_draft_for_selection(next).unwrap_or(
+          bookkeeper_mode_template(mode),
+        )
       } else {
         bookkeeper_mode_template(mode)
       }
-      (@rabbita.none, { ..next, bookkeeper_draft: draft, bookkeeper_notice: None })
+      (
+        @rabbita.none,
+        { ..next, bookkeeper_draft: draft, bookkeeper_notice: None },
+      )
     }
     SetBookkeeperDraft(draft) =>
       (@rabbita.none, { ..model, bookkeeper_draft: draft })
     SubmitBookkeeperMutation => {
-      let parsed : Result[Json, Error] = try? @json.parse(model.bookkeeper_draft)
+      let parsed : Result[Json, Error] = try? @json.parse(
+        model.bookkeeper_draft,
+      )
       match parsed {
         Ok(payload) =>
           (
-            submit_bookkeeper_mutation_cmd(
-              emit, model.bookkeeper_mode, payload,
-            ),
-            { ..model, bookkeeper_busy: true, bookkeeper_notice: Some("Submitting governed mutation…") },
+            submit_bookkeeper_mutation_cmd(emit, model.bookkeeper_mode, payload),
+            {
+              ..model,
+              bookkeeper_busy: true,
+              bookkeeper_notice: Some("Submitting governed mutation…"),
+            },
           )
         Err(error) =>
           (
             @rabbita.none,
-            { ..model, bookkeeper_notice: Some("Draft is not valid JSON: \{error}") },
+            {
+              ..model,
+              bookkeeper_notice: Some("Draft is not valid JSON: \{error}"),
+            },
           )
       }
     }
     BookkeeperMutationFinished(Ok(result)) =>
       (
         @rabbita.batch([
-          fetch_ui_state_cmd(emit), fetch_bookkeeper_store_cmd(emit),
+          fetch_ui_state_cmd(emit),
+          fetch_bookkeeper_store_cmd(emit),
           fetch_bookkeeper_authorities_cmd(emit),
         ]),
         {
@@ -1899,27 +2018,44 @@ fn update(
     BookkeeperMutationFinished(Err(error)) =>
       (
         @rabbita.none,
-        { ..model, bookkeeper_busy: false, bookkeeper_notice: Some("Mutation failed or was rejected: \{error}") },
+        {
+          ..model,
+          bookkeeper_busy: false,
+          bookkeeper_notice: Some("Mutation failed or was rejected: \{error}"),
+        },
       )
     ReplayBookkeeper =>
       (
         replay_bookkeeper_cmd(emit),
-        { ..model, bookkeeper_busy: true, bookkeeper_notice: Some("Replaying durable Bookkeeper journal…") },
+        {
+          ..model,
+          bookkeeper_busy: true,
+          bookkeeper_notice: Some("Replaying durable Bookkeeper journal…"),
+        },
       )
     BookkeeperReplayFinished(Ok(snapshot)) =>
       (
-        @rabbita.batch([fetch_ui_state_cmd(emit), fetch_bookkeeper_authorities_cmd(emit)]),
+        @rabbita.batch([
+          fetch_ui_state_cmd(emit),
+          fetch_bookkeeper_authorities_cmd(emit),
+        ]),
         {
           ..model,
           bookkeeper_busy: false,
           bookkeeper_store: Some(snapshot),
-          bookkeeper_notice: Some("Replay complete; the served projection is refreshing."),
+          bookkeeper_notice: Some(
+            "Replay complete; the served projection is refreshing.",
+          ),
         },
       )
     BookkeeperReplayFinished(Err(error)) =>
       (
         @rabbita.none,
-        { ..model, bookkeeper_busy: false, bookkeeper_notice: Some("Replay failed: \{error}") },
+        {
+          ..model,
+          bookkeeper_busy: false,
+          bookkeeper_notice: Some("Replay failed: \{error}"),
+        },
       )
   }
 }
@@ -1950,8 +2086,10 @@ fn main {
   let app = @rabbita.new(cell)
   app.with_init(
     @rabbita.batch([
-      fetch_ui_state_cmd(emit), fetch_ui_config_cmd(emit),
-      fetch_bookkeeper_store_cmd(emit), fetch_bookkeeper_authorities_cmd(emit),
+      fetch_ui_state_cmd(emit),
+      fetch_ui_config_cmd(emit),
+      fetch_bookkeeper_store_cmd(emit),
+      fetch_bookkeeper_authorities_cmd(emit),
     ]),
   )
   app.mount("app")
