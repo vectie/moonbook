@@ -53,7 +53,7 @@ async fn install_moonclaw_extension(
   @fsx.make_directory(maintainer_dir, recursive=true, exists_ok=true)
   @fsx.make_directory(review_dir, recursive=true, exists_ok=true)
   write_extension_file_if_missing(config_path, moonclaw_config_text(root))
-  write_generated_extension_file(jobs_path, moonclaw_jobs_text())
+  upsert_generated_moonclaw_jobs(jobs_path, moonclaw_jobs_text())
   write_extension_file_if_missing(providers_path, moonclaw_providers_text(root))
   write_extension_file_if_missing(identity_path, identity_text(root))
   write_extension_file_if_missing(user_path, user_text())
@@ -122,11 +122,46 @@ async fn write_extension_file_if_missing(
 }
 
 ///|
-async fn write_generated_extension_file(
+fn merged_moonclaw_jobs(existing : Json, generated : Json) -> Json raise {
+  guard existing is Object(existing_root) else {
+    fail("existing moonclaw.jobs.json must be a JSON object")
+  }
+  guard generated
+    is { "jobs": { "profiles": Object(generated_profiles), .. }, .. } else {
+    fail("generated MoonBook MoonClaw profiles are invalid")
+  }
+  let existing_jobs : Map[String, Json] = match existing_root.get("jobs") {
+    Some(Object(jobs)) => jobs
+    None => {}
+    Some(_) => fail("existing moonclaw.jobs.json jobs field must be an object")
+  }
+  let existing_profiles : Map[String, Json] = match
+    existing_jobs.get("profiles") {
+    Some(Object(profiles)) => profiles
+    None => {}
+    Some(_) =>
+      fail("existing moonclaw.jobs.json profiles field must be an object")
+  }
+  for id, profile in generated_profiles {
+    existing_profiles.set(id, profile)
+  }
+  existing_jobs.set("profiles", Json::object(existing_profiles))
+  existing_root.set("jobs", Json::object(existing_jobs))
+  Json::object(existing_root)
+}
+
+///|
+async fn upsert_generated_moonclaw_jobs(
   path : String,
   content : String,
 ) -> Unit {
-  @fsx.write_to_file(path, content, create=0o644)
+  let generated = @json.parse(content)
+  let merged = if @fsx.exists(path) {
+    merged_moonclaw_jobs(@json.parse(@fsx.read_file(path)), generated)
+  } else {
+    generated
+  }
+  @fsx.write_to_file(path, merged.stringify(indent=2), create=0o644)
 }
 
 ///|

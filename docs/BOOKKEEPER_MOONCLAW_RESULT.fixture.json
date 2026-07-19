@@ -1,0 +1,69 @@
+{
+  "contract_version": "moonbook.bookkeeper.moonclaw-result.v1",
+  "packet_id": "bookkeeper-learning-example-v1",
+  "source_packet_digest": "sha256:replace-from-packet-metadata",
+  "source_snapshot_digest": "sha256:replace-from-packet-metadata",
+  "subject": {
+    "record_id": "outcome-example",
+    "record_version": "v1",
+    "record_digest": "sha256:replace-with-exact-subject-digest"
+  },
+  "subject_stage": "outcome_binding",
+  "evidence_refs": [
+    {
+      "reference_id": "evidence-outcome-example",
+      "reference_version": "v1",
+      "digest": "sha256:replace-with-exact-evidence-digest",
+      "provenance_ref": "fixture://replace-with-exact-provenance"
+    }
+  ],
+  "producer": "moonclaw",
+  "model": "gpt-5.6-sol",
+  "candidate": {
+    "record_id": "three-gap-finding-example",
+    "record_version": "v1",
+    "stage": "three_gap_finding",
+    "title": "Evidence-bound information gap",
+    "summary": "The accepted deliverable lacks evidence needed to explain the observed outcome.",
+    "owner_route": "bookkeeper://three-gap-review",
+    "recorded_at": 1784390400,
+    "links": [
+      {
+        "record_id": "outcome-example",
+        "record_version": "v1",
+        "record_digest": "sha256:replace-with-exact-subject-digest"
+      }
+    ],
+    "issue_refs": [],
+    "next_action": "named-human Bookkeeper review",
+    "payload": {
+      "contract_version": "moonbook.bookkeeper.three_gap.v1",
+      "candidate_schema": "three_gap_finding.v1",
+      "subject": {
+        "record_id": "outcome-example",
+        "record_version": "v1",
+        "record_digest": "sha256:replace-with-exact-subject-digest"
+      },
+      "learning_key": {
+        "record_id": "learning-key-example",
+        "record_version": "v1",
+        "record_digest": "sha256:replace-with-learning-key-digest"
+      },
+      "gap_class": "information_gap",
+      "transition": "unknown_to_known",
+      "severity": 4,
+      "owner_route": "bookkeeper://three-gap-review",
+      "summary": "The accepted deliverable lacks evidence needed to explain the observed outcome.",
+      "evidence_refs": [
+        {
+          "reference_id": "evidence-outcome-example",
+          "reference_version": "v1",
+          "digest": "sha256:replace-with-exact-evidence-digest",
+          "provenance_ref": "fixture://replace-with-exact-provenance"
+        }
+      ],
+      "source_snapshot_digest": "sha256:replace-from-packet-metadata",
+      "source_packet_digest": "sha256:replace-from-packet-metadata"
+    }
+  }
+}

@@ -1,16 +1,33 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "vectie/moonbook/cmd/main"
 
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
 // Values
 
 // Errors
 
 // Types and methods
+type BookkeeperMoonClawPacket derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type BookkeeperMoonClawRequest derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type BookkeeperMoonClawResult derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type BookkeeperMoonClawResultCandidate derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type ParsedBookkeeperMoonClawArgs
+
 type ParsedWikiExtensionGoalArgs
 
 type ParsedWikiKeeperSubmitArgs
 
 type ParsedWikiQueryArgs
+
+type VerifiedBookkeeperMoonClawPacket
 
 // Type aliases
 
