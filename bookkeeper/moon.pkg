@@ -1,4 +1,6 @@
 // Generic, domain-neutral Bookkeeper contracts and finalization behavior.
 import {
+  "moonbitlang/core/encoding/utf8" @encoding/utf8,
   "moonbitlang/core/json",
+  "moonbitlang/x/crypto",
 }

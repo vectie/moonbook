@@ -23,6 +23,111 @@ fn moonclaw_result_test_evidence(
 }
 
 ///|
+async fn moonclaw_result_accept_record(
+  root : String,
+  record : @bookkeeper_store.DurableBookkeeperRecord,
+  reviewer_id : String,
+  decided_at : Int,
+) -> Unit {
+  let evidence_ids = record.evidence_refs.map(reference => {
+    reference.reference_id
+  })
+  let grant_payload : Json = { "reviewer_id": reviewer_id }
+  let grant = moonclaw_result_test_ref("grant-" + reviewer_id, grant_payload)
+  ignore(
+    @bookkeeper_store.install_bookkeeper_authority_grant(root, {
+      contract_version: @bookkeeper_store.bookkeeper_store_contract_version(),
+      grant,
+      reviewer_id,
+      reviewer_kind: @bookkeeper.Human,
+      authority_ref: "authority://" + reviewer_id,
+      evidence_refs: evidence_ids,
+      active: true,
+      granted_at: decided_at - 1,
+    }),
+  )
+  let result = @bookkeeper_store.apply_governed_review(root, {
+    contract_version: @bookkeeper_store.bookkeeper_store_contract_version(),
+    mutation: moonclaw_result_test_ref("mutation-" + reviewer_id, {
+      "reviewer_id": reviewer_id,
+      "kind": "mutation",
+    }),
+    receipt: moonclaw_result_test_ref("receipt-" + reviewer_id, {
+      "reviewer_id": reviewer_id,
+      "kind": "receipt",
+    }),
+    stage: record.stage,
+    subject: record.record,
+    requested: @bookkeeper.Accept,
+    reviewer_kind: @bookkeeper.Human,
+    reviewer: {
+      grant,
+      reviewer_id,
+      authority_ref: "authority://" + reviewer_id,
+      authorized: true,
+      evidence_refs: evidence_ids,
+    },
+    evidence_refs: record.evidence_refs,
+    summary: "Named-human acceptance for " + record.record.record_id,
+    decided_at,
+  })
+  assert_true(result.accepted)
+}
+
+///|
+fn moonclaw_result_gap_record(
+  id : String,
+  outcome : @bookkeeper.VersionedRecordReference,
+  learning_key : @bookkeeper.VersionedRecordReference,
+  gap_class : String,
+  severity : Int,
+  owner_route : String,
+  evidence : @bookkeeper.VersionedEvidenceReference,
+  recorded_at : Int,
+) -> @bookkeeper_store.DurableBookkeeperRecord {
+  let transition = match gap_class {
+    "information_gap" => "unknown_to_known"
+    "recognition_gap" => "known_to_matters"
+    "decisiveness_gap" => "matters_to_act"
+    _ => "invalid"
+  }
+  let summary = "Reviewed " + gap_class + " finding " + id
+  let payload : Json = {
+    "contract_version": @bookkeeper.three_gap_contract_version(),
+    "candidate_schema": "three_gap_finding.v1",
+    "subject": outcome.to_json(),
+    "learning_key": learning_key.to_json(),
+    "gap_class": gap_class,
+    "transition": transition,
+    "severity": severity,
+    "owner_route": owner_route,
+    "summary": summary,
+    "evidence_refs": [evidence].to_json(),
+    "source_snapshot_digest": "sha256:source-snapshot-" + id,
+    "source_packet_digest": "sha256:source-packet-" + id,
+  }
+  {
+    contract_version: @bookkeeper_store.bookkeeper_store_contract_version(),
+    record: moonclaw_result_test_ref(id, payload),
+    stage: @bookkeeper_store.ThreeGapFinding,
+    subject: Some(outcome),
+    links: [outcome],
+    title: "Three-Gap finding " + id,
+    summary,
+    owner_route,
+    status: "awaiting human review",
+    evidence_refs: [evidence],
+    issue_refs: [],
+    requires_human_review: true,
+    next_action: "named-human review",
+    source_product: "moonclaw",
+    recorded_at,
+    payload,
+    side_effects_applied: false,
+  }
+}
+
+///|
 async fn moonclaw_result_fixture_json() -> Json {
   let fixture_path = moonbook_cmd_path(@env.current_dir().unwrap_or("."))
     .join(moonbook_cmd_path("docs/BOOKKEEPER_MOONCLAW_RESULT.fixture.json"))
@@ -456,4 +561,311 @@ async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queu
   )
   inspect(rejected.accepted, content="false")
   assert_true(rejected.issues.any(fn(issue) { issue.contains("conflicting") }))
+}
+
+///|
+async test "MoonBook owns capability promotion policy and aggregation receipt" {
+  let root = "/tmp/moonbook-capability-promotion-\{@async.now().to_int()}"
+  let deliverable_payload : Json = {
+    "contract_version": @bookkeeper.bookkeeper_contract_version(),
+    "fixture": "promotion-deliverable",
+  }
+  let deliverable_evidence = moonclaw_result_test_evidence(
+    "promotion-deliverable-evidence",
+  )
+  let deliverable : @bookkeeper_store.DurableBookkeeperRecord = {
+    contract_version: @bookkeeper_store.bookkeeper_store_contract_version(),
+    record: moonclaw_result_test_ref(
+      "promotion-deliverable", deliverable_payload,
+    ),
+    stage: @bookkeeper_store.DeliverableAcceptance,
+    subject: None,
+    links: [],
+    title: "Promotion deliverable",
+    summary: "Accepted deliverable for deterministic promotion.",
+    owner_route: "owner://learning",
+    status: "awaiting human review",
+    evidence_refs: [deliverable_evidence],
+    issue_refs: [],
+    requires_human_review: true,
+    next_action: "review",
+    source_product: "moonbook",
+    recorded_at: 100,
+    payload: deliverable_payload,
+    side_effects_applied: false,
+  }
+  assert_true(
+    @bookkeeper_store.persist_bookkeeper_record(root, deliverable).accepted,
+  )
+  moonclaw_result_accept_record(root, deliverable, "promotion-deliverable", 101)
+  let outcome_payload : Json = {
+    "contract_version": @bookkeeper.three_gap_contract_version(),
+    "fixture": "promotion-outcome",
+  }
+  let outcome : @bookkeeper_store.DurableBookkeeperRecord = {
+    contract_version: @bookkeeper_store.bookkeeper_store_contract_version(),
+    record: moonclaw_result_test_ref("promotion-outcome", outcome_payload),
+    stage: @bookkeeper_store.OutcomeBinding,
+    subject: Some(deliverable.record),
+    links: [deliverable.record],
+    title: "Promotion outcome",
+    summary: "Outcome feeding the deterministic slow loop.",
+    owner_route: "owner://learning",
+    status: "observed",
+    evidence_refs: [moonclaw_result_test_evidence("promotion-outcome-evidence")],
+    issue_refs: [],
+    requires_human_review: false,
+    next_action: "classify gaps",
+    source_product: "moonbook",
+    recorded_at: 102,
+    payload: outcome_payload,
+    side_effects_applied: false,
+  }
+  assert_true(
+    @bookkeeper_store.persist_bookkeeper_record(root, outcome).accepted,
+  )
+  let learning_key = bookkeeper_outcome_learning_key(outcome.record)
+  let information = moonclaw_result_gap_record(
+    "finding-a-information",
+    outcome.record,
+    learning_key,
+    "information_gap",
+    4,
+    "owner://learning",
+    moonclaw_result_test_evidence("evidence-information"),
+    103,
+  )
+  let recognition = moonclaw_result_gap_record(
+    "finding-b-recognition",
+    outcome.record,
+    learning_key,
+    "recognition_gap",
+    3,
+    "owner://learning",
+    moonclaw_result_test_evidence("evidence-recognition"),
+    104,
+  )
+  let decisiveness = moonclaw_result_gap_record(
+    "finding-c-decisiveness",
+    outcome.record,
+    learning_key,
+    "decisiveness_gap",
+    5,
+    "owner://learning",
+    moonclaw_result_test_evidence("evidence-decisiveness"),
+    105,
+  )
+  let low_recognition = moonclaw_result_gap_record(
+    "finding-d-low-recognition",
+    outcome.record,
+    learning_key,
+    "recognition_gap",
+    1,
+    "owner://learning",
+    moonclaw_result_test_evidence("evidence-low-recognition"),
+    106,
+  )
+  let mixed_key = moonclaw_result_gap_record(
+    "finding-e-mixed-key",
+    outcome.record,
+    { ..learning_key, record_digest: "sha256:mixed-learning-key" },
+    "information_gap",
+    4,
+    "owner://learning",
+    moonclaw_result_test_evidence("evidence-mixed-key"),
+    107,
+  )
+  let wrong_owner = moonclaw_result_gap_record(
+    "finding-f-wrong-owner",
+    outcome.record,
+    learning_key,
+    "information_gap",
+    4,
+    "owner://different",
+    moonclaw_result_test_evidence("evidence-wrong-owner"),
+    108,
+  )
+  let unreviewed = moonclaw_result_gap_record(
+    "finding-g-unreviewed",
+    outcome.record,
+    learning_key,
+    "information_gap",
+    4,
+    "owner://learning",
+    moonclaw_result_test_evidence("evidence-unreviewed"),
+    109,
+  )
+  let findings = [
+    information, recognition, decisiveness, low_recognition, mixed_key, wrong_owner,
+    unreviewed,
+  ]
+  for finding in findings {
+    assert_true(
+      @bookkeeper_store.persist_bookkeeper_record(root, finding).accepted,
+    )
+  }
+  for
+    item in [
+      (information, "information-reviewer", 110),
+      (recognition, "recognition-reviewer", 111),
+      (decisiveness, "decisiveness-reviewer", 112),
+      (low_recognition, "low-reviewer", 113),
+      (mixed_key, "mixed-reviewer", 114),
+      (wrong_owner, "owner-reviewer", 115),
+    ] {
+    let (finding, reviewer, decided_at) = item
+    moonclaw_result_accept_record(root, finding, reviewer, decided_at)
+  }
+  let snapshot = @bookkeeper_store.replay_bookkeeper_store(root)
+  let request : BookkeeperMoonClawRequest = {
+    contract_version: bookkeeper_moonclaw_request_contract_version(),
+    request_id: "capability-promotion",
+    request_version: "v1",
+    subject: information.record,
+    objective: "Propose the repeated evidence-bound capability improvement.",
+    recorded_at: 116,
+  }
+  let packet = bookkeeper_moonclaw_packet(request, information, snapshot)
+  let packet_path = persist_bookkeeper_moonclaw_packet(root, request, packet)
+  guard packet.metadata is Object(metadata) else {
+    fail("promotion packet metadata missing")
+  }
+  let snapshot_digest = result_required_string(
+    metadata, "source_snapshot_digest", "promotion packet",
+  )
+  let packet_digest = result_required_string(
+    metadata, "source_packet_digest", "promotion packet",
+  )
+  let policy = bookkeeper_capability_promotion_policy()
+  guard result_required_json(metadata, "result_contract", "promotion packet")
+    is {
+      "promotion_policy": packet_policy,
+      "aggregation_digest_source": "moonbook",
+      ..
+    } else {
+    fail("promotion packet omits MoonBook-owned policy metadata")
+  }
+  assert_true(packet_policy == policy.to_json())
+  let make_result = fn(
+    records : Array[@bookkeeper_store.DurableBookkeeperRecord],
+    policy_ref : @bookkeeper.VersionedRecordReference,
+  ) -> BookkeeperMoonClawResult raise {
+    let links = records.map(record => record.record)
+    let evidence = bookkeeper_moonclaw_capability_evidence(records)
+    let summary = "Add the reviewed evidence-routing capability."
+    let payload : Json = {
+      "contract_version": @bookkeeper.bookkeeper_contract_version(),
+      "candidate_schema": "capability_proposal.v1",
+      "proposal_id": "proposal-policy-owned",
+      "proposal_version": "v1",
+      "subject": information.record.to_json(),
+      "capability_id": "capability://evidence-routing",
+      "capability_version": "v2",
+      "change_digest": "sha256:evidence-routing-v2",
+      "summary": summary,
+      "owner_route": "owner://learning",
+      "evidence_refs": evidence.to_json(),
+      "source_finding_refs": links.to_json(),
+      "promotion_policy_ref": policy_ref.to_json(),
+      "source_snapshot_digest": snapshot_digest,
+      "source_packet_digest": packet_digest,
+    }
+    {
+      contract_version: bookkeeper_moonclaw_result_contract_version(),
+      packet_id: packet.packet_id,
+      source_packet_digest: packet_digest,
+      source_snapshot_digest: snapshot_digest,
+      subject: information.record,
+      subject_stage: "three_gap_finding",
+      evidence_refs: evidence,
+      producer: "moonclaw",
+      model: "gpt-5.6-sol",
+      candidate: {
+        record_id: "proposal-policy-owned",
+        record_version: "v1",
+        stage: "capability_proposal",
+        title: "Evidence routing capability",
+        summary,
+        owner_route: "owner://learning",
+        recorded_at: 117,
+        links,
+        issue_refs: [],
+        next_action: "named-human proposal review",
+        payload,
+      },
+    }
+  }
+  let invalid_policy = make_result([information, recognition, decisiveness], {
+    ..policy.policy,
+    record_digest: "sha256:model-invented-policy",
+  })
+  try
+    ingest_bookkeeper_moonclaw_result(
+      root,
+      packet_path,
+      invalid_policy.to_json(),
+    )
+  catch {
+    error => assert_true("\{error}".contains("exact promotion policy"))
+  } noraise {
+    _ => fail("model-invented promotion policy must be rejected")
+  }
+  for
+    item in [
+      (
+        [information, low_recognition, decisiveness],
+        "does not satisfy MoonBook promotion policy",
+      ),
+      (
+        [information, recognition, decisiveness, mixed_key],
+        "does not satisfy MoonBook promotion policy",
+      ),
+      (
+        [information, recognition, decisiveness, wrong_owner],
+        "does not satisfy MoonBook promotion policy",
+      ),
+      (
+        [information, recognition, decisiveness, unreviewed],
+        "named-human accepted record",
+      ),
+    ] {
+    let (records, expected) = item
+    try
+      ingest_bookkeeper_moonclaw_result(
+        root,
+        packet_path,
+        make_result(records, policy.policy).to_json(),
+      )
+    catch {
+      error => assert_true("\{error}".contains(expected))
+    } noraise {
+      _ => fail("invalid promotion inputs must be rejected")
+    }
+  }
+  let promoted = ingest_bookkeeper_moonclaw_result(
+    root,
+    packet_path,
+    make_result([information, recognition, decisiveness], policy.policy).to_json(),
+  )
+  assert_true(promoted.accepted)
+  let final_snapshot = @bookkeeper_store.replay_bookkeeper_store(root)
+  let mut stored : @bookkeeper_store.DurableBookkeeperRecord? = None
+  for record in final_snapshot.records {
+    if record.record.record_id == "proposal-policy-owned" {
+      stored = Some(record)
+    }
+  }
+  let stored = stored.unwrap()
+  guard stored.payload
+    is {
+      "aggregation_digest": String(aggregation_digest),
+      "policy_promoted": true,
+      "review_required": true,
+      "self_application_allowed": false,
+      ..
+    } else {
+    fail("MoonBook did not persist canonical promotion fields")
+  }
+  assert_true(aggregation_digest.has_prefix("sha256:"))
+  assert_true(aggregation_digest != "sha256:evidence-routing-v2")
 }

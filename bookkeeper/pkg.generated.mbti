@@ -17,6 +17,8 @@ pub fn bookkeeper_contract_version() -> String
 
 pub fn capability_adoption_contract_version() -> String
 
+pub fn capability_aggregation_digest(proposal_id~ : String, proposal_version~ : String, capability_id~ : String, capability_version~ : String, owner_route~ : String, change_digest~ : String, summary~ : String, evidence_refs~ : ArrayView[EvidenceReference], source_finding_refs~ : ArrayView[VersionedRecordReference], promotion_policy_ref~ : VersionedRecordReference, supersedes_version? : String) -> String
+
 pub fn decide_capability_adoption(CapabilityProposal, LearningReceipt, MoonCodeWorkOrderProjection, MoonCodeWorkResultCandidate, CapabilityEvaluation, decision~ : VersionedRecordReference, requested~ : BookkeeperDisposition, reviewer~ : ReviewerAuthority, CapabilityAdoptionAttestation?) -> CapabilityAdoptionDecision
 
 pub fn empty_bookkeeper_ui_state(String) -> BookkeeperUiState

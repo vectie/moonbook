@@ -84,6 +84,74 @@ pub fn CapabilityProposal::is_policy_promoted(
 }
 
 ///|
+/// Derive the immutable receipt for one capability-promotion decision. The
+/// caller may describe the proposed capability change, but cannot choose the
+/// aggregation receipt: it is bound to the exact policy, source findings,
+/// evidence, target version, and proposal text after canonical ordering.
+pub fn capability_aggregation_digest(
+  proposal_id~ : String,
+  proposal_version~ : String,
+  capability_id~ : String,
+  capability_version~ : String,
+  owner_route~ : String,
+  change_digest~ : String,
+  summary~ : String,
+  evidence_refs~ : ArrayView[EvidenceReference],
+  source_finding_refs~ : ArrayView[VersionedRecordReference],
+  promotion_policy_ref~ : VersionedRecordReference,
+  supersedes_version? : String,
+) -> String {
+  let findings : Array[VersionedRecordReference] = []
+  for reference in source_finding_refs {
+    findings.push(reference)
+  }
+  findings.sort_by(fn(left, right) {
+    let by_id = left.record_id.compare(right.record_id)
+    if by_id != 0 {
+      return by_id
+    }
+    let by_version = left.record_version.compare(right.record_version)
+    if by_version != 0 {
+      return by_version
+    }
+    left.record_digest.compare(right.record_digest)
+  })
+  let evidence : Array[EvidenceReference] = []
+  for reference in evidence_refs {
+    evidence.push(reference)
+  }
+  evidence.sort_by(fn(left, right) {
+    let by_id = left.reference_id.compare(right.reference_id)
+    if by_id != 0 {
+      return by_id
+    }
+    let by_digest = left.digest.compare(right.digest)
+    if by_digest != 0 {
+      return by_digest
+    }
+    left.provenance_ref.compare(right.provenance_ref)
+  })
+  let binding : Json = {
+    "contract_version": "moonbook.bookkeeper.capability-aggregation.v1",
+    "proposal_id": proposal_id,
+    "proposal_version": proposal_version,
+    "capability_id": capability_id,
+    "capability_version": capability_version,
+    "owner_route": owner_route,
+    "change_digest": change_digest,
+    "summary": summary,
+    "evidence_refs": evidence.to_json(),
+    "source_finding_refs": findings.to_json(),
+    "promotion_policy_ref": promotion_policy_ref.to_json(),
+    "supersedes_version": supersedes_version.to_json(),
+  }
+  "sha256:" +
+  @crypto.bytes_to_hex_string(
+    @crypto.sha256(@encoding/utf8.encode(binding.stringify())),
+  )
+}
+
+///|
 /// Reconstruct the canonical policy-promoted value from an already durable,
 /// exact Bookkeeper record. This is intentionally stricter than the legacy
 /// proposal constructor: malformed promotion bindings fail before a work-order
@@ -129,9 +197,22 @@ pub fn reconstruct_policy_promoted_capability_proposal(
   if !reference_complete(promotion_policy_ref) {
     return Err("policy-promoted proposal requires an exact promotion policy")
   }
-  if aggregation_digest.is_blank() || aggregation_digest != change_digest {
+  let expected_aggregation_digest = capability_aggregation_digest(
+    proposal_id~,
+    proposal_version~,
+    capability_id~,
+    capability_version~,
+    owner_route~,
+    change_digest~,
+    summary~,
+    evidence_refs~,
+    source_finding_refs~,
+    promotion_policy_ref~,
+    supersedes_version?,
+  )
+  if aggregation_digest != expected_aggregation_digest {
     return Err(
-      "policy-promoted proposal aggregation digest must equal its change digest",
+      "policy-promoted proposal aggregation digest does not match its canonical policy binding",
     )
   }
   Ok({

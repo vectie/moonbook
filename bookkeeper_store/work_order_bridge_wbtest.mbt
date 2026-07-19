@@ -154,6 +154,18 @@ async test "governed bridge projects, separately reviews, and emits draft-only w
     record_version: "v1",
     record_digest: "sha256:three-gap-policy",
   }
+  let aggregation_digest = @bookkeeper.capability_aggregation_digest(
+    proposal_id="proposal",
+    proposal_version="v1",
+    capability_id="capability",
+    capability_version="v2",
+    owner_route="owner://bridge",
+    change_digest="sha256:capability-change",
+    summary="Bridge fixture summary proposal",
+    evidence_refs=bridge_legacy_evidence(proposal_evidence),
+    source_finding_refs=[finding_one.record, finding_two.record],
+    promotion_policy_ref=policy,
+  )
   let proposal_payload : Json = {
     "contract_version": @bookkeeper.bookkeeper_contract_version(),
     "candidate_schema": "capability_proposal.v1",
@@ -168,7 +180,7 @@ async test "governed bridge projects, separately reviews, and emits draft-only w
     "evidence_refs": proposal_evidence.to_json(),
     "source_finding_refs": [finding_one.record, finding_two.record].to_json(),
     "promotion_policy_ref": policy.to_json(),
-    "aggregation_digest": "sha256:capability-change",
+    "aggregation_digest": aggregation_digest,
     "policy_promoted": true,
     "review_required": true,
     "self_application_allowed": false,

@@ -305,6 +305,47 @@ fn bookkeeper_three_gap_learning_policy_ref() -> @bookkeeper.VersionedRecordRefe
 }
 
 ///|
+/// The slow-loop promotion policy is owned and versioned by MoonBook. MoonClaw
+/// receives this complete value as input; it may not invent thresholds or
+/// replace the policy reference in a capability candidate.
+fn bookkeeper_capability_promotion_policy() -> @bookkeeper.CapabilityPromotionPolicy {
+  let basis : Json = {
+    "contract_version": @bookkeeper.three_gap_contract_version(),
+    "policy_id": "moonbook-capability-promotion-policy",
+    "policy_version": "v1",
+    "minimum_reviewed_findings": 3,
+    "minimum_severity": 2,
+    "required_gap_classes": [
+      "information_gap", "recognition_gap", "decisiveness_gap",
+    ],
+  }
+  let digest = @bookkeeper_store.bookkeeper_payload_digest(basis)
+  let policy : @bookkeeper.VersionedRecordReference = {
+    record_id: "moonbook-capability-promotion-policy",
+    record_version: "v1",
+    record_digest: digest,
+  }
+  @bookkeeper.CapabilityPromotionPolicy::new(
+    policy~,
+    minimum_reviewed_findings=3,
+    minimum_severity=2,
+    required_gap_classes=[
+      @bookkeeper.InformationGap,
+      @bookkeeper.RecognitionGap,
+      @bookkeeper.DecisivenessGap,
+    ],
+    evidence_refs=[
+      {
+        reference_id: policy.record_id,
+        reference_version: policy.record_version,
+        digest: policy.record_digest,
+        provenance_ref: "moonbook://bookkeeper/policies/capability-promotion/v1",
+      },
+    ],
+  )
+}
+
+///|
 fn bookkeeper_outcome_learning_key(
   subject : @bookkeeper.VersionedRecordReference,
 ) -> @bookkeeper.VersionedRecordReference {
@@ -393,10 +434,35 @@ fn bookkeeper_moonclaw_canonical_evidence(
 }
 
 ///|
+fn bookkeeper_moonclaw_capability_evidence(
+  records : ArrayView[@bookkeeper_store.DurableBookkeeperRecord],
+) -> Array[@bookkeeper.VersionedEvidenceReference] raise {
+  let evidence = bookkeeper_moonclaw_canonical_evidence(records)
+  let policy = bookkeeper_capability_promotion_policy()
+  for reference in policy.evidence_refs {
+    evidence.push(reference)
+  }
+  evidence.sort_by(bookkeeper_moonclaw_evidence_compare)
+  let unique : Array[@bookkeeper.VersionedEvidenceReference] = []
+  for reference in evidence {
+    match unique.last() {
+      Some(previous) if previous.reference_id == reference.reference_id &&
+        previous.reference_version == reference.reference_version =>
+        if previous != reference {
+          fail("conflicting exact evidence identity in promotion inputs")
+        }
+      _ => unique.push(reference)
+    }
+  }
+  unique
+}
+
+///|
 fn bookkeeper_moonclaw_result_contract(
   subject : @bookkeeper_store.DurableBookkeeperRecord,
   learning_key : @bookkeeper.VersionedRecordReference,
 ) -> Json {
+  let promotion_policy = bookkeeper_capability_promotion_policy()
   let (candidate_schema, candidate_stage, canonical_evidence_source) = match
     subject.stage {
     OutcomeBinding =>
@@ -418,6 +484,8 @@ fn bookkeeper_moonclaw_result_contract(
     "learning_key": learning_key.to_json(),
     "learning_key_source": "moonbook",
     "learning_key_policy": bookkeeper_three_gap_learning_policy_ref().to_json(),
+    "promotion_policy": promotion_policy.to_json(),
+    "aggregation_digest_source": "moonbook",
     "canonical_evidence_source": canonical_evidence_source,
   }
 }
@@ -543,6 +611,13 @@ fn bookkeeper_moonclaw_packet(
   let packet_digest = bookkeeper_moonclaw_packet_binding_digest(
     packet_id, request, subject, snapshot_digest, result_contract, canonical_evidence_refs,
   )
+  let evidence_note = match subject.stage {
+    OutcomeBinding =>
+      "Copy metadata.result_contract.learning_key and metadata.canonical_evidence_refs exactly; MoonClaw must not derive, reorder, or invent them."
+    ThreeGapFinding =>
+      "Copy metadata.result_contract.learning_key and promotion_policy exactly. Capability evidence is the canonical union of every exact linked accepted finding plus promotion-policy evidence; MoonBook recomputes and verifies it."
+    _ => "MoonBook owns canonical evidence derivation."
+  }
   {
     packet_id,
     title: "Bookkeeper closed loop for \{request.request_id}",
@@ -557,8 +632,7 @@ fn bookkeeper_moonclaw_packet(
     notes: [
       "MoonClaw is the agent runtime; MoonBook owns the durable Bookkeeper journal and Rabbita projection.",
       "Read-only state: moonbook bookkeeper state <workspace>.", "Candidate persistence from this packet uses: moonbook bookkeeper moonclaw ingest-result <workspace> <packet.json> <moonclaw-result.json>.",
-      "Copy metadata.result_contract.learning_key and metadata.canonical_evidence_refs exactly; MoonClaw must not derive, reorder, or invent them.",
-      "Acceptance remains a later named-human call with a CLI-installed grant: moonbook bookkeeper review <workspace> <mutation.json>.",
+      evidence_note, "Acceptance remains a later named-human call with a CLI-installed grant: moonbook bookkeeper review <workspace> <mutation.json>.",
       "Never modify .moonbook/bookkeeper directly and never fabricate authority, review, or adoption.",
     ],
     tags: ["bookkeeper", "three-gap", "capability-learning"],

@@ -425,6 +425,134 @@ fn result_has_human_accept(
 }
 
 ///|
+fn result_gap_class(value : String) -> @bookkeeper.ThreeGapClass raise {
+  match value {
+    "information_gap" => @bookkeeper.InformationGap
+    "recognition_gap" => @bookkeeper.RecognitionGap
+    "decisiveness_gap" => @bookkeeper.DecisivenessGap
+    _ => fail("unsupported Three-Gap class in durable source finding")
+  }
+}
+
+///|
+fn result_exact_human_accept(
+  snapshot : @bookkeeper_store.BookkeeperStoreSnapshot,
+  record : @bookkeeper_store.DurableBookkeeperRecord,
+) -> @bookkeeper_store.GovernedReviewReceipt raise {
+  let mut accepted : @bookkeeper_store.GovernedReviewReceipt? = None
+  for review in snapshot.reviews {
+    if review.stage == @bookkeeper_store.ThreeGapFinding &&
+      review.subject == record.record &&
+      review.review_complete &&
+      review.disposition == @bookkeeper.Accept &&
+      review.reviewer_kind == @bookkeeper.Human {
+      match accepted {
+        None => accepted = Some(review)
+        Some(_) => fail("source finding has ambiguous human Accept receipts")
+      }
+    }
+  }
+  match accepted {
+    Some(review) => review
+    None => fail("source finding lacks an exact named-human Accept receipt")
+  }
+}
+
+///|
+/// Rebuild the canonical reviewed value from the exact durable finding and its
+/// named-human store receipt. This makes the core aggregation policy—not model
+/// prose—the authority for every promotion threshold.
+fn result_reviewed_finding(
+  snapshot : @bookkeeper_store.BookkeeperStoreSnapshot,
+  record : @bookkeeper_store.DurableBookkeeperRecord,
+) -> @bookkeeper.ReviewedGapFinding raise {
+  if record.stage != @bookkeeper_store.ThreeGapFinding {
+    fail("capability source is not a Three-Gap finding")
+  }
+  guard record.payload is Object(fields) else {
+    fail("durable Three-Gap finding payload must be an object")
+  }
+  if result_required_string(fields, "contract_version", "source finding") !=
+    @bookkeeper.three_gap_contract_version() ||
+    result_required_string(fields, "candidate_schema", "source finding") !=
+    "three_gap_finding.v1" {
+    fail("durable Three-Gap source uses an unsupported contract")
+  }
+  let subject = result_record_reference(
+    result_required_json(fields, "subject", "source finding"),
+    "source finding subject",
+  )
+  let learning_key = result_record_reference(
+    result_required_json(fields, "learning_key", "source finding"),
+    "source finding learning_key",
+  )
+  let gap_class_text = result_required_string(
+    fields, "gap_class", "source finding",
+  )
+  let gap_class = result_gap_class(gap_class_text)
+  let expected_transition = match gap_class {
+    @bookkeeper.InformationGap => "unknown_to_known"
+    @bookkeeper.RecognitionGap => "known_to_matters"
+    @bookkeeper.DecisivenessGap => "matters_to_act"
+  }
+  if result_required_string(fields, "transition", "source finding") !=
+    expected_transition {
+    fail("durable Three-Gap transition does not match its gap class")
+  }
+  let severity = result_required_int(fields, "severity", "source finding")
+  let owner_route = result_required_string(
+    fields, "owner_route", "source finding",
+  )
+  let summary = result_required_string(fields, "summary", "source finding")
+  let evidence_refs = result_evidence_references(
+    result_required_json(fields, "evidence_refs", "source finding"),
+    "source finding evidence_refs",
+  )
+  if owner_route != record.owner_route ||
+    summary != record.summary ||
+    evidence_refs != record.evidence_refs {
+    fail("durable Three-Gap payload differs from its record envelope")
+  }
+  let finding = @bookkeeper.CanonicalGapFinding::new(
+    finding=record.record,
+    learning_key~,
+    subject~,
+    gap_class~,
+    severity~,
+    owner_route~,
+    summary~,
+    evidence_refs~,
+  )
+  let review = result_exact_human_accept(snapshot, record)
+  let reviewer : @bookkeeper.ReviewerAuthority = {
+    reviewer_id: review.reviewer.reviewer_id,
+    authority_ref: review.reviewer.authority_ref,
+    authorized: review.reviewer.authorized,
+    evidence_refs: ReadOnlyArray::from_array(review.reviewer.evidence_refs),
+  }
+  let attestation = @bookkeeper.FindingReviewAuthorityAttestation::new(
+    attestation=review.mutation,
+    finding,
+    receipt=review.receipt,
+    reviewer_kind=@bookkeeper.Human,
+    reviewer~,
+    evidence_refs=review.evidence_refs,
+    requested=@bookkeeper.Accept,
+  )
+  let decision = @bookkeeper.review_three_gap_finding(
+    finding,
+    receipt=review.receipt,
+    reviewer~,
+    requested=@bookkeeper.Accept,
+    Some(attestation),
+  )
+  match decision.reviewed_finding {
+    Some(reviewed) if decision.is_reviewed() => reviewed
+    _ => fail("durable Three-Gap review cannot be reconstructed canonically")
+  }
+}
+
+///|
 fn result_validate_common_payload(
   fields : Map[String, Json],
   result : BookkeeperMoonClawResult,
@@ -512,7 +640,9 @@ fn result_validate_gap_payload(
 fn result_validate_capability_payload(
   result : BookkeeperMoonClawResult,
   verified : VerifiedBookkeeperMoonClawPacket,
-) -> Unit raise {
+  snapshot : @bookkeeper_store.BookkeeperStoreSnapshot,
+  source_records : ArrayView[@bookkeeper_store.DurableBookkeeperRecord],
+) -> @bookkeeper.CapabilityProposal raise {
   let label = "capability proposal candidate payload"
   result_require_exact_keys(
     result.candidate.payload,
@@ -520,7 +650,6 @@ fn result_validate_capability_payload(
       "contract_version", "candidate_schema", "proposal_id", "proposal_version",
       "subject", "capability_id", "capability_version", "change_digest", "summary",
       "owner_route", "evidence_refs", "source_finding_refs", "promotion_policy_ref",
-      "aggregation_digest", "policy_promoted", "review_required", "self_application_allowed",
       "source_snapshot_digest", "source_packet_digest",
     ],
     label,
@@ -545,29 +674,83 @@ fn result_validate_capability_payload(
   if subject != result.subject {
     fail("capability proposal payload subject does not match result")
   }
-  for
-    key in [
-      "capability_id", "capability_version", "change_digest", "aggregation_digest",
-    ] {
-    ignore(result_required_string(fields, key, label))
-  }
-  ignore(
-    result_record_reference(
-      result_required_json(fields, "promotion_policy_ref", label),
-      "payload promotion_policy_ref",
-    ),
+  let capability_id = result_required_string(fields, "capability_id", label)
+  let capability_version = result_required_string(
+    fields, "capability_version", label,
   )
+  let change_digest = result_required_string(fields, "change_digest", label)
+  let promotion_policy_ref = result_record_reference(
+    result_required_json(fields, "promotion_policy_ref", label),
+    "payload promotion_policy_ref",
+  )
+  let policy = bookkeeper_capability_promotion_policy()
+  if promotion_policy_ref != policy.policy {
+    fail("capability proposal did not copy MoonBook's exact promotion policy")
+  }
   let source_refs = result_record_references(
     result_required_json(fields, "source_finding_refs", label),
     "payload source_finding_refs",
   )
-  if source_refs != result.candidate.links ||
-    !result_required_bool(fields, "policy_promoted", label) ||
-    !result_required_bool(fields, "review_required", label) ||
-    result_required_bool(fields, "self_application_allowed", label) {
-    fail("capability proposal promotion or review invariants are invalid")
+  if source_refs != result.candidate.links {
+    fail("capability proposal source findings differ from candidate links")
   }
   result_validate_common_payload(fields, result, verified, label)
+  let reviewed : Array[@bookkeeper.ReviewedGapFinding] = []
+  for record in source_records {
+    reviewed.push(result_reviewed_finding(snapshot, record))
+  }
+  let decision = @bookkeeper.aggregate_capability_proposal(
+    policy,
+    reviewed,
+    proposal_id=result.candidate.record_id,
+    proposal_version=result.candidate.record_version,
+    capability_id~,
+    capability_version~,
+    owner_route=result.candidate.owner_route,
+    proposal_digest=change_digest,
+    summary=result.candidate.summary,
+  )
+  guard decision.proposal is Some(proposal) else {
+    fail(
+      "capability proposal does not satisfy MoonBook promotion policy: " +
+      decision.non_promotion_reasons.to_json().stringify(),
+    )
+  }
+  if !proposal.is_policy_promoted() ||
+    proposal.source_finding_refs.to_json() != source_refs.to_json() {
+    fail("capability proposal sources are not the canonical policy aggregation")
+  }
+  proposal
+}
+
+///|
+fn result_canonical_capability_payload(
+  result : BookkeeperMoonClawResult,
+  verified : VerifiedBookkeeperMoonClawPacket,
+  proposal : @bookkeeper.CapabilityProposal,
+  evidence_refs : ArrayView[@bookkeeper.VersionedEvidenceReference],
+) -> Json {
+  {
+    "contract_version": @bookkeeper.bookkeeper_contract_version(),
+    "candidate_schema": "capability_proposal.v1",
+    "proposal_id": proposal.proposal_id,
+    "proposal_version": proposal.proposal_version,
+    "subject": result.subject.to_json(),
+    "capability_id": proposal.capability_id,
+    "capability_version": proposal.capability_version,
+    "change_digest": proposal.change_digest,
+    "summary": proposal.summary,
+    "owner_route": proposal.owner_route,
+    "evidence_refs": evidence_refs.to_json(),
+    "source_finding_refs": proposal.source_finding_refs.to_json(),
+    "promotion_policy_ref": proposal.promotion_policy_ref.unwrap().to_json(),
+    "aggregation_digest": proposal.aggregation_digest.unwrap(),
+    "policy_promoted": true,
+    "review_required": true,
+    "self_application_allowed": false,
+    "source_snapshot_digest": verified.source_snapshot_digest,
+    "source_packet_digest": verified.source_packet_digest,
+  }
 }
 
 ///|
@@ -593,6 +776,7 @@ fn materialize_bookkeeper_moonclaw_record(
   if current_subject != verified.subject {
     fail("current Bookkeeper subject differs from source packet subject")
   }
+  let mut canonical_capability : @bookkeeper.CapabilityProposal? = None
   let (stage, source_records) = match result.candidate.stage {
     "three_gap_finding" => {
       if verified.subject.stage != OutcomeBinding ||
@@ -624,12 +808,17 @@ fn materialize_bookkeeper_moonclaw_record(
         }
         records.push(source_record)
       }
-      result_validate_capability_payload(result, verified)
+      canonical_capability = Some(
+        result_validate_capability_payload(result, verified, current, records),
+      )
       (@bookkeeper_store.CapabilityProposal, records)
     }
     _ => fail("unsupported Bookkeeper MoonClaw candidate stage")
   }
-  let expected_evidence = bookkeeper_moonclaw_canonical_evidence(source_records)
+  let expected_evidence = match canonical_capability {
+    Some(_) => bookkeeper_moonclaw_capability_evidence(source_records)
+    None => bookkeeper_moonclaw_canonical_evidence(source_records)
+  }
   if verified.subject.stage == OutcomeBinding &&
     expected_evidence != verified.canonical_evidence_refs {
     fail("MoonClaw source evidence differs from the packet canonical evidence")
@@ -637,8 +826,15 @@ fn materialize_bookkeeper_moonclaw_record(
   if result.evidence_refs != expected_evidence {
     fail("MoonClaw result evidence is not the exact canonical source evidence")
   }
+  let canonical_payload = match canonical_capability {
+    Some(proposal) =>
+      result_canonical_capability_payload(
+        result, verified, proposal, expected_evidence,
+      )
+    None => result.candidate.payload
+  }
   let payload_digest = @bookkeeper_store.bookkeeper_payload_digest(
-    result.candidate.payload,
+    canonical_payload,
   )
   {
     contract_version: @bookkeeper_store.bookkeeper_store_contract_version(),
@@ -664,7 +860,7 @@ fn materialize_bookkeeper_moonclaw_record(
     next_action: result.candidate.next_action,
     source_product: "moonclaw",
     recorded_at: result.candidate.recorded_at,
-    payload: result.candidate.payload,
+    payload: canonical_payload,
     side_effects_applied: false,
   }
 }

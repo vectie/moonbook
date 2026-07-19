@@ -211,6 +211,13 @@ findings. It creates a versioned `CapabilityProposal` only when explicit policy
 thresholds pass; threshold failure remains an explicit non-promotion decision
 with no proposal.
 
+For MoonClaw-originated proposals, MoonBook places the complete versioned
+promotion policy in the packet and remains the deterministic owner of the
+decision. On ingest it reconstructs each exact named-human review, reruns the
+typed aggregation policy, and generates the SHA-256 aggregation receipt itself.
+MoonClaw supplies proposed capability semantics only; it cannot choose policy
+thresholds, claim promotion flags, or manufacture the aggregation digest.
+
 MoonCode-ready work-order projection requires an exact, versioned review
 attestation with an explicit `ReviewerKind`. Only `Human` is accepted;
 `Automation`, `Agent`, and `System` fail closed. The projection is a
