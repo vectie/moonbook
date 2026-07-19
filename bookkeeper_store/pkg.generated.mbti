@@ -24,13 +24,21 @@ pub fn bookkeeper_transport_contract_version() -> String
 
 pub fn bookkeeper_ui_state_path(String) -> String
 
+pub fn bookkeeper_work_order_bridge_contract_version() -> String
+
+pub async fn emit_governed_mooncode_work_order(String, GovernedWorkOrderEgressRequest) -> BookkeeperMutationResult
+
 pub async fn install_bookkeeper_authority_grant(String, BookkeeperAuthorityGrant) -> BookkeeperAuthorityRegistry
+
+pub async fn materialize_mooncode_draft_packet(String, MoonCodeDraftImportRequest) -> Result[String, String]
 
 pub async fn persist_bookkeeper_record(String, DurableBookkeeperRecord) -> BookkeeperMutationResult
 
 pub async fn persist_transport_envelope(String, BookkeeperTransportEnvelope) -> BookkeeperMutationResult
 
 pub fn project_bookkeeper_ui_state(String, BookkeeperStoreSnapshot) -> @bookkeeper.BookkeeperUiState
+
+pub async fn project_governed_mooncode_work_order(String, GovernedWorkOrderBridgeRequest) -> BookkeeperMutationResult
 
 pub async fn rebuild_bookkeeper_projection(String) -> BookkeeperStoreSnapshot
 
@@ -171,6 +179,25 @@ pub(all) struct GovernedReviewReceipt {
   issues : Array[String]
   review_complete : Bool
   side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct GovernedWorkOrderBridgeRequest {
+  contract_version : String
+  proposal : @bookkeeper.VersionedRecordReference
+  proposal_review : @bookkeeper.VersionedRecordReference
+  authority_grant : @bookkeeper.VersionedRecordReference
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct GovernedWorkOrderEgressRequest {
+  contract_version : String
+  work_order : @bookkeeper.VersionedRecordReference
+  work_order_review : @bookkeeper.VersionedRecordReference
+  authority_grant : @bookkeeper.VersionedRecordReference
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct MoonCodeDraftImportRequest {
+  contract_version : String
+  envelope : @bookkeeper.VersionedRecordReference
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct StoreReviewerAuthority {

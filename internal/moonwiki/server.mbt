@@ -317,6 +317,78 @@ async fn handle_bookkeeper_request(
       )
       true
     }
+    (Post, "/api/bookkeeper/work-orders/project") => {
+      let payload : @bookkeeper_store.GovernedWorkOrderBridgeRequest = parse_json_body(
+        body,
+      ) catch {
+        error => {
+          send_json_status(
+            conn,
+            400,
+            "Bad Request",
+            route_rejection(workspace_root, "\{error}").to_json(),
+          )
+          return true
+        }
+      }
+      let result = @bookkeeper_store.project_governed_mooncode_work_order(
+        workspace_root, payload,
+      )
+      if result.accepted {
+        sync_bookkeeper_projection_to_served_ui(static_root, workspace_root)
+      }
+      send_json_status(
+        conn,
+        if result.accepted {
+          200
+        } else {
+          422
+        },
+        if result.accepted {
+          "OK"
+        } else {
+          "Unprocessable Content"
+        },
+        result.to_json(),
+      )
+      true
+    }
+    (Post, "/api/bookkeeper/work-orders/egress") => {
+      let payload : @bookkeeper_store.GovernedWorkOrderEgressRequest = parse_json_body(
+        body,
+      ) catch {
+        error => {
+          send_json_status(
+            conn,
+            400,
+            "Bad Request",
+            route_rejection(workspace_root, "\{error}").to_json(),
+          )
+          return true
+        }
+      }
+      let result = @bookkeeper_store.emit_governed_mooncode_work_order(
+        workspace_root, payload,
+      )
+      if result.accepted {
+        sync_bookkeeper_projection_to_served_ui(static_root, workspace_root)
+      }
+      send_json_status(
+        conn,
+        if result.accepted {
+          200
+        } else {
+          422
+        },
+        if result.accepted {
+          "OK"
+        } else {
+          "Unprocessable Content"
+        },
+        result.to_json(),
+      )
+      true
+    }
     (Post, "/api/bookkeeper/envelopes/ingress")
     | (Post, "/api/bookkeeper/envelopes/egress") => {
       let payload : @bookkeeper_store.BookkeeperTransportEnvelope = parse_json_body(

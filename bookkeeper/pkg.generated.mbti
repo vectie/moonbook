@@ -45,6 +45,8 @@ pub fn project_three_gap_finding_ui(CanonicalGapFinding) -> BookkeeperUiItem
 
 pub fn project_three_gap_review_ui(GapFindingReviewDecision) -> BookkeeperUiItem
 
+pub fn reconstruct_policy_promoted_capability_proposal(proposal_id~ : String, proposal_version~ : String, capability_id~ : String, capability_version~ : String, owner_route~ : String, change_digest~ : String, summary~ : String, evidence_refs~ : ArrayView[EvidenceReference], source_finding_refs~ : ArrayView[VersionedRecordReference], promotion_policy_ref~ : VersionedRecordReference, aggregation_digest~ : String, supersedes_version? : String) -> Result[CapabilityProposal, String]
+
 pub fn review_capability_proposal(CapabilityProposal, receipt_id~ : String, receipt_version~ : String, receipt_digest? : String, reviewer~ : ReviewerAuthority, requested~ : BookkeeperDisposition, evidence_refs~ : ArrayView[EvidenceReference]) -> LearningReceipt
 
 pub fn review_three_gap_finding(CanonicalGapFinding, receipt~ : VersionedRecordReference, reviewer~ : ReviewerAuthority, requested~ : BookkeeperDisposition, FindingReviewAuthorityAttestation?) -> GapFindingReviewDecision

@@ -190,3 +190,31 @@ pub(all) struct BookkeeperMutationResult {
   issues : Array[String]
   ui_state_path : String
 } derive(Debug, Eq, ToJson, FromJson)
+
+///|
+/// Explicit operator request to project one accepted capability proposal into
+/// a non-executing MoonCode work order. All remaining values are derived from
+/// the durable proposal, its exact accepted review, and the installed grant.
+pub(all) struct GovernedWorkOrderBridgeRequest {
+  contract_version : String
+  proposal : @bookkeeper.VersionedRecordReference
+  proposal_review : @bookkeeper.VersionedRecordReference
+  authority_grant : @bookkeeper.VersionedRecordReference
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+/// Separate operator authorization for handing an accepted work order to the
+/// generic transport boundary. This action cannot activate or execute it.
+pub(all) struct GovernedWorkOrderEgressRequest {
+  contract_version : String
+  work_order : @bookkeeper.VersionedRecordReference
+  work_order_review : @bookkeeper.VersionedRecordReference
+  authority_grant : @bookkeeper.VersionedRecordReference
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+/// Exact egress selection used by the optional draft-only MoonClaw importer.
+pub(all) struct MoonCodeDraftImportRequest {
+  contract_version : String
+  envelope : @bookkeeper.VersionedRecordReference
+} derive(Debug, Eq, ToJson, FromJson)

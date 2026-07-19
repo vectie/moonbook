@@ -82,6 +82,7 @@ test "moonclaw jobs seed wiki profiles" {
   let text = moonclaw_jobs_text()
   ignore(@json.parse(text))
   assert_true(text.contains("\"bookkeeper_three_gap_controller\""))
+  assert_true(text.contains("\"mooncode_work_order_controller\""))
   assert_true(text.contains("\"wiki_ingest_controller\""))
   assert_true(text.contains("\"wiki_course_controller\""))
   assert_true(text.contains("\"wiki_planbook_controller\""))

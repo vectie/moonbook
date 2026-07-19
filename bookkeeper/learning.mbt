@@ -84,6 +84,77 @@ pub fn CapabilityProposal::is_policy_promoted(
 }
 
 ///|
+/// Reconstruct the canonical policy-promoted value from an already durable,
+/// exact Bookkeeper record. This is intentionally stricter than the legacy
+/// proposal constructor: malformed promotion bindings fail before a work-order
+/// projection can be attempted, and the returned value still cannot apply or
+/// execute a capability change.
+pub fn reconstruct_policy_promoted_capability_proposal(
+  proposal_id~ : String,
+  proposal_version~ : String,
+  capability_id~ : String,
+  capability_version~ : String,
+  owner_route~ : String,
+  change_digest~ : String,
+  summary~ : String,
+  evidence_refs~ : ArrayView[EvidenceReference],
+  source_finding_refs~ : ArrayView[VersionedRecordReference],
+  promotion_policy_ref~ : VersionedRecordReference,
+  aggregation_digest~ : String,
+  supersedes_version? : String,
+) -> Result[CapabilityProposal, String] {
+  let reference_complete = fn(reference : VersionedRecordReference) {
+    !reference.record_id.is_blank() &&
+    !reference.record_version.is_blank() &&
+    !reference.record_digest.is_blank()
+  }
+  if proposal_id.is_blank() ||
+    proposal_version.is_blank() ||
+    capability_id.is_blank() ||
+    capability_version.is_blank() ||
+    owner_route.is_blank() ||
+    change_digest.is_blank() ||
+    summary.is_blank() {
+    return Err("policy-promoted proposal identity and summary are required")
+  }
+  if evidence_refs.is_empty() || !evidence_refs.all(evidence_reference_complete) {
+    return Err("policy-promoted proposal requires complete exact evidence")
+  }
+  if source_finding_refs.length() < 2 ||
+    !source_finding_refs.all(reference_complete) {
+    return Err(
+      "policy-promoted proposal requires at least two exact source findings",
+    )
+  }
+  if !reference_complete(promotion_policy_ref) {
+    return Err("policy-promoted proposal requires an exact promotion policy")
+  }
+  if aggregation_digest.is_blank() || aggregation_digest != change_digest {
+    return Err(
+      "policy-promoted proposal aggregation digest must equal its change digest",
+    )
+  }
+  Ok({
+    contract_version: bookkeeper_contract_version(),
+    proposal_id,
+    proposal_version,
+    capability_id,
+    capability_version,
+    owner_route,
+    change_digest,
+    summary,
+    evidence_refs: ReadOnlyArray::from_array(evidence_refs),
+    supersedes_version,
+    source_finding_refs: ReadOnlyArray::from_array(source_finding_refs),
+    promotion_policy_ref: Some(promotion_policy_ref),
+    aggregation_digest: Some(aggregation_digest),
+    policy_promoted: true,
+    review_required: true,
+    self_application_allowed: false,
+  })
+}
+
+///|
 /// Versioned review receipt for a capability proposal. Even an accepted review
 /// is not an application receipt and never silently modifies capability state.
 pub struct LearningReceipt {

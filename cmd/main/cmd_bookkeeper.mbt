@@ -81,6 +81,12 @@ async fn run_bookkeeper(args : Array[String]) -> Unit {
       run_bookkeeper_moonclaw_submit(raw.to_owned())
     ["moonclaw", "ingest-result", root, packet_path, result_path] =>
       run_bookkeeper_moonclaw_ingest_result(root, packet_path, result_path)
+    ["mooncode", "project", root, request_path] =>
+      run_bookkeeper_work_order_project(root, request_path)
+    ["mooncode", "egress", root, request_path] =>
+      run_bookkeeper_work_order_egress(root, request_path)
+    ["mooncode", "import-draft", .. raw] =>
+      run_bookkeeper_mooncode_import_draft(raw.to_owned())
     ["state", root] => run_bookkeeper_state(root)
     ["state"] => run_bookkeeper_state(".")
     ["replay", root] => run_bookkeeper_replay(root)
@@ -99,9 +105,140 @@ async fn run_bookkeeper(args : Array[String]) -> Unit {
       run_bookkeeper_authority_install(".", path)
     _ =>
       println(
-        "moonbook bookkeeper usage:\nmoonbook bookkeeper reflect <book-root> <observation.json>\nmoonbook bookkeeper record-spatial <book-root> <study.json>\nmoonbook bookkeeper promote <book-root> <reflection-id> <review-receipt-ref>\nmoonbook bookkeeper reconcile-flow <book-root> <projection.json> <work-item-id> <recorded-at>\nmoonbook bookkeeper reconcile-run <book-root> <projection.json> <recorded-at>\nmoonbook bookkeeper propose-revision <book-root> <request.json>\nmoonbook bookkeeper metacognition <book-root>\nmoonbook bookkeeper moonclaw submit <root> <request.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]\nmoonbook bookkeeper moonclaw ingest-result <root> <packet.json> <moonclaw-result.json>\nmoonbook bookkeeper state [root]\nmoonbook bookkeeper replay [root]\nmoonbook bookkeeper authority install [root] <grant.json>\nmoonbook bookkeeper record [root] <record.json>\nmoonbook bookkeeper review [root] <mutation.json>\nmoonbook bookkeeper ingress [root] <envelope.json>\nmoonbook bookkeeper egress [root] <envelope.json>",
+        "moonbook bookkeeper usage:\nmoonbook bookkeeper reflect <book-root> <observation.json>\nmoonbook bookkeeper record-spatial <book-root> <study.json>\nmoonbook bookkeeper promote <book-root> <reflection-id> <review-receipt-ref>\nmoonbook bookkeeper reconcile-flow <book-root> <projection.json> <work-item-id> <recorded-at>\nmoonbook bookkeeper reconcile-run <book-root> <projection.json> <recorded-at>\nmoonbook bookkeeper propose-revision <book-root> <request.json>\nmoonbook bookkeeper metacognition <book-root>\nmoonbook bookkeeper moonclaw submit <root> <request.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]\nmoonbook bookkeeper moonclaw ingest-result <root> <packet.json> <moonclaw-result.json>\nmoonbook bookkeeper mooncode project <root> <request.json>\nmoonbook bookkeeper mooncode egress <root> <request.json>\nmoonbook bookkeeper mooncode import-draft <root> <request.json> [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]\nmoonbook bookkeeper state [root]\nmoonbook bookkeeper replay [root]\nmoonbook bookkeeper authority install [root] <grant.json>\nmoonbook bookkeeper record [root] <record.json>\nmoonbook bookkeeper review [root] <mutation.json>\nmoonbook bookkeeper ingress [root] <envelope.json>\nmoonbook bookkeeper egress [root] <envelope.json>",
       )
   }
+}
+
+///|
+async fn run_bookkeeper_work_order_project(
+  root : String,
+  request_path : String,
+) -> Unit {
+  let request : @bookkeeper_store.GovernedWorkOrderBridgeRequest = read_json_file(
+    resolve_keeper_packet_path(root, request_path),
+  ) catch {
+    error => {
+      println("moonbook bookkeeper mooncode project failed: \{error}")
+      return
+    }
+  }
+  let result = @bookkeeper_store.project_governed_mooncode_work_order(
+    root, request,
+  ) catch {
+    error => {
+      println("moonbook bookkeeper mooncode project failed: \{error}")
+      return
+    }
+  }
+  print_json(result)
+}
+
+///|
+async fn run_bookkeeper_work_order_egress(
+  root : String,
+  request_path : String,
+) -> Unit {
+  let request : @bookkeeper_store.GovernedWorkOrderEgressRequest = read_json_file(
+    resolve_keeper_packet_path(root, request_path),
+  ) catch {
+    error => {
+      println("moonbook bookkeeper mooncode egress failed: \{error}")
+      return
+    }
+  }
+  let result = @bookkeeper_store.emit_governed_mooncode_work_order(
+    root, request,
+  ) catch {
+    error => {
+      println("moonbook bookkeeper mooncode egress failed: \{error}")
+      return
+    }
+  }
+  print_json(result)
+}
+
+///|
+async fn run_bookkeeper_mooncode_import_draft(args : Array[String]) -> Unit {
+  let positional : Array[String] = []
+  let mut home : String? = None
+  let mut cwd : String? = None
+  let mut moonclaw_root : String? = None
+  let mut index = 0
+  while index < args.length() {
+    match args[index] {
+      "--home" | "--cwd" | "--moonclaw" as option => {
+        if index + 1 >= args.length() {
+          println(
+            "moonbook bookkeeper mooncode import-draft failed: missing value after " +
+            option,
+          )
+          return
+        }
+        match option {
+          "--home" => home = Some(args[index + 1])
+          "--cwd" => cwd = Some(args[index + 1])
+          _ => moonclaw_root = Some(args[index + 1])
+        }
+        index += 2
+      }
+      value => {
+        positional.push(value)
+        index += 1
+      }
+    }
+  }
+  if positional.length() != 2 {
+    println(
+      "moonbook bookkeeper mooncode import-draft failed: usage requires <root> <request.json>",
+    )
+    return
+  }
+  let root = positional[0]
+  let request : @bookkeeper_store.MoonCodeDraftImportRequest = read_json_file(
+    resolve_keeper_packet_path(root, positional[1]),
+  ) catch {
+    error => {
+      println("moonbook bookkeeper mooncode import-draft failed: \{error}")
+      return
+    }
+  }
+  let packet_path = match
+    @bookkeeper_store.materialize_mooncode_draft_packet(root, request) {
+    Ok(path) => path
+    Err(error) => {
+      println("moonbook bookkeeper mooncode import-draft failed: " + error)
+      return
+    }
+  }
+  ignore(@wiki.enable_extension(root, "moonclaw"))
+  let moon_args = [
+    "-C",
+    moonclaw_root.unwrap_or(default_moonclaw_root(root)),
+    "run",
+    "cmd/main",
+    "--",
+    "proposal",
+    "import",
+    packet_path,
+    "--json",
+    "--cwd",
+    cwd.unwrap_or(root),
+    ..match home {
+      Some(value) => ["--home", value]
+      None => []
+    },
+  ]
+  let code = @process.run("moon", moon_args)
+  if code != 0 {
+    println(
+      "moonbook bookkeeper mooncode import-draft failed: MoonClaw proposal import exited with code \{code}",
+    )
+    return
+  }
+  println(
+    "MoonClaw draft imported without confirmation or execution: " + packet_path,
+  )
 }
 
 ///|

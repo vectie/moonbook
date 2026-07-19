@@ -109,6 +109,49 @@ fn moonclaw_jobs_text() -> String {
   "          }\n" +
   "        }\n" +
   "      },\n" +
+  "      \"mooncode_work_order_controller\": {\n" +
+  "        \"family\": \"mooncode_work_order_controller\",\n" +
+  "        \"label\": \"Reviewed MoonCode work order\",\n" +
+  "        \"role\": \"controller\",\n" +
+  "        \"priority\": 160,\n" +
+  "        \"tags\": [\"bookkeeper\", \"mooncode\", \"reviewed-work-order\"],\n" +
+  "        \"match\": {\"all\": [\"mooncode\"], \"any\": [\"work-order\", \"implementation\"]},\n" +
+  "        \"steps\": [\n" +
+  "          {\n" +
+  "            \"id\": \"execute_reviewed_work_order\",\n" +
+  "            \"title\": \"Execute reviewed MoonCode work order\",\n" +
+  "            \"kind\": \"job.analysis\",\n" +
+  "            \"prompt_template\": \"Use the MoonCode coding surface to implement only the exact accepted work order in the imported packet for ${proposal.title}. Preserve proposal, review, authority, and evidence bindings. Run bounded verification and return a mooncode.result candidate for later MoonBook evaluation. Never write Bookkeeper state, fabricate review, adopt the capability, publish, or perform external effects.\",\n" +
+  "            \"metadata\": {\n" +
+  "              \"model\": \"gpt-5.6-sol\",\n" +
+  "              \"system_prompt\": \"MoonClaw is the sole agent runtime; MoonCode performs reviewed coding work. Draft import never authorizes execution.\",\n" +
+  "              \"enable_tools\": true,\n" +
+  "              \"web_search\": false,\n" +
+  "              \"board_lane\": \"MoonCode\",\n" +
+  "              \"board_order\": 0\n" +
+  "            }\n" +
+  "          }\n" +
+  "        ],\n" +
+  "        \"metadata\": {\n" +
+  "          \"model\": \"gpt-5.6-sol\",\n" +
+  "          \"durable_owner\": \"moonbook\",\n" +
+  "          \"agent_runtime\": \"moonclaw\",\n" +
+  "          \"implementation_surface\": \"mooncode\",\n" +
+  "          \"human_confirm_required\": true,\n" +
+  "          \"auto_confirm\": false,\n" +
+  "          \"role_runtime\": {\n" +
+  "            \"role_id\": \"moonbook-mooncode-work-order\",\n" +
+  "            \"planning_layer\": \"domain\",\n" +
+  "            \"runtime_mode\": \"coding\",\n" +
+  "            \"tool_access\": \"reviewed\",\n" +
+  "            \"memory_scope\": \"work-order\",\n" +
+  "            \"allow_delegate\": false,\n" +
+  "            \"allow_workspace_write\": true,\n" +
+  "            \"allow_execution_tools\": true,\n" +
+  "            \"output_contract\": \"moonbook.bookkeeper.capability_adoption.v1\"\n" +
+  "          }\n" +
+  "        }\n" +
+  "      },\n" +
   "      \"wiki_ingest_controller\": {\n" +
   "        \"family\": \"wiki_ingest_controller\",\n" +
   "        \"role\": \"controller\",\n" +
