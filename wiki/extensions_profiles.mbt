@@ -24,7 +24,7 @@ fn moonclaw_jobs_text() -> String {
   escape_json_string(bookkeeper_three_gap_analyze_prompt()) +
   "\",\n" +
   "            \"metadata\": {\n" +
-  "              \"model\": \"gpt-5.6-sol\",\n" +
+  "              \"model\": \"codex/gpt-5.6-sol\",\n" +
   "              \"output_contract\": \"moonbook.bookkeeper.moonclaw-result.v1\",\n" +
   "              \"result_contract\": {\n" +
   "                \"contract_version\": \"moonbook.bookkeeper.moonclaw-result.v1\",\n" +
@@ -58,7 +58,7 @@ fn moonclaw_jobs_text() -> String {
   escape_json_string(bookkeeper_capability_aggregate_prompt()) +
   "\",\n" +
   "            \"metadata\": {\n" +
-  "              \"model\": \"gpt-5.6-sol\",\n" +
+  "              \"model\": \"codex/gpt-5.6-sol\",\n" +
   "              \"disable_waiting_for_input\": true,\n" +
   "              \"best_effort_on_missing_input\": true,\n" +
   "              \"system_prompt\": \"Use MoonClaw reasoning for proposal drafting while MoonBook remains the durable source of truth. Human review and deterministic MoonBook validation are mandatory gates.\",\n" +
@@ -79,7 +79,7 @@ fn moonclaw_jobs_text() -> String {
   escape_json_string(bookkeeper_moonbook_handoff_prompt()) +
   "\",\n" +
   "            \"metadata\": {\n" +
-  "              \"model\": \"gpt-5.6-sol\",\n" +
+  "              \"model\": \"codex/gpt-5.6-sol\",\n" +
   "              \"system_prompt\": \"Return a machine-readable handoff, not an applied mutation. Preserve exact linkage and fail closed when evidence or human review is absent.\",\n" +
   "              \"preferred_skills\": [\"wiki-review\"],\n" +
   "              \"enable_tools\": true,\n" +
@@ -92,7 +92,7 @@ fn moonclaw_jobs_text() -> String {
   "          }\n" +
   "        ],\n" +
   "        \"metadata\": {\n" +
-  "          \"model\": \"gpt-5.6-sol\",\n" +
+  "          \"model\": \"codex/gpt-5.6-sol\",\n" +
   "          \"durable_owner\": \"moonbook\",\n" +
   "          \"agent_runtime\": \"moonclaw\",\n" +
   "          \"human_review_required\": true,\n" +
@@ -123,7 +123,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"kind\": \"job.analysis\",\n" +
   "            \"prompt_template\": \"Use the MoonCode coding surface to implement only the exact accepted work order in the imported packet for ${proposal.title}. Preserve proposal, review, authority, and evidence bindings. Run bounded verification and return a mooncode.result candidate for later MoonBook evaluation. Never write Bookkeeper state, fabricate review, adopt the capability, publish, or perform external effects.\",\n" +
   "            \"metadata\": {\n" +
-  "              \"model\": \"gpt-5.6-sol\",\n" +
+  "              \"model\": \"codex/gpt-5.6-sol\",\n" +
   "              \"system_prompt\": \"MoonClaw is the sole agent runtime; MoonCode performs reviewed coding work. Draft import never authorizes execution.\",\n" +
   "              \"enable_tools\": true,\n" +
   "              \"web_search\": false,\n" +
@@ -133,7 +133,7 @@ fn moonclaw_jobs_text() -> String {
   "          }\n" +
   "        ],\n" +
   "        \"metadata\": {\n" +
-  "          \"model\": \"gpt-5.6-sol\",\n" +
+  "          \"model\": \"codex/gpt-5.6-sol\",\n" +
   "          \"durable_owner\": \"moonbook\",\n" +
   "          \"agent_runtime\": \"moonclaw\",\n" +
   "          \"implementation_surface\": \"mooncode\",\n" +
