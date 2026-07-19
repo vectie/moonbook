@@ -82,7 +82,8 @@ fn interface_message(
     (SimplifiedChinese, BookkeeperTitle) => "Bookkeeper 闭环"
     (SimplifiedChinese, BookkeeperSubtitle) =>
       "从交付验收到结果绑定，再到三差距学习、MoonCode 工作单和能力采用的只读治理视图。"
-    (SimplifiedChinese, BookkeeperNoRecords) => "等待后端生成此阶段的领域中立投影视图。"
+    (SimplifiedChinese, BookkeeperNoRecords) =>
+      "等待后端生成此阶段的领域中立投影视图。"
     (SimplifiedChinese, BookkeeperEvidence) => "证据"
     (SimplifiedChinese, BookkeeperIssues) => "问题"
     (SimplifiedChinese, BookkeeperHumanReview) => "需要人工审核"
