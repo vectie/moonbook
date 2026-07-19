@@ -1,0 +1,13 @@
+import {
+  "vectie/moonlib/pack",
+  "vectie/moonlib/pack/host",
+  "vectie/moonlib/pack/installer",
+}
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/encoding/utf8",
+} for "test"
+
+supported_targets = "native"

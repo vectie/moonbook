@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "vectie/moonbook/packhost"
+
+import {
+  "vectie/moonlib/pack/host",
+  "vectie/moonlib/pack/installer",
+}
+
+// Values
+pub async fn activate(String, String, String) -> @host.HostActivationProjection
+
+pub async fn deactivate(String, String) -> @host.HostDeactivationProjection
+
+pub async fn inspect(String) -> @installer.SourceInspection
+
+pub async fn install(String, String) -> @host.HostActivationProjection
+
+pub async fn install_authorized(String, String, String) -> @host.HostActivationProjection
+
+pub async fn list_active(String) -> Array[@installer.ActivePackPointer]
+
+pub async fn project_active(String, String) -> @host.HostActivationProjection
+
+pub async fn verify(String, String, String) -> @installer.InstalledVerification
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

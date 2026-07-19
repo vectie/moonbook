@@ -13,6 +13,7 @@ import {
   "vectie/moonbook/core",
   "vectie/moonbook/wiki",
   "vectie/moonbook/plugins/moongate",
+  "vectie/moonbook/packhost",
   "vectie/moonlib/moonsuite",
   "vectie/moonlib/os",
   "moonbitlang/x/path",
