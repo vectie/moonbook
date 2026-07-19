@@ -36,7 +36,7 @@ async test "Bookkeeper analysis step carries the exact single-finding result con
     is {
       "prompt_template": String(prompt),
       "metadata": {
-        "model": "gpt-5.6-sol",
+        "model": "codex/gpt-5.6-sol",
         "output_contract": "moonbook.bookkeeper.moonclaw-result.v1",
         "result_contract": result_contract,
         ..
@@ -109,7 +109,7 @@ test "Bookkeeper handoff emits directly ingestible standard MoonClaw content" {
   guard handoff
     is {
       "prompt_template": String(prompt),
-      "metadata": { "model": "gpt-5.6-sol", .. },
+      "metadata": { "model": "codex/gpt-5.6-sol", .. },
       ..
     } else {
     fail("handoff step does not preserve the canonical model")
@@ -158,7 +158,7 @@ test "Outcome binding bypasses capability aggregation without weakening review g
     is {
       "prompt_template": String(prompt),
       "metadata": {
-        "model": "gpt-5.6-sol",
+        "model": "codex/gpt-5.6-sol",
         "disable_waiting_for_input": True,
         "best_effort_on_missing_input": True,
         ..

@@ -1,0 +1,11 @@
+{
+  "contract_version": "moonbook.bookkeeper.mooncode-draft-delivery.v1",
+  "delivery_id": "capability-example-to-mooncode",
+  "delivery_version": "v1",
+  "envelope": {
+    "record_id": "egress:mooncode-work-order:example",
+    "record_version": "v1",
+    "record_digest": "sha256:replace-with-current-envelope-digest"
+  },
+  "expected_envelope_digest": "sha256:replace-with-current-envelope-digest"
+}

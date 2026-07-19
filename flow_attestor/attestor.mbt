@@ -289,6 +289,38 @@ fn attest_audit(
 }
 
 ///|
+async fn attest_mooncode_draft_delivery(
+  workspace : String,
+  request_fields : Map[String, Json],
+  draft : Json,
+) -> Json {
+  if string_field(request_fields, "requested_authority") != "workspace-mutation" {
+    fail("MoonCode draft delivery requires workspace-mutation authority")
+  }
+  let input_contracts = strings_field(request_fields, "input_contracts")
+  let output_contracts = strings_field(request_fields, "output_contracts")
+  let contract = @bookkeeper_store.mooncode_draft_delivery_contract_version()
+  if !input_contracts.contains(contract) || !output_contracts.contains(contract) {
+    fail("MoonCode draft delivery requires its exact input and output contract")
+  }
+  let inputs = strings_field(request_fields, "input_artifacts")
+  if inputs.length() != 1 {
+    fail("MoonCode draft delivery requires exactly one input artifact")
+  }
+  let delivery_request : @bookkeeper_store.MoonCodeDraftDeliveryRequest = @json.from_json(
+    read_json(scoped_path(workspace, inputs[0])),
+  )
+  let receipt : @bookkeeper_store.MoonCodeDraftImportReceipt = @json.from_json(
+    draft,
+  )
+  if receipt.request != delivery_request ||
+    !@bookkeeper_store.validate_mooncode_draft_import_receipt(receipt) {
+    fail("MoonCode draft receipt is stale, conflicting, or authority-bearing")
+  }
+  draft
+}
+
+///|
 pub async fn attest(
   workspace : String,
   request_ref : String,
@@ -309,6 +341,8 @@ pub async fn attest(
   let final_artifact = match (product_id, operation) {
     ("moonwiki", "research-goal") => attest_research(draft_fields)
     ("moonbook", "audit-outcome") => attest_audit(request_fields, draft_fields)
+    ("moonbook", "deliver-reviewed-mooncode-draft") =>
+      attest_mooncode_draft_delivery(workspace, request_fields, draft)
     _ => fail("MoonBook attestor does not own this product operation")
   }
   write_json(scoped_path(workspace, final_ref), final_artifact)

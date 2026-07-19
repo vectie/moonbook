@@ -32,6 +32,11 @@ books, MoonGate observes, and MoonLib defines shared layout.
 6. [EXTENSION_PACKS.md](EXTENSION_PACKS.md): optional runtime integration.
 7. [WIKI_WORKFLOW.md](WIKI_WORKFLOW.md): wiki lifecycle.
 8. [RENDERER_STATUS.md](RENDERER_STATUS.md): renderer status.
+9. [BOOKKEEPER_MOONCODE_BRIDGE.md](BOOKKEEPER_MOONCODE_BRIDGE.md): governed
+   capability-proposal to MoonCode work-order bridge.
+10. [MOONFLOW_MOONCODE_DRAFT_DELIVERY.md](MOONFLOW_MOONCODE_DRAFT_DELIVERY.md):
+    product-owned MoonFlow delivery of reviewed work orders as inert MoonClaw
+    drafts.
 
 ## Implementation Guidance
 

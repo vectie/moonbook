@@ -111,16 +111,6 @@ struct BookkeeperRawRecord {
 } derive(Debug, ToJson, FromJson)
 
 ///|
-struct BookkeeperStoreSnapshot {
-  contract_version : String
-  last_sequence : Int
-  records : Array[BookkeeperRawRecord]
-  reviews : Array[Json]
-  envelopes : Array[Json]
-  replay_issues : Array[String]
-} derive(Debug, FromJson)
-
-///|
 struct BookkeeperAuthorityGrant {
   contract_version : String
   grant : BookkeeperRecordReference
@@ -145,7 +135,36 @@ struct BookkeeperReviewerAuthority {
   authority_ref : String
   authorized : Bool
   evidence_refs : Array[String]
-} derive(Debug, ToJson)
+} derive(Debug, ToJson, FromJson)
+
+///|
+struct BookkeeperRawReview {
+  contract_version : String
+  mutation : BookkeeperRecordReference
+  receipt : BookkeeperRecordReference
+  stage : Json
+  subject : BookkeeperRecordReference
+  requested : String
+  disposition : String
+  reviewer_kind : Json
+  reviewer : BookkeeperReviewerAuthority
+  evidence_refs : Array[BookkeeperEvidenceReference]
+  summary : String
+  decided_at : Int
+  issues : Array[String]
+  review_complete : Bool
+  side_effects_applied : Bool
+} derive(Debug, FromJson)
+
+///|
+struct BookkeeperStoreSnapshot {
+  contract_version : String
+  last_sequence : Int
+  records : Array[BookkeeperRawRecord]
+  reviews : Array[BookkeeperRawReview]
+  envelopes : Array[Json]
+  replay_issues : Array[String]
+} derive(Debug, FromJson)
 
 ///|
 struct BookkeeperReviewDraft {
@@ -171,6 +190,22 @@ struct BookkeeperMutationResult {
   issues : Array[String]
   ui_state_path : String
 } derive(Debug, FromJson)
+
+///|
+struct BookkeeperWorkOrderProjectDraft {
+  contract_version : String
+  proposal : BookkeeperRecordReference
+  proposal_review : BookkeeperRecordReference
+  authority_grant : BookkeeperRecordReference
+} derive(Debug, ToJson)
+
+///|
+struct BookkeeperWorkOrderEgressDraft {
+  contract_version : String
+  work_order : BookkeeperRecordReference
+  work_order_review : BookkeeperRecordReference
+  authority_grant : BookkeeperRecordReference
+} derive(Debug, ToJson)
 
 ///|
 struct BookkeeperBrowserResponse {
@@ -913,6 +948,107 @@ fn selected_authority_grant(model : Model) -> BookkeeperAuthorityGrant? {
 }
 
 ///|
+fn bookkeeper_enum_is(value : Json, expected : String) -> Bool {
+  match value {
+    String(actual) => actual == expected
+    _ => false
+  }
+}
+
+///|
+fn accepted_human_review_for(
+  snapshot : BookkeeperStoreSnapshot,
+  record : BookkeeperRawRecord,
+  grant : BookkeeperAuthorityGrant,
+) -> BookkeeperRawReview? {
+  for review in snapshot.reviews {
+    if review.subject == record.record &&
+      review.review_complete &&
+      review.requested == "Accept" &&
+      review.disposition == "Accept" &&
+      bookkeeper_enum_is(review.reviewer_kind, "Human") &&
+      review.reviewer.grant == grant.grant &&
+      review.reviewer.authority_ref == grant.authority_ref &&
+      review.issues.is_empty() &&
+      !review.side_effects_applied {
+      return Some(review)
+    }
+  }
+  None
+}
+
+///|
+fn governed_work_order_draft(
+  model : Model,
+  egress : Bool,
+) -> Result[String, String] {
+  let reference = match model.selected_bookkeeper_record {
+    Some(value) => value
+    None => return Err("Select a capability proposal or MoonCode work order.")
+  }
+  let record = match selected_raw_record(model, reference) {
+    Some(value) => value
+    None => return Err("The selected projection has no exact durable record.")
+  }
+  let grant = match selected_authority_grant(model) {
+    Some(value) => value
+    None => return Err("Select an active CLI-installed human authority.")
+  }
+  let snapshot = match model.bookkeeper_store {
+    Some(value) => value
+    None => return Err("Load the durable Bookkeeper state first.")
+  }
+  let expected_stage = if egress {
+    "MoonCodeWorkOrder"
+  } else {
+    "CapabilityProposal"
+  }
+  if !bookkeeper_enum_is(record.stage, expected_stage) {
+    return Err(
+      if egress {
+        "Select a MoonCode work order; no other stage can be emitted."
+      } else {
+        "Select a policy-promoted capability proposal; no other stage can be projected."
+      },
+    )
+  }
+  let review = match accepted_human_review_for(snapshot, record, grant) {
+    Some(value) => value
+    None =>
+      return Err(
+        if egress {
+          "A separate accepted named-human review of this exact work order is required."
+        } else {
+          "An accepted named-human review of this exact proposal and active matching grant is required."
+        },
+      )
+  }
+  if egress {
+    Ok(
+      BookkeeperWorkOrderEgressDraft::{
+        contract_version: "moonbook.bookkeeper.work-order-bridge.v1",
+        work_order: record.record,
+        work_order_review: review.receipt,
+        authority_grant: grant.grant,
+      }
+      .to_json()
+      .stringify(indent=2),
+    )
+  } else {
+    Ok(
+      BookkeeperWorkOrderProjectDraft::{
+        contract_version: "moonbook.bookkeeper.work-order-bridge.v1",
+        proposal: record.record,
+        proposal_review: review.receipt,
+        authority_grant: grant.grant,
+      }
+      .to_json()
+      .stringify(indent=2),
+    )
+  }
+}
+
+///|
 #cfg(target="js")
 extern "js" fn bookkeeper_nonce() -> String = "()=>{const id=globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(16).slice(2)}`;return id}"
 
@@ -963,6 +1099,8 @@ fn bookkeeper_operator_panel(
   emit : @rabbita.Emit[Msg],
   model : Model,
 ) -> @rabbita.Html {
+  let project_readiness = governed_work_order_draft(model, false)
+  let egress_readiness = governed_work_order_draft(model, true)
   let authority_buttons = match model.bookkeeper_authorities {
     Some(registry) =>
       registry.grants
@@ -1007,6 +1145,34 @@ fn bookkeeper_operator_panel(
         button(on_click=emit(SetBookkeeperMode("record")), "Durable record"),
         button(on_click=emit(SetBookkeeperMode("review")), "Governed review"),
         button(on_click=emit(SetBookkeeperMode("egress")), "Egress envelope"),
+        button(
+          disabled=project_readiness is Err(_),
+          on_click=emit(SetBookkeeperMode("project-work-order")),
+          "Project MoonCode work order",
+        ),
+        button(
+          disabled=egress_readiness is Err(_),
+          on_click=emit(SetBookkeeperMode("egress-work-order")),
+          "Authorize reviewed egress",
+        ),
+      ]),
+      div(style=["display:grid", "gap:4px"], [
+        small(
+          style=["color:#fbbf24"],
+          match project_readiness {
+            Ok(_) =>
+              "Projection ready: the result still requires a second human review."
+            Err(reason) => "Projection gap: " + reason
+          },
+        ),
+        small(
+          style=["color:#fbbf24"],
+          match egress_readiness {
+            Ok(_) =>
+              "Egress ready: MoonFlow delivery and MoonClaw import remain draft-only."
+            Err(reason) => "Egress gap: " + reason
+          },
+        ),
       ]),
       div(
         style=["display:flex", "gap:8px", "flex-wrap:wrap"],
@@ -1641,6 +1807,8 @@ fn bookkeeper_mutation_route(mode : String) -> String {
     "record" => "/api/bookkeeper/records"
     "review" => "/api/bookkeeper/reviews"
     "egress" => "/api/bookkeeper/envelopes/egress"
+    "project-work-order" => "/api/bookkeeper/work-orders/project"
+    "egress-work-order" => "/api/bookkeeper/work-orders/egress"
     _ => "/api/bookkeeper/envelopes/ingress"
   }
 }
@@ -1774,6 +1942,10 @@ fn bookkeeper_mode_template(mode : String) -> String {
       )
     "review" =>
       "Select an exact lane record and an active CLI-installed authority to prepare this review."
+    "project-work-order" =>
+      "Select an accepted capability proposal and its active named-human authority."
+    "egress-work-order" =>
+      "Select a separately accepted MoonCode work order and its active named-human authority."
     "egress" =>
       (
         #|{
@@ -1920,6 +2092,10 @@ fn update(
       let next = { ..model, selected_bookkeeper_record: selected }
       let draft = if model.bookkeeper_mode == "review" {
         review_draft_for_selection(next).unwrap_or(model.bookkeeper_draft)
+      } else if model.bookkeeper_mode == "project-work-order" {
+        governed_work_order_draft(next, false).unwrap_or(model.bookkeeper_draft)
+      } else if model.bookkeeper_mode == "egress-work-order" {
+        governed_work_order_draft(next, true).unwrap_or(model.bookkeeper_draft)
       } else {
         model.bookkeeper_draft
       }
@@ -1944,6 +2120,10 @@ fn update(
       let next = { ..model, selected_bookkeeper_authority: Some(authority_ref) }
       let draft = if model.bookkeeper_mode == "review" {
         review_draft_for_selection(next).unwrap_or(model.bookkeeper_draft)
+      } else if model.bookkeeper_mode == "project-work-order" {
+        governed_work_order_draft(next, false).unwrap_or(model.bookkeeper_draft)
+      } else if model.bookkeeper_mode == "egress-work-order" {
+        governed_work_order_draft(next, true).unwrap_or(model.bookkeeper_draft)
       } else {
         model.bookkeeper_draft
       }
@@ -1960,6 +2140,14 @@ fn update(
       let next = { ..model, bookkeeper_mode: mode }
       let draft = if mode == "review" {
         review_draft_for_selection(next).unwrap_or(
+          bookkeeper_mode_template(mode),
+        )
+      } else if mode == "project-work-order" {
+        governed_work_order_draft(next, false).unwrap_or(
+          bookkeeper_mode_template(mode),
+        )
+      } else if mode == "egress-work-order" {
+        governed_work_order_draft(next, true).unwrap_or(
           bookkeeper_mode_template(mode),
         )
       } else {

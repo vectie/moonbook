@@ -190,3 +190,82 @@ pub(all) struct BookkeeperMutationResult {
   issues : Array[String]
   ui_state_path : String
 } derive(Debug, Eq, ToJson, FromJson)
+
+///|
+/// Explicit operator request to project one accepted capability proposal into
+/// a non-executing MoonCode work order. All remaining values are derived from
+/// the durable proposal, its exact accepted review, and the installed grant.
+pub(all) struct GovernedWorkOrderBridgeRequest {
+  contract_version : String
+  proposal : @bookkeeper.VersionedRecordReference
+  proposal_review : @bookkeeper.VersionedRecordReference
+  authority_grant : @bookkeeper.VersionedRecordReference
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+/// Separate operator authorization for handing an accepted work order to the
+/// generic transport boundary. This action cannot activate or execute it.
+pub(all) struct GovernedWorkOrderEgressRequest {
+  contract_version : String
+  work_order : @bookkeeper.VersionedRecordReference
+  work_order_review : @bookkeeper.VersionedRecordReference
+  authority_grant : @bookkeeper.VersionedRecordReference
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+/// Exact egress selection used by the optional draft-only MoonClaw importer.
+pub(all) struct MoonCodeDraftImportRequest {
+  contract_version : String
+  envelope : @bookkeeper.VersionedRecordReference
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+/// Idempotent delivery identity for one exact reviewed work-order egress.
+pub(all) struct MoonCodeDraftDeliveryRequest {
+  contract_version : String
+  delivery_id : String
+  delivery_version : String
+  envelope : @bookkeeper.VersionedRecordReference
+  expected_envelope_digest : String
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+/// Durable pre-import plan. A persisted plan is a fail-closed claim: if the
+/// importer outcome is interrupted before its receipt is committed, replay
+/// cannot silently submit the packet again.
+pub(all) struct MoonCodeDraftDeliveryPlan {
+  contract_version : String
+  request : MoonCodeDraftDeliveryRequest
+  request_digest : String
+  adapter_id : String
+  adapter_version : String
+  envelope : @bookkeeper.VersionedRecordReference
+  work_order : @bookkeeper.VersionedRecordReference
+  packet_path : String
+  packet_digest : String
+  claim_digest : String
+  already_imported : Bool
+  existing_receipt : MoonCodeDraftImportReceipt?
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
+/// Immutable evidence that MoonClaw accepted a draft proposal only. The false
+/// authority fields are invariants and can never be promoted by this adapter.
+pub(all) struct MoonCodeDraftImportReceipt {
+  contract_version : String
+  receipt : @bookkeeper.VersionedRecordReference
+  request : MoonCodeDraftDeliveryRequest
+  request_digest : String
+  adapter_id : String
+  adapter_version : String
+  envelope : @bookkeeper.VersionedRecordReference
+  work_order : @bookkeeper.VersionedRecordReference
+  packet_digest : String
+  moonclaw_proposal_id : String
+  moonclaw_status : String
+  moonclaw_output_digest : String
+  confirmed : Bool
+  executed : Bool
+  external_effect_authorized : Bool
+  side_effects_applied : Bool
+} derive(Debug, Eq, ToJson, FromJson)

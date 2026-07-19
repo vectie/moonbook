@@ -568,6 +568,20 @@ pub fn aggregate_capability_proposal(
     canonical_evidence, "proposal", reasons,
   )
   let proposal = if reasons.is_empty() {
+    let legacy_evidence = canonical_evidence_to_legacy(stable_evidence)
+    let aggregation_digest = capability_aggregation_digest(
+      proposal_id~,
+      proposal_version~,
+      capability_id~,
+      capability_version~,
+      owner_route~,
+      change_digest=proposal_digest,
+      summary~,
+      evidence_refs=legacy_evidence,
+      source_finding_refs~,
+      promotion_policy_ref=policy.policy,
+      supersedes_version?,
+    )
     Some({
       contract_version: bookkeeper_contract_version(),
       proposal_id,
@@ -577,11 +591,11 @@ pub fn aggregate_capability_proposal(
       owner_route,
       change_digest: proposal_digest,
       summary,
-      evidence_refs: canonical_evidence_to_legacy(stable_evidence),
+      evidence_refs: legacy_evidence,
       supersedes_version,
       source_finding_refs: ReadOnlyArray::from_array(source_finding_refs),
       promotion_policy_ref: Some(policy.policy),
-      aggregation_digest: Some(proposal_digest),
+      aggregation_digest: Some(aggregation_digest),
       policy_promoted: true,
       review_required: true,
       self_application_allowed: false,

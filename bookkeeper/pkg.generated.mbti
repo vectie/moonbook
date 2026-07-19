@@ -17,6 +17,8 @@ pub fn bookkeeper_contract_version() -> String
 
 pub fn capability_adoption_contract_version() -> String
 
+pub fn capability_aggregation_digest(proposal_id~ : String, proposal_version~ : String, capability_id~ : String, capability_version~ : String, owner_route~ : String, change_digest~ : String, summary~ : String, evidence_refs~ : ArrayView[EvidenceReference], source_finding_refs~ : ArrayView[VersionedRecordReference], promotion_policy_ref~ : VersionedRecordReference, supersedes_version? : String) -> String
+
 pub fn decide_capability_adoption(CapabilityProposal, LearningReceipt, MoonCodeWorkOrderProjection, MoonCodeWorkResultCandidate, CapabilityEvaluation, decision~ : VersionedRecordReference, requested~ : BookkeeperDisposition, reviewer~ : ReviewerAuthority, CapabilityAdoptionAttestation?) -> CapabilityAdoptionDecision
 
 pub fn empty_bookkeeper_ui_state(String) -> BookkeeperUiState
@@ -44,6 +46,8 @@ pub fn project_outcome_binding_ui(OutcomeEvidenceBindingDecision) -> BookkeeperU
 pub fn project_three_gap_finding_ui(CanonicalGapFinding) -> BookkeeperUiItem
 
 pub fn project_three_gap_review_ui(GapFindingReviewDecision) -> BookkeeperUiItem
+
+pub fn reconstruct_policy_promoted_capability_proposal(proposal_id~ : String, proposal_version~ : String, capability_id~ : String, capability_version~ : String, owner_route~ : String, change_digest~ : String, summary~ : String, evidence_refs~ : ArrayView[EvidenceReference], source_finding_refs~ : ArrayView[VersionedRecordReference], promotion_policy_ref~ : VersionedRecordReference, aggregation_digest~ : String, supersedes_version? : String) -> Result[CapabilityProposal, String]
 
 pub fn review_capability_proposal(CapabilityProposal, receipt_id~ : String, receipt_version~ : String, receipt_digest? : String, reviewer~ : ReviewerAuthority, requested~ : BookkeeperDisposition, evidence_refs~ : ArrayView[EvidenceReference]) -> LearningReceipt
 

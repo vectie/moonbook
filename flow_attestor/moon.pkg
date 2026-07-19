@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/json",
+  "vectie/moonbook/bookkeeper_store",
   "vectie/moonbook/wiki",
   "vectie/moonlib/fsx",
   "vectie/moonlib/pathx",

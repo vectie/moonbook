@@ -1,5 +1,15 @@
 import {
+  "moonbitlang/async",
+  "moonbitlang/async/process",
+  "moonbitlang/core/encoding/utf8" @encoding/utf8,
+  "moonbitlang/core/env",
   "vectie/moonbook",
+  "vectie/moonbook/bookkeeper_store",
+  "vectie/moonbook/internal/fsx",
+  "vectie/moonbook/internal/pathx",
+  "vectie/moonbook/wiki",
+  "moonbitlang/x/crypto",
+  "moonbitlang/x/sys",
   "moonbitlang/core/json",
 }
 

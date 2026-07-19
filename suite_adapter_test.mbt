@@ -46,3 +46,25 @@ test "MoonBook reconciles execution without becoming the scheduler" {
   assert_false(authorities.contains(Json::string("sandbox-execution")))
   assert_false(authorities.contains(Json::string("external-effect")))
 }
+
+///|
+test "MoonCode draft delivery capability is generic and cannot execute" {
+  guard @moonbook.moonbook_mooncode_draft_delivery_capability_json()
+    is Object(capability) else {
+    fail("expected MoonCode draft delivery capability")
+  }
+  assert_true(
+    capability["adapter_id"] == Json::string("moonbook-mooncode-draft-delivery"),
+  )
+  assert_true(
+    capability["operations"] == ["deliver-reviewed-mooncode-draft"].to_json(),
+  )
+  assert_true(
+    capability["authority_classes"] == ["workspace-mutation"].to_json(),
+  )
+  assert_true(capability["claim_ceiling"] == Json::string("digital-artifact"))
+  assert_true(capability["supports_reconcile"] == Json::boolean(true))
+  assert_true(capability["confirmation_allowed"] == Json::boolean(false))
+  assert_true(capability["execution_allowed"] == Json::boolean(false))
+  assert_true(capability["external_effect_allowed"] == Json::boolean(false))
+}

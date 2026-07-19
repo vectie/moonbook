@@ -81,6 +81,12 @@ async fn run_bookkeeper(args : Array[String]) -> Unit {
       run_bookkeeper_moonclaw_submit(raw.to_owned())
     ["moonclaw", "ingest-result", root, packet_path, result_path] =>
       run_bookkeeper_moonclaw_ingest_result(root, packet_path, result_path)
+    ["mooncode", "project", root, request_path] =>
+      run_bookkeeper_work_order_project(root, request_path)
+    ["mooncode", "egress", root, request_path] =>
+      run_bookkeeper_work_order_egress(root, request_path)
+    ["mooncode", "import-draft", .. raw] =>
+      run_bookkeeper_mooncode_import_draft(raw.to_owned())
     ["state", root] => run_bookkeeper_state(root)
     ["state"] => run_bookkeeper_state(".")
     ["replay", root] => run_bookkeeper_replay(root)
@@ -99,9 +105,140 @@ async fn run_bookkeeper(args : Array[String]) -> Unit {
       run_bookkeeper_authority_install(".", path)
     _ =>
       println(
-        "moonbook bookkeeper usage:\nmoonbook bookkeeper reflect <book-root> <observation.json>\nmoonbook bookkeeper record-spatial <book-root> <study.json>\nmoonbook bookkeeper promote <book-root> <reflection-id> <review-receipt-ref>\nmoonbook bookkeeper reconcile-flow <book-root> <projection.json> <work-item-id> <recorded-at>\nmoonbook bookkeeper reconcile-run <book-root> <projection.json> <recorded-at>\nmoonbook bookkeeper propose-revision <book-root> <request.json>\nmoonbook bookkeeper metacognition <book-root>\nmoonbook bookkeeper moonclaw submit <root> <request.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]\nmoonbook bookkeeper moonclaw ingest-result <root> <packet.json> <moonclaw-result.json>\nmoonbook bookkeeper state [root]\nmoonbook bookkeeper replay [root]\nmoonbook bookkeeper authority install [root] <grant.json>\nmoonbook bookkeeper record [root] <record.json>\nmoonbook bookkeeper review [root] <mutation.json>\nmoonbook bookkeeper ingress [root] <envelope.json>\nmoonbook bookkeeper egress [root] <envelope.json>",
+        "moonbook bookkeeper usage:\nmoonbook bookkeeper reflect <book-root> <observation.json>\nmoonbook bookkeeper record-spatial <book-root> <study.json>\nmoonbook bookkeeper promote <book-root> <reflection-id> <review-receipt-ref>\nmoonbook bookkeeper reconcile-flow <book-root> <projection.json> <work-item-id> <recorded-at>\nmoonbook bookkeeper reconcile-run <book-root> <projection.json> <recorded-at>\nmoonbook bookkeeper propose-revision <book-root> <request.json>\nmoonbook bookkeeper metacognition <book-root>\nmoonbook bookkeeper moonclaw submit <root> <request.json> [--confirm] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]\nmoonbook bookkeeper moonclaw ingest-result <root> <packet.json> <moonclaw-result.json>\nmoonbook bookkeeper mooncode project <root> <request.json>\nmoonbook bookkeeper mooncode egress <root> <request.json>\nmoonbook bookkeeper mooncode import-draft <root> <request.json> [--home <dir>] [--cwd <dir>] [--moonclaw <dir>]\nmoonbook bookkeeper state [root]\nmoonbook bookkeeper replay [root]\nmoonbook bookkeeper authority install [root] <grant.json>\nmoonbook bookkeeper record [root] <record.json>\nmoonbook bookkeeper review [root] <mutation.json>\nmoonbook bookkeeper ingress [root] <envelope.json>\nmoonbook bookkeeper egress [root] <envelope.json>",
       )
   }
+}
+
+///|
+async fn run_bookkeeper_work_order_project(
+  root : String,
+  request_path : String,
+) -> Unit {
+  let request : @bookkeeper_store.GovernedWorkOrderBridgeRequest = read_json_file(
+    resolve_keeper_packet_path(root, request_path),
+  ) catch {
+    error => {
+      println("moonbook bookkeeper mooncode project failed: \{error}")
+      return
+    }
+  }
+  let result = @bookkeeper_store.project_governed_mooncode_work_order(
+    root, request,
+  ) catch {
+    error => {
+      println("moonbook bookkeeper mooncode project failed: \{error}")
+      return
+    }
+  }
+  print_json(result)
+}
+
+///|
+async fn run_bookkeeper_work_order_egress(
+  root : String,
+  request_path : String,
+) -> Unit {
+  let request : @bookkeeper_store.GovernedWorkOrderEgressRequest = read_json_file(
+    resolve_keeper_packet_path(root, request_path),
+  ) catch {
+    error => {
+      println("moonbook bookkeeper mooncode egress failed: \{error}")
+      return
+    }
+  }
+  let result = @bookkeeper_store.emit_governed_mooncode_work_order(
+    root, request,
+  ) catch {
+    error => {
+      println("moonbook bookkeeper mooncode egress failed: \{error}")
+      return
+    }
+  }
+  print_json(result)
+}
+
+///|
+async fn run_bookkeeper_mooncode_import_draft(args : Array[String]) -> Unit {
+  let positional : Array[String] = []
+  let mut home : String? = None
+  let mut cwd : String? = None
+  let mut moonclaw_root : String? = None
+  let mut index = 0
+  while index < args.length() {
+    match args[index] {
+      "--home" | "--cwd" | "--moonclaw" as option => {
+        if index + 1 >= args.length() {
+          println(
+            "moonbook bookkeeper mooncode import-draft failed: missing value after " +
+            option,
+          )
+          return
+        }
+        match option {
+          "--home" => home = Some(args[index + 1])
+          "--cwd" => cwd = Some(args[index + 1])
+          _ => moonclaw_root = Some(args[index + 1])
+        }
+        index += 2
+      }
+      value => {
+        positional.push(value)
+        index += 1
+      }
+    }
+  }
+  if positional.length() != 2 {
+    println(
+      "moonbook bookkeeper mooncode import-draft failed: usage requires <root> <request.json>",
+    )
+    return
+  }
+  let root = positional[0]
+  let request : @bookkeeper_store.MoonCodeDraftImportRequest = read_json_file(
+    resolve_keeper_packet_path(root, positional[1]),
+  ) catch {
+    error => {
+      println("moonbook bookkeeper mooncode import-draft failed: \{error}")
+      return
+    }
+  }
+  let packet_path = match
+    @bookkeeper_store.materialize_mooncode_draft_packet(root, request) {
+    Ok(path) => path
+    Err(error) => {
+      println("moonbook bookkeeper mooncode import-draft failed: " + error)
+      return
+    }
+  }
+  ignore(@wiki.enable_extension(root, "moonclaw"))
+  let moon_args = [
+    "-C",
+    moonclaw_root.unwrap_or(default_moonclaw_root(root)),
+    "run",
+    "cmd/main",
+    "--",
+    "proposal",
+    "import",
+    packet_path,
+    "--json",
+    "--cwd",
+    cwd.unwrap_or(root),
+    ..match home {
+      Some(value) => ["--home", value]
+      None => []
+    },
+  ]
+  let code = @process.run("moon", moon_args)
+  if code != 0 {
+    println(
+      "moonbook bookkeeper mooncode import-draft failed: MoonClaw proposal import exited with code \{code}",
+    )
+    return
+  }
+  println(
+    "MoonClaw draft imported without confirmation or execution: " + packet_path,
+  )
 }
 
 ///|
@@ -165,6 +302,47 @@ fn bookkeeper_three_gap_learning_policy_ref() -> @bookkeeper.VersionedRecordRefe
     record_version: "v1",
     record_digest: @bookkeeper_store.bookkeeper_payload_digest(payload),
   }
+}
+
+///|
+/// The slow-loop promotion policy is owned and versioned by MoonBook. MoonClaw
+/// receives this complete value as input; it may not invent thresholds or
+/// replace the policy reference in a capability candidate.
+fn bookkeeper_capability_promotion_policy() -> @bookkeeper.CapabilityPromotionPolicy {
+  let basis : Json = {
+    "contract_version": @bookkeeper.three_gap_contract_version(),
+    "policy_id": "moonbook-capability-promotion-policy",
+    "policy_version": "v1",
+    "minimum_reviewed_findings": 3,
+    "minimum_severity": 2,
+    "required_gap_classes": [
+      "information_gap", "recognition_gap", "decisiveness_gap",
+    ],
+  }
+  let digest = @bookkeeper_store.bookkeeper_payload_digest(basis)
+  let policy : @bookkeeper.VersionedRecordReference = {
+    record_id: "moonbook-capability-promotion-policy",
+    record_version: "v1",
+    record_digest: digest,
+  }
+  @bookkeeper.CapabilityPromotionPolicy::new(
+    policy~,
+    minimum_reviewed_findings=3,
+    minimum_severity=2,
+    required_gap_classes=[
+      @bookkeeper.InformationGap,
+      @bookkeeper.RecognitionGap,
+      @bookkeeper.DecisivenessGap,
+    ],
+    evidence_refs=[
+      {
+        reference_id: policy.record_id,
+        reference_version: policy.record_version,
+        digest: policy.record_digest,
+        provenance_ref: "moonbook://bookkeeper/policies/capability-promotion/v1",
+      },
+    ],
+  )
 }
 
 ///|
@@ -256,10 +434,35 @@ fn bookkeeper_moonclaw_canonical_evidence(
 }
 
 ///|
+fn bookkeeper_moonclaw_capability_evidence(
+  records : ArrayView[@bookkeeper_store.DurableBookkeeperRecord],
+) -> Array[@bookkeeper.VersionedEvidenceReference] raise {
+  let evidence = bookkeeper_moonclaw_canonical_evidence(records)
+  let policy = bookkeeper_capability_promotion_policy()
+  for reference in policy.evidence_refs {
+    evidence.push(reference)
+  }
+  evidence.sort_by(bookkeeper_moonclaw_evidence_compare)
+  let unique : Array[@bookkeeper.VersionedEvidenceReference] = []
+  for reference in evidence {
+    match unique.last() {
+      Some(previous) if previous.reference_id == reference.reference_id &&
+        previous.reference_version == reference.reference_version =>
+        if previous != reference {
+          fail("conflicting exact evidence identity in promotion inputs")
+        }
+      _ => unique.push(reference)
+    }
+  }
+  unique
+}
+
+///|
 fn bookkeeper_moonclaw_result_contract(
   subject : @bookkeeper_store.DurableBookkeeperRecord,
   learning_key : @bookkeeper.VersionedRecordReference,
 ) -> Json {
+  let promotion_policy = bookkeeper_capability_promotion_policy()
   let (candidate_schema, candidate_stage, canonical_evidence_source) = match
     subject.stage {
     OutcomeBinding =>
@@ -281,6 +484,8 @@ fn bookkeeper_moonclaw_result_contract(
     "learning_key": learning_key.to_json(),
     "learning_key_source": "moonbook",
     "learning_key_policy": bookkeeper_three_gap_learning_policy_ref().to_json(),
+    "promotion_policy": promotion_policy.to_json(),
+    "aggregation_digest_source": "moonbook",
     "canonical_evidence_source": canonical_evidence_source,
   }
 }
@@ -406,6 +611,13 @@ fn bookkeeper_moonclaw_packet(
   let packet_digest = bookkeeper_moonclaw_packet_binding_digest(
     packet_id, request, subject, snapshot_digest, result_contract, canonical_evidence_refs,
   )
+  let evidence_note = match subject.stage {
+    OutcomeBinding =>
+      "Copy metadata.result_contract.learning_key and metadata.canonical_evidence_refs exactly; MoonClaw must not derive, reorder, or invent them."
+    ThreeGapFinding =>
+      "Copy metadata.result_contract.learning_key and promotion_policy exactly. Capability evidence is the canonical union of every exact linked accepted finding plus promotion-policy evidence; MoonBook recomputes and verifies it."
+    _ => "MoonBook owns canonical evidence derivation."
+  }
   {
     packet_id,
     title: "Bookkeeper closed loop for \{request.request_id}",
@@ -420,8 +632,7 @@ fn bookkeeper_moonclaw_packet(
     notes: [
       "MoonClaw is the agent runtime; MoonBook owns the durable Bookkeeper journal and Rabbita projection.",
       "Read-only state: moonbook bookkeeper state <workspace>.", "Candidate persistence from this packet uses: moonbook bookkeeper moonclaw ingest-result <workspace> <packet.json> <moonclaw-result.json>.",
-      "Copy metadata.result_contract.learning_key and metadata.canonical_evidence_refs exactly; MoonClaw must not derive, reorder, or invent them.",
-      "Acceptance remains a later named-human call with a CLI-installed grant: moonbook bookkeeper review <workspace> <mutation.json>.",
+      evidence_note, "Acceptance remains a later named-human call with a CLI-installed grant: moonbook bookkeeper review <workspace> <mutation.json>.",
       "Never modify .moonbook/bookkeeper directly and never fabricate authority, review, or adoption.",
     ],
     tags: ["bookkeeper", "three-gap", "capability-learning"],

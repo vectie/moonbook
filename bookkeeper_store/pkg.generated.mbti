@@ -24,17 +24,33 @@ pub fn bookkeeper_transport_contract_version() -> String
 
 pub fn bookkeeper_ui_state_path(String) -> String
 
+pub fn bookkeeper_work_order_bridge_contract_version() -> String
+
+pub async fn complete_mooncode_draft_delivery(String, MoonCodeDraftDeliveryPlan, Json) -> Result[MoonCodeDraftImportReceipt, String]
+
+pub async fn emit_governed_mooncode_work_order(String, GovernedWorkOrderEgressRequest) -> BookkeeperMutationResult
+
 pub async fn install_bookkeeper_authority_grant(String, BookkeeperAuthorityGrant) -> BookkeeperAuthorityRegistry
+
+pub async fn materialize_mooncode_draft_packet(String, MoonCodeDraftImportRequest) -> Result[String, String]
+
+pub fn mooncode_draft_delivery_contract_version() -> String
 
 pub async fn persist_bookkeeper_record(String, DurableBookkeeperRecord) -> BookkeeperMutationResult
 
 pub async fn persist_transport_envelope(String, BookkeeperTransportEnvelope) -> BookkeeperMutationResult
 
+pub async fn prepare_mooncode_draft_delivery(String, MoonCodeDraftDeliveryRequest) -> Result[MoonCodeDraftDeliveryPlan, String]
+
 pub fn project_bookkeeper_ui_state(String, BookkeeperStoreSnapshot) -> @bookkeeper.BookkeeperUiState
+
+pub async fn project_governed_mooncode_work_order(String, GovernedWorkOrderBridgeRequest) -> BookkeeperMutationResult
 
 pub async fn rebuild_bookkeeper_projection(String) -> BookkeeperStoreSnapshot
 
 pub async fn replay_bookkeeper_store(String) -> BookkeeperStoreSnapshot
+
+pub fn validate_mooncode_draft_import_receipt(MoonCodeDraftImportReceipt) -> Bool
 
 // Errors
 
@@ -171,6 +187,67 @@ pub(all) struct GovernedReviewReceipt {
   issues : Array[String]
   review_complete : Bool
   side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct GovernedWorkOrderBridgeRequest {
+  contract_version : String
+  proposal : @bookkeeper.VersionedRecordReference
+  proposal_review : @bookkeeper.VersionedRecordReference
+  authority_grant : @bookkeeper.VersionedRecordReference
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct GovernedWorkOrderEgressRequest {
+  contract_version : String
+  work_order : @bookkeeper.VersionedRecordReference
+  work_order_review : @bookkeeper.VersionedRecordReference
+  authority_grant : @bookkeeper.VersionedRecordReference
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct MoonCodeDraftDeliveryPlan {
+  contract_version : String
+  request : MoonCodeDraftDeliveryRequest
+  request_digest : String
+  adapter_id : String
+  adapter_version : String
+  envelope : @bookkeeper.VersionedRecordReference
+  work_order : @bookkeeper.VersionedRecordReference
+  packet_path : String
+  packet_digest : String
+  claim_digest : String
+  already_imported : Bool
+  existing_receipt : MoonCodeDraftImportReceipt?
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct MoonCodeDraftDeliveryRequest {
+  contract_version : String
+  delivery_id : String
+  delivery_version : String
+  envelope : @bookkeeper.VersionedRecordReference
+  expected_envelope_digest : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct MoonCodeDraftImportReceipt {
+  contract_version : String
+  receipt : @bookkeeper.VersionedRecordReference
+  request : MoonCodeDraftDeliveryRequest
+  request_digest : String
+  adapter_id : String
+  adapter_version : String
+  envelope : @bookkeeper.VersionedRecordReference
+  work_order : @bookkeeper.VersionedRecordReference
+  packet_digest : String
+  moonclaw_proposal_id : String
+  moonclaw_status : String
+  moonclaw_output_digest : String
+  confirmed : Bool
+  executed : Bool
+  external_effect_authorized : Bool
+  side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct MoonCodeDraftImportRequest {
+  contract_version : String
+  envelope : @bookkeeper.VersionedRecordReference
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct StoreReviewerAuthority {
