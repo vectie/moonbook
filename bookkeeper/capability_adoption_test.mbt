@@ -623,6 +623,85 @@ test "BK-3 exact named-human accept authorizes only an immutable receipt" {
 }
 
 ///|
+test "BK-4 authorized receipt projects a separate non-applying activation request" {
+  let proposal = bk3_proposal()
+  let (review, work_order) = bk3_review_and_work_order(
+    proposal,
+    bk3_work_reviewer(),
+    suffix="activation",
+  )
+  let candidate = bk3_bind_candidate(proposal, review, work_order)
+  let evaluation = bk3_evaluation(candidate)
+  let reviewer = bk3_adoption_reviewer()
+  let decision = bk3_decide(
+    proposal,
+    review,
+    work_order,
+    candidate,
+    evaluation,
+    reviewer,
+    Some(
+      bk3_attestation(
+        proposal, review, work_order, candidate, evaluation, reviewer,
+      ),
+    ),
+  )
+  let receipt = decision.authorized_version_receipt().unwrap()
+  let activation_reviewer : @bookkeeper.ReviewerAuthority = {
+    reviewer_id: "activation-human-1",
+    authority_ref: "authority:activation-human-1",
+    authorized: true,
+    evidence_refs: ["activation-review-1"],
+  }
+  let request = receipt
+    .activation_request(
+      request={
+        record_id: "activation-request-1",
+        record_version: "1",
+        record_digest: "sha256:activation-request-1",
+      },
+      scope_id="wiki-maintainer",
+      rollout_mode="canary",
+      challenger_participant_ids=["session-canary"],
+      max_observations=8,
+      experiment={
+        record_id: "experiment-1",
+        record_version: "1",
+        record_digest: "sha256:experiment-1",
+      },
+      activation_review={
+        record_id: "activation-review-1",
+        record_version: "1",
+        record_digest: "sha256:activation-review-1",
+      },
+      activation_reviewer~,
+      requested_at=100L,
+    )
+    .unwrap()
+  assert_eq(request.scope_id, "wiki-maintainer")
+  assert_eq(request.rollout_mode, "canary")
+  assert_eq(request.old_capability.record_version, "4")
+  assert_eq(request.new_capability.record_version, "5")
+  assert_true(request.adoption_authorized)
+  assert_false(request.source_side_effects_applied)
+  assert_false(request.activation_side_effects_applied)
+  assert_true(
+    receipt.activation_request(
+      request=request.request,
+      scope_id=request.scope_id,
+      rollout_mode=request.rollout_mode,
+      challenger_participant_ids=["session-canary"],
+      max_observations=8,
+      experiment=request.experiment,
+      activation_review=request.activation_review,
+      activation_reviewer={ ..activation_reviewer, authorized: false },
+      requested_at=100L,
+    )
+    is None,
+  )
+}
+
+///|
 test "BK-3 invalid accept rejects result evaluation projection and reviewer mismatch" {
   let proposal = bk3_proposal()
   let reviewer = bk3_work_reviewer()

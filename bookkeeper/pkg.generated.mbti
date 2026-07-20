@@ -15,6 +15,8 @@ pub fn bind_outcome_evidence(DeliverableBundle, OutcomeObservation, binding~ : V
 
 pub fn bookkeeper_contract_version() -> String
 
+pub fn capability_activation_request_contract_version() -> String
+
 pub fn capability_adoption_contract_version() -> String
 
 pub fn capability_aggregation_digest(proposal_id~ : String, proposal_version~ : String, capability_id~ : String, capability_version~ : String, owner_route~ : String, change_digest~ : String, summary~ : String, evidence_refs~ : ArrayView[EvidenceReference], source_finding_refs~ : ArrayView[VersionedRecordReference], promotion_policy_ref~ : VersionedRecordReference, supersedes_version? : String) -> String
@@ -218,6 +220,27 @@ pub struct CanonicalLearningReceipt {
 } derive(Eq, ToJson, @debug.Debug)
 pub fn CanonicalLearningReceipt::has_side_effects(Self) -> Bool
 
+pub(all) struct CapabilityActivationRequest {
+  contract_version : String
+  request : VersionedRecordReference
+  receipt : VersionedRecordReference
+  scope_id : String
+  rollout_mode : String
+  challenger_participant_ids : ReadOnlyArray[String]
+  max_observations : Int
+  experiment : VersionedRecordReference
+  old_capability : VersionedRecordReference
+  new_capability : VersionedRecordReference
+  rollback : VersionedRecordReference
+  activation_review : VersionedRecordReference
+  activation_reviewer_id : String
+  activation_reviewer_authority_ref : String
+  requested_at : Int64
+  adoption_authorized : Bool
+  source_side_effects_applied : Bool
+  activation_side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug)
+
 pub struct CapabilityAdoptionAttestation {
   contract_version : String
   attestation : VersionedRecordReference
@@ -388,6 +411,7 @@ pub struct CapabilityVersionReceipt {
   adoption_authorized : Bool
   side_effects_applied : Bool
 } derive(Eq, ToJson, @debug.Debug)
+pub fn CapabilityVersionReceipt::activation_request(Self, request~ : VersionedRecordReference, scope_id~ : String, rollout_mode~ : String, challenger_participant_ids~ : Array[String], max_observations~ : Int, experiment~ : VersionedRecordReference, activation_review~ : VersionedRecordReference, activation_reviewer~ : ReviewerAuthority, requested_at~ : Int64) -> CapabilityActivationRequest?
 pub fn CapabilityVersionReceipt::has_side_effects(Self) -> Bool
 
 pub(all) struct ChangedArtifactReference {
