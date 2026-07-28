@@ -986,10 +986,16 @@ async fn reconcile_result_pages(
     }
   }
   for artifact in result.artifacts {
+    let normalized_artifact = artifact.trim().to_owned()
     let relative = normalize_result_workspace_path(artifact)
+    let artifact_root = if normalized_artifact.has_prefix("wiki/") {
+      workspace.wiki_dir
+    } else {
+      workspace.root
+    }
     if !relative.is_empty() &&
       @fsx.exists(
-        moonbook_wiki_path(workspace.root)
+        moonbook_wiki_path(artifact_root)
         .join(moonbook_wiki_path(relative))
         .to_string(),
       ) &&
@@ -2102,6 +2108,7 @@ async test "persist result materializes raw research envelope into wiki pages" {
     ),
   )
   assert_true(outcome.updated_pages.contains("sources/research-evidence.md"))
+  assert_true(outcome.updated_pages.contains("synthesis/report.md"))
 }
 
 ///|
