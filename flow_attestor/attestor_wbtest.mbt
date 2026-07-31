@@ -4,7 +4,7 @@ async test "MoonWiki attests traceable research and preserves gaps" {
   write_json(scoped_path(workspace, "runtime/request.json"), {
     "request_id": "request-research",
     "book_id": "lunar-robot",
-    "product_id": "moonwiki",
+    "product_id": "moonbook",
     "operation": "research-goal",
   })
   write_json(scoped_path(workspace, "runtime/result.json"), {
@@ -13,7 +13,7 @@ async test "MoonWiki attests traceable research and preserves gaps" {
   })
   write_json(scoped_path(workspace, "drafts/research.json"), {
     "contract_id": "moonwiki.evidence-bundle.v1",
-    "product_id": "moonwiki",
+    "product_id": "moonbook",
     "sources": [
       {
         "source_id": "src-thermal",

@@ -30,7 +30,7 @@ pub struct Server {
   port : Int
 }
 pub fn Server::close(Self) -> Unit
-pub fn Server::new(String, Int, dual_stack? : Bool, reuse_addr? : Bool) -> Self raise
+pub async fn Server::new(String, Int, dual_stack? : Bool, reuse_addr? : Bool) -> Self
 pub fn Server::port(Self) -> Int
 pub async fn Server::serve_directory(Self, String, live_reload_endpoint? : String?, workspace_root? : String?) -> Unit
 

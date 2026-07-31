@@ -23,7 +23,7 @@ fn flow_projection(
       {
         "work_item_id": "work-research",
         "declaration_id": "research",
-        "product_id": "moonwiki",
+        "product_id": "moonbook",
         "requested_authority": "observe",
         "acceptance_criteria": ["reviewed evidence is attached"],
         "status": status,

@@ -1,5 +1,15 @@
 # MoonBook Documentation Guide
 
+Start with the [product contract](PRODUCT_CONTRACT.md) for current maturity,
+Bookkeeper ownership, capability labels and release gates.
+
+- [Generic product-outcome closure](BOOKKEEPER_OUTCOME_CLOSURE.md) — exact
+  deliverable/result intake, deterministic Three-Gap assessment, named-human
+  gates, non-activating MoonFlow handoff and capability-truth publication.
+- [MoonWiki requirements capability](MOONWIKI_REQUIREMENTS_CAPABILITY.md) —
+  deterministic separation of facts, calculations, inferences and unresolved
+  questions into an exact-evidence, review-pending MoonBook packet.
+
 MoonBook is the durable executable book for MoonSuite. It owns accepted book
 truth: raw sources, wiki pages, review queues, generated sites, book-owned
 tools, app artifacts, events, and accepted outputs.

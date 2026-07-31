@@ -122,7 +122,7 @@ pub fn compile_goal_document(
       "research-goal",
       "Resolve goal information gaps",
       "Collect primary evidence, alternatives, contradictions, limitations, and stopping rationale for the approved goal without changing it.",
-      "moonwiki",
+      "moonbook",
       [],
       [
         "primary or authoritative evidence is traceable", "material contradictions and limitations are explicit",
@@ -583,7 +583,7 @@ pub fn native_attestor_executable(
   product_id : String,
 ) -> String raise {
   let binary = match product_id {
-    "moonwiki" | "moonbook" => "moonbook-flow-attestor"
+    "moonbook" => "moonbook-flow-attestor"
     "moonclaw" => "moonclaw"
     "moontown" => "moontown-flow-attestor"
     "moonrobo" => "moonrobo-flow-attestor"

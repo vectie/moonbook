@@ -20,7 +20,7 @@ fn metacognition_reflection(
           kind: "research",
           title: "Resolve execution gap",
           statement: "Perform the governed next action.",
-          executor_product: "moonwiki",
+          executor_product: "moonbook",
           requires: [],
           acceptance_criteria: ["the gap is resolved with evidence"],
           requested_authority: "observe",

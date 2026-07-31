@@ -1,5 +1,9 @@
 # MoonBook
 
+> **Platform product · local alpha.** Read the
+> [product contract](docs/PRODUCT_CONTRACT.md) for book ownership, the
+> Bookkeeper Three-Gap boundary, capability status and release gates.
+
 > 📚 MoonBit-native executable book workspace + 🧱 static renderer + 🌐 local server + 🧠 persistent wiki workspace + 🕰️ 24/7 standing-watch decisions + ✨ marketing website projection + 🧭 generated journal timeline + 🎓 generated course projection
 
 `MoonBit` `MoonBook` `Wiki` `SUMMARY.md` `HTML Renderer` `Serve` `Watch` `Rabbita`
@@ -68,6 +72,7 @@ MoonBook is strongest when you want one local system to handle:
 
 ## News
 
+- `2026-07-31`: added the generic `moonbook/bookkeeper.outcome.close@0.1.0` capability: exact deliverable/result/review intake, deterministic three-dimension assessment, resumable named-human proposal gates, non-activating MoonFlow handoff, versioned pack schemas, adapter declaration, and evidence-bound expiring health output
 - `2026-06-28`: added the seeded `document-reverse-engineer` routine so a finished document can enter MoonBook from the reverse side: deconstruction, argument map, style profile, improvement plan, and regenerated draft over the same durable workspace loop
 - `2026-06-19`: added the native `moonbook.book_state.v1` snapshot plus `moonbook.knowledge_bundle.v1`, generated graph files, `wiki state`, `wiki bundle`, `wiki graph`, and lint checks for missing MoonBook page metadata so suite tools can consume book state through concise MoonBook contracts instead of scraping wiki pages
 - `2026-05-18`: added MoonBook-side standing-watch support for 24/7 topic monitoring: seeded `skills/standing-watch/SKILL.md`, dedicated `standing-watch` book tasks, worker context with baseline/history, result marker contracts, and durable `wiki/history/standing-watch.md` decision records
@@ -152,6 +157,7 @@ MoonBook is strongest when you want one local system to handle:
   - weak synthesis/claim coverage
   - unqueued low-confidence claims
   - review backlog growth
+- 🔁 generic product-outcome closure through `bookkeeper.outcome.close`, reusing the durable Bookkeeper journal and advancing only through exact named-human reviews
 - 🔌 extension-based runtime integration with `moonclaw` as the first pack
 - 🐇 Rabbita frontend scaffolding under `ui/`
 
@@ -242,6 +248,9 @@ moon test wiki
   current init/ingest/query/review/lint loop plus the forward/reverse routine model for persistent wiki workspaces
 - [docs/KEEPER_CALL_CHAIN.md](/Users/kq/Workspace/moonbook/docs/KEEPER_CALL_CHAIN.md)
   detailed end-to-end call chain for MoonBook keeper packet submission into MoonClaw
+- [docs/BOOKKEEPER_OUTCOME_CLOSURE.md](/Users/kq/Workspace/moonbook/docs/BOOKKEEPER_OUTCOME_CLOSURE.md)
+  canonical cross-product outcome intake, deterministic Three-Gap assessment,
+  reviewed proposal handoff, and MoonFlow/MoonGate capability truth
 - [docs/EXTENSION_PACKS.md](/Users/kq/Workspace/moonbook/docs/EXTENSION_PACKS.md)
   extension-pack model and the current MoonClaw integration boundary
 - [docs/RENDERER_STATUS.md](/Users/kq/Workspace/moonbook/docs/RENDERER_STATUS.md)

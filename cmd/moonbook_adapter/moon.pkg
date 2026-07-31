@@ -1,10 +1,9 @@
 import {
   "vectie/moonbook",
+  "moonbitlang/core/env",
   "moonbitlang/core/json",
 }
 
 supported_targets = "native"
 
-options(
-  "is-main": true,
-)
+pkgtype(kind: "executable")

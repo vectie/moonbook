@@ -103,7 +103,7 @@ fn attest_web_provenance(
 ///|
 fn attest_research(draft_fields : Map[String, Json]) -> Json raise {
   if string_field(draft_fields, "contract_id") != "moonwiki.evidence-bundle.v1" ||
-    string_field(draft_fields, "product_id") != "moonwiki" {
+    string_field(draft_fields, "product_id") != "moonbook" {
     fail("MoonWiki evidence draft has the wrong identity")
   }
   let (web_provenance, fetched_urls) = attest_web_provenance(draft_fields)
@@ -150,7 +150,8 @@ fn attest_research(draft_fields : Map[String, Json]) -> Json raise {
   (
     {
       "contract_id": "moonwiki.evidence-bundle.v1",
-      "product_id": "moonwiki",
+      "product_id": "moonbook",
+      "functionality": "moonwiki",
       "operation": "research-goal",
       "sources": sources.to_json(),
       "claims": claims.to_json(),
@@ -339,7 +340,7 @@ pub async fn attest(
   let product_id = string_field(request_fields, "product_id")
   let operation = string_field(request_fields, "operation")
   let final_artifact = match (product_id, operation) {
-    ("moonwiki", "research-goal") => attest_research(draft_fields)
+    ("moonbook", "research-goal") => attest_research(draft_fields)
     ("moonbook", "audit-outcome") => attest_audit(request_fields, draft_fields)
     ("moonbook", "deliver-reviewed-mooncode-draft") =>
       attest_mooncode_draft_delivery(workspace, request_fields, draft)

@@ -2,9 +2,23 @@
 package "vectie/moonbook"
 
 // Values
+pub fn moonbook_capability_pack_version() -> String
+
 pub fn moonbook_mooncode_draft_delivery_capability_json() -> Json
 
 pub fn moonbook_moonflow_adapter_capability_json() -> Json
+
+pub fn moonbook_moonflow_adapter_declaration_json() -> Json
+
+pub fn moonbook_moonflow_adapter_health_json(checked_at~ : String, valid_until~ : String, evidence_ref~ : String, evidence_digest~ : String) -> Json raise
+
+pub fn moonbook_outcome_closure_operation_id() -> String
+
+pub fn moonbook_outcome_closure_operation_ref() -> String
+
+pub fn moonbook_requirements_prepare_operation_id() -> String
+
+pub fn moonbook_requirements_prepare_operation_ref() -> String
 
 pub fn moonwiki_moonflow_adapter_capability_json() -> Json
 

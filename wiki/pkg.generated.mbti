@@ -98,6 +98,8 @@ pub async fn persist_result(String, BookResult, lifecycle_proof? : ExecutableBoo
 
 pub async fn prepare_goal_unattended_runtime(String, String, String, String, String, String, String) -> GoalRuntimeRecord
 
+pub fn prepare_requirements(RequirementsPrepareRequest) -> RequirementsPacket raise
+
 pub async fn produce_task_batch(String, String, goal_id? : String?) -> BookTaskBatch
 
 pub async fn promote_bookkeeper_procedures(String, String, String) -> Array[String]
@@ -107,6 +109,8 @@ pub async fn query_wiki(String, String, save? : Bool) -> QueryResult
 pub async fn reconcile_flow_projection_file(String, String, String, String) -> BookkeeperReflectionRecord
 
 pub async fn reconcile_flow_run_file(String, String, String) -> FlowRunReconciliation
+
+pub fn reconcile_requirements_packet(RequirementsPrepareRequest, RequirementsPacket) -> RequirementsPacketReconciliation raise
 
 pub async fn record_spatial_reference_file(String, String) -> SpatialReferenceRecord
 
@@ -119,6 +123,10 @@ pub fn reflect_on_observation(BookkeeperObservation) -> BookkeeperReflection
 pub async fn reject_review(String, String) -> ReviewActionResult
 
 pub async fn report_health(String) -> BookHealthReport
+
+pub fn requirements_packet_contract_version() -> String
+
+pub fn requirements_prepare_contract_version() -> String
 
 pub async fn resolve_task_for_goal(String, String, task_id? : String?) -> BookTask?
 
@@ -361,6 +369,8 @@ pub(all) struct BookkeeperReflectionRecord {
   proposals_path : String
   reflection : BookkeeperReflection
 } derive(Eq, ToJson, @debug.Debug)
+
+type CanonicalRequirementStatement derive(Eq, @debug.Debug)
 
 pub struct DecodedBookResultPayload {
   result : BookResult
@@ -715,6 +725,66 @@ pub struct QueryResult {
   saved_page : String?
   related_pages : Array[String]
 } derive(ToJson, @debug.Debug)
+
+pub(all) struct RequirementPacketStatement {
+  statement_id : String
+  text : String
+  evidence_refs : Array[String]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct RequirementSourceStatement {
+  statement_id : String
+  kind : String
+  text : String
+  evidence_refs : Array[String]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct RequirementsPacket {
+  contract_version : String
+  packet : @bookkeeper.VersionedRecordReference
+  request : @bookkeeper.VersionedRecordReference
+  product_id : String
+  functionality : String
+  capability : String
+  agent_runtime : String
+  agent_execution_requested : Bool
+  book_id : String
+  goal : String
+  owner_route : String
+  recorded_at : Int
+  review_status : String
+  accepted_truth : Bool
+  accepted_into_book : Bool
+  requires_human_review : Bool
+  facts : Array[RequirementPacketStatement]
+  calculations : Array[RequirementPacketStatement]
+  inferences : Array[RequirementPacketStatement]
+  unresolved_questions : Array[RequirementPacketStatement]
+  evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
+  external_side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct RequirementsPacketReconciliation {
+  contract_version : String
+  request : @bookkeeper.VersionedRecordReference
+  packet : @bookkeeper.VersionedRecordReference
+  status : String
+  exact_match : Bool
+  review_status : String
+  accepted_truth : Bool
+  issues : Array[String]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct RequirementsPrepareRequest {
+  contract_version : String
+  request : @bookkeeper.VersionedRecordReference
+  book_id : String
+  goal : String
+  owner_route : String
+  recorded_at : Int
+  evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
+  statements : Array[RequirementSourceStatement]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub struct ReviewActionResult {
   review_id : String

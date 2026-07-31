@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "moonbook/wiki-requirements-packet@1.0.0",
+  "title": "MoonBook review-pending requirements packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "packet",
+    "request",
+    "product_id",
+    "functionality",
+    "capability",
+    "agent_runtime",
+    "agent_execution_requested",
+    "book_id",
+    "goal",
+    "owner_route",
+    "recorded_at",
+    "review_status",
+    "accepted_truth",
+    "accepted_into_book",
+    "requires_human_review",
+    "facts",
+    "calculations",
+    "inferences",
+    "unresolved_questions",
+    "evidence_refs",
+    "external_side_effects_applied"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "moonbook.wiki.requirements_packet.v1"
+    },
+    "packet": { "$ref": "#/$defs/packetReference" },
+    "request": { "$ref": "#/$defs/recordReference" },
+    "product_id": { "const": "moonbook" },
+    "functionality": { "const": "moonwiki" },
+    "capability": {
+      "const": "moonbook/wiki.requirements.prepare@0.1.0"
+    },
+    "agent_runtime": { "const": "moonclaw" },
+    "agent_execution_requested": { "const": false },
+    "book_id": { "type": "string", "minLength": 1 },
+    "goal": { "type": "string", "minLength": 1 },
+    "owner_route": { "type": "string", "minLength": 1 },
+    "recorded_at": { "type": "integer", "minimum": 0 },
+    "review_status": { "const": "pending" },
+    "accepted_truth": { "const": false },
+    "accepted_into_book": { "const": false },
+    "requires_human_review": { "const": true },
+    "facts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/packetStatement" }
+    },
+    "calculations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/packetStatement" }
+    },
+    "inferences": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/packetStatement" }
+    },
+    "unresolved_questions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/packetStatement" }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/evidenceReference" }
+    },
+    "external_side_effects_applied": { "const": false }
+  },
+  "$defs": {
+    "recordReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_id", "record_version", "record_digest"],
+      "properties": {
+        "record_id": { "type": "string", "minLength": 1 },
+        "record_version": { "type": "string", "minLength": 1 },
+        "record_digest": { "type": "string", "minLength": 1 }
+      }
+    },
+    "packetReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_id", "record_version", "record_digest"],
+      "properties": {
+        "record_id": { "type": "string", "minLength": 1 },
+        "record_version": { "type": "string", "minLength": 1 },
+        "record_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "evidenceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_id",
+        "reference_version",
+        "digest",
+        "provenance_ref"
+      ],
+      "properties": {
+        "reference_id": { "type": "string", "minLength": 1 },
+        "reference_version": { "type": "string", "minLength": 1 },
+        "digest": { "type": "string", "minLength": 1 },
+        "provenance_ref": { "type": "string", "minLength": 1 }
+      }
+    },
+    "packetStatement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statement_id", "text", "evidence_refs"],
+      "properties": {
+        "statement_id": { "type": "string", "minLength": 1 },
+        "text": { "type": "string", "minLength": 1 },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

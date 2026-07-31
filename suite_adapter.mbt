@@ -1,30 +1,18 @@
 ///|
-/// Describe the bounded MoonFlow operations owned by MoonWiki.
-///
-/// MoonWiki can observe sources and maintain evidence inside a workspace, but
-/// it cannot schedule work, change code, execute experiments, or create an
-/// external/physical effect.
+/// Historical alias metadata for callers that once treated MoonWiki as a
+/// product. MoonWiki is functionality inside MoonBook and this alias is
+/// deliberately non-callable.
 pub fn moonwiki_moonflow_adapter_capability_json() -> Json {
   {
-    "adapter_id": "moonwiki-v1",
-    "product_id": "moonwiki",
-    "protocol": "moonflow.adapter.v1",
-    "operations": [
-      "discover-sources", "ingest-evidence", "query-evidence", "review-claims", "track-freshness",
-      "build-evidence-bundle", "reconcile-evidence",
-    ],
-    "authority_classes": [
-      "observe", "cognitive-maintenance", "workspace-mutation",
-    ],
-    "supports_cancel": false,
-    "supports_reconcile": true,
-    "receipt_contracts": [
-      "moonwiki.source-envelope.v1", "moonwiki.evidence-bundle.v1", "moonwiki.review-receipt.v1",
-      "moonwiki.freshness-receipt.v1",
-    ],
-    "accepted_truth_requires_review": true,
-    "code_changes_forbidden": true,
-    "experiment_execution_forbidden": true,
+    "contract_id": "moonsuite.capability-alias.v1",
+    "legacy_product_id": "moonwiki",
+    "canonical_product_id": "moonbook",
+    "functionality": "moonwiki",
+    "callable": false,
+    "deprecated": true,
+    "operations": [],
+    "replacement_operation_ref": "moonbook/wiki.requirements.prepare@0.1.0",
+    "reason": "MoonWiki is functionality inside MoonBook, never a product or agent runtime.",
   }
 }
 
@@ -87,5 +75,114 @@ pub fn moonbook_mooncode_draft_delivery_capability_json() -> Json {
     "confirmation_allowed": false,
     "execution_allowed": false,
     "external_effect_allowed": false,
+  }
+}
+
+///|
+/// Installed MoonBook pack version used by MoonFlow capability truth.
+pub fn moonbook_capability_pack_version() -> String {
+  "0.1.0"
+}
+
+///|
+/// Canonical product-owned operation replacing the aspirational canvas verb
+/// `bookkeeper.close-loop`.
+pub fn moonbook_outcome_closure_operation_id() -> String {
+  "bookkeeper.outcome.close"
+}
+
+///|
+pub fn moonbook_outcome_closure_operation_ref() -> String {
+  "moonbook/" +
+  moonbook_outcome_closure_operation_id() +
+  "@" +
+  moonbook_capability_pack_version()
+}
+
+///|
+/// Product-owned operation for deterministic, review-pending MoonWiki
+/// requirements preparation.
+pub fn moonbook_requirements_prepare_operation_id() -> String {
+  "wiki.requirements.prepare"
+}
+
+///|
+pub fn moonbook_requirements_prepare_operation_ref() -> String {
+  "moonbook/" +
+  moonbook_requirements_prepare_operation_id() +
+  "@" +
+  moonbook_capability_pack_version()
+}
+
+///|
+/// Host-binding declaration consumed by MoonFlow capability catalog
+/// compilation. It deliberately contains no health claim.
+pub fn moonbook_moonflow_adapter_declaration_json() -> Json {
+  {
+    "contract_id": "moonflow.adapter-declaration.v1",
+    "adapter_id": "moonbook-pack-local-v1",
+    "product_id": "moonbook",
+    "pack_id": "moonbook",
+    "pack_version": moonbook_capability_pack_version(),
+    "protocol": "moonflow.adapter.v2",
+    "operations": [
+      {
+        "operation_id": moonbook_outcome_closure_operation_id(),
+        "claim_ceiling": "digital-artifact",
+        "supports_cancel": false,
+        "supports_reconcile": true,
+      },
+      {
+        "operation_id": moonbook_requirements_prepare_operation_id(),
+        "claim_ceiling": "digital-artifact",
+        "supports_cancel": false,
+        "supports_reconcile": true,
+      },
+    ],
+  }
+}
+
+///|
+fn valid_sha256_identity(value : String) -> Bool {
+  value.length() == 71 &&
+  value.has_prefix("sha256:") &&
+  value[7:].all(fn(char) {
+    (char >= '0' && char <= '9') || (char >= 'a' && char <= 'f')
+  })
+}
+
+///|
+/// Build a short-lived health attestation from host-verified evidence. A
+/// repository checkout cannot truthfully publish a permanent healthy file, so
+/// callers must supply the observation window and exact evidence identity.
+pub fn moonbook_moonflow_adapter_health_json(
+  checked_at~ : String,
+  valid_until~ : String,
+  evidence_ref~ : String,
+  evidence_digest~ : String,
+) -> Json raise {
+  if checked_at.is_blank() ||
+    valid_until.is_blank() ||
+    checked_at >= valid_until ||
+    evidence_ref.is_blank() ||
+    !valid_sha256_identity(evidence_digest) {
+    fail("MoonBook adapter health requires a valid window and SHA-256 evidence")
+  }
+  {
+    "contract_id": "moonflow.adapter-health.v1",
+    "adapter_id": "moonbook-pack-local-v1",
+    "product_id": "moonbook",
+    "pack_id": "moonbook",
+    "pack_version": moonbook_capability_pack_version(),
+    "protocol": "moonflow.adapter.v2",
+    "status": "healthy",
+    "checked_at": checked_at,
+    "valid_until": valid_until,
+    "operation_refs": [
+      moonbook_outcome_closure_operation_ref(),
+      moonbook_requirements_prepare_operation_ref(),
+    ],
+    "evidence_ref": evidence_ref,
+    "evidence_digest": evidence_digest,
   }
 }

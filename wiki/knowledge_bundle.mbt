@@ -58,7 +58,7 @@ pub async fn generate_knowledge_bundle(root : String) -> KnowledgeBundle {
 /// projection boundary, so normalize that deterministic metadata here instead
 /// of asking every model prompt to reproduce boilerplate perfectly.
 async fn normalize_knowledge_page_contracts(workspace : Paths) -> Unit {
-  let updated_at = @async.now().to_int().to_string()
+  let updated_at = @async.now().to_string()
   for path in collect_markdown_pages(workspace.wiki_dir) {
     let relative = relative_to_root(path, workspace.root)
     if !(relative.has_prefix("wiki/sources/") ||
@@ -264,15 +264,21 @@ fn infer_page_summary(content : String) -> String {
 ///|
 fn infer_review_status(relative : String, content : String) -> String {
   let lowered = content.to_lower()
-  if relative.contains("/reviews/pending") || lowered.contains("pending-review") {
+  if lowered.contains("review_status: accepted") {
+    "accepted"
+  } else if lowered.contains("review_status: rejected") ||
+    lowered.contains("status: `rejected`") {
+    "rejected"
+  } else if relative.contains("/reviews/pending") ||
+    lowered.contains("pending-review") ||
+    lowered.contains("pending_review") ||
+    lowered.contains("pending review") {
     "pending-review"
   } else if lowered.contains("status: `pending`") ||
     lowered.contains("- status: `pending`") {
     "pending-review"
-  } else if lowered.contains("status: `rejected`") {
-    "rejected"
   } else {
-    "accepted"
+    "pending-review"
   }
 }
 
@@ -475,5 +481,39 @@ async test "knowledge bundle builds graph from maintained pages" {
       edge.from == "wiki/entities/moonbook.md" &&
       edge.to == "wiki/concepts/executable-book.md"
     }),
+  )
+}
+
+///|
+async test "knowledge bundle metadata fails closed for unauthenticated sources" {
+  let root = "/tmp/moonbook-knowledge-bundle-pending-source"
+  let _ = init_workspace(root)
+  @fsx.make_directory(root + "/wiki/sources", recursive=true, exists_ok=true)
+  @fsx.write_to_file(
+    root + "/wiki/sources/private-transcript.md",
+    "# Private transcript\n\nThis source is private, incomplete, and unauthenticated.\n",
+    create=0o644,
+  )
+  ignore(generate_knowledge_bundle(root))
+  let normalized = @fsx.read_file(root + "/wiki/sources/private-transcript.md")
+  assert_true(normalized.contains("review_status: pending-review"))
+  assert_false(normalized.contains("review_status: accepted"))
+  assert_true(normalized.contains("source_quality: provisional"))
+  assert_false(normalized.contains("updated_at: -"))
+}
+
+///|
+test "explicit review status is preserved and missing status fails closed" {
+  assert_eq(
+    infer_review_status(
+      "wiki/sources/approved.md", "---\nreview_status: accepted\n---\n# Approved\n",
+    ),
+    "accepted",
+  )
+  assert_eq(
+    infer_review_status(
+      "wiki/sources/pending.md", "# Candidate\n\nNo review decision is recorded.\n",
+    ),
+    "pending-review",
   )
 }

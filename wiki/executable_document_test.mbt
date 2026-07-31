@@ -13,7 +13,7 @@ fn executable_document(
         kind: "research",
         title: "Research terrain",
         statement: "Collect traceable terrain evidence.",
-        executor_product: "moonwiki",
+        executor_product: "moonbook",
         requires: [],
         acceptance_criteria: ["source digest is recorded"],
         requested_authority: research_authority,

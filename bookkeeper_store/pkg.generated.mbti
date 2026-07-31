@@ -26,6 +26,8 @@ pub fn bookkeeper_ui_state_path(String) -> String
 
 pub fn bookkeeper_work_order_bridge_contract_version() -> String
 
+pub async fn close_product_outcome(String, ProductOutcomeClosureRequest) -> ProductOutcomeClosureReceipt
+
 pub async fn complete_mooncode_draft_delivery(String, MoonCodeDraftDeliveryPlan, Json) -> Result[MoonCodeDraftImportReceipt, String]
 
 pub async fn emit_governed_mooncode_work_order(String, GovernedWorkOrderEgressRequest) -> BookkeeperMutationResult
@@ -41,6 +43,10 @@ pub async fn persist_bookkeeper_record(String, DurableBookkeeperRecord) -> Bookk
 pub async fn persist_transport_envelope(String, BookkeeperTransportEnvelope) -> BookkeeperMutationResult
 
 pub async fn prepare_mooncode_draft_delivery(String, MoonCodeDraftDeliveryRequest) -> Result[MoonCodeDraftDeliveryPlan, String]
+
+pub fn product_outcome_closure_contract_version() -> String
+
+pub fn product_outcome_closure_receipt_contract_version() -> String
 
 pub fn project_bookkeeper_ui_state(String, BookkeeperStoreSnapshot) -> @bookkeeper.BookkeeperUiState
 
@@ -248,6 +254,50 @@ pub(all) struct MoonCodeDraftImportReceipt {
 pub(all) struct MoonCodeDraftImportRequest {
   contract_version : String
   envelope : @bookkeeper.VersionedRecordReference
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct ProductOutcomeClosureReceipt {
+  contract_version : String
+  request : @bookkeeper.VersionedRecordReference
+  outcome_binding : @bookkeeper.VersionedRecordReference
+  three_gap_assessment : @bookkeeper.VersionedRecordReference
+  assessment_review : @bookkeeper.VersionedRecordReference?
+  capability_proposal : @bookkeeper.VersionedRecordReference?
+  proposal_review : @bookkeeper.VersionedRecordReference?
+  moonflow_handoff : @bookkeeper.VersionedRecordReference?
+  state : String
+  pending_human_gate : String
+  activation_authorized : Bool
+  workspace_records_applied : Bool
+  external_side_effects_applied : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct ProductOutcomeClosureRequest {
+  contract_version : String
+  request : @bookkeeper.VersionedRecordReference
+  source_product : String
+  deliverable : @bookkeeper.VersionedRecordReference
+  result : @bookkeeper.VersionedRecordReference
+  deliverable_review : @bookkeeper.VersionedRecordReference
+  observed_at : Int
+  recorded_at : Int
+  outcome_summary : String
+  owner_route : String
+  evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
+  information_gap : ProductOutcomeGapStatement
+  recognition_gap : ProductOutcomeGapStatement
+  decisiveness_gap : ProductOutcomeGapStatement
+  capability_id : String
+  capability_version : String
+  capability_change_digest : String
+  capability_summary : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct ProductOutcomeGapStatement {
+  present : Bool
+  severity : Int
+  summary : String
+  evidence_refs : Array[String]
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct StoreReviewerAuthority {

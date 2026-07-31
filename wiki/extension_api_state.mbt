@@ -435,7 +435,9 @@ fn classify_source_page(content : String) -> String {
     "candidate"
   } else if normalized.contains("source type: provisional") ||
     normalized.contains("durability: provisional") ||
-    normalized.contains("source type: candidate inventory") {
+    normalized.contains("source type: candidate inventory") ||
+    normalized.contains("unauthenticated") ||
+    normalized.contains("unverified") {
     "provisional"
   } else {
     "verified"

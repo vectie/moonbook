@@ -246,7 +246,7 @@ fn evidence_action(observation : BookkeeperObservation) -> BookkeeperAction {
     kind: "research",
     title: "Resolve evidence for \{observation.constraint_name}",
     statement: "Find traceable evidence required to evaluate \{observation.subject} against \{observation.constraint_name}.",
-    executor_product: "moonwiki",
+    executor_product: "moonbook",
     requires: [],
     acceptance_criteria: [
       "the source is durable and provenance is recorded", "the evidence directly supports or challenges the requirement",
@@ -262,7 +262,7 @@ fn alternative_action(observation : BookkeeperObservation) -> BookkeeperAction {
     kind: "research",
     title: "Find an alternative satisfying \{observation.constraint_name}",
     statement: "Find a feasible alternative for \{observation.subject} that satisfies the existing \{observation.constraint_name} constraint without weakening its declared limit.",
-    executor_product: "moonwiki",
+    executor_product: "moonbook",
     requires: [],
     acceptance_criteria: [
       "the original failed claim remains recorded", "the declared constraint and limit are unchanged",

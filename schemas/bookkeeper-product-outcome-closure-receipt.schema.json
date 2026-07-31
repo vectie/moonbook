@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "moonbook/bookkeeper-product-outcome-closure-receipt@1.0.0",
+  "title": "MoonBook product outcome closure receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "request",
+    "outcome_binding",
+    "three_gap_assessment",
+    "assessment_review",
+    "capability_proposal",
+    "proposal_review",
+    "moonflow_handoff",
+    "state",
+    "pending_human_gate",
+    "activation_authorized",
+    "workspace_records_applied",
+    "external_side_effects_applied"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "moonbook.bookkeeper.product_outcome_closure_receipt.v1"
+    },
+    "request": { "$ref": "#/$defs/recordReference" },
+    "outcome_binding": { "$ref": "#/$defs/recordReference" },
+    "three_gap_assessment": { "$ref": "#/$defs/recordReference" },
+    "assessment_review": { "$ref": "#/$defs/nullableRecordReference" },
+    "capability_proposal": { "$ref": "#/$defs/nullableRecordReference" },
+    "proposal_review": { "$ref": "#/$defs/nullableRecordReference" },
+    "moonflow_handoff": { "$ref": "#/$defs/nullableRecordReference" },
+    "state": {
+      "enum": [
+        "assessment_review_required",
+        "closed_no_capability_change",
+        "proposal_review_required",
+        "reviewed_proposal_handed_off"
+      ]
+    },
+    "pending_human_gate": { "type": "string" },
+    "activation_authorized": { "const": false },
+    "workspace_records_applied": { "type": "boolean" },
+    "external_side_effects_applied": { "const": false }
+  },
+  "$defs": {
+    "recordReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_id", "record_version", "record_digest"],
+      "properties": {
+        "record_id": { "type": "string", "minLength": 1 },
+        "record_version": { "type": "string", "minLength": 1 },
+        "record_digest": { "type": "string", "minLength": 1 }
+      }
+    },
+    "nullableRecordReference": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/recordReference" }
+      ]
+    }
+  }
+}

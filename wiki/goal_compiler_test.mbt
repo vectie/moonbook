@@ -33,7 +33,7 @@ test "goal compiler distinguishes unrelated intent without inferring authority" 
 ///|
 test "unattended drivers select product-owned attestors under the suite root" {
   assert_eq(
-    native_attestor_executable("/tmp/moonsuite", "moonwiki"),
+    native_attestor_executable("/tmp/moonsuite", "moonbook"),
     "/tmp/moonsuite/bin/moonbook-flow-attestor",
   )
   assert_eq(

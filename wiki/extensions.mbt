@@ -152,7 +152,7 @@ test "moonclaw jobs include role runtime metadata" {
       "\"output_contract\": \"moonbook.bookkeeper.moonclaw-result.v1\"",
     ),
   )
-  assert_true(text.contains("\"model\": \"gpt-5.6-sol\""))
+  assert_true(text.contains("\"model\": \"codex/gpt-5.6-sol\""))
 }
 
 ///|
