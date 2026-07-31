@@ -4,7 +4,7 @@
 > [product contract](docs/PRODUCT_CONTRACT.md) for book ownership, the
 > Bookkeeper Three-Gap boundary, capability status and release gates.
 
-> 📚 MoonBit-native executable book workspace + 🧱 static renderer + 🌐 local server + 🧠 persistent wiki workspace + ✨ marketing website projection + 🧭 generated journal timeline + 🎓 generated course projection
+> 📚 MoonBit-native executable book workspace + 🧱 static renderer + 🌐 local server + 🧠 persistent wiki workspace + ✨ marketing website projection + 🧭 generated journal timeline + 🎓 evidence-linked reader projections
 
 `MoonBit` `MoonBook` `Wiki` `SUMMARY.md` `HTML Renderer` `Serve` `Watch` `Rabbita`
 
@@ -70,7 +70,7 @@ MoonBook is strongest when you want one local system to handle:
 - 🗂️ persistent wiki pages between sessions
 - 🌐 a marketing-oriented website projection for demos and launches
 - 🧭 a journey layer that turns noisy runs into a readable operator timeline
-- 🎓 a course layer that teaches the workspace in plain language
+- 🎓 Learn, Apply, and Research views over one accepted book revision
 - 🧠 small rewriteable Keeper memory between worker runs
 - 🧩 a typed MoonBook knowledge bundle for suite consumers
 - 🕸️ a generated graph of durable pages and cross-links
@@ -78,6 +78,7 @@ MoonBook is strongest when you want one local system to handle:
 
 ## News
 
+- `2026-08-01`: replaced the generic generated course mockup with reader-first Learn, Apply, and Research routes sourced from the book's actual course, practice, and research artifacts; added the typed `moonbook.reader_projection.v1` contract, fail-closed quality/review readiness, provenance state, and a systematic plain-language + learning-science authoring loop
 - `2026-07-31`: added the generic `moonbook/bookkeeper.outcome.submit@0.1.0` intake plus `moonbook/bookkeeper.outcome.close@0.1.0`: external decision evidence enters the existing Rabbita review queue, deterministic Three-Gap assessment and capability proposal gates replay safely, and no receipt grants activation
 - `2026-07-12`: added governed Bookkeeper metacognition with a persistent three-gap graph, consequence/invalidation-aware beliefs, evidence-qualified procedure learning, immutable plan revision lineage, and MoonFlow v3 reconciliation
 - `2026-06-28`: added the seeded `document-reverse-engineer` routine so a finished document can enter MoonBook from the reverse side: deconstruction, argument map, style profile, improvement plan, and regenerated draft over the same durable workspace loop
@@ -120,7 +121,8 @@ MoonBook is strongest when you want one local system to handle:
 - 🕰️ seeded `skills/standing-watch/SKILL.md` for recurring topic checks that compare new evidence against the current book baseline and emit machine-readable decision, source-count, fact-count, changed-page, and `book_changed` markers
 - 🧭 durable standing-watch history under `wiki/history/standing-watch.md`, written when a book-local watch result is persisted
 - 🧭 generated journal view emitted into `book/site/generated/journal.html` from live journey and workspace state
-- 🎓 generated course view emitted into `book/site/generated/course.html` from live workspace and journey state
+- 🎓 generated reader view emitted into `book/site/generated/course.html`, selecting the actual Learn, Apply, and Research artifacts without substituting generic workspace prose
+- 🧾 typed `moonbook.reader_projection.v1` state emitted at `book/site/generated/reader-state.json`, with audience/outcome, nine reader-loop dimensions, source revision/digest/references, review receipts, view-specific semantics, and explicit publishability issues
 - 🛠️ generated skill manager emitted into `book/site/generated/skills.html` with inventory, duplicate detection, bundled-reference diagnostics, copyable lifecycle commands, override drift comparison against seeded baselines, and staged sync commands for candidate bundles
 - 🖥️ dedicated `skill hub` backend with a browser UI for machine-wide skill scanning, direct in-browser editing, automatic snapshots, rollback, debug inspection, and live SSE refresh
 - 🧠 wiki workspace bootstrap with:
@@ -198,6 +200,8 @@ MoonBook is strongest when you want one local system to handle:
   native CLI entrypoint
 - `wiki`
   wiki workspace bootstrap, extension packs, ingest, query, review, extension APIs, and shared maintenance/workspace helpers
+- `reader_projection`
+  public MoonBit contract, JSON round-trip, evidence/review binding, and deterministic readiness checks for Learn, Apply, and Research views
 - `internal`
   filesystem/path/server helpers adapted where needed from MoonClaw
 - `ui`

@@ -12,6 +12,9 @@ Bookkeeper ownership, capability labels and release gates.
 - [UI-to-UI use cases](qualification/UI_TO_UI_USE_CASES.md) — reproducible
   book, Bookkeeper, named-human review, Three-Gap, and negative-authority
   qualification in the existing Rabbita application.
+- [Human-readable reader projections](READER_PROJECTIONS.md) — the evidence-led
+  Learn, Apply, and Research contract, authoring loop, quality gates, and
+  ownership boundary for MoonBook's reading experience.
 
 MoonBook is the durable executable book for MoonSuite. It owns accepted book
 truth: raw sources, wiki pages, review queues, generated sites, book-owned
@@ -50,6 +53,8 @@ books, MoonGate observes, and MoonLib defines shared layout.
 10. [MOONFLOW_MOONCODE_DRAFT_DELIVERY.md](MOONFLOW_MOONCODE_DRAFT_DELIVERY.md):
     product-owned MoonFlow delivery of reviewed work orders as inert MoonClaw
     drafts.
+11. [READER_PROJECTIONS.md](READER_PROJECTIONS.md): one canonical book exposed
+    through audience-appropriate Learn, Apply, and Research views.
 
 ## Implementation Guidance
 

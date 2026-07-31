@@ -1,22 +1,31 @@
 ---
 name: wiki-course
-description: Maintain an educational course projection that teaches how the workspace works through structured modules, checkpoints, and plain-language system explanations.
+description: Maintain evidence-linked reader projections that teach a specific audience through plain explanations, worked examples, practice, retrieval, and progressively deeper views.
 ---
 
 # Wiki Course
 
 ## Purpose
 
-Use this skill to teach a reader through a course.
+Use this skill to teach a named reader through a course.
 This is not marketing, not journaling, and not a research report.
 
-The course layer should explain:
+Before drafting, read
+[`references/human-readable-content.md`](references/human-readable-content.md).
+It defines the MoonBook reader loop, projection levels, and release gates.
+
+The course layer should explain the subject the reader needs to understand or
+use. For a software workspace, that can include:
 
 - actors
 - data flow
 - process stages
 - operator choices
 - why the components relate the way they do
+
+For another domain, replace those system-specific topics with the domain's
+core concepts, decisions, procedures, and evidence boundaries. Do not force a
+software-workspace outline onto every book.
 
 ## Inputs
 
@@ -33,6 +42,14 @@ Then inspect:
 - key entity and concept pages
 - current generated course output if it exists
 
+Also establish a reader contract before writing:
+
+- a specific primary audience; `general public` is not specific enough
+- what the reader already knows
+- what the reader should understand or accomplish
+- one main message, expressed in one to three short sentences
+- the next useful action the reader should be able to take
+
 ## Educational boundary
 
 Keep the course:
@@ -41,6 +58,8 @@ Keep the course:
 - modular
 - plain-language
 - structured
+- evidence-linked
+- appropriate to the named reader
 
 Do not make it:
 
@@ -50,7 +69,7 @@ Do not make it:
 
 ## Recommended structure
 
-For a beginner course, use a sequence like:
+For a beginner software course, a sequence might be:
 
 1. what the system is
 2. what the major actors do
@@ -59,7 +78,8 @@ For a beginner course, use a sequence like:
 5. where failures happen
 6. what the operator can inspect
 
-Use checkpoints, glossaries, and short examples.
+Use checkpoints, glossaries, and short examples. Change the sequence when the
+reader's actual task requires a different route.
 
 For a full workbook, write 10-12 lessons unless the user requests a different
 length. Each lesson should include:
@@ -67,11 +87,15 @@ length. Each lesson should include:
 - Objective
 - Plain explanation
 - Why it matters
-- Concrete example
+- Worked example with visible steps and result
 - Exercise
 - Output artifact
-- Checkpoint
+- Self-explanation question
+- Closed-book retrieval checkpoint with a concealed answer
+- Transfer task in a new situation
+- Revisit prompt and `Revisit after days:` interval
 - Common mistake
+- Source references and important limitations
 
 If the topic is a design/build topic, make every lesson produce a usable
 artifact, such as a label JSON, tile grammar, style sheet, placement rule,
@@ -85,6 +109,10 @@ Prefer:
 - named files and artifacts
 - one concept per section
 - simple diagrams or flow language
+- the main message and next action in the first screenful
+- familiar words, active voice, short chunks, and definitions at first use
+- relevant words and visuals together when a visual materially helps
+- a concrete case before asking a novice to solve an abstract case
 
 Avoid:
 
@@ -95,6 +123,24 @@ Avoid:
 - `Verified Findings` or source audit as the main structure
 - provider task status, ReviewQueued state, run ids, or raw execution logs in
   reader-facing lessons
+- decorative visuals that do not teach
+- readability scores as a substitute for comprehension testing
+
+## Reader projections
+
+Maintain one accepted body of knowledge and derive views from it. Do not write
+three unrelated books whose facts can drift.
+
+- **Learn** orients a newcomer, explains terms, shows worked examples, and
+  provides retrieval checkpoints.
+- **Apply** emphasizes procedures, decisions, templates, exercises, outputs,
+  trade-offs, and transfer tasks.
+- **Research** exposes methods, source anchors, contradictory evidence,
+  uncertainty, limitations, and review lineage.
+
+Operational state, raw execution logs, provider details, and maintenance
+diagnostics belong in a separate **How maintained** disclosure. They must not
+interrupt the reading path.
 
 ## Output expectations
 
@@ -117,11 +163,16 @@ When the task asks for course artifacts, the artifact list should include:
 
 A good course page should let a new reader answer:
 
-- what are MoonTown, MoonBook, and MoonClaw
-- what does raw-first bootstrap mean
-- what is the keeper doing
-- where does durable knowledge live
-- where can failures be debugged
+- what is the main idea
+- why it matters to the named audience
+- how the central mechanism or procedure works
+- what a concrete example looks like
+- what action or exercise comes next
+- which claims are supported, uncertain, or limited
+
+For a MoonSuite workspace course, the page may additionally teach product
+roles, raw-first bootstrap, keeper behavior, durable knowledge, and the debug
+path. Those are examples, not universal success criteria.
 
 ## Example success summary
 
@@ -140,11 +191,19 @@ Do not:
 
 Before finishing, confirm:
 
+- a specific reader contract and one-to-three-sentence main message exist
 - the page teaches rather than pitches
 - the sections follow a learning sequence
 - the language is plain enough for a new reader
-- concrete file and workflow examples are included
-- every lesson has a practice output and checkpoint
+- unfamiliar terms are defined at first use
+- concrete worked examples show steps, reasoning, and results
+- every lesson has a practice output, self-explanation prompt, retrieval
+  checkpoint, transfer task, and positive revisit interval
+- factual claims retain source references and important limitations
+- the Learn, Apply, and Research projections point to the same accepted book
+  revision
+- maintenance details are outside the primary reading path
+- a separate reviewer checks that simplification did not change the claim
 - no research-report skeleton leaked into the course
 
 ## Example Course Shape
@@ -166,9 +225,14 @@ A game-like town needs a product model, not only scenery.
 ### Why it matters
 Without this, roads, buildings, agents, and tasks become unrelated decorations.
 
-### Concrete example
+### Worked example
 Wenyu Valley is an AI innovation town where buildings host civic protocols and
 agents move between home books and exchange buildings.
+
+1. Name one building's domain.
+2. Attach the accepted MoonBook for that domain.
+3. Route a research task to the building.
+4. Show the resulting book revision only after review.
 
 ### Exercise
 Write a one-paragraph product statement and list three non-goals.
@@ -176,13 +240,32 @@ Write a one-paragraph product statement and list three non-goals.
 ### Output artifact
 `docs/product-definition.md`
 
-### Checkpoint
-A new teammate can explain what belongs in the town and what belongs in
-MoonDesk.
+### Self-explanation
+Why should the town link to a MoonBook projection instead of keeping a second
+copy of the explanation?
+
+### Retrieval checkpoint
+Without looking back, name the owner of domain knowledge and the owner of task
+movement.
+
+<details><summary>Reveal answer</summary>MoonBook owns the accepted domain
+knowledge; MoonTown owns the civic visualization and task movement.</details>
+
+### Transfer task
+Apply the same ownership test to a MoonDesk view that displays this book.
+
+### Revisit
+Three days later, explain the ownership split without looking at the lesson.
+
+Revisit after days: 3
 
 ### Common mistake
 Starting with CSS offsets or random assets before defining the role of the
 space.
+
+### Sources and limitations
+Link the product contracts that define ownership. Mark any unimplemented
+handoff as proposed rather than implying that it already works.
 ```
 
 ## Exploration Quality Contract

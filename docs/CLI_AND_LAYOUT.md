@@ -651,7 +651,11 @@ Created by `moonbook wiki init`:
 - `book/site/generated/journal.html`
   generated journal view built from live workspace and journey state
 - `book/site/generated/course.html`
-  generated educational course view built from live workspace and journey state
+  generated Learn, Apply, and Research reader routes built from the book's
+  actual course, practice, and research artifacts
+- `book/site/generated/reader-state.json`
+  typed `moonbook.reader_projection.v1` projections, source identity, review
+  status, and deterministic readiness issues for the reader routes
 - `book/site/generated/skills.html`
   generated skill manager view built from workspace, core-seed, and extension-seed skill inventory
 - `book/site/generated/skills-state.json`

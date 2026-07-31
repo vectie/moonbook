@@ -460,6 +460,8 @@ pub async fn write_marketing_projection(
   site_root : String,
 ) -> String {
   let state = generate_ui_state(root)
+  let reader = ui_reader_artifacts(root)
+  let reader_projections = ui_reader_projections(root, reader)
   let updated_note = marketing_update_note(root)
   let generated_dir = moonbook_wiki_path(site_root)
     .join(moonbook_wiki_path("generated"))
@@ -491,6 +493,9 @@ pub async fn write_marketing_projection(
     .to_string()
   let course_state_path = moonbook_wiki_path(generated_dir)
     .join(moonbook_wiki_path("course-state.json"))
+    .to_string()
+  let reader_state_path = moonbook_wiki_path(generated_dir)
+    .join(moonbook_wiki_path("reader-state.json"))
     .to_string()
   let skills_index_path = moonbook_wiki_path(generated_dir)
     .join(moonbook_wiki_path("skills.html"))
@@ -529,8 +534,15 @@ pub async fn write_marketing_projection(
     create=0o644,
   )
   @fsx.write_to_file(
+    reader_state_path,
+    reader_bundle_projection_json(reader, reader_projections).stringify(
+      indent=2,
+    ),
+    create=0o644,
+  )
+  @fsx.write_to_file(
     course_index_path,
-    course_projection_html(state, updated_note),
+    course_projection_html(state, reader, reader_projections),
     create=0o644,
   )
   @fsx.write_to_file(

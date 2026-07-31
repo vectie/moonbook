@@ -341,7 +341,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"write_course_workbook\",\n" +
   "            \"title\": \"Write beginner workbook\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Write course artifacts for ${proposal.title}. Load wiki-course/SKILL.md only. Write raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md, and wiki/synthesis/beginner-course.md as a beginner course/workbook. Use 10-12 lessons unless the request says otherwise. Each lesson needs Objective, Plain explanation, Why it matters, Example, Exercise, Output artifact, Checkpoint, and Common mistake. Return those paths as artifacts. Reject research-report headings, source-audit structure, provider status, or run-log prose.\",\n" +
+  "            \"request_template\": \"Write course artifacts for ${proposal.title}. Load wiki-course/SKILL.md and references/human-readable-content.md only. Write raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md, and wiki/synthesis/beginner-course.md as one evidence-linked beginner course/workbook. Name the audience, prior knowledge, one-to-three-sentence main message, and next action. Use 10-12 lessons unless the request says otherwise. Each lesson needs Objective, Plain explanation, Why it matters, Worked example, Exercise, Output artifact, Self-explanation, Retrieval checkpoint with concealed answer, Transfer task, Revisit plus a positive Revisit after days value, Common mistake, and Source references or limitations. Return those paths as artifacts. Reject research-report headings, source-audit structure, provider status, or run-log prose.\",\n" +
   "            \"child_profile\": \"wiki_course_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
@@ -679,7 +679,7 @@ fn moonclaw_jobs_text() -> String {
   "            \"id\": \"write_course\",\n" +
   "            \"title\": \"Write course artifacts\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Act as the wiki course worker for ${request}. Load wiki-course/SKILL.md. Edit only course-facing artifacts: raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md when it is being used as the course workbook, and wiki/synthesis/beginner-course.md. Teach through ordered beginner lessons with examples, exercises, output artifacts, checkpoints, and common mistakes. Do not use research-report/SKILL.md, Deep Research Analysis headings, source-audit structure, or provider/run-log prose.\",\n" +
+  "            \"prompt_template\": \"Act as the wiki course worker for ${request}. Load wiki-course/SKILL.md and references/human-readable-content.md. Edit only course-facing artifacts: raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md when it is being used as the course workbook, and wiki/synthesis/beginner-course.md. Teach a named audience through ordered lessons with worked examples, exercises, output artifacts, self-explanation, retrieval checkpoints with concealed answers, transfer tasks, positive Revisit after days intervals, common mistakes, and source anchors. Keep Apply and Research as projections over the same accepted book. Do not use research-report/SKILL.md, Deep Research Analysis headings, source-audit structure, or provider/run-log prose.\",\n" +
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-course\"],\n" +
   "              \"enable_tools\": true,\n" +

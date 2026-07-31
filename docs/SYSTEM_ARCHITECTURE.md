@@ -32,6 +32,14 @@ MoonCode work-order projection, capability evaluation, and adoption. It is a
 read-only view model: review authority, persistence, work-order dispatch, and
 adoption remain separate governed backend boundaries.
 
+`reader_projection/` is the public, domain-neutral reading contract. It models
+Learn, Apply, and Research as disposable views over one canonical MoonBook
+revision. It carries the audience and outcome, a nine-step teaching loop,
+view-specific practice or research semantics, source references and digests,
+separate source/projection reviews, and deterministic readiness issues. It
+does not accept book truth or claim that structural checks prove human
+comprehension.
+
 `bookkeeper_store/` is the native persistence and projection adapter behind
 that view. It owns an immutable journal, deterministic restart replay, exact
 link validation, human-authority grants, governed review receipts, atomic
@@ -143,8 +151,12 @@ The wiki path builds on the same rendering/build infrastructure, but introduces 
   generated-site state aggregation and high-level projection writing
 - `wiki/ui_state_content.mbt`
   research, marketing, and evidence-content parsing helpers for generated projections
+- `wiki/ui_reader_content.mbt`
+  actual Learn, Apply, and Research artifact discovery plus practice extraction
+- `wiki/ui_reader_projection.mbt`
+  adapter from book-owned artifacts into `moonbook.reader_projection.v1` JSON and readiness
 - `wiki/ui_state_projection_html.mbt`
-  generated research, marketing, journal, course, and skill HTML/CSS/JS renderers
+  generated research, marketing, journal, reader, and skill HTML/CSS/JS renderers
 - `wiki/skill_hub_assets.mbt`
   Skill Hub browser asset templates kept separate from the Skill Hub server/state logic
 - `wiki/skills.mbt`
@@ -238,6 +250,9 @@ Generated consumer surfaces:
   generated-site copy of the current book-state snapshot for browser and desktop clients
 - `book/site/generated/graph.json`
   generated-site graph projection for browser or desktop consumers
+- `book/site/generated/reader-state.json`
+  typed Learn, Apply, and Research projections with exact source identity,
+  review state, and fail-closed readiness issues
 
 The bundle is MoonBook's own compact product contract: file-based enough to be
 inspectable, typed enough for agents and UI, and extensible enough for

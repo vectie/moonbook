@@ -65,7 +65,9 @@ Implemented behaviors:
 - `build` and `serve` generate a live marketing projection into `book/site/generated/`
 - `build` and `serve` make `book/site/index.html` open the live generated marketing projection so the default site page is topic-specific after a wiki build
 - generated site also includes a dedicated journal view at `book/site/generated/journal.html`
-- generated site also includes a `ctc`-inspired educational course view at `book/site/generated/course.html`
+- generated site includes a reader-first `course.html` with Learn, Apply, and Research routes over actual book artifacts; missing routes remain explicitly unavailable instead of falling back to generic prose
+- the reader view keeps source paths, revisions, digests, review state, and operator links in a separate `How maintained` disclosure
+- generated site writes `book/site/generated/reader-state.json` using the typed `moonbook.reader_projection.v1` contract and reports content, evidence, and review readiness without treating a preview as accepted publication
 - generated site also includes a dedicated skill manager at `book/site/generated/skills.html`
 - generated skill manager aggregates workspace, core-seed, and extension-seed skills with duplicate and missing-reference diagnostics
 - generated skill manager also exposes copyable `skill show`, `skill compare`, `skill sync`, `skill install`, `skill scaffold`, and `skill doctor` lifecycle commands for the selected skill
@@ -103,7 +105,7 @@ Implemented behaviors:
 - `wiki graph` prints the current durable page graph as JSON
 - generated site output writes `book/site/generated/book-state.json`, `book/site/generated/knowledge-bundle.json`, and `book/site/generated/graph.json` for suite consumers
 - durable page records include MoonBook type, title, summary, review status, source quality, tags, and outbound links
-- generated marketing projection keeps debug state, research evidence, review pressure, and journey details out of the sales page and routes those details to wiki, journal, course, and skill surfaces
+- generated marketing projection keeps debug state, research evidence, review pressure, and journey details out of the sales page and routes those details to wiki, journal, reader, and skill surfaces
 - generated research report includes executive summary, topic explanation, architecture, runtime model, memory/state, cross-project relationship, comparative positioning, maturity/gaps, and evidence-table sections
 - generated research report synthesizes parsed evidence rows into readable sections instead of pasting raw markdown table rows into article prose
 - `wiki init` seeds `wiki/entities/`, `wiki/concepts/`, `wiki/synthesis/`, `wiki/queries/`, and `wiki/sources/`

@@ -1,0 +1,312 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "vectie/moonbook/reader_projection"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn reader_projection_contract_version() -> String
+
+pub fn reader_projection_from_json(Json) -> ReaderProjection raise
+
+pub fn reader_projection_from_json_text(StringView) -> ReaderProjection raise
+
+pub fn reader_review_status_from_key(String) -> ReaderReviewStatus?
+
+pub fn reader_view_from_key(String) -> ReaderView?
+
+// Errors
+
+// Types and methods
+pub struct ReaderApplyFrame {
+  procedure_steps : ReadOnlyArray[String]
+  decision_points : ReadOnlyArray[String]
+  tradeoffs : ReadOnlyArray[String]
+  template_artifact : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderApplyFrame::new(procedure_steps~ : ArrayView[String], decision_points~ : ArrayView[String], tradeoffs~ : ArrayView[String], template_artifact~ : String) -> Self
+
+pub struct ReaderAuthorityAttestationRef {
+  attestation_id : String
+  version : String
+  digest : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderAuthorityAttestationRef::new(attestation_id~ : String, version~ : String, digest~ : String) -> Self
+
+pub struct ReaderExercise {
+  prompt : String
+  expected_artifact : String
+  checkpoint_question : String
+  checkpoint_answer : String
+  self_explanation_prompt : String
+  transfer_task : String
+  revisit_prompt : String
+  revisit_after_days : Int
+  source_ref_ids : ReadOnlyArray[String]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderExercise::new(prompt~ : String, expected_artifact~ : String, checkpoint_question~ : String, checkpoint_answer~ : String, self_explanation_prompt~ : String, transfer_task~ : String, revisit_prompt~ : String, revisit_after_days~ : Int, source_ref_ids~ : ArrayView[String]) -> Self
+
+pub struct ReaderGlossaryEntry {
+  term : String
+  plain_definition : String
+  source_ref_ids : ReadOnlyArray[String]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderGlossaryEntry::new(term~ : String, plain_definition~ : String, source_ref_ids~ : ArrayView[String]) -> Self
+
+pub struct ReaderNavigation {
+  canonical_href : String
+  maintenance_href : String
+  view_links : ReadOnlyArray[ReaderViewLink]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderNavigation::new(canonical_href~ : String, maintenance_href~ : String, view_links~ : ArrayView[ReaderViewLink]) -> Self
+
+pub struct ReaderProjection {
+  contract_version : String
+  projection_id : String
+  projection_revision : String
+  projection_digest : String
+  book_id : String
+  canonical_source_subject_id : String
+  view : ReaderView
+  language : String
+  title : String
+  estimated_minutes : Int
+  audience : String
+  outcome : String
+  main_message : String
+  next_action : String
+  route_intro : String
+  prerequisite_note : String
+  prerequisites : ReadOnlyArray[String]
+  learning_path : ReadOnlyArray[String]
+  sections : ReadOnlyArray[ReaderSection]
+  glossary : ReadOnlyArray[ReaderGlossaryEntry]
+  worked_examples : ReadOnlyArray[ReaderWorkedExample]
+  exercises : ReadOnlyArray[ReaderExercise]
+  apply_frame : ReaderApplyFrame?
+  research_frame : ReaderResearchFrame?
+  navigation : ReaderNavigation
+  source_revision : String
+  source_digest : String
+  source_review : ReaderReviewBinding
+  source_refs : ReadOnlyArray[ReaderSourceRef]
+  projection_review : ReaderReviewBinding
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderProjection::action(Self) -> String
+pub fn ReaderProjection::canonical_subject_id(Self) -> String
+pub fn ReaderProjection::content_digest(Self) -> String
+pub fn ReaderProjection::display_title(Self) -> String
+pub fn ReaderProjection::message(Self) -> String
+pub fn ReaderProjection::new(projection_id~ : String, projection_revision~ : String, projection_digest~ : String, book_id~ : String, canonical_source_subject_id~ : String, view~ : ReaderView, language~ : String, title~ : String, estimated_minutes~ : Int, audience~ : String, outcome~ : String, main_message~ : String, next_action~ : String, route_intro~ : String, prerequisite_note~ : String, prerequisites~ : ArrayView[String], learning_path~ : ArrayView[String], sections~ : ArrayView[ReaderSection], glossary~ : ArrayView[ReaderGlossaryEntry], worked_examples~ : ArrayView[ReaderWorkedExample], exercises~ : ArrayView[ReaderExercise], apply_frame~ : ReaderApplyFrame?, research_frame~ : ReaderResearchFrame?, navigation~ : ReaderNavigation, source_revision~ : String, source_digest~ : String, source_review~ : ReaderReviewBinding, source_refs~ : ArrayView[ReaderSourceRef], projection_review~ : ReaderReviewBinding) -> Self
+pub fn ReaderProjection::projection_review_status(Self) -> ReaderReviewStatus
+pub fn ReaderProjection::reader_sections(Self) -> ReadOnlyArray[ReaderSection]
+pub fn ReaderProjection::readiness(Self) -> ReaderProjectionReadiness
+pub fn ReaderProjection::reading_minutes(Self) -> Int
+pub fn ReaderProjection::revision(Self) -> String
+pub fn ReaderProjection::source_review_status(Self) -> ReaderReviewStatus
+pub fn ReaderProjection::to_json_text(Self, indent? : Int) -> String
+pub fn ReaderProjection::validate(Self) -> ReadOnlyArray[ReaderProjectionIssue]
+pub fn ReaderProjection::view_mode(Self) -> ReaderView
+pub impl @json.FromJson for ReaderProjection
+
+pub(all) enum ReaderProjectionIssue {
+  InvalidContract(String)
+  MissingIdentity(String)
+  InvalidEstimatedMinutes(Int)
+  MissingAudience
+  GenericAudience(String)
+  MissingOutcome
+  MissingMainMessage
+  MainMessageSentenceCount(Int)
+  MissingNextAction
+  MissingRoute
+  MissingPrerequisiteStatement
+  MissingSection
+  DuplicateSectionId(String)
+  UnknownLearningPathSection(String)
+  MissingGlossary
+  MissingIllustration
+  IncompleteIllustration(String)
+  MissingExercise
+  IncompletePractice(String)
+  IncompleteCheckpoint(String)
+  MissingSelfExplanation(String)
+  MissingTransferTask(String)
+  MissingRevisitPlan(String)
+  MissingApplyFrame
+  IncompleteApplyFrame(String)
+  MissingResearchFrame
+  IncompleteResearchFrame(String)
+  UnexpectedViewFrame(String)
+  MissingCanonicalLink
+  MissingMaintenanceLink
+  MissingCurrentViewLink(ReaderView)
+  DuplicateViewLink(ReaderView)
+  MissingSourceRevision
+  MissingSourceDigest
+  MissingProjectionDigest
+  InvalidDigest(String)
+  MissingSourceReference
+  IncompleteSourceReference(String)
+  DuplicateSourceReference(String)
+  MissingCitation(String)
+  UnknownSourceReference(String)
+  ReviewSubjectIncomplete(String)
+  ReviewSubjectMismatch(String)
+  ReviewReceiptIncomplete(String)
+  ReviewReceiptReused
+  ReviewReviewerMissing(String)
+  ReviewReviewerNotHuman(String, ReaderReviewerKind)
+  ReviewAuthorityMissing(String)
+  ReviewEvidenceMissing(String)
+  ReviewEvidenceIncomplete(String)
+  DuplicateReviewEvidence(String)
+  SourceNotAccepted(ReaderReviewStatus)
+  ProjectionNotAccepted(ReaderReviewStatus)
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct ReaderProjectionReadiness {
+  orient_ready : Bool
+  explain_ready : Bool
+  show_ready : Bool
+  practice_ready : Bool
+  self_explain_ready : Bool
+  retrieve_ready : Bool
+  transfer_ready : Bool
+  prove_ready : Bool
+  revisit_ready : Bool
+  quality_dimensions_ready : Int
+  reader_quality_score : Int
+  navigation_ready : Bool
+  structurally_valid : Bool
+  content_ready : Bool
+  review_ready : Bool
+  publishable : Bool
+  issues : ReadOnlyArray[ReaderProjectionIssue]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct ReaderResearchFrame {
+  research_method : String
+  contradictions : ReadOnlyArray[String]
+  uncertainties : ReadOnlyArray[String]
+  limitations : ReadOnlyArray[String]
+  review_lineage : ReadOnlyArray[String]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderResearchFrame::new(research_method~ : String, contradictions~ : ArrayView[String], uncertainties~ : ArrayView[String], limitations~ : ArrayView[String], review_lineage~ : ArrayView[String]) -> Self
+
+pub struct ReaderReviewBinding {
+  subject : ReaderReviewSubjectRef
+  receipt : ReaderReviewReceiptRef
+  disposition : ReaderReviewDisposition
+  reviewer : ReaderReviewerIdentity
+  authority : ReaderAuthorityAttestationRef
+  evidence_refs : ReadOnlyArray[ReaderReviewEvidenceRef]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderReviewBinding::new(subject~ : ReaderReviewSubjectRef, receipt~ : ReaderReviewReceiptRef, disposition~ : ReaderReviewDisposition, reviewer~ : ReaderReviewerIdentity, authority~ : ReaderAuthorityAttestationRef, evidence_refs~ : ArrayView[ReaderReviewEvidenceRef]) -> Self
+pub fn ReaderReviewBinding::review_status(Self) -> ReaderReviewStatus
+
+pub(all) enum ReaderReviewDisposition {
+  Pending
+  Accept
+  Reject
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct ReaderReviewEvidenceRef {
+  reference_id : String
+  version : String
+  digest : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderReviewEvidenceRef::new(reference_id~ : String, version~ : String, digest~ : String) -> Self
+
+pub struct ReaderReviewReceiptRef {
+  receipt_id : String
+  version : String
+  digest : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderReviewReceiptRef::new(receipt_id~ : String, version~ : String, digest~ : String) -> Self
+
+pub(all) enum ReaderReviewStatus {
+  Draft
+  PendingReview
+  Accepted
+  Rejected
+  Superseded
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn ReaderReviewStatus::key(Self) -> String
+
+pub(all) enum ReaderReviewSubjectKind {
+  CanonicalBook
+  ReaderProjectionArtifact
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct ReaderReviewSubjectRef {
+  kind : ReaderReviewSubjectKind
+  subject_id : String
+  version : String
+  digest : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderReviewSubjectRef::new(kind~ : ReaderReviewSubjectKind, subject_id~ : String, version~ : String, digest~ : String) -> Self
+
+pub struct ReaderReviewerIdentity {
+  reviewer_id : String
+  kind : ReaderReviewerKind
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderReviewerIdentity::new(reviewer_id~ : String, kind~ : ReaderReviewerKind) -> Self
+
+pub(all) enum ReaderReviewerKind {
+  Human
+  Agent
+  Automation
+  System
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct ReaderSection {
+  section_id : String
+  title : String
+  plain_summary : String
+  body_markdown : String
+  source_ref_ids : ReadOnlyArray[String]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderSection::citations(Self) -> ReadOnlyArray[String]
+pub fn ReaderSection::markdown(Self) -> String
+pub fn ReaderSection::new(section_id~ : String, title~ : String, plain_summary~ : String, body_markdown~ : String, source_ref_ids~ : ArrayView[String]) -> Self
+
+pub struct ReaderSourceRef {
+  reference_id : String
+  title : String
+  locator : String
+  revision : String
+  digest : String
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderSourceRef::new(reference_id~ : String, title~ : String, locator~ : String, revision~ : String, digest~ : String) -> Self
+pub fn ReaderSourceRef::source_locator(Self) -> String
+
+pub(all) enum ReaderView {
+  Learn
+  Apply
+  Research
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn ReaderView::key(Self) -> String
+pub fn ReaderView::label(Self) -> String
+
+pub struct ReaderViewLink {
+  view : ReaderView
+  href : String
+  review_status : ReaderReviewStatus
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderViewLink::new(view~ : ReaderView, href~ : String, review_status~ : ReaderReviewStatus) -> Self
+
+pub struct ReaderWorkedExample {
+  title : String
+  situation : String
+  steps : ReadOnlyArray[String]
+  takeaway : String
+  source_ref_ids : ReadOnlyArray[String]
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReaderWorkedExample::new(title~ : String, situation~ : String, steps~ : ArrayView[String], takeaway~ : String, source_ref_ids~ : ArrayView[String]) -> Self
+
+// Type aliases
+
+// Traits

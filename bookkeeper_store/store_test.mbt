@@ -211,3 +211,71 @@ async test "HTTP-style review payload cannot self-assert reviewer authority" {
   )
   assert_true(result.review.unwrap().disposition == @bookkeeper.Revise)
 }
+
+///|
+async test "exact governed acceptance returns the durable receipt and rechecks current authority" {
+  let root = "/tmp/moonbook-bookkeeper-exact-acceptance-\{@async.now().to_int()}"
+  let deliverable = test_record(DeliverableAcceptance, "deliverable-1", [])
+  install_test_reviewer(root)
+  assert_true(persist_bookkeeper_record(root, deliverable).accepted)
+  let reviewed = apply_governed_review(
+    root,
+    test_review(deliverable, "exact-acceptance"),
+  )
+  assert_true(reviewed.accepted)
+  match load_exact_governed_acceptance(root, deliverable.record) {
+    Ok(receipt) => assert_eq(receipt, reviewed.review.unwrap())
+    Err(issue) => fail("expected exact governed acceptance: \{issue}")
+  }
+
+  ignore(
+    install_bookkeeper_authority_grant(root, {
+      contract_version: bookkeeper_store_contract_version(),
+      grant: test_record_ref("grant-human-reviewer-revoked"),
+      reviewer_id: "human-reviewer",
+      reviewer_kind: Human,
+      authority_ref: "authority://human-reviewer",
+      evidence_refs: ["evidence-deliverable-1"],
+      active: false,
+      granted_at: 102,
+    }),
+  )
+  match load_exact_governed_acceptance(root, deliverable.record) {
+    Ok(_) => fail("revoked reviewer authority must fail closed")
+    Err(issue) => assert_true(issue.contains("authority is not current"))
+  }
+}
+
+///|
+async test "exact governed acceptance rejects ambiguous receipts" {
+  let root = "/tmp/moonbook-bookkeeper-ambiguous-acceptance-\{@async.now().to_int()}"
+  let deliverable = test_record(DeliverableAcceptance, "deliverable-1", [])
+  install_test_reviewer(root)
+  assert_true(persist_bookkeeper_record(root, deliverable).accepted)
+  assert_true(
+    apply_governed_review(root, test_review(deliverable, "acceptance-one")).accepted,
+  )
+  assert_true(
+    apply_governed_review(root, test_review(deliverable, "acceptance-two")).accepted,
+  )
+  match load_exact_governed_acceptance(root, deliverable.record) {
+    Ok(_) => fail("ambiguous governed acceptances must fail closed")
+    Err(issue) => assert_true(issue.contains("ambiguous"))
+  }
+}
+
+///|
+async test "exact governed acceptance rejects a replay with any issue" {
+  let root = "/tmp/moonbook-bookkeeper-unsafe-replay-\{@async.now().to_int()}"
+  let journal = @pathx.join(root, ".moonbook/bookkeeper/journal")
+  @fsx.make_directory(journal, recursive=true, exists_ok=true)
+  @fsx.write_to_file(
+    @pathx.join(journal, "unreadable.json"),
+    "not-json",
+    create=0o644,
+  )
+  match load_exact_governed_acceptance(root, test_record_ref("deliverable-1")) {
+    Ok(_) => fail("a Bookkeeper replay issue must fail closed")
+    Err(issue) => assert_true(issue.contains("replay has issues"))
+  }
+}

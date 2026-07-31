@@ -221,9 +221,9 @@ fn research_article_projection_html(state : UiState) -> String {
     "<h2>The generated site should present the knowledge, not only the product shell.</h2>" +
     "</div>" +
     "<div class=\"article-layout\">" +
-    report_toc_html(state.research_long_report) +
+    report_toc_html(state.research_long_report, "report") +
     "<article class=\"long-report article-report\">" +
-    markdown_report_html(state.research_long_report) +
+    markdown_report_html(state.research_long_report, "report") +
     "</article>" +
     "</div>" +
     "</section>"
@@ -255,26 +255,62 @@ fn research_report_card_html(section : UiResearchReportSection) -> String {
 }
 
 ///|
-fn markdown_report_html(markdown : String) -> String {
+fn markdown_report_html(markdown : String, id_prefix : String) -> String {
   let lines = markdown.split("\n").to_array()
   let html : Array[String] = []
   let mut index = 0
   let mut heading_index = 0
-  let mut in_list = false
+  let mut list_tag = ""
   while index < lines.length() {
     let line = lines[index].trim().to_owned()
     if line.is_empty() {
-      if in_list {
-        html.push("</ul>")
-        in_list = false
+      if !list_tag.is_empty() {
+        html.push("</\{list_tag}>")
+        list_tag = ""
       }
       index += 1
       continue
     }
+    let details_prefix = "<details><summary>reveal answer</summary>"
+    if line.to_lower().has_prefix(details_prefix) {
+      let details_start = index
+      if !list_tag.is_empty() {
+        html.push("</\{list_tag}>")
+        list_tag = ""
+      }
+      let answer_parts : Array[String] = []
+      let mut first = line[details_prefix.length():].trim().to_owned()
+      if first.to_lower().has_suffix("</details>") {
+        first = first[:first.length() - 10].trim().to_owned()
+      }
+      if !first.is_empty() {
+        answer_parts.push(first)
+      }
+      let mut closed = line.to_lower().has_suffix("</details>")
+      index += 1
+      while index < lines.length() && !closed {
+        let mut part = lines[index].trim().to_owned()
+        if part.to_lower().has_suffix("</details>") {
+          part = part[:part.length() - 10].trim().to_owned()
+          closed = true
+        }
+        if !part.is_empty() {
+          answer_parts.push(part)
+        }
+        index += 1
+      }
+      if closed {
+        html.push(reader_answer_disclosure_html(answer_parts.join(" ")))
+      } else {
+        html.push(markdown_reader_paragraph_html(line))
+        index = details_start + 1
+      }
+      continue
+    }
     if line.has_prefix("```mermaid") {
-      if in_list {
-        html.push("</ul>")
-        in_list = false
+      if !list_tag.is_empty() {
+        html.push("</\{list_tag}>")
+        list_tag = ""
       }
       let code : Array[String] = []
       index += 1
@@ -288,9 +324,9 @@ fn markdown_report_html(markdown : String) -> String {
       continue
     }
     if line.has_prefix("```") {
-      if in_list {
-        html.push("</ul>")
-        in_list = false
+      if !list_tag.is_empty() {
+        html.push("</\{list_tag}>")
+        list_tag = ""
       }
       let code : Array[String] = []
       index += 1
@@ -306,9 +342,9 @@ fn markdown_report_html(markdown : String) -> String {
       continue
     }
     if line.has_prefix("|") {
-      if in_list {
-        html.push("</ul>")
-        in_list = false
+      if !list_tag.is_empty() {
+        html.push("</\{list_tag}>")
+        list_tag = ""
       }
       let table_lines : Array[String] = []
       while index < lines.length() && lines[index].trim().has_prefix("|") {
@@ -319,43 +355,129 @@ fn markdown_report_html(markdown : String) -> String {
       continue
     }
     if line.has_prefix("- ") {
-      if !in_list {
+      if list_tag != "ul" {
+        if !list_tag.is_empty() {
+          html.push("</\{list_tag}>")
+        }
         html.push("<ul>")
-        in_list = true
+        list_tag = "ul"
       }
       html.push("<li>\{inline_markdown_html(line[2:].trim().to_owned())}</li>")
       index += 1
       continue
     }
-    if in_list {
-      html.push("</ul>")
-      in_list = false
+    match reader_numbered_item(line) {
+      Some(item) => {
+        if list_tag != "ol" {
+          if !list_tag.is_empty() {
+            html.push("</\{list_tag}>")
+          }
+          html.push("<ol>")
+          list_tag = "ol"
+        }
+        html.push("<li>\{inline_markdown_html(item)}</li>")
+        index += 1
+        continue
+      }
+      None => ()
+    }
+    if !list_tag.is_empty() {
+      html.push("</\{list_tag}>")
+      list_tag = ""
     }
     if line.has_prefix("# ") {
       heading_index += 1
       html.push(
-        "<h2 id=\"report-sec-\{heading_index}\">\{inline_markdown_html(line[2:].trim().to_owned())}</h2>",
+        "<h2 id=\"\{escape_html(id_prefix)}-sec-\{heading_index}\">\{inline_markdown_html(line[2:].trim().to_owned())}</h2>",
       )
     } else if line.has_prefix("## ") {
       heading_index += 1
       html.push(
-        "<h3 id=\"report-sec-\{heading_index}\">\{inline_markdown_html(line[3:].trim().to_owned())}</h3>",
+        "<h3 id=\"\{escape_html(id_prefix)}-sec-\{heading_index}\">\{inline_markdown_html(line[3:].trim().to_owned())}</h3>",
       )
     } else if line.has_prefix("### ") {
-      html.push("<h4>\{inline_markdown_html(line[4:].trim().to_owned())}</h4>")
+      html.push(markdown_reader_heading_html(line[4:].trim().to_owned()))
     } else {
-      html.push("<p>\{inline_markdown_html(line)}</p>")
+      html.push(markdown_reader_paragraph_html(line))
     }
     index += 1
   }
-  if in_list {
-    html.push("</ul>")
+  if !list_tag.is_empty() {
+    html.push("</\{list_tag}>")
   }
   html.join("")
 }
 
 ///|
-fn report_toc_html(markdown : String) -> String {
+fn markdown_reader_heading_html(title : String) -> String {
+  let tone = match title.to_lower() {
+    "objective" | "plain explanation" => "orientation"
+    "why it matters" => "meaning"
+    "worked example" | "concrete example" | "example" => "example"
+    "exercise" | "output artifact" | "transfer" | "transfer task" => "practice"
+    "checkpoint" | "retrieval" | "retrieval checkpoint" | "self-explanation" =>
+      "checkpoint"
+    "sources and limitations" | "sources / limitations" => "trace"
+    "common mistake" | "revisit" => "caution"
+    _ => ""
+  }
+  if tone.is_empty() {
+    "<h4>\{inline_markdown_html(title)}</h4>"
+  } else {
+    "<h4 class=\"reader-section-heading reader-section-heading-\{tone}\">\{inline_markdown_html(title)}</h4>"
+  }
+}
+
+///|
+fn markdown_reader_paragraph_html(line : String) -> String {
+  let lower = line.to_lower()
+  let details_prefix = "<details><summary>reveal answer</summary>"
+  if lower.has_prefix(details_prefix) && lower.has_suffix("</details>") {
+    let answer = line[details_prefix.length():line.length() - 10]
+      .trim()
+      .to_owned()
+    return reader_answer_disclosure_html(answer)
+  }
+  for
+    spec in [
+      ("objective:", "Objective", "orientation"),
+      ("plain explanation:", "Plain explanation", "orientation"),
+      ("why it matters:", "Why it matters", "meaning"),
+      ("concrete example:", "Example", "example"),
+      ("example:", "Example", "example"),
+      ("worked example:", "Worked example", "example"),
+      ("exercise:", "Exercise", "practice"),
+      ("output artifact:", "Output artifact", "practice"),
+      ("checkpoint:", "Checkpoint", "checkpoint"),
+      ("checkpoint answer:", "Checkpoint answer", "answer"),
+      ("self-explanation:", "Self-explanation", "checkpoint"),
+      ("retrieval checkpoint:", "Retrieval checkpoint", "checkpoint"),
+      ("retrieval:", "Retrieval checkpoint", "checkpoint"),
+      ("transfer task:", "Transfer task", "practice"),
+      ("transfer:", "Transfer task", "practice"),
+      ("sources / limitations:", "Sources and limitations", "trace"),
+      ("sources and limitations:", "Sources and limitations", "trace"),
+      ("revisit:", "Revisit", "caution"),
+      ("common mistake:", "Common mistake", "caution"),
+    ] {
+    if lower.has_prefix(spec.0) {
+      let detail = line[spec.0.length():].trim().to_owned()
+      if spec.2 == "answer" {
+        return reader_answer_disclosure_html(detail)
+      }
+      return "<aside class=\"reader-callout reader-callout-\{spec.2}\"><span>\{escape_html(spec.1)}</span><p>\{inline_markdown_html(detail)}</p></aside>"
+    }
+  }
+  "<p>\{inline_markdown_html(line)}</p>"
+}
+
+///|
+fn reader_answer_disclosure_html(answer : String) -> String {
+  "<details class=\"reader-answer\"><summary>Reveal answer</summary><p>\{inline_markdown_html(answer)}</p></details>"
+}
+
+///|
+fn report_toc_html(markdown : String, id_prefix : String) -> String {
   let links : Array[String] = []
   let mut heading_index = 0
   for raw in markdown.split("\n") {
@@ -369,7 +491,7 @@ fn report_toc_html(markdown : String) -> String {
       }
       if !title.is_empty() && links.length() < 14 {
         links.push(
-          "<a href=\"#report-sec-\{heading_index}\">\{inline_markdown_html(title)}</a>",
+          "<a href=\"#\{escape_html(id_prefix)}-sec-\{heading_index}\">\{inline_markdown_html(title)}</a>",
         )
       }
     }
@@ -566,120 +688,203 @@ fn journal_projection_html(state : UiState, updated_note : String) -> String {
 }
 
 ///|
-fn course_projection_html(state : UiState, updated_note : String) -> String {
+fn course_projection_html(
+  state : UiState,
+  reader : ReaderArtifactBundle,
+  projections : UiReaderProjectionBundle,
+) -> String {
   let book_prefix = "../../"
-  let module_cards = state.workflow
-    .map(fn(item) {
-      "<article class=\"module-card\">" +
-      "<span class=\"module-kicker\">\{escape_html(item.status)}</span>" +
-      "<h3>\{escape_html(item.title)}</h3>" +
-      "<p>\{escape_html(item.detail)}</p>" +
-      "</article>"
-    })
-    .join("")
-  let journey = state.journey
-    .map(fn(item) { marketing_journey_item(item) })
-    .join("")
-  let checkpoints = course_checkpoint_cards().join("")
-  let glossary = course_glossary_cards().join("")
-  let metrics = state.metrics
-    .map(fn(metric) {
-      "<article class=\"metric-card metric-\{metric.tone}\">" +
-      "<span class=\"metric-label\">\{escape_html(metric.label)}</span>" +
-      "<strong>\{escape_html(metric.value)}</strong>" +
-      "<p>\{escape_html(metric.note)}</p>" +
-      "</article>"
-    })
-    .join("")
-  let code_translation = course_translation_block(state, updated_note)
+  let selector = reader_view_selector_html(reader, projections)
+  let learn = reader_view_panel_html(reader.learn, projections.learn, false)
+  let apply = reader_view_panel_html(reader.apply, projections.apply, true)
+  let research = reader_view_panel_html(
+    reader.research,
+    projections.research,
+    true,
+  )
+  let maintenance_trace = reader_maintenance_trace_html(reader, projections)
   "<!doctype html>\n" +
   "<html lang=\"en\">\n" +
   "<head>\n" +
   "  <meta charset=\"utf-8\">\n" +
   "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
-  "  <title>\{escape_html(state.title)} Course</title>\n" +
-  "  <meta name=\"description\" content=\"Educational course projection generated from MoonBook workspace state.\">\n" +
+  "  <title>\{escape_html(state.title)} Reader</title>\n" +
+  "  <meta name=\"description\" content=\"Reader-first Learn, Apply, and Research views generated from MoonBook artifacts.\">\n" +
   "  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n" +
   "  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n" +
   "  <link href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n" +
   "  <link rel=\"stylesheet\" href=\"./styles.css\">\n" +
   "</head>\n" +
-  "<body data-page=\"course\">\n" +
+  "<body data-page=\"reader\">\n" +
   "  <div class=\"backdrop\"></div>\n" +
   "  <header class=\"topbar\">\n" +
   "    <a class=\"brand\" href=\"./index.html\"><span class=\"brand-mark\">MB</span><span>\{escape_html(state.title)}</span></a>\n" +
   "    <nav class=\"nav\">\n" +
-  "      <a href=\"./index.html\">Marketing</a>\n" +
-  "      <a href=\"./journal.html\">Journal</a>\n" +
-  "      <a href=\"./skills.html\">Skills</a>\n" +
-  "      <a href=\"\{book_prefix}Home.html\">Wiki</a>\n" +
-  "      <a href=\"#modules\">Modules</a>\n" +
-  "      <a href=\"#checkpoints\">Checkpoints</a>\n" +
+  "      <a href=\"./course.html?view=learn\" data-reader-nav=\"learn\">Learn</a>\n" +
+  "      <a href=\"./course.html?view=apply\" data-reader-nav=\"apply\">Apply</a>\n" +
+  "      <a href=\"./course.html?view=research\" data-reader-nav=\"research\">Research</a>\n" +
+  "      <a class=\"nav-maintenance\" href=\"#maintenance\">How it is maintained</a>\n" +
   "    </nav>\n" +
   "  </header>\n" +
-  "  <main class=\"page-shell journal-shell\">\n" +
+  "  <main class=\"page-shell reader-shell\">\n" +
   "    <section class=\"hero reveal\">\n" +
   "      <div class=\"hero-copy\">\n" +
-  "        <p class=\"eyebrow\">Course view</p>\n" +
-  "        <h1>Learn how this workspace works without reading the whole codebase.</h1>\n" +
-  "        <p class=\"lede\">\{escape_html(state.summary)}</p>\n" +
-  "        <div class=\"hero-actions\">\n" +
-  "          <a class=\"button button-primary\" href=\"\{book_prefix}Home.html\">Open maintained wiki</a>\n" +
-  "          <a class=\"button button-secondary\" href=\"./index.html\">Back to marketing</a>\n" +
-  "          <a class=\"button button-secondary\" href=\"./journal.html\">Open journal</a>\n" +
-  "        </div>\n" +
+  "        <p class=\"eyebrow\">Reader views</p>\n" +
+  "        <h1>Read \{escape_html(state.title)} at the depth you need.</h1>\n" +
+  "        <p class=\"lede\">Start with a plain-language path, move into practice, or inspect the underlying research. Every view comes from this book's artifacts; unavailable content stays visibly unavailable.</p>\n" +
   "      </div>\n" +
-  "      <div class=\"hero-stage\">\n" +
+  "      <div class=\"hero-stage reader-principle\">\n" +
   "        <div class=\"panel-block\">\n" +
-  "          <span class=\"panel-label\">teaching frame</span>\n" +
-  "          <p>This surface explains the system in plain language. It teaches the actors, flow, and operational reasoning without replacing the detailed wiki.</p>\n" +
+  "          <span class=\"panel-label\">One book, three routes</span>\n" +
+  "          <p><strong>Learn</strong> builds orientation. <strong>Apply</strong> turns ideas into an artifact. <strong>Research</strong> exposes claims and evidence.</p>\n" +
   "        </div>\n" +
   "        <div class=\"panel-block panel-block-dark\">\n" +
-  "          <span class=\"panel-label\">latest change</span>\n" +
-  "          <pre><code>\{escape_html(updated_note)}</code></pre>\n" +
+  "          <span class=\"panel-label\">Truth boundary</span>\n" +
+  "          <p>Simplification changes presentation, never the accepted source. Each view names the artifact it rendered.</p>\n" +
   "        </div>\n" +
   "      </div>\n" +
   "    </section>\n" +
-  "    <section class=\"section reveal\" id=\"modules\">\n" +
-  "      <div class=\"section-heading\">\n" +
-  "        <p class=\"eyebrow\">Module 1</p>\n" +
-  "        <h2>Meet the operating stages.</h2>\n" +
-  "      </div>\n" +
-  "      <div class=\"workflow-grid\">\{module_cards}</div>\n" +
+  "    <section class=\"section reveal reader-route-section\" aria-label=\"Choose a reading route\">\n" +
+  "      \{selector}\n" +
   "    </section>\n" +
-  "    <section class=\"section reveal\">\n" +
-  "      <div class=\"section-heading\">\n" +
-  "        <p class=\"eyebrow\">Module 2</p>\n" +
-  "        <h2>Translate system language into plain English.</h2>\n" +
-  "      </div>\n" +
-  "      \{code_translation}\n" +
-  "    </section>\n" +
-  "    <section class=\"section reveal\">\n" +
-  "      <div class=\"section-heading\">\n" +
-  "        <p class=\"eyebrow\">Module 3</p>\n" +
-  "        <h2>See the timeline and the state together.</h2>\n" +
-  "      </div>\n" +
-  "      <div class=\"journey-grid\">\{journey}</div>\n" +
-  "      <div class=\"metric-grid\">\{metrics}</div>\n" +
-  "    </section>\n" +
-  "    <section class=\"section reveal\">\n" +
-  "      <div class=\"section-heading narrow\">\n" +
-  "        <p class=\"eyebrow\">Module 4</p>\n" +
-  "        <h2>Vocabulary you can use to steer the system better.</h2>\n" +
-  "      </div>\n" +
-  "      <div class=\"journey-grid quiz-grid\">\{glossary}</div>\n" +
-  "    </section>\n" +
-  "    <section class=\"section reveal\" id=\"checkpoints\">\n" +
-  "      <div class=\"section-heading narrow\">\n" +
-  "        <p class=\"eyebrow\">Checkpoints</p>\n" +
-  "        <h2>Test whether the explanation is actually usable.</h2>\n" +
-  "      </div>\n" +
-  "      <div class=\"journey-grid quiz-grid\">\{checkpoints}</div>\n" +
+  "    \{learn}\n" +
+  "    \{apply}\n" +
+  "    \{research}\n" +
+  "    <section class=\"section reveal maintenance-section\" id=\"maintenance\">\n" +
+  "      <details class=\"maintenance-disclosure\">\n" +
+  "        <summary><span><small>Separate operator surface</small>How this book is maintained</span><span aria-hidden=\"true\">＋</span></summary>\n" +
+  "        <div class=\"maintenance-body\">\n" +
+  "          <p>Reader views contain domain knowledge. Workflow state, journals, skill diagnostics, and canonical wiki pages remain available without interrupting the reading path.</p>\n" +
+  "          \{maintenance_trace}\n" +
+  "          <div class=\"hero-actions\"><a class=\"button button-secondary\" href=\"\{book_prefix}Home.html\">Maintained wiki</a><a class=\"button button-secondary\" href=\"./reader-state.json\">Reader quality record</a><a class=\"button button-secondary\" href=\"./journal.html\">Journal</a><a class=\"button button-secondary\" href=\"./skills.html\">Skill diagnostics</a></div>\n" +
+  "        </div>\n" +
+  "      </details>\n" +
   "    </section>\n" +
   "  </main>\n" +
   "  <script src=\"./app.js\"></script>\n" +
   "</body>\n" +
   "</html>\n"
+}
+
+///|
+fn reader_view_selector_html(
+  reader : ReaderArtifactBundle,
+  projections : UiReaderProjectionBundle,
+) -> String {
+  "<nav class=\"reader-view-selector\" aria-label=\"Reading depth\">" +
+  reader_view_selector_item(reader.learn, projections.learn, true) +
+  reader_view_selector_item(reader.apply, projections.apply, false) +
+  reader_view_selector_item(reader.research, projections.research, false) +
+  "</nav>"
+}
+
+///|
+fn reader_view_selector_item(
+  artifact : ReaderArtifactContent,
+  projection : @reader_projection.ReaderProjection,
+  selected : Bool,
+) -> String {
+  let selected_class = if selected { " is-selected" } else { "" }
+  let current = if selected { " aria-current=\"page\"" } else { "" }
+  let availability = reader_artifact_status_label(artifact, projection)
+  let availability_class = if !artifact.available {
+    "is-missing"
+  } else if projection.source_review_status() == Accepted &&
+    projection.projection_review_status() == Accepted {
+    "is-ready"
+  } else {
+    "is-draft"
+  }
+  let explanation = match artifact.view {
+    "learn" => "Understand the idea"
+    "apply" => "Make something with it"
+    _ => "Inspect claims and evidence"
+  }
+  "<a class=\"reader-view-choice\{selected_class}\" href=\"./course.html?view=\{escape_html(artifact.view)}\" data-reader-choice=\"\{escape_html(artifact.view)}\"\{current}>" +
+  "<span class=\"reader-view-icon\" aria-hidden=\"true\">\{reader_view_icon(artifact.view)}</span>" +
+  "<span><strong>\{escape_html(artifact.label)}</strong><small>\{escape_html(explanation)}</small></span>" +
+  "<em class=\"reader-availability \{availability_class}\">\{escape_html(availability)}</em>" +
+  "</a>"
+}
+
+///|
+fn reader_view_icon(view : String) -> String {
+  match view {
+    "learn" => "◎"
+    "apply" => "◇"
+    _ => "⌁"
+  }
+}
+
+///|
+fn reader_artifact_status_label(
+  artifact : ReaderArtifactContent,
+  projection : @reader_projection.ReaderProjection,
+) -> String {
+  if !artifact.available {
+    "Missing"
+  } else if projection.source_review_status() == Accepted &&
+    projection.projection_review_status() == Accepted {
+    "Accepted"
+  } else if projection.source_review_status() == Accepted {
+    "Projection review needed"
+  } else {
+    "Needs review"
+  }
+}
+
+///|
+fn reader_view_panel_html(
+  artifact : ReaderArtifactContent,
+  projection : @reader_projection.ReaderProjection,
+  hidden : Bool,
+) -> String {
+  let hidden_attr = if hidden { " hidden" } else { "" }
+  let meta = if artifact.available {
+    "<span>About \{artifact.estimated_minutes.to_string()} min</span><span>\{escape_html(reader_artifact_status_label(artifact, projection))}</span>"
+  } else {
+    "<span>Source not ready</span>"
+  }
+  let body = if artifact.available {
+    let id_prefix = "reader-\{artifact.view}"
+    "<div class=\"article-layout reader-article-layout\">" +
+    report_toc_html(artifact.markdown, id_prefix) +
+    "<article class=\"long-report article-report reader-article\">" +
+    markdown_report_html(artifact.markdown, id_prefix) +
+    "</article></div>"
+  } else {
+    "<div class=\"reader-empty\"><span class=\"reader-empty-icon\" aria-hidden=\"true\">○</span><div><h3>Nothing is being hidden</h3><p>\{escape_html(artifact.summary)}</p></div></div>"
+  }
+  "<section class=\"section reveal reader-panel\" data-reader-panel=\"\{escape_html(artifact.view)}\"\{hidden_attr}>" +
+  "<div class=\"reader-panel-heading\"><div><p class=\"eyebrow\">\{escape_html(artifact.label)} view</p><h2>\{escape_html(artifact.title)}</h2><p class=\"lede\">\{escape_html(artifact.summary)}</p></div><div class=\"reader-source-meta\">\{meta}</div></div>" +
+  "<aside class=\"reader-next-action\"><span class=\"panel-label\">Your next move</span><strong>\{escape_html(artifact.next_action)}</strong></aside>" +
+  body +
+  "</section>"
+}
+
+///|
+fn reader_maintenance_trace_html(
+  reader : ReaderArtifactBundle,
+  projections : UiReaderProjectionBundle,
+) -> String {
+  let cards = reader_maintenance_trace_card(reader.learn, projections.learn) +
+    reader_maintenance_trace_card(reader.apply, projections.apply) +
+    reader_maintenance_trace_card(reader.research, projections.research)
+  "<div class=\"reader-trace-grid\">\{cards}</div>"
+}
+
+///|
+fn reader_maintenance_trace_card(
+  artifact : ReaderArtifactContent,
+  projection : @reader_projection.ReaderProjection,
+) -> String {
+  let readiness = projection.readiness()
+  let release_status = if readiness.publishable {
+    "Publishable"
+  } else {
+    "Draft preview"
+  }
+  "<article class=\"reader-trace-card\"><div><strong>\{escape_html(artifact.label)}</strong><span>\{escape_html(release_status)}</span></div><p>\{escape_html(artifact.source_path)}</p><dl><div><dt>Reader quality</dt><dd>\{readiness.reader_quality_score.to_string()}/100 · \{readiness.quality_dimensions_ready.to_string()}/9 dimensions</dd></div><div><dt>Open gaps</dt><dd>\{readiness.issues.length().to_string()}</dd></div><div><dt>Source review</dt><dd>\{escape_html(projection.source_review_status().key())}</dd></div><div><dt>Revision</dt><dd>\{escape_html(artifact.source_revision)}</dd></div><div><dt>Digest</dt><dd>\{escape_html(artifact.source_digest)}</dd></div></dl></article>"
 }
 
 ///|
@@ -1000,80 +1205,6 @@ fn join_lines_or_default(values : Array[String], fallback : String) -> String {
 }
 
 ///|
-fn course_translation_block(state : UiState, updated_note : String) -> String {
-  let left = "workspace.health = \{state.status_chips.length()} visible signals\\n" +
-    "workspace.metrics = \{state.metrics.length()} live counters\\n" +
-    "workspace.journey = \{state.journey.length()} timeline entries\\n" +
-    "latest_update = \{updated_note}"
-  let right = [
-      "The workspace exposes a small set of visible health signals.", "It keeps a few live counters so you can tell whether coverage is real.",
-      "It maintains a compact timeline instead of forcing you to read raw logs.",
-      "The latest update is surfaced as the current narrative anchor.",
-    ]
-    .map(fn(line) { "<li>\{escape_html(line)}</li>" })
-    .join("")
-  "<div class=\"depth-grid\">" +
-  "<div class=\"depth-card\"><h3>System language</h3><pre class=\"preview-block\"><code>\{escape_html(left)}</code></pre></div>" +
-  "<div class=\"depth-card\"><h3>Plain English</h3><ul class=\"translation-list\">\{right}</ul></div>" +
-  "</div>"
-}
-
-///|
-fn course_glossary_cards() -> Array[String] {
-  [
-    course_glossary_card(
-      "Coverage readiness", "Whether the workspace has enough durable sources, ontology pages, and evidence to support synthesis reliably.",
-    ),
-    course_glossary_card(
-      "Journey", "A compact timeline page that records major runs, decisions, failures, and open loops from past to now.",
-    ),
-    course_glossary_card(
-      "Projection", "A derived website surface built from maintained wiki state, not a separate source of truth.",
-    ),
-    course_glossary_card(
-      "Keeper memory", "Bounded working, user, and active memory used to hydrate future worker runs without bloating the core wiki.",
-    ),
-  ]
-}
-
-///|
-fn course_glossary_card(term : String, explanation : String) -> String {
-  "<article class=\"journey-card quiz-card\">" +
-  "<div class=\"journey-meta\"><span>glossary</span><span class=\"journey-status status-active\">term</span></div>" +
-  "<h3>\{escape_html(term)}</h3>" +
-  "<p>\{escape_html(explanation)}</p>" +
-  "</article>"
-}
-
-///|
-fn course_checkpoint_cards() -> Array[String] {
-  [
-    course_checkpoint_card(
-      "Why is the course surface separate from marketing?", "Because the course teaches how the system works, while marketing emphasizes the horizontal product advantage.",
-    ),
-    course_checkpoint_card(
-      "Why is the journal surface separate from the course?", "Because the journal follows time from past to now to next, while the course organizes explanation into reusable teaching modules.",
-    ),
-    course_checkpoint_card(
-      "What page should you inspect if you want the durable run timeline?", "Start with `wiki/history/journey.md`, not the marketing or course surfaces.",
-    ),
-    course_checkpoint_card(
-      "What makes this course safe to generate automatically?", "It is derived from maintained wiki state and teaches that state, instead of inventing an independent narrative.",
-    ),
-  ]
-}
-
-///|
-fn course_checkpoint_card(question : String, answer : String) -> String {
-  "<article class=\"journey-card quiz-card\">" +
-  "<div class=\"journey-meta\"><span>checkpoint</span><span class=\"journey-status status-active\">interactive</span></div>" +
-  "<h3>\{escape_html(question)}</h3>" +
-  "<button class=\"quiz-toggle\" type=\"button\">Reveal answer</button>" +
-  "<p class=\"quiz-answer\" hidden>\{escape_html(answer)}</p>" +
-  "</article>"
-}
-
-///|
 fn marketing_projection_styles() -> String {
   ":root {\n" +
   "  --paper: #fbf5ea;\n" +
@@ -1176,6 +1307,66 @@ fn marketing_projection_styles() -> String {
   ".report-table { width: 100%; border-collapse: collapse; min-width: 36rem; background: rgba(255,255,255,.64); }\n" +
   ".report-table th, .report-table td { padding: .7rem .8rem; text-align: left; border-bottom: 1px solid var(--line); color: var(--muted); font-size: .9rem; vertical-align: top; }\n" +
   ".report-table th { color: var(--ink); background: rgba(23,60,52,.08); }\n" +
+  ".reader-shell .hero h1 { max-width: 11ch; }\n" +
+  ".reader-route-section { padding-top: 2rem; }\n" +
+  ".reader-view-selector { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; padding: .7rem; border: 1px solid var(--line); border-radius: 1.45rem; background: rgba(255,255,255,.52); box-shadow: var(--shadow); }\n" +
+  ".reader-view-choice { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .8rem; align-items: center; min-height: 5.4rem; padding: .9rem 1rem; border: 1px solid transparent; border-radius: 1.05rem; color: var(--muted); transition: transform 160ms ease, background 160ms ease, border-color 160ms ease; }\n" +
+  ".reader-view-choice:hover, .reader-view-choice:focus-visible { transform: translateY(-1px); color: var(--ink); border-color: rgba(23,60,52,.2); outline: none; }\n" +
+  ".reader-view-choice.is-selected { color: #fff8ef; background: linear-gradient(135deg, var(--forest), #245b4d); box-shadow: 0 16px 32px rgba(23,60,52,.2); }\n" +
+  ".reader-view-choice strong, .reader-view-choice small { display: block; }\n" +
+  ".reader-view-choice small { margin-top: .2rem; color: inherit; opacity: .72; }\n" +
+  ".reader-view-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: .8rem; background: rgba(23,60,52,.08); color: var(--forest); font-size: 1.2rem; font-weight: 700; }\n" +
+  ".reader-view-choice.is-selected .reader-view-icon { background: rgba(255,255,255,.12); color: #fff8ef; }\n" +
+  ".reader-availability { font-size: .7rem; font-style: normal; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }\n" +
+  ".reader-availability.is-ready { color: #1b6b4f; }\n" +
+  ".reader-view-choice.is-selected .reader-availability.is-ready { color: #bdebd8; }\n" +
+  ".reader-availability.is-draft { color: #8b5b00; }\n" +
+  ".reader-view-choice.is-selected .reader-availability.is-draft { color: #ffe1a3; }\n" +
+  ".reader-availability.is-missing { color: #9a3e1f; }\n" +
+  ".reader-view-choice.is-selected .reader-availability.is-missing { color: #ffc6b2; }\n" +
+  ".reader-panel[hidden] { display: none; }\n" +
+  ".reader-panel-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: end; }\n" +
+  ".reader-panel-heading h2 { max-width: 18ch; }\n" +
+  ".reader-source-meta { display: grid; justify-items: end; gap: .35rem; max-width: 28rem; color: var(--muted); font-size: .82rem; text-align: right; word-break: break-word; }\n" +
+  ".reader-next-action { display: grid; gap: .4rem; margin-top: 1.3rem; padding: 1rem 1.2rem; border-left: .3rem solid var(--coral); border-radius: 0 1rem 1rem 0; background: rgba(234,106,75,.08); }\n" +
+  ".reader-next-action strong { font-size: 1.05rem; line-height: 1.5; }\n" +
+  ".reader-article-layout { margin-top: 1.3rem; }\n" +
+  ".reader-article { max-width: 52rem; }\n" +
+  ".reader-callout { margin: 1rem 0; padding: .9rem 1rem; border: 1px solid var(--line); border-left-width: .28rem; border-radius: 0 1rem 1rem 0; background: rgba(255,255,255,.66); }\n" +
+  ".reader-callout span { display: block; margin-bottom: .35rem; color: var(--forest); font-size: .74rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }\n" +
+  ".reader-callout p { margin: 0; color: var(--ink); }\n" +
+  ".reader-callout-orientation { border-left-color: #2b7a66; }\n" +
+  ".reader-callout-meaning, .reader-callout-example { border-left-color: var(--amber); }\n" +
+  ".reader-callout-practice, .reader-callout-checkpoint { border-left-color: var(--coral); }\n" +
+  ".reader-callout-trace { border-left-color: #64748b; background: rgba(100,116,139,.06); }\n" +
+  ".reader-callout-caution { border-left-color: #a23b3b; background: rgba(162,59,59,.06); }\n" +
+  ".reader-section-heading { margin-top: 1.8rem; padding: .72rem .9rem; border-left: .28rem solid var(--forest); border-radius: 0 .8rem .8rem 0; background: rgba(255,255,255,.58); }\n" +
+  ".reader-section-heading-meaning, .reader-section-heading-example { border-left-color: var(--amber); }\n" +
+  ".reader-section-heading-practice, .reader-section-heading-checkpoint { border-left-color: var(--coral); }\n" +
+  ".reader-section-heading-caution { border-left-color: #a23b3b; }\n" +
+  ".reader-answer { margin: .9rem 0; border: 1px solid var(--line); border-radius: 1rem; background: rgba(23,60,52,.05); }\n" +
+  ".reader-answer summary { padding: .85rem 1rem; color: var(--forest); font-weight: 700; cursor: pointer; }\n" +
+  ".reader-answer p { margin: 0; padding: 0 1rem 1rem; color: var(--ink); }\n" +
+  ".reader-empty { display: flex; gap: 1rem; align-items: flex-start; margin-top: 1.3rem; padding: 1.3rem; border: 1px dashed rgba(16,33,29,.24); border-radius: 1.25rem; background: rgba(255,255,255,.48); }\n" +
+  ".reader-empty h3, .reader-empty p { margin: 0; }\n" +
+  ".reader-empty p { margin-top: .35rem; color: var(--muted); line-height: 1.65; }\n" +
+  ".reader-empty-icon { display: grid; place-items: center; min-width: 2.5rem; height: 2.5rem; border-radius: 999px; background: rgba(23,60,52,.08); color: var(--forest); font-size: 1.5rem; }\n" +
+  ".maintenance-disclosure { border: 1px solid var(--line); border-radius: 1.35rem; background: rgba(255,255,255,.48); }\n" +
+  ".maintenance-disclosure summary { display: flex; justify-content: space-between; gap: 1rem; align-items: center; padding: 1.1rem 1.25rem; cursor: pointer; font-weight: 700; list-style: none; }\n" +
+  ".maintenance-disclosure summary::-webkit-details-marker { display: none; }\n" +
+  ".maintenance-disclosure summary small { display: block; margin-bottom: .25rem; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }\n" +
+  ".maintenance-body { padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--line); }\n" +
+  ".maintenance-body p { max-width: 50rem; color: var(--muted); line-height: 1.65; }\n" +
+  ".reader-trace-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; margin-top: 1rem; }\n" +
+  ".reader-trace-card { min-width: 0; padding: 1rem; border: 1px solid var(--line); border-radius: 1rem; background: rgba(255,255,255,.55); }\n" +
+  ".reader-trace-card > div { display: flex; justify-content: space-between; gap: .6rem; }\n" +
+  ".reader-trace-card > div span { color: var(--muted); font-size: .74rem; font-weight: 700; text-transform: uppercase; }\n" +
+  ".reader-trace-card > p { margin: .6rem 0; font-size: .82rem; word-break: break-word; }\n" +
+  ".reader-trace-card dl { display: grid; gap: .45rem; margin: 0; }\n" +
+  ".reader-trace-card dl div { display: grid; gap: .12rem; }\n" +
+  ".reader-trace-card dt { color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }\n" +
+  ".reader-trace-card dd { overflow-wrap: anywhere; margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; line-height: 1.45; }\n" +
+  ".nav-maintenance { padding-left: 1rem; border-left: 1px solid var(--line); }\n" +
   ".metric-card, .workflow-card, .panel-shell, .depth-card, .report-card { padding: 1.3rem; }\n" +
   ".report-card { display: flex; flex-direction: column; gap: 1rem; min-height: 17rem; }\n" +
   ".report-card-head { display: flex; flex-direction: column; gap: 0.45rem; }\n" +
@@ -1246,14 +1437,18 @@ fn marketing_projection_styles() -> String {
   ".reveal { opacity: 0; transform: translateY(18px); transition: opacity 560ms ease, transform 560ms ease; }\n" +
   ".reveal.is-visible { opacity: 1; transform: translateY(0); }\n" +
   "@media (max-width: 980px) {\n" +
-  "  .hero, .metric-grid, .workflow-grid, .journey-grid, .readiness-grid, .triple-grid, .depth-grid, .report-grid, .article-layout, .skill-explorer, .skill-detail-grid, .skill-diagnostics-grid, .skill-action-grid, .skill-compare-grid, .skill-compare-excerpts { grid-template-columns: 1fr; }\n" +
+  "  .hero, .metric-grid, .workflow-grid, .journey-grid, .readiness-grid, .triple-grid, .depth-grid, .report-grid, .article-layout, .reader-view-selector, .reader-panel-heading, .reader-trace-grid, .skill-explorer, .skill-detail-grid, .skill-diagnostics-grid, .skill-action-grid, .skill-compare-grid, .skill-compare-excerpts { grid-template-columns: 1fr; }\n" +
   "  .article-toc { position: static; }\n" +
+  "  .reader-source-meta { justify-items: start; text-align: left; }\n" +
   "  .architecture-map { grid-template-columns: 1fr; }\n" +
   "  .page-shell { width: min(100% - 1.4rem, 1200px); }\n" +
   "}\n" +
   "@media (max-width: 640px) {\n" +
   "  .topbar { align-items: flex-start; flex-direction: column; }\n" +
   "  h1 { max-width: none; }\n" +
+  "  .reader-view-choice { grid-template-columns: auto minmax(0, 1fr); }\n" +
+  "  .reader-availability { grid-column: 2; }\n" +
+  "  .nav-maintenance { padding-left: 0; border-left: 0; }\n" +
   "}\n" +
   "@media (prefers-reduced-motion: reduce) {\n" +
   "  html { scroll-behavior: auto; }\n" +
@@ -1310,6 +1505,52 @@ fn marketing_projection_script() -> String {
   "  });\n" +
   "});\n" +
   "const bodyPage = document.body && document.body.dataset ? document.body.dataset.page : '';\n" +
+  "if (bodyPage === 'reader') {\n" +
+  "  const validViews = new Set(['learn', 'apply', 'research']);\n" +
+  "  const panels = Array.from(document.querySelectorAll('[data-reader-panel]'));\n" +
+  "  const choices = Array.from(document.querySelectorAll('[data-reader-choice]'));\n" +
+  "  const navLinks = Array.from(document.querySelectorAll('[data-reader-nav]'));\n" +
+  "  const activateReaderView = (requested, updateUrl) => {\n" +
+  "    const view = validViews.has(requested) ? requested : 'learn';\n" +
+  "    panels.forEach((panel) => {\n" +
+  "      const selected = panel.dataset.readerPanel === view;\n" +
+  "      panel.hidden = !selected;\n" +
+  "      if (selected) panel.classList.add('is-visible');\n" +
+  "    });\n" +
+  "    choices.forEach((choice) => {\n" +
+  "      const selected = choice.dataset.readerChoice === view;\n" +
+  "      choice.classList.toggle('is-selected', selected);\n" +
+  "      if (selected) choice.setAttribute('aria-current', 'page');\n" +
+  "      else choice.removeAttribute('aria-current');\n" +
+  "    });\n" +
+  "    navLinks.forEach((link) => {\n" +
+  "      const selected = link.dataset.readerNav === view;\n" +
+  "      if (selected) link.setAttribute('aria-current', 'page');\n" +
+  "      else link.removeAttribute('aria-current');\n" +
+  "    });\n" +
+  "    if (updateUrl) {\n" +
+  "      const url = new URL(window.location.href);\n" +
+  "      url.searchParams.set('view', view);\n" +
+  "      window.history.pushState({}, '', url);\n" +
+  "    }\n" +
+  "  };\n" +
+  "  const initialView = new URL(window.location.href).searchParams.get('view') || 'learn';\n" +
+  "  activateReaderView(initialView, false);\n" +
+  "  choices.concat(navLinks).forEach((link) => {\n" +
+  "    link.addEventListener('click', (event) => {\n" +
+  "      const view = link.dataset.readerChoice || link.dataset.readerNav;\n" +
+  "      if (!validViews.has(view)) return;\n" +
+  "      event.preventDefault();\n" +
+  "      activateReaderView(view, true);\n" +
+  "      const selector = document.querySelector('.reader-route-section');\n" +
+  "      if (selector) selector.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });\n" +
+  "    });\n" +
+  "  });\n" +
+  "  window.addEventListener('popstate', () => {\n" +
+  "    const view = new URL(window.location.href).searchParams.get('view') || 'learn';\n" +
+  "    activateReaderView(view, false);\n" +
+  "  });\n" +
+  "}\n" +
   "if (bodyPage === 'skills') {\n" +
   "  const inlineState = document.getElementById('skills-state-inline');\n" +
   "  const inlineRoot = document.getElementById('skills-root-inline');\n" +

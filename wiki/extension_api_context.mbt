@@ -101,7 +101,8 @@ fn course_provider_result_contract_lines() -> Array[String] {
     "Set result_id to a stable identifier for this worker result.", "artifacts must be an array of workspace-relative output paths.",
     "This is a course task, not a research bootstrap task.", "Do not require research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, or marketing-brief.md unless the course prompt explicitly asks for them.",
     "Course artifacts should include raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md when used as the workbook, and wiki/synthesis/beginner-course.md.",
-    "The visible course must teach through lessons, examples, exercises, output artifacts, checkpoints, and common mistakes.",
+    "The visible course must name a specific audience, state one main message and next action first, and teach through plain explanations, worked examples, exercises, output artifacts, self-explanation, retrieval checkpoints with concealed answers, transfer tasks, positive Revisit after days intervals, and common mistakes.",
+    "Factual claims must retain source anchors and limitations. Learn, Apply, and Research are projections over one accepted book revision, not independently invented claims.",
     "Reject Deep Research Analysis, Verified Findings, source-audit headings, provider status, ReviewQueued state, run ids, and process logs as reader-facing course structure.",
     "Use [] for empty arrays and null for missing target_page.",
   ]

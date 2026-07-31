@@ -118,7 +118,7 @@ fn course_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] {
       "course_outline",
       "Plan beginner course outline",
       100,
-      "Load `skills/wiki-course/SKILL.md`. Treat this as a course-design task, not a research-report task. Read the maintained wiki, journey, synthesis pages, and any raw/bootstrap context. Produce `raw/bootstrap/course-outline.md` with a beginner-friendly lesson sequence, prerequisites, exercises, output artifacts, checkpoints, and common mistakes. Do not load `skills/research-report/SKILL.md`. Do not title anything Deep Research Analysis.",
+      "Load `skills/wiki-course/SKILL.md` and its `references/human-readable-content.md`. Treat this as a course-design task, not a research-report task. Read the maintained wiki, journey, synthesis pages, and any raw/bootstrap context. Establish a specific audience, prior knowledge, intended outcome, one-to-three-sentence main message, and next action. Produce `raw/bootstrap/course-outline.md` with a beginner-friendly lesson sequence, prerequisites, worked examples, exercises, output artifacts, self-explanation prompts, concealed-answer retrieval checkpoints, transfer tasks, positive Revisit after days intervals, source references, and common mistakes. Do not load `skills/research-report/SKILL.md`. Do not title anything Deep Research Analysis.",
       [
         "../raw/bootstrap/course-outline.md", "synthesis/map.md", "history/journey.md",
       ],
@@ -130,7 +130,7 @@ fn course_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] {
       "course_workbook",
       "Write beginner course workbook",
       95,
-      "Load `skills/wiki-course/SKILL.md`. Write `raw/bootstrap/deep-report.md` as a beginner workbook, not a research report. Use 10-12 lessons unless the request says otherwise. Each lesson should include Objective, Plain explanation, Why it matters, Example, Exercise, Output artifact, Checkpoint, and Common mistake. Evidence and source material may support examples, but the visible structure must teach. Reject source-audit, provider-status, or Verified Findings headings as the main structure.",
+      "Load `skills/wiki-course/SKILL.md` and its human-readable-content reference. Write `raw/bootstrap/deep-report.md` as a beginner workbook, not a research report. Use 10-12 lessons unless the request says otherwise. Each lesson should include Objective, Plain explanation, Why it matters, a step-by-step Worked example, Exercise, Output artifact, Self-explanation, a concealed-answer Retrieval checkpoint, Transfer task, Revisit plus a positive Revisit after days value, Common mistake, and Source references or limitations. Evidence and source material support the lesson, but the visible structure must teach. Reject source-audit, provider-status, or Verified Findings headings as the main structure.",
       ["../raw/bootstrap/course-outline.md", "../raw/bootstrap/deep-report.md"],
       true,
     ),
@@ -140,7 +140,7 @@ fn course_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] {
       "course_project",
       "Project durable course synthesis",
       90,
-      "Load `skills/wiki-course/SKILL.md`. Turn the course outline and workbook into `wiki/synthesis/beginner-course.md` and update course-facing synthesis without changing the task into research. Keep language beginner-friendly, structured, and practice-oriented. Do not require a research envelope or marketing brief.",
+      "Load `skills/wiki-course/SKILL.md`. Turn the course outline and workbook into the canonical Learn artifact at `wiki/synthesis/beginner-course.md`. Preserve source anchors and limitations, keep the main message and next action first, and retain the worked-example, practice, retrieval, and transfer loop. The Apply and Research views must remain projections over the same accepted book rather than independently authored claims. Do not change the task into research or require a marketing brief.",
       [
         "../raw/bootstrap/course-outline.md", "../raw/bootstrap/deep-report.md",
         "synthesis/beginner-course.md",
@@ -153,7 +153,7 @@ fn course_semantic_tasks(goal_id : String, goal : String) -> Array[BookTask] {
       "course_review",
       "Review course quality",
       80,
-      "Load `skills/wiki-course/SKILL.md` and `skills/wiki-review/SKILL.md`. Review whether the course teaches a beginner clearly, avoids research-report leakage, includes exercises and checkpoints, and points to concrete artifacts. Return specific fixes if any lesson is too abstract or process-log shaped.",
+      "Load `skills/wiki-course/SKILL.md`, its human-readable-content reference, and `skills/wiki-review/SKILL.md`. Review the specific audience contract, first-screen main message and action, definitions at first use, worked examples, practice, self-explanation, retrieval, transfer, revisit interval, source anchors, and visible limitations. Verify separately that simplification preserved each claim. Treat readability scores as diagnostics, not proof of comprehension. Return specific fixes if any lesson is too abstract, unsupported, or process-log shaped.",
       [
         "../raw/bootstrap/course-outline.md", "../raw/bootstrap/deep-report.md",
         "synthesis/beginner-course.md", "reviews/pending.md",
