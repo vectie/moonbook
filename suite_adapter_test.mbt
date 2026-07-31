@@ -74,14 +74,21 @@ test "MoonBook publishes exact MoonFlow v2 product-owned capability truth" {
   )
   assert_true(declaration["protocol"] == Json::string("moonflow.adapter.v2"))
   assert_true(declaration["product_id"] == Json::string("moonbook"))
-  guard declaration["operations"] is [Object(outcome), Object(requirements)] else {
-    fail("expected two exact MoonBook operation declarations")
+  guard declaration["operations"]
+    is [Object(outcome), Object(submission), Object(requirements)] else {
+    fail("expected three exact MoonBook operation declarations")
   }
   assert_true(
     outcome["operation_id"] == Json::string("bookkeeper.outcome.close"),
   )
   assert_true(outcome["supports_reconcile"] == Json::boolean(true))
   assert_true(outcome["supports_cancel"] == Json::boolean(false))
+  assert_true(
+    submission["operation_id"] ==
+    Json::string("bookkeeper.outcome.submit"),
+  )
+  assert_true(submission["supports_reconcile"] == Json::boolean(true))
+  assert_true(submission["supports_cancel"] == Json::boolean(false))
   assert_true(
     requirements["operation_id"] == Json::string("wiki.requirements.prepare"),
   )
@@ -90,6 +97,10 @@ test "MoonBook publishes exact MoonFlow v2 product-owned capability truth" {
   assert_true(
     @moonbook.moonbook_outcome_closure_operation_ref() ==
     "moonbook/bookkeeper.outcome.close@0.1.0",
+  )
+  assert_true(
+    @moonbook.moonbook_outcome_submission_operation_ref() ==
+    "moonbook/bookkeeper.outcome.submit@0.1.0",
   )
   assert_true(
     @moonbook.moonbook_requirements_prepare_operation_ref() ==
@@ -116,7 +127,9 @@ test "MoonBook health attestation is evidence-bound and expiring" {
   assert_true(
     health["operation_refs"] ==
     [
-      "moonbook/bookkeeper.outcome.close@0.1.0", "moonbook/wiki.requirements.prepare@0.1.0",
+      "moonbook/bookkeeper.outcome.close@0.1.0",
+      "moonbook/bookkeeper.outcome.submit@0.1.0",
+      "moonbook/wiki.requirements.prepare@0.1.0",
     ].to_json(),
   )
   try

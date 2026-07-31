@@ -8,11 +8,27 @@ MoonBook owns one generic closed-loop operation:
 moonbook/bookkeeper.outcome.close@0.1.0
 ```
 
-This is the executable replacement for the aspirational canvas label
+Producing packs normally enter it through the replayable intake operation:
+
+```text
+moonbook/bookkeeper.outcome.submit@0.1.0
+```
+
+`bookkeeper.outcome.submit` accepts an evidence-bound product deliverable,
+result, external decision evidence, and explicit Three-Gap statements. It
+creates the canonical Bookkeeper deliverable and `product.result` ingress, then
+stops at MoonBook's own named-human deliverable review. Replaying the exact
+submission after that review delegates to `bookkeeper.outcome.close`; later
+replays advance only through the existing assessment and proposal gates.
+
+These are the executable replacements for the aspirational canvas label
 `bookkeeper.close-loop`. A canvas or workflow must use the exact versioned
 operation and schema identities:
 
 ```text
+input  moonbook/bookkeeper-product-outcome-submission@1.0.0
+output moonbook/bookkeeper-product-outcome-submission-receipt@1.0.0
+
 input  moonbook/bookkeeper-product-outcome-closure@1.0.0
 output moonbook/bookkeeper-product-outcome-closure-receipt@1.0.0
 ```
@@ -44,6 +60,11 @@ The producing product supplies three structured gap statements:
 MoonBook validates severity and evidence linkage and deterministically records
 all three dimensions in one `ThreeGapAssessment`. It does not ask an LLM to
 invent a gap, severity or evidence reference.
+
+An external MoonChat acceptance record may be submitted as decision evidence,
+but it never installs reviewer authority or substitutes for a MoonBook review.
+Reviewer grants remain locally installed and the existing Rabbita Bookkeeper
+screen owns each exact human decision.
 
 ## Resumable governed progression
 
@@ -93,6 +114,10 @@ durable records and pending reviews.
 Direct invocation:
 
 ```sh
+moon run cmd/moonflow_adapter -- submit-product-outcome \
+  --workspace /path/to/book \
+  --submission records/product-outcome-submission.json
+
 moon run cmd/moonflow_adapter -- close-product-outcome \
   --workspace /path/to/book \
   --closure-request records/outcome-closure.json

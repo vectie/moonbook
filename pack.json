@@ -18,6 +18,16 @@
       "path": "schemas/bookkeeper-product-outcome-closure-receipt.schema.json"
     },
     {
+      "id": "bookkeeper-product-outcome-submission",
+      "version": "1.0.0",
+      "path": "schemas/bookkeeper-product-outcome-submission.schema.json"
+    },
+    {
+      "id": "bookkeeper-product-outcome-submission-receipt",
+      "version": "1.0.0",
+      "path": "schemas/bookkeeper-product-outcome-submission-receipt.schema.json"
+    },
+    {
       "id": "wiki-requirements-prepare",
       "version": "1.0.0",
       "path": "schemas/wiki-requirements-prepare.schema.json"
@@ -34,6 +44,20 @@
       "owner_product": "moonbook",
       "input_schema_id": "bookkeeper-product-outcome-closure",
       "output_schema_id": "bookkeeper-product-outcome-closure-receipt",
+      "authority": "WorkspaceMutation",
+      "idempotent": true,
+      "evidence_outputs": [
+        ".moonbook/bookkeeper/journal",
+        ".moonbook/bookkeeper/snapshot.json",
+        ".moonbook/bookkeeper/ui-state.json"
+      ],
+      "review_required": true
+    },
+    {
+      "id": "bookkeeper.outcome.submit",
+      "owner_product": "moonbook",
+      "input_schema_id": "bookkeeper-product-outcome-submission",
+      "output_schema_id": "bookkeeper-product-outcome-submission-receipt",
       "authority": "WorkspaceMutation",
       "idempotent": true,
       "evidence_outputs": [
@@ -61,7 +85,13 @@
   "policies": [],
   "provider_ports": [],
   "schedules": [],
-  "app_entrypoints": [],
+  "app_entrypoints": [
+    {
+      "id": "bookkeeper-console",
+      "path": "/apps/moonbook/",
+      "audience": "book-operator"
+    }
+  ],
   "migrations": [],
   "evaluations": [],
   "uninstall_contract": {

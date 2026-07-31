@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "moonbook/bookkeeper-product-outcome-submission@1.0.0",
+  "title": "MoonBook product outcome submission",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "submission",
+    "source_product",
+    "deliverable_title",
+    "deliverable_summary",
+    "outcome_summary",
+    "owner_route",
+    "evidence_refs",
+    "decision_evidence_id",
+    "observed_at",
+    "recorded_at",
+    "information_gap",
+    "recognition_gap",
+    "decisiveness_gap",
+    "capability_id",
+    "capability_version",
+    "capability_change_digest",
+    "capability_summary"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "moonbook.bookkeeper.product_outcome_submission.v1"
+    },
+    "submission": {
+      "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/recordReference"
+    },
+    "source_product": {
+      "type": "string",
+      "minLength": 1,
+      "not": { "const": "moonbook" }
+    },
+    "deliverable_title": { "type": "string", "minLength": 1 },
+    "deliverable_summary": { "type": "string", "minLength": 1 },
+    "outcome_summary": { "type": "string", "minLength": 1 },
+    "owner_route": { "type": "string", "minLength": 1 },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/evidenceReference"
+      }
+    },
+    "decision_evidence_id": { "type": "string", "minLength": 1 },
+    "observed_at": { "type": "integer", "minimum": 0 },
+    "recorded_at": { "type": "integer", "minimum": 0 },
+    "information_gap": {
+      "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/gapStatement"
+    },
+    "recognition_gap": {
+      "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/gapStatement"
+    },
+    "decisiveness_gap": {
+      "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/gapStatement"
+    },
+    "capability_id": { "type": "string", "minLength": 1 },
+    "capability_version": { "type": "string", "minLength": 1 },
+    "capability_change_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "capability_summary": { "type": "string", "minLength": 1 }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "moonbook/bookkeeper-product-outcome-submission-receipt@1.0.0",
+  "title": "MoonBook product outcome submission receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "submission",
+    "deliverable",
+    "deliverable_review",
+    "result",
+    "closure",
+    "state",
+    "pending_human_gate",
+    "activation_authorized",
+    "external_side_effects_applied"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "moonbook.bookkeeper.product_outcome_submission_receipt.v1"
+    },
+    "submission": {
+      "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/recordReference"
+    },
+    "deliverable": {
+      "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/recordReference"
+    },
+    "deliverable_review": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/recordReference"
+        }
+      ]
+    },
+    "result": {
+      "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/recordReference"
+    },
+    "closure": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "$ref": "bookkeeper-product-outcome-closure-receipt.schema.json"
+        }
+      ]
+    },
+    "state": {
+      "enum": [
+        "deliverable_review_required",
+        "assessment_review_required",
+        "closed_no_capability_change",
+        "proposal_review_required",
+        "reviewed_proposal_handed_off"
+      ]
+    },
+    "pending_human_gate": { "type": "string" },
+    "activation_authorized": { "const": false },
+    "external_side_effects_applied": { "const": false }
+  }
+}

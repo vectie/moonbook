@@ -100,6 +100,21 @@ pub fn moonbook_outcome_closure_operation_ref() -> String {
 }
 
 ///|
+/// Generic intake/replay operation for a product result and its review
+/// evidence. It always enters MoonBook's existing named-human gates.
+pub fn moonbook_outcome_submission_operation_id() -> String {
+  "bookkeeper.outcome.submit"
+}
+
+///|
+pub fn moonbook_outcome_submission_operation_ref() -> String {
+  "moonbook/" +
+  moonbook_outcome_submission_operation_id() +
+  "@" +
+  moonbook_capability_pack_version()
+}
+
+///|
 /// Product-owned operation for deterministic, review-pending MoonWiki
 /// requirements preparation.
 pub fn moonbook_requirements_prepare_operation_id() -> String {
@@ -128,6 +143,12 @@ pub fn moonbook_moonflow_adapter_declaration_json() -> Json {
     "operations": [
       {
         "operation_id": moonbook_outcome_closure_operation_id(),
+        "claim_ceiling": "digital-artifact",
+        "supports_cancel": false,
+        "supports_reconcile": true,
+      },
+      {
+        "operation_id": moonbook_outcome_submission_operation_id(),
         "claim_ceiling": "digital-artifact",
         "supports_cancel": false,
         "supports_reconcile": true,
@@ -180,6 +201,7 @@ pub fn moonbook_moonflow_adapter_health_json(
     "valid_until": valid_until,
     "operation_refs": [
       moonbook_outcome_closure_operation_ref(),
+      moonbook_outcome_submission_operation_ref(),
       moonbook_requirements_prepare_operation_ref(),
     ],
     "evidence_ref": evidence_ref,

@@ -13,6 +13,12 @@
       "supports_reconcile": true
     },
     {
+      "operation_id": "bookkeeper.outcome.submit",
+      "claim_ceiling": "digital-artifact",
+      "supports_cancel": false,
+      "supports_reconcile": true
+    },
+    {
       "operation_id": "wiki.requirements.prepare",
       "claim_ceiling": "digital-artifact",
       "supports_cancel": false,

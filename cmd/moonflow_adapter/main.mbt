@@ -211,6 +211,20 @@ async fn run_outcome_closure_direct(args : Array[String]) -> Unit {
 }
 
 ///|
+async fn run_outcome_submission_direct(args : Array[String]) -> Unit {
+  let root = option(args, "--workspace")
+  let request_path = workspace_path(
+    root,
+    option(args, "--submission"),
+  )
+  let submission : @bookkeeper_store.ProductOutcomeSubmission = @json.from_json(
+    read_json(request_path),
+  )
+  let receipt = @bookkeeper_store.submit_product_outcome(root, submission)
+  println(receipt.to_json().stringify(indent=2))
+}
+
+///|
 async fn run_requirements_prepare_direct(args : Array[String]) -> Unit {
   let root = option(args, "--workspace")
   let request_path = workspace_path(
@@ -357,6 +371,61 @@ async fn run_outcome_closure_unattended(args : Array[String]) -> Unit {
 }
 
 ///|
+async fn run_outcome_submission_unattended(args : Array[String]) -> Unit {
+  let root = option(args, "--workspace")
+  let request_ref = option(args, "--request")
+  let result_ref = option(args, "--result")
+  let output_ref = option(args, "--output")
+  let request_json = read_json(workspace_path(root, request_ref))
+  guard request_json is Object(fields) else {
+    fail("MoonFlow adapter request must be an object")
+  }
+  let operation = json_string(fields, "operation")
+  if json_string(fields, "product_id") != "moonbook" ||
+    !(operation == @moonbook.moonbook_outcome_submission_operation_id() ||
+    operation == @moonbook.moonbook_outcome_submission_operation_ref()) ||
+    json_string(fields, "requested_authority") != "workspace-mutation" {
+    fail("MoonFlow request targets the wrong product, operation, or authority")
+  }
+  if json_strings(fields, "input_contracts") !=
+    ["moonbook/bookkeeper-product-outcome-submission@1.0.0"] ||
+    json_strings(fields, "output_contracts") !=
+    ["moonbook/bookkeeper-product-outcome-submission-receipt@1.0.0"] {
+    fail("MoonFlow request omits the exact outcome-submission contracts")
+  }
+  let inputs = json_strings(fields, "input_artifacts")
+  let primary_input = primary_input_artifact(inputs, "outcome submission")
+  if artifact_set_digest(root, inputs) != json_string(fields, "input_digest") {
+    fail("MoonFlow outcome-submission input artifact digest changed")
+  }
+  let submission : @bookkeeper_store.ProductOutcomeSubmission = @json.from_json(
+    read_json(workspace_path(root, primary_input)),
+  )
+  let receipt = @bookkeeper_store.submit_product_outcome(root, submission)
+  write_idempotent_json(workspace_path(root, output_ref), receipt.to_json())
+  let output_digest = artifact_set_digest(root, [output_ref])
+  let pending = receipt.pending_human_gate
+  let result : Json = {
+    "result_id": "result-" + json_string(fields, "request_id"),
+    "request_id": json_string(fields, "request_id"),
+    "attempt_id": json_string(fields, "attempt_id"),
+    "idempotency_key": json_string(fields, "idempotency_key"),
+    "product_id": "moonbook",
+    "external_job_id": receipt.submission.record_id,
+    "status": "Succeeded",
+    "output_digest": output_digest,
+    "output_artifacts": [output_ref],
+    "error_kind": "",
+    "compensable": false,
+    "recorded_at": json_string(fields, "created_at"),
+    "review_status": receipt.state,
+    "pending_human_gate": pending,
+  }
+  write_idempotent_json(workspace_path(root, result_ref), result)
+  println(result.stringify(indent=2))
+}
+
+///|
 async fn run_requirements_prepare_unattended(args : Array[String]) -> Unit {
   let root = option(args, "--workspace")
   let moonflow_request_ref = option(args, "--request")
@@ -423,6 +492,10 @@ async fn run_unattended(args : Array[String]) -> Unit {
   if operation == @moonbook.moonbook_outcome_closure_operation_id() ||
     operation == @moonbook.moonbook_outcome_closure_operation_ref() {
     run_outcome_closure_unattended(args)
+  } else if operation ==
+    @moonbook.moonbook_outcome_submission_operation_id() ||
+    operation == @moonbook.moonbook_outcome_submission_operation_ref() {
+    run_outcome_submission_unattended(args)
   } else if operation == @moonbook.moonbook_requirements_prepare_operation_id() ||
     operation == @moonbook.moonbook_requirements_prepare_operation_ref() {
     run_requirements_prepare_unattended(args)
@@ -439,6 +512,8 @@ async fn main {
       ["deliver-reviewed-draft", .. rest] => run_direct(rest.to_owned())
       ["close-product-outcome", .. rest] =>
         run_outcome_closure_direct(rest.to_owned())
+      ["submit-product-outcome", .. rest] =>
+        run_outcome_submission_direct(rest.to_owned())
       ["prepare-requirements", .. rest] =>
         run_requirements_prepare_direct(rest.to_owned())
       ["reconcile-requirements", .. rest] =>
@@ -452,7 +527,7 @@ async fn main {
         )
       _ =>
         fail(
-          "usage: moonflow_adapter [capabilities | prepare-requirements ... | reconcile-requirements ... | close-product-outcome ... | deliver-reviewed-draft ... | unattended ...]",
+          "usage: moonflow_adapter [capabilities | prepare-requirements ... | reconcile-requirements ... | submit-product-outcome ... | close-product-outcome ... | deliver-reviewed-draft ... | unattended ...]",
         )
     }
   } catch {

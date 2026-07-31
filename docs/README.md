@@ -9,6 +9,9 @@ Bookkeeper ownership, capability labels and release gates.
 - [MoonWiki requirements capability](MOONWIKI_REQUIREMENTS_CAPABILITY.md) —
   deterministic separation of facts, calculations, inferences and unresolved
   questions into an exact-evidence, review-pending MoonBook packet.
+- [UI-to-UI use cases](qualification/UI_TO_UI_USE_CASES.md) — reproducible
+  book, Bookkeeper, named-human review, Three-Gap, and negative-authority
+  qualification in the existing Rabbita application.
 
 MoonBook is the durable executable book for MoonSuite. It owns accepted book
 truth: raw sources, wiki pages, review queues, generated sites, book-owned

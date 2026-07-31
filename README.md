@@ -72,7 +72,7 @@ MoonBook is strongest when you want one local system to handle:
 
 ## News
 
-- `2026-07-31`: added the generic `moonbook/bookkeeper.outcome.close@0.1.0` capability: exact deliverable/result/review intake, deterministic three-dimension assessment, resumable named-human proposal gates, non-activating MoonFlow handoff, versioned pack schemas, adapter declaration, and evidence-bound expiring health output
+- `2026-07-31`: added the generic `moonbook/bookkeeper.outcome.submit@0.1.0` intake plus `moonbook/bookkeeper.outcome.close@0.1.0`: external decision evidence enters the existing Rabbita review queue, deterministic Three-Gap assessment and capability proposal gates replay safely, and no receipt grants activation
 - `2026-06-28`: added the seeded `document-reverse-engineer` routine so a finished document can enter MoonBook from the reverse side: deconstruction, argument map, style profile, improvement plan, and regenerated draft over the same durable workspace loop
 - `2026-06-19`: added the native `moonbook.book_state.v1` snapshot plus `moonbook.knowledge_bundle.v1`, generated graph files, `wiki state`, `wiki bundle`, `wiki graph`, and lint checks for missing MoonBook page metadata so suite tools can consume book state through concise MoonBook contracts instead of scraping wiki pages
 - `2026-05-18`: added MoonBook-side standing-watch support for 24/7 topic monitoring: seeded `skills/standing-watch/SKILL.md`, dedicated `standing-watch` book tasks, worker context with baseline/history, result marker contracts, and durable `wiki/history/standing-watch.md` decision records
@@ -157,7 +157,7 @@ MoonBook is strongest when you want one local system to handle:
   - weak synthesis/claim coverage
   - unqueued low-confidence claims
   - review backlog growth
-- 🔁 generic product-outcome closure through `bookkeeper.outcome.close`, reusing the durable Bookkeeper journal and advancing only through exact named-human reviews
+- 🔁 generic product-outcome intake and closure through `bookkeeper.outcome.submit` and `bookkeeper.outcome.close`, reusing the durable Bookkeeper journal and advancing only through exact named-human reviews
 - 🔌 extension-based runtime integration with `moonclaw` as the first pack
 - 🐇 Rabbita frontend scaffolding under `ui/`
 
