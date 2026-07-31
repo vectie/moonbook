@@ -12,8 +12,14 @@ You can browse and install extra skills here:
   blackbox test files (ending in `_test.mbt`) and whitebox test files (ending in
   `_wbtest.mbt`).
 
-- In the toplevel directory, there is a `moon.mod.json` file listing module
-  metadata.
+- In the toplevel directory, `moon.mod` declares the module. Do not recreate
+  the legacy `moon.mod.json` form.
+
+- Keep executable roots under `cmd/` thin. MoonBook rules live in cohesive
+  packages such as `wiki/`, `bookkeeper/`, `bookkeeper_store/`, and
+  `flow_attestor/`; the Rabbita application lives under
+  `ui/rabbita-book/main/` and is split by operator responsibility rather than
+  accumulated in one generic implementation file.
 
 ## Coding convention
 

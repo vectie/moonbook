@@ -10,7 +10,6 @@ using @html {
   h2,
   h3,
   header,
-  input,
   li,
   main_,
   p,
@@ -18,7 +17,6 @@ using @html {
   section,
   small,
   span,
-  textarea,
   ul,
 }
 
@@ -403,6 +401,14 @@ fn nav_link(
   href : String,
   current? : Bool = false,
 ) -> @rabbita.Html {
+  let icon_name = match href {
+    "#overview" => "overview"
+    "#bookkeeper" => "review"
+    "#reviews" => "queue"
+    "#map" => "map"
+    "#keeper" => "keeper"
+    _ => "record"
+  }
   let background = if current {
     "linear-gradient(135deg,#dbeafe,#eff6ff)"
   } else {
@@ -415,11 +421,20 @@ fn nav_link(
   }
   a(
     href~,
+    title=label,
+    attrs=@html.Attrs::build().aria_current(
+      if current {
+        "page"
+      } else {
+        "false"
+      },
+    ),
     style=[
       "display:flex",
       "justify-content:space-between",
       "align-items:center",
-      "padding:12px 14px",
+      "min-height:44px",
+      "padding:8px 12px",
       "border-radius:16px",
       "text-decoration:none",
       "color:#0f172a",
@@ -429,10 +444,14 @@ fn nav_link(
       "cursor:pointer",
     ],
     [
-      span(style=["font-weight:600"], label),
+      span(class="moonbook-icon-label", [
+        ui_icon(icon_name),
+        span(style=["font-weight:650"], label),
+      ]),
       span(
-        style=["color:#64748b", "font-size:12px"],
-        interface_message(locale, NavOpen),
+        title=interface_message(locale, NavOpen),
+        style=["color:#64748b"],
+        ui_icon("arrow", size=17),
       ),
     ],
   )
@@ -1095,146 +1114,6 @@ fn review_draft_for_selection(model : Model) -> String? {
 }
 
 ///|
-fn bookkeeper_operator_panel(
-  emit : @rabbita.Emit[Msg],
-  model : Model,
-) -> @rabbita.Html {
-  let project_readiness = governed_work_order_draft(model, false)
-  let egress_readiness = governed_work_order_draft(model, true)
-  let authority_buttons = match model.bookkeeper_authorities {
-    Some(registry) =>
-      registry.grants
-      .filter(grant => grant.active)
-      .map(fn(grant) {
-        let selected = model.selected_bookkeeper_authority ==
-          Some(grant.authority_ref)
-        button(
-          style=[
-            "padding:8px 11px",
-            "border-radius:12px",
-            if selected {
-              "border:2px solid #2563eb"
-            } else {
-              "border:1px solid #cbd5e1"
-            },
-            "background:#fff",
-            "cursor:pointer",
-            "font-weight:700",
-          ],
-          on_click=emit(SelectBookkeeperAuthority(grant.authority_ref)),
-          "\{grant.reviewer_id} · \{grant.authority_ref}",
-        )
-      })
-    None => []
-  }
-  article(
-    style=[
-      "padding:18px", "border-radius:22px", "background:#0f172a", "color:#f8fafc",
-      "display:grid", "gap:14px",
-    ],
-    [
-      div([
-        h3(style=["margin:0 0 6px 0"], "Governed loop operator"),
-        p(
-          style=["margin:0", "color:#cbd5e1", "font-size:14px"],
-          "Ingress a generic MoonFlow envelope, record a stage, review an exact record, or emit the next generic envelope. Authority can only be installed with the MoonBook CLI.",
-        ),
-      ]),
-      div(style=["display:flex", "gap:8px", "flex-wrap:wrap"], [
-        button(on_click=emit(SetBookkeeperMode("ingress")), "Ingress envelope"),
-        button(on_click=emit(SetBookkeeperMode("record")), "Durable record"),
-        button(on_click=emit(SetBookkeeperMode("review")), "Governed review"),
-        button(on_click=emit(SetBookkeeperMode("egress")), "Egress envelope"),
-        button(
-          disabled=project_readiness is Err(_),
-          on_click=emit(SetBookkeeperMode("project-work-order")),
-          "Project MoonCode work order",
-        ),
-        button(
-          disabled=egress_readiness is Err(_),
-          on_click=emit(SetBookkeeperMode("egress-work-order")),
-          "Authorize reviewed egress",
-        ),
-      ]),
-      div(style=["display:grid", "gap:4px"], [
-        small(
-          style=["color:#fbbf24"],
-          match project_readiness {
-            Ok(_) =>
-              "Projection ready: the result still requires a second human review."
-            Err(reason) => "Projection gap: " + reason
-          },
-        ),
-        small(
-          style=["color:#fbbf24"],
-          match egress_readiness {
-            Ok(_) =>
-              "Egress ready: MoonFlow delivery and MoonClaw import remain draft-only."
-            Err(reason) => "Egress gap: " + reason
-          },
-        ),
-      ]),
-      div(
-        style=["display:flex", "gap:8px", "flex-wrap:wrap"],
-        if authority_buttons.is_empty() {
-          [
-            small(
-              style=["color:#fbbf24"],
-              "No active reviewer authority. Install one with `moonbook bookkeeper authority install`.",
-            ),
-          ]
-        } else {
-          authority_buttons
-        },
-      ),
-      small(
-        style=[
-          "color:#93c5fd", "font-family:'Fira Code','SFMono-Regular',monospace",
-        ],
-        "mode · \{model.bookkeeper_mode}",
-      ),
-      textarea(
-        value=model.bookkeeper_draft,
-        on_input=value => emit(SetBookkeeperDraft(value)),
-        disabled=model.bookkeeper_busy,
-        style=[
-          "width:100%", "min-height:260px", "box-sizing:border-box", "padding:14px",
-          "border-radius:14px", "border:1px solid #475569", "background:#020617",
-          "color:#e2e8f0", "font-family:'Fira Code','SFMono-Regular',monospace",
-          "font-size:12px", "line-height:1.55", "resize:vertical",
-        ],
-        ([] : Array[@rabbita.Html]),
-      ),
-      div(style=["display:flex", "gap:10px", "flex-wrap:wrap"], [
-        button(
-          disabled=model.bookkeeper_busy ||
-            model.bookkeeper_draft.trim().is_blank(),
-          on_click=emit(SubmitBookkeeperMutation),
-          "Submit governed mutation",
-        ),
-        button(
-          disabled=model.bookkeeper_busy,
-          on_click=emit(ReplayBookkeeper),
-          "Replay durable journal",
-        ),
-      ]),
-      match model.bookkeeper_notice {
-        Some(notice) =>
-          pre(
-            style=["margin:0", "white-space:pre-wrap", "color:#bfdbfe"],
-            notice,
-          )
-        None =>
-          small(
-            style=["color:#94a3b8"],
-            "Select a lane record to bind review JSON to its exact digest and evidence.",
-          )
-      },
-    ],
-  )
-}
-
-///|
 fn bookkeeper_console(
   emit : @rabbita.Emit[Msg],
   model : Model,
@@ -1287,6 +1166,7 @@ fn bookkeeper_console(
       ),
       bookkeeper_operator_panel(emit, model),
       div(
+        id="bookkeeper-lanes",
         style=[
           "display:grid", "grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))",
           "gap:14px", "align-items:start",
@@ -1499,11 +1379,7 @@ fn render_sidebar(
 
 ///|
 fn hero_section(state : UiState, model : Model) -> @rabbita.Html {
-  let search_value = if state.chapters.is_empty() {
-    "synthesis map"
-  } else {
-    state.chapters[0].title.to_lower()
-  }
+  let next_step = bookkeeper_journey_step(model)
   header(
     id="overview",
     style=panel_style() +
@@ -1556,33 +1432,29 @@ fn hero_section(state : UiState, model : Model) -> @rabbita.Html {
           ),
         ],
       ),
-      div(
+      article(
         style=[
-          "display:grid", "grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))",
-          "gap:12px", "align-items:center",
+          "display:flex", "align-items:center", "justify-content:space-between",
+          "gap:18px", "flex-wrap:wrap", "padding:16px", "border:1px solid rgba(37,99,235,.18)",
+          "border-radius:18px", "background:rgba(239,246,255,.78)",
         ],
         [
-          input(
-            placeholder=interface_message(model.locale, HeroSearchPlaceholder),
-            value=search_value,
-            read_only=true,
-            style=[
-              "width:100%", "padding:15px 18px", "border-radius:18px", "border:1px solid rgba(148,163,184,.24)",
-              "background:rgba(255,255,255,.88)", "font-size:15px", "color:#0f172a",
-              "box-sizing:border-box",
-            ],
-          ),
-          button(
-            style=[
-              "padding:15px 18px", "border:none", "border-radius:18px", "background:#2563eb",
-              "color:#fff", "font-weight:700", "cursor:pointer", "box-shadow:0 16px 35px rgba(37,99,235,.22)",
-              "transition:transform .2s ease, box-shadow .2s ease",
-            ],
-            if model.loading {
-              interface_message(model.locale, HeroRefreshing)
-            } else {
-              interface_message(model.locale, HeroSnapshotLive)
-            },
+          div(style=["max-width:720px"], [
+            small(
+              style=[
+                "display:block", "margin-bottom:4px", "color:#1d4ed8", "font-weight:800",
+                "letter-spacing:.04em", "text-transform:uppercase",
+              ],
+              interface_message(model.locale, SidebarNextStep),
+            ),
+            h2(style=["margin:0 0 5px", "font-size:20px"], next_step.title),
+            p(style=muted_text_style() + ["margin:0"], next_step.detail),
+          ]),
+          a(
+            class="moonbook-primary-action",
+            title="Continue to the Bookkeeper review workflow",
+            href="#bookkeeper",
+            [ui_icon("review"), span("Continue review")],
           ),
         ],
       ),
@@ -1607,9 +1479,12 @@ fn render_page(emit : @rabbita.Emit[Msg], model : Model) -> @rabbita.Html {
     None => "Live update transport: disabled for static builds"
   }
   div(style=app_shell_style(), [
+    app_accessibility_styles(),
+    a(class="moonbook-skip-link", href="#moonbook-main", "Skip to workspace"),
     div(style=page_grid_style(), [
       render_sidebar(emit, state, model),
       main_(
+        id="moonbook-main",
         style=[
           "display:grid", "gap:24px", "flex:1 1 680px", "min-width:0", "max-width:100%",
           "box-sizing:border-box",

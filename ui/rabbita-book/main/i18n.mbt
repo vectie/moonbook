@@ -21,9 +21,6 @@ enum InterfaceMessage {
   SidebarRefreshing
   SidebarLoaded
   HeroEyebrow
-  HeroSearchPlaceholder
-  HeroRefreshing
-  HeroSnapshotLive
   WorkflowTitle
   WorkflowSubtitle
   BookkeeperTitle
@@ -71,17 +68,13 @@ fn interface_message(
     (SimplifiedChinese, SidebarNextStep) => "下一步"
     (SimplifiedChinese, SidebarRefreshing) => "正在刷新工作区快照。"
     (SimplifiedChinese, SidebarLoaded) => "实时工作区快照已加载。"
-    (SimplifiedChinese, HeroEyebrow) => "文档控制台"
-    (SimplifiedChinese, HeroSearchPlaceholder) =>
-      "搜索论点、章节、概念或 Keeper 笔记"
-    (SimplifiedChinese, HeroRefreshing) => "正在刷新"
-    (SimplifiedChinese, HeroSnapshotLive) => "快照已上线"
+    (SimplifiedChinese, HeroEyebrow) => "知识工作区"
     (SimplifiedChinese, WorkflowTitle) => "工作流界面"
     (SimplifiedChinese, WorkflowSubtitle) =>
       "此界面使用生成的工作区状态呈现当前 MoonBook 流程，而不是硬编码的演示计数。"
     (SimplifiedChinese, BookkeeperTitle) => "Bookkeeper 闭环"
     (SimplifiedChinese, BookkeeperSubtitle) =>
-      "从交付验收到结果绑定，再到三差距学习、MoonCode 工作单和能力采用的只读治理视图。"
+      "选择一条持久记录，由具名人工审核，并重放日志以验证结果。"
     (SimplifiedChinese, BookkeeperNoRecords) =>
       "等待后端生成此阶段的领域中立投影视图。"
     (SimplifiedChinese, BookkeeperEvidence) => "证据"
@@ -125,17 +118,13 @@ fn interface_message(
     (_, SidebarNextStep) => "Next Step"
     (_, SidebarRefreshing) => "Refreshing workspace snapshot."
     (_, SidebarLoaded) => "Live workspace snapshot loaded."
-    (_, HeroEyebrow) => "Swiss docs console"
-    (_, HeroSearchPlaceholder) =>
-      "Search claims, chapters, concepts, or keeper notes"
-    (_, HeroRefreshing) => "Refreshing"
-    (_, HeroSnapshotLive) => "Snapshot Live"
+    (_, HeroEyebrow) => "Knowledge workspace"
     (_, WorkflowTitle) => "Workflow Surface"
     (_, WorkflowSubtitle) =>
       "The UI mirrors the current MoonBook loop using generated workspace state instead of hardcoded demo counters."
     (_, BookkeeperTitle) => "Bookkeeper Closed Loop"
     (_, BookkeeperSubtitle) =>
-      "Read-only governance from deliverable acceptance and outcome binding through Three-Gap learning, MoonCode work orders, evaluation, and capability adoption."
+      "Select a durable record, review it with named-human authority, and replay the journal to verify the outcome."
     (_, BookkeeperNoRecords) =>
       "Waiting for the backend to publish a domain-neutral projection for this stage."
     (_, BookkeeperEvidence) => "evidence"

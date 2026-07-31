@@ -374,6 +374,25 @@ Implemented raw HTML handling:
 - raw HTML `href` and `src` attributes participate in `.md -> .html` rewriting
 - raw HTML `href` and `src` values participate in asset discovery/copying
 
+## Rabbita Bookkeeper Operator
+
+Implemented operator behavior:
+
+- turns the Bookkeeper record/review surface into a visible Select → Authorize
+  → Review → Verify journey;
+- derives one ordinary-language next action from the durable Bookkeeper state;
+- keeps raw mutation JSON, less-common operations and diagnostics behind an
+  evidence/advanced-operations disclosure;
+- treats missing named-human authority as a blocked state with an exact CLI
+  recovery step rather than granting authority in the browser;
+- exposes icon-led navigation with text labels, tooltips, keyboard focus,
+  44-pixel controls, live outcome announcements and reduced-motion behavior;
+- preserves the existing durable replay and governed mutation endpoints.
+
+The focused journey assertion lives beside the Rabbita package. The complete
+browser-to-durable-store scenario remains the release qualification in
+`docs/qualification/UI_TO_UI_USE_CASES.md`.
+
 ## Known Non-Parity Areas
 
 Not implemented yet:
@@ -389,4 +408,4 @@ Not implemented yet:
 - complete markdown edge-case coverage
 - redirect generation
 - full built-in theme asset pipeline
-- complete Rabbita UI integration with live built-book state
+- complete Rabbita parity with every built-book and skill-management surface

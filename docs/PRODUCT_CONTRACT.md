@@ -1,6 +1,6 @@
 # MoonBook product contract
 
-Class: platform product
+Class: domain pack
 Maturity: local alpha
 Last reviewed: 2026-07-31
 
@@ -41,6 +41,11 @@ runtimes or standalone applications.
 | Deterministic MoonWiki requirements packet preparation and reconciliation | available locally |
 | Automatic capability promotion | excluded; named review required |
 | Multi-user hosted knowledge service | planned |
+
+Conformance: **L2 usable locally** for the ordinary Bookkeeper review and
+replay-recovery journey. Cross-product L3 remains conditional on an exact
+producer submission, MoonFlow receipt, and separately installed named-human
+authority.
 
 ## Three-Gap contract
 
