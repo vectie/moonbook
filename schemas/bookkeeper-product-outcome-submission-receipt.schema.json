@@ -9,6 +9,7 @@
     "submission",
     "deliverable",
     "deliverable_review",
+    "deliverable_disposition",
     "result",
     "closure",
     "state",
@@ -34,6 +35,9 @@
         }
       ]
     },
+    "deliverable_disposition": {
+      "$ref": "bookkeeper-product-outcome-closure-receipt.schema.json#/$defs/nullableFinalDisposition"
+    },
     "result": {
       "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/recordReference"
     },
@@ -48,9 +52,12 @@
     "state": {
       "enum": [
         "deliverable_review_required",
+        "deliverable_rejected",
         "assessment_review_required",
+        "assessment_rejected",
         "closed_no_capability_change",
         "proposal_review_required",
+        "proposal_rejected",
         "reviewed_proposal_handed_off"
       ]
     },

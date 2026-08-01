@@ -10,8 +10,10 @@
     "outcome_binding",
     "three_gap_assessment",
     "assessment_review",
+    "assessment_disposition",
     "capability_proposal",
     "proposal_review",
+    "proposal_disposition",
     "moonflow_handoff",
     "state",
     "pending_human_gate",
@@ -27,14 +29,18 @@
     "outcome_binding": { "$ref": "#/$defs/recordReference" },
     "three_gap_assessment": { "$ref": "#/$defs/recordReference" },
     "assessment_review": { "$ref": "#/$defs/nullableRecordReference" },
+    "assessment_disposition": { "$ref": "#/$defs/nullableFinalDisposition" },
     "capability_proposal": { "$ref": "#/$defs/nullableRecordReference" },
     "proposal_review": { "$ref": "#/$defs/nullableRecordReference" },
+    "proposal_disposition": { "$ref": "#/$defs/nullableFinalDisposition" },
     "moonflow_handoff": { "$ref": "#/$defs/nullableRecordReference" },
     "state": {
       "enum": [
         "assessment_review_required",
+        "assessment_rejected",
         "closed_no_capability_change",
         "proposal_review_required",
+        "proposal_rejected",
         "reviewed_proposal_handed_off"
       ]
     },
@@ -51,13 +57,22 @@
       "properties": {
         "record_id": { "type": "string", "minLength": 1 },
         "record_version": { "type": "string", "minLength": 1 },
-        "record_digest": { "type": "string", "minLength": 1 }
+        "record_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
       }
     },
     "nullableRecordReference": {
       "oneOf": [
         { "type": "null" },
         { "$ref": "#/$defs/recordReference" }
+      ]
+    },
+    "nullableFinalDisposition": {
+      "oneOf": [
+        { "type": "null" },
+        { "enum": ["Accept", "Reject"] }
       ]
     }
   }

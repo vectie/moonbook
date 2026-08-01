@@ -61,7 +61,10 @@
       "properties": {
         "record_id": { "type": "string", "minLength": 1 },
         "record_version": { "type": "string", "minLength": 1 },
-        "record_digest": { "type": "string", "minLength": 1 }
+        "record_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
       }
     },
     "evidenceReference": {
@@ -76,7 +79,10 @@
       "properties": {
         "reference_id": { "type": "string", "minLength": 1 },
         "reference_version": { "type": "string", "minLength": 1 },
-        "digest": { "type": "string", "minLength": 1 },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
         "provenance_ref": { "type": "string", "minLength": 1 }
       }
     },
@@ -84,6 +90,13 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["present", "severity", "summary", "evidence_refs"],
+      "allOf": [
+        {
+          "if": { "properties": { "present": { "const": true } } },
+          "then": { "properties": { "severity": { "minimum": 1 } } },
+          "else": { "properties": { "severity": { "const": 0 } } }
+        }
+      ],
       "properties": {
         "present": { "type": "boolean" },
         "severity": { "type": "integer", "minimum": 0, "maximum": 5 },

@@ -279,6 +279,7 @@ enum Msg {
   SelectBookkeeperItem(BookkeeperItem)
   SelectBookkeeperAuthority(String)
   SetBookkeeperMode(String)
+  PrepareBookkeeperReview(String)
   SetBookkeeperDraft(String)
   SubmitBookkeeperMutation
   BookkeeperMutationFinished(Result[BookkeeperMutationResult, String])
@@ -1076,7 +1077,8 @@ extern "js" fn bookkeeper_nonce() -> String = "()=>{const id=globalThis.crypto?.
 extern "js" fn bookkeeper_unix_seconds() -> Int = "()=>Math.floor(Date.now()/1000)"
 
 ///|
-fn review_draft_for_selection(model : Model) -> String? {
+fn review_draft_for_selection(model : Model, requested : String) -> String? {
+  guard requested == "Accept" || requested == "Reject" else { return None }
   guard model.selected_bookkeeper_record is Some(reference) else { return None }
   guard selected_raw_record(model, reference) is Some(record) else {
     return None
@@ -1097,7 +1099,7 @@ fn review_draft_for_selection(model : Model) -> String? {
     },
     stage: record.stage,
     subject: record.record,
-    requested: "Accept",
+    requested,
     reviewer_kind: grant.reviewer_kind,
     reviewer: {
       grant: grant.grant,
@@ -1107,7 +1109,11 @@ fn review_draft_for_selection(model : Model) -> String? {
       evidence_refs: grant.evidence_refs,
     },
     evidence_refs: record.evidence_refs,
-    summary: "Named reviewer accepted the exact selected record and evidence.",
+    summary: if requested == "Accept" {
+      "Named reviewer accepted the exact selected record and evidence."
+    } else {
+      "Named reviewer rejected the exact selected record and evidence."
+    },
     decided_at: bookkeeper_unix_seconds(),
   }
   Some(draft.to_json().stringify(indent=2))
@@ -1966,7 +1972,9 @@ fn update(
       }
       let next = { ..model, selected_bookkeeper_record: selected }
       let draft = if model.bookkeeper_mode == "review" {
-        review_draft_for_selection(next).unwrap_or(model.bookkeeper_draft)
+        review_draft_for_selection(next, "Accept").unwrap_or(
+          model.bookkeeper_draft,
+        )
       } else if model.bookkeeper_mode == "project-work-order" {
         governed_work_order_draft(next, false).unwrap_or(model.bookkeeper_draft)
       } else if model.bookkeeper_mode == "egress-work-order" {
@@ -1994,7 +2002,9 @@ fn update(
     SelectBookkeeperAuthority(authority_ref) => {
       let next = { ..model, selected_bookkeeper_authority: Some(authority_ref) }
       let draft = if model.bookkeeper_mode == "review" {
-        review_draft_for_selection(next).unwrap_or(model.bookkeeper_draft)
+        review_draft_for_selection(next, "Accept").unwrap_or(
+          model.bookkeeper_draft,
+        )
       } else if model.bookkeeper_mode == "project-work-order" {
         governed_work_order_draft(next, false).unwrap_or(model.bookkeeper_draft)
       } else if model.bookkeeper_mode == "egress-work-order" {
@@ -2014,7 +2024,7 @@ fn update(
     SetBookkeeperMode(mode) => {
       let next = { ..model, bookkeeper_mode: mode }
       let draft = if mode == "review" {
-        review_draft_for_selection(next).unwrap_or(
+        review_draft_for_selection(next, "Accept").unwrap_or(
           bookkeeper_mode_template(mode),
         )
       } else if mode == "project-work-order" {
@@ -2031,6 +2041,22 @@ fn update(
       (
         @rabbita.none,
         { ..next, bookkeeper_draft: draft, bookkeeper_notice: None },
+      )
+    }
+    PrepareBookkeeperReview(requested) => {
+      let next = { ..model, bookkeeper_mode: "review" }
+      let draft = review_draft_for_selection(next, requested).unwrap_or(
+        bookkeeper_mode_template("review"),
+      )
+      (
+        @rabbita.none,
+        {
+          ..next,
+          bookkeeper_draft: draft,
+          bookkeeper_notice: Some(
+            "Prepared exact named-human \{requested} review; verify it before saving.",
+          ),
+        },
       )
     }
     SetBookkeeperDraft(draft) =>

@@ -56,8 +56,10 @@ pub(all) struct ProductOutcomeClosureReceipt {
   outcome_binding : @bookkeeper.VersionedRecordReference
   three_gap_assessment : @bookkeeper.VersionedRecordReference
   assessment_review : @bookkeeper.VersionedRecordReference?
+  assessment_disposition : @bookkeeper.BookkeeperDisposition?
   capability_proposal : @bookkeeper.VersionedRecordReference?
   proposal_review : @bookkeeper.VersionedRecordReference?
+  proposal_disposition : @bookkeeper.BookkeeperDisposition?
   moonflow_handoff : @bookkeeper.VersionedRecordReference?
   state : String
   pending_human_gate : String
@@ -72,7 +74,7 @@ fn closure_record_complete(
 ) -> Bool {
   !reference.record_id.is_blank() &&
   !reference.record_version.is_blank() &&
-  !reference.record_digest.is_blank()
+  product_outcome_digest_valid(reference.record_digest)
 }
 
 ///|
@@ -103,7 +105,7 @@ fn closure_canonical_evidence(
   for reference in evidence {
     if reference.reference_id.is_blank() ||
       reference.reference_version.is_blank() ||
-      reference.digest.is_blank() ||
+      !product_outcome_digest_valid(reference.digest) ||
       reference.provenance_ref.is_blank() {
       fail("product outcome closure evidence references must be complete")
     }
@@ -156,28 +158,31 @@ fn closure_find_review(
 }
 
 ///|
-fn closure_exact_human_accept(
+fn product_outcome_exact_human_decision(
   snapshot : BookkeeperStoreSnapshot,
   subject : @bookkeeper.VersionedRecordReference,
   stage : BookkeeperStage,
 ) -> GovernedReviewReceipt? raise {
-  let mut accepted : GovernedReviewReceipt? = None
+  let mut decision : GovernedReviewReceipt? = None
   for review in snapshot.reviews {
     if review.subject == subject &&
       review.stage == stage &&
       review.review_complete &&
-      review.disposition == @bookkeeper.Accept &&
+      (
+        review.disposition == @bookkeeper.Accept ||
+        review.disposition == @bookkeeper.Reject
+      ) &&
       review.reviewer_kind == @bookkeeper.Human {
-      match accepted {
-        None => accepted = Some(review)
+      match decision {
+        None => decision = Some(review)
         Some(_) =>
           fail(
-            "product outcome closure found ambiguous named-human Accept receipts",
+            "product outcome closure found ambiguous named-human final decisions",
           )
       }
     }
   }
-  accepted
+  decision
 }
 
 ///|
@@ -257,8 +262,10 @@ fn closure_receipt(
     outcome_binding: outcome,
     three_gap_assessment: assessment,
     assessment_review: assessment_review.map(review => review.receipt),
+    assessment_disposition: assessment_review.map(review => review.disposition),
     capability_proposal: proposal,
     proposal_review: proposal_review.map(review => review.receipt),
+    proposal_disposition: proposal_review.map(review => review.disposition),
     moonflow_handoff: handoff,
     state,
     pending_human_gate,
@@ -296,7 +303,7 @@ fn validate_closure_source(
     request.outcome_summary.is_blank() ||
     request.capability_id.is_blank() ||
     request.capability_version.is_blank() ||
-    request.capability_change_digest.is_blank() ||
+    !product_outcome_digest_valid(request.capability_change_digest) ||
     request.capability_summary.is_blank() {
     fail("product outcome closure metadata is incomplete")
   }
@@ -491,7 +498,7 @@ pub async fn close_product_outcome(
   )
 
   let assessed_snapshot = replay_bookkeeper_store(root)
-  let assessment_review = closure_exact_human_accept(
+  let assessment_review = product_outcome_exact_human_decision(
     assessed_snapshot,
     assessment_ref,
     ThreeGapFinding,
@@ -507,6 +514,19 @@ pub async fn close_product_outcome(
       None,
       "assessment_review_required",
       "three_gap_assessment",
+    )
+  }
+  if assessment_review.unwrap().disposition == @bookkeeper.Reject {
+    return closure_receipt(
+      request,
+      outcome_ref,
+      assessment_ref,
+      assessment_review,
+      None,
+      None,
+      None,
+      "assessment_rejected",
+      "",
     )
   }
 
@@ -557,7 +577,7 @@ pub async fn close_product_outcome(
     "capability proposal",
   )
   let proposed_snapshot = replay_bookkeeper_store(root)
-  let proposal_review = closure_exact_human_accept(
+  let proposal_review = product_outcome_exact_human_decision(
     proposed_snapshot,
     proposal_ref,
     CapabilityProposal,
@@ -573,6 +593,19 @@ pub async fn close_product_outcome(
       None,
       "proposal_review_required",
       "capability_proposal",
+    )
+  }
+  if proposal_review.unwrap().disposition == @bookkeeper.Reject {
+    return closure_receipt(
+      request,
+      outcome_ref,
+      assessment_ref,
+      assessment_review,
+      Some(proposal_ref),
+      proposal_review,
+      None,
+      "proposal_rejected",
+      "",
     )
   }
 

@@ -160,11 +160,23 @@ fn render_bookkeeper_primary_action(
         [ui_icon("record"), @html.span("Choose a record")],
       )
     "prepare-review" =>
-      @html.button(
-        class="moonbook-primary-action",
-        title="Prepare a review bound to this exact record",
-        on_click=emit(SetBookkeeperMode("review")),
-        [ui_icon("review"), @html.span("Prepare review")],
+      @html.div(
+        class="moonbook-action-row",
+        style=["display:flex", "flex-wrap:wrap", "gap:10px"],
+        [
+        @html.button(
+          class="moonbook-primary-action",
+          title="Prepare acceptance bound to this exact record",
+          on_click=emit(PrepareBookkeeperReview("Accept")),
+          [ui_icon("review"), @html.span("Prepare acceptance")],
+        ),
+        @html.button(
+          class="moonbook-secondary-action",
+          title="Prepare rejection bound to this exact record",
+          on_click=emit(PrepareBookkeeperReview("Reject")),
+          [ui_icon("review"), @html.span("Prepare rejection")],
+        ),
+        ],
       )
     "submit-review" =>
       @html.button(

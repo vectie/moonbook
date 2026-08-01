@@ -14,12 +14,16 @@ Producing packs normally enter it through the replayable intake operation:
 moonbook/bookkeeper.outcome.submit@0.1.0
 ```
 
-`bookkeeper.outcome.submit` accepts an evidence-bound product deliverable,
-result, external decision evidence, and explicit Three-Gap statements. It
-creates the canonical Bookkeeper deliverable and `product.result` ingress, then
-stops at MoonBook's own named-human deliverable review. Replaying the exact
-submission after that review delegates to `bookkeeper.outcome.close`; later
-replays advance only through the existing assessment and proposal gates.
+`bookkeeper.outcome.submit` is the canonical MoonDesk/MoonTown-to-MoonBook
+boundary for the exact `ProductOutcomeSubmission` emitted by MoonClaw. It
+accepts an evidence-bound product deliverable, result, external decision
+evidence, and explicit Three-Gap statements. The complete submission JSON is
+retained inside the immutable deliverable payload; it is not reconstructed
+from a reduced transport projection. The operation creates the canonical
+Bookkeeper deliverable and `product.result` ingress, then stops at MoonBook's
+own named-human deliverable review. Replaying that exact submission after the
+review delegates to `bookkeeper.outcome.close`; later replays advance only
+through the existing assessment and proposal gates.
 
 These are the executable replacements for the aspirational canvas label
 `bookkeeper.close-loop`. A canvas or workflow must use the exact versioned
@@ -81,16 +85,37 @@ exact accepted deliverable + exact product.result
   → later MoonFlow evaluation and separate activation review
 ```
 
+Each MoonBook gate recognizes exactly one complete named-human `Accept` or
+`Reject` receipt for the exact subject/version/digest. `Revise`, `Escalate`,
+incomplete or non-human reviews do not advance the chain. Multiple final
+decisions are ambiguous and fail closed. A `Reject` terminates that immutable
+version: deliverable rejection creates no assessment, assessment rejection
+creates no proposal, and proposal rejection creates no MoonFlow handoff. A new
+attempt requires a new immutable version.
+
 The operation is journal-idempotent. If it stops after a record is written,
 replaying the request reconciles against that exact record rather than
 duplicating it.
 
-The receipt states one of:
+The intake receipt states one of:
+
+- `deliverable_review_required`;
+- `deliverable_rejected`;
+- any closure state listed below.
+
+The closure receipt states one of:
 
 - `assessment_review_required`;
+- `assessment_rejected`;
 - `closed_no_capability_change`;
 - `proposal_review_required`;
+- `proposal_rejected`;
 - `reviewed_proposal_handed_off`.
+
+Receipts include the exact durable review reference and explicit final
+disposition when present. Because journal replay derives these receipts from
+immutable records, the chain is durable and replayable without accepting or
+learning from an outcome automatically.
 
 Every receipt has `activation_authorized: false` and
 `external_side_effects_applied: false`. The handoff is evidence that a reviewed

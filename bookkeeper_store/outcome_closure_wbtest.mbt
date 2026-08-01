@@ -7,7 +7,7 @@ fn closure_test_ref(
     record_id: id,
     record_version: "1",
     record_digest: if digest.is_blank() {
-      "sha256:\{id}"
+      "sha256:" + "a".repeat(64)
     } else {
       digest
     },
@@ -19,16 +19,17 @@ fn closure_test_evidence(id : String) -> @bookkeeper.VersionedEvidenceReference 
   {
     reference_id: id,
     reference_version: "1",
-    digest: "sha256:\{id}",
+    digest: "sha256:" + "b".repeat(64),
     provenance_ref: "fixture://\{id}",
   }
 }
 
 ///|
-async fn closure_test_accept(
+async fn closure_test_decide(
   root : String,
   record : DurableBookkeeperRecord,
   suffix : String,
+  requested : @bookkeeper.BookkeeperDisposition,
 ) -> GovernedReviewReceipt {
   let reviewer_id = "closure-reviewer-\{suffix}"
   let evidence_ids = record.evidence_refs.map(reference => {
@@ -53,7 +54,7 @@ async fn closure_test_accept(
     receipt: closure_test_ref("receipt-\{suffix}"),
     stage: record.stage,
     subject: record.record,
-    requested: @bookkeeper.Accept,
+    requested,
     reviewer_kind: @bookkeeper.Human,
     reviewer: {
       grant,
@@ -63,13 +64,22 @@ async fn closure_test_accept(
       evidence_refs: evidence_ids,
     },
     evidence_refs: record.evidence_refs,
-    summary: "Named-human acceptance for \{record.record.record_id}",
+    summary: "Named-human decision for \{record.record.record_id}",
     decided_at: record.recorded_at + 1,
   })
   if !result.accepted {
     fail("fixture review \{suffix} rejected: \{to_repr(result.issues)}")
   }
   result.review.unwrap()
+}
+
+///|
+async fn closure_test_accept(
+  root : String,
+  record : DurableBookkeeperRecord,
+  suffix : String,
+) -> GovernedReviewReceipt {
+  closure_test_decide(root, record, suffix, @bookkeeper.Accept)
 }
 
 ///|
@@ -202,6 +212,7 @@ async test "product outcome closure advances only through named-human gates" {
   assert_eq(first.state, "assessment_review_required")
   assert_true(first.capability_proposal is None)
   assert_true(first.moonflow_handoff is None)
+  assert_true(first.assessment_disposition is None)
   assert_false(first.activation_authorized)
 
   let after_first = replay_bookkeeper_store(root)
@@ -217,6 +228,7 @@ async test "product outcome closure advances only through named-human gates" {
   let second = close_product_outcome(root, request)
   assert_eq(second.state, "proposal_review_required")
   assert_true(second.assessment_review is Some(_))
+  assert_eq(second.assessment_disposition, Some(@bookkeeper.Accept))
   assert_true(second.capability_proposal is Some(_))
   assert_true(second.proposal_review is None)
   assert_false(second.activation_authorized)
@@ -229,6 +241,7 @@ async test "product outcome closure advances only through named-human gates" {
   let third = close_product_outcome(root, request)
   assert_eq(third.state, "reviewed_proposal_handed_off")
   assert_true(third.proposal_review is Some(_))
+  assert_eq(third.proposal_disposition, Some(@bookkeeper.Accept))
   assert_true(third.moonflow_handoff is Some(_))
   assert_false(third.activation_authorized)
   assert_false(third.external_side_effects_applied)
@@ -246,6 +259,68 @@ async test "product outcome closure advances only through named-human gates" {
   assert_eq(handoff.message_kind, "bookkeeper.capability-proposal.reviewed")
   assert_false(handoff.external_activation_allowed)
   assert_false(handoff.side_effects_applied)
+}
+
+///|
+async test "product outcome closure records terminal named-human rejection" {
+  let assessment_root = @fs.tmpdir(prefix="moonbook-outcome-assessment-reject-")
+  let (deliverable, result, review, first_evidence, second_evidence) = closure_test_source(
+    assessment_root,
+  )
+  let request = closure_test_request(
+    deliverable, result, review, first_evidence, second_evidence,
+  )
+  let pending = close_product_outcome(assessment_root, request)
+  let assessment = find_record(
+    replay_bookkeeper_store(assessment_root),
+    pending.three_gap_assessment,
+  ).unwrap()
+  ignore(
+    closure_test_decide(
+      assessment_root,
+      assessment,
+      "assessment-reject",
+      @bookkeeper.Reject,
+    ),
+  )
+  let rejected = close_product_outcome(assessment_root, request)
+  assert_eq(rejected.state, "assessment_rejected")
+  assert_eq(rejected.assessment_disposition, Some(@bookkeeper.Reject))
+  assert_true(rejected.capability_proposal is None)
+  assert_true(rejected.moonflow_handoff is None)
+  assert_eq(close_product_outcome(assessment_root, request), rejected)
+
+  let proposal_root = @fs.tmpdir(prefix="moonbook-outcome-proposal-reject-")
+  let (deliverable, result, review, first_evidence, second_evidence) = closure_test_source(
+    proposal_root,
+  )
+  let request = closure_test_request(
+    deliverable, result, review, first_evidence, second_evidence,
+  )
+  let pending = close_product_outcome(proposal_root, request)
+  let assessment = find_record(
+    replay_bookkeeper_store(proposal_root),
+    pending.three_gap_assessment,
+  ).unwrap()
+  ignore(closure_test_accept(proposal_root, assessment, "assessment-accept"))
+  let proposed = close_product_outcome(proposal_root, request)
+  let proposal = find_record(
+    replay_bookkeeper_store(proposal_root),
+    proposed.capability_proposal.unwrap(),
+  ).unwrap()
+  ignore(
+    closure_test_decide(
+      proposal_root,
+      proposal,
+      "proposal-reject",
+      @bookkeeper.Reject,
+    ),
+  )
+  let rejected = close_product_outcome(proposal_root, request)
+  assert_eq(rejected.state, "proposal_rejected")
+  assert_eq(rejected.proposal_disposition, Some(@bookkeeper.Reject))
+  assert_true(rejected.moonflow_handoff is None)
+  assert_eq(close_product_outcome(proposal_root, request), rejected)
 }
 
 ///|

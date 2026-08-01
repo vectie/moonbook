@@ -68,11 +68,16 @@ async test "product submission pauses in MoonBook then replays into Three-Gap" {
   let first = submit_product_outcome(root, submission)
   assert_eq(first.state, "deliverable_review_required")
   assert_true(first.deliverable_review is None)
+  assert_true(first.deliverable_disposition is None)
   assert_true(first.closure is None)
   assert_false(first.activation_authorized)
 
   let snapshot = replay_bookkeeper_store(root)
   let deliverable = find_record(snapshot, first.deliverable).unwrap()
+  guard deliverable.payload is { "product_outcome_submission": exact, .. } else {
+    fail("expected exact ProductOutcomeSubmission in durable payload")
+  }
+  assert_eq(exact, submission.to_json())
   let evidence_ids = deliverable.evidence_refs.map(item => item.reference_id)
   let grant = submission_test_ref("submission-reviewer-grant")
   let registry = install_bookkeeper_authority_grant(root, {
@@ -116,10 +121,36 @@ async test "product submission pauses in MoonBook then replays into Three-Gap" {
   let second = submit_product_outcome(root, submission)
   assert_eq(second.state, "assessment_review_required")
   assert_true(second.deliverable_review is Some(_))
+  assert_eq(second.deliverable_disposition, Some(@bookkeeper.Accept))
   guard second.closure is Some(closure) else {
     fail("expected outcome closure receipt")
   }
   assert_eq(closure.pending_human_gate, "three_gap_assessment")
   assert_false(closure.activation_authorized)
   assert_false(second.external_side_effects_applied)
+}
+
+///|
+async test "product submission records terminal deliverable rejection" {
+  let root = @fs.tmpdir(prefix="moonbook-product-submission-reject-")
+  let submission = submission_fixture()
+  let pending = submit_product_outcome(root, submission)
+  let deliverable = find_record(
+    replay_bookkeeper_store(root),
+    pending.deliverable,
+  ).unwrap()
+  ignore(
+    closure_test_decide(
+      root,
+      deliverable,
+      "deliverable-reject",
+      @bookkeeper.Reject,
+    ),
+  )
+  let rejected = submit_product_outcome(root, submission)
+  assert_eq(rejected.state, "deliverable_rejected")
+  assert_eq(rejected.deliverable_disposition, Some(@bookkeeper.Reject))
+  assert_true(rejected.closure is None)
+  assert_false(rejected.activation_authorized)
+  assert_eq(submit_product_outcome(root, submission), rejected)
 }

@@ -100,8 +100,9 @@ pub fn moonbook_outcome_closure_operation_ref() -> String {
 }
 
 ///|
-/// Generic intake/replay operation for a product result and its review
-/// evidence. It always enters MoonBook's existing named-human gates.
+/// Canonical MoonDesk/MoonTown intake and replay alias for the exact
+/// ProductOutcomeSubmission emitted by MoonClaw. It always enters MoonBook's
+/// existing named-human gates.
 pub fn moonbook_outcome_submission_operation_id() -> String {
   "bookkeeper.outcome.submit"
 }

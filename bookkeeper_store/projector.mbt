@@ -18,6 +18,15 @@ fn disposition_tone(disposition : @bookkeeper.BookkeeperDisposition) -> String {
 }
 
 ///|
+fn review_is_final(review : GovernedReviewReceipt) -> Bool {
+  review.review_complete &&
+  (
+    review.disposition == @bookkeeper.Accept ||
+    review.disposition == @bookkeeper.Reject
+  )
+}
+
+///|
 fn latest_review_for_record(
   snapshot : BookkeeperStoreSnapshot,
   record : DurableBookkeeperRecord,
@@ -77,14 +86,15 @@ fn record_ui_item(
     evidence_count: record.evidence_refs.length(),
     issue_count: record.issue_refs.length() + review_issue_count,
     requires_human_review: match review {
-      Some(receipt) =>
-        !receipt.review_complete || receipt.disposition != @bookkeeper.Accept
+      Some(receipt) => !review_is_final(receipt)
       None => record.requires_human_review
     },
     next_action: match review {
       Some(receipt) =>
         if receipt.disposition == @bookkeeper.Accept {
           record.next_action
+        } else if review_is_final(receipt) {
+          "rejected; submit a new immutable version"
         } else {
           "resolve governed review"
         }
@@ -111,9 +121,13 @@ fn review_ui_item(
     owner_route: review.reviewer.reviewer_id,
     evidence_count: review.evidence_refs.length(),
     issue_count: review.issues.length(),
-    requires_human_review: !review.review_complete ||
-    review.disposition != @bookkeeper.Accept,
-    next_action,
+    requires_human_review: !review_is_final(review),
+    next_action: if review.disposition == @bookkeeper.Reject &&
+      review_is_final(review) {
+      "rejected; submit a new immutable version"
+    } else {
+      next_action
+    },
   }
 }
 

@@ -59,8 +59,9 @@ It may propose a capability revision. MoonFlow can evaluate that proposal in
 canary or shadow mode, but neither MoonBook nor the producing product may
 approve its own promotion.
 
-The canonical cross-product operation is
-`moonbook/bookkeeper.outcome.close@0.1.0`; `bookkeeper.close-loop` is an
+The canonical cross-product intake and replay operation is
+`moonbook/bookkeeper.outcome.submit@0.1.0`; its internal closure operation is
+`moonbook/bookkeeper.outcome.close@0.1.0`. `bookkeeper.close-loop` is an
 aspirational legacy canvas label and is not executable capability truth. See
 [Generic product-outcome closure](BOOKKEEPER_OUTCOME_CLOSURE.md).
 

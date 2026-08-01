@@ -1,9 +1,11 @@
 # MoonBook capability truth
 
-MoonBook owns two canonical, pack-local operations:
+MoonBook owns three canonical, pack-local operations:
 
 - `moonbook/bookkeeper.outcome.close@0.1.0` replaces the aspirational canvas
   label `bookkeeper.close-loop`.
+- `moonbook/bookkeeper.outcome.submit@0.1.0` is the exact cross-product intake
+  and replay boundary used for MoonClaw `ProductOutcomeSubmission` values.
 - `moonbook/wiki.requirements.prepare@0.1.0` deterministically prepares an
   evidence-bound, review-pending requirements packet.
 
@@ -33,6 +35,6 @@ moon run cmd/moonbook_adapter -- health \
   <sha256:evidence-digest>
 ```
 
-The health document covers exactly both operation versions above. MoonGate may
+The health document covers exactly all three operation versions above. MoonGate may
 project them only after MoonFlow compiles the manifest, declaration and
 expiring attestation into a conformant capability catalog.

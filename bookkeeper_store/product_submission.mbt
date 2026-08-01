@@ -41,6 +41,7 @@ pub(all) struct ProductOutcomeSubmissionReceipt {
   submission : @bookkeeper.VersionedRecordReference
   deliverable : @bookkeeper.VersionedRecordReference
   deliverable_review : @bookkeeper.VersionedRecordReference?
+  deliverable_disposition : @bookkeeper.BookkeeperDisposition?
   result : @bookkeeper.VersionedRecordReference
   closure : ProductOutcomeClosureReceipt?
   state : String
@@ -55,7 +56,7 @@ fn submission_reference_complete(
 ) -> Bool {
   !reference.record_id.is_blank() &&
   !reference.record_version.is_blank() &&
-  !reference.record_digest.is_blank()
+  product_outcome_digest_valid(reference.record_digest)
 }
 
 ///|
@@ -64,8 +65,42 @@ fn submission_evidence_complete(
 ) -> Bool {
   !reference.reference_id.is_blank() &&
   !reference.reference_version.is_blank() &&
-  !reference.digest.is_blank() &&
+  product_outcome_digest_valid(reference.digest) &&
   !reference.provenance_ref.is_blank()
+}
+
+///|
+fn product_outcome_digest_valid(value : String) -> Bool {
+  value.length() == 71 &&
+  value.has_prefix("sha256:") &&
+  value[7:].all(fn(character) {
+    (character >= '0' && character <= '9') ||
+    (character >= 'a' && character <= 'f')
+  })
+}
+
+///|
+fn validate_submission_gap(
+  label : String,
+  gap : ProductOutcomeGapStatement,
+  evidence_ids : ArrayView[String],
+) -> Unit raise {
+  if gap.summary.is_blank() || gap.evidence_refs.is_empty() {
+    fail("\{label} requires a summary and evidence")
+  }
+  if (gap.present && (gap.severity < 1 || gap.severity > 5)) ||
+    (!gap.present && gap.severity != 0) {
+    fail("\{label} severity must be 1..5 when present and zero when absent")
+  }
+  let seen : Map[String, Bool] = Map([])
+  for reference_id in gap.evidence_refs {
+    if reference_id.is_blank() ||
+      seen.contains(reference_id) ||
+      !evidence_ids.contains(reference_id) {
+      fail("\{label} evidence must be unique and inside the exact submission")
+    }
+    seen[reference_id] = true
+  }
 }
 
 ///|
@@ -90,7 +125,7 @@ fn validate_product_outcome_submission(
     submission.decision_evidence_id.is_blank() ||
     submission.capability_id.is_blank() ||
     submission.capability_version.is_blank() ||
-    submission.capability_change_digest.is_blank() ||
+    !product_outcome_digest_valid(submission.capability_change_digest) ||
     submission.capability_summary.is_blank() {
     fail("product outcome submission metadata is incomplete")
   }
@@ -112,6 +147,21 @@ fn validate_product_outcome_submission(
   if !evidence_ids.contains(submission.decision_evidence_id) {
     fail("decision evidence must be part of the exact submission evidence set")
   }
+  validate_submission_gap(
+    "information gap",
+    submission.information_gap,
+    evidence_ids,
+  )
+  validate_submission_gap(
+    "recognition gap",
+    submission.recognition_gap,
+    evidence_ids,
+  )
+  validate_submission_gap(
+    "decisiveness gap",
+    submission.decisiveness_gap,
+    evidence_ids,
+  )
 }
 
 ///|
@@ -138,30 +188,6 @@ fn submission_require_persisted(
 }
 
 ///|
-fn submission_exact_human_accept(
-  snapshot : BookkeeperStoreSnapshot,
-  subject : @bookkeeper.VersionedRecordReference,
-) -> GovernedReviewReceipt? raise {
-  let mut accepted : GovernedReviewReceipt? = None
-  for review in snapshot.reviews {
-    if review.subject == subject &&
-      review.stage == DeliverableAcceptance &&
-      review.review_complete &&
-      review.disposition == @bookkeeper.Accept &&
-      review.reviewer_kind == @bookkeeper.Human {
-      match accepted {
-        None => accepted = Some(review)
-        Some(_) =>
-          fail(
-            "product outcome submission found ambiguous named-human Accept receipts",
-          )
-      }
-    }
-  }
-  accepted
-}
-
-///|
 fn product_submission_receipt(
   submission : ProductOutcomeSubmission,
   deliverable : @bookkeeper.VersionedRecordReference,
@@ -176,6 +202,7 @@ fn product_submission_receipt(
     submission: submission.submission,
     deliverable,
     deliverable_review: review.map(item => item.receipt),
+    deliverable_disposition: review.map(item => item.disposition),
     result,
     closure,
     state,
@@ -202,6 +229,7 @@ pub async fn submit_product_outcome(
     "contract_version": @bookkeeper.bookkeeper_contract_version(),
     "candidate_schema": "product_outcome_submission.v1",
     "submission": submission.submission.to_json(),
+    "product_outcome_submission": submission.to_json(),
     "source_product": submission.source_product,
     "decision_evidence_id": submission.decision_evidence_id,
     "outcome_summary": submission.outcome_summary,
@@ -268,7 +296,11 @@ pub async fn submit_product_outcome(
   )
 
   let snapshot = replay_bookkeeper_store(root)
-  let review = submission_exact_human_accept(snapshot, deliverable_ref)
+  let review = product_outcome_exact_human_decision(
+    snapshot,
+    deliverable_ref,
+    DeliverableAcceptance,
+  )
   if review is None {
     return product_submission_receipt(
       submission,
@@ -278,6 +310,17 @@ pub async fn submit_product_outcome(
       None,
       "deliverable_review_required",
       "deliverable_acceptance",
+    )
+  }
+  if review.unwrap().disposition == @bookkeeper.Reject {
+    return product_submission_receipt(
+      submission,
+      deliverable_ref,
+      review,
+      result_ref,
+      None,
+      "deliverable_rejected",
+      "",
     )
   }
 
