@@ -4,9 +4,12 @@ package "vectie/moonbook/bookkeeper"
 import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
+  "vectie/moonlib/capability",
 }
 
 // Values
+pub fn accept_completed_handover_outcome_v1(String, @capability.HandoverControlEnvelopeV1, @capability.HandoverBundleV1, String, @capability.DigestRefV1, @capability.ContentAddressedEvidenceRefV1, DeliverableBundle, OutcomeObservation, ReviewerKind, @capability.PrincipalRefV1, @capability.AuthorityDecisionRefV1, ReviewerAuthority, @capability.ContentAddressedEvidenceRefV1, ThreeGapAssessment, String) -> AcceptedHandoverOutcomeDecisionV1
+
 pub fn aggregate_capability_proposal(CapabilityPromotionPolicy, ArrayView[ReviewedGapFinding], proposal_id~ : String, proposal_version~ : String, capability_id~ : String, capability_version~ : String, owner_route~ : String, proposal_digest~ : String, summary~ : String, supersedes_version? : String) -> CapabilityAggregationDecision
 
 pub fn bind_mooncode_work_result_candidate(CapabilityProposal, LearningReceipt, MoonCodeWorkOrderProjection, result~ : VersionedRecordReference, old_capability~ : VersionedRecordReference, new_capability~ : VersionedRecordReference, changed_artifacts~ : ArrayView[ChangedArtifactReference], evidence_refs~ : ArrayView[VersionedEvidenceReference]) -> MoonCodeWorkResultDecision
@@ -24,6 +27,8 @@ pub fn capability_aggregation_digest(proposal_id~ : String, proposal_version~ : 
 pub fn decide_capability_adoption(CapabilityProposal, LearningReceipt, MoonCodeWorkOrderProjection, MoonCodeWorkResultCandidate, CapabilityEvaluation, decision~ : VersionedRecordReference, requested~ : BookkeeperDisposition, reviewer~ : ReviewerAuthority, CapabilityAdoptionAttestation?) -> CapabilityAdoptionDecision
 
 pub fn empty_bookkeeper_ui_state(String) -> BookkeeperUiState
+
+pub fn encode_accepted_handover_outcome_v1(AcceptedHandoverOutcomeV1) -> Json
 
 pub fn finalize_deliverable(DeliverableCandidate, requested~ : BookkeeperDisposition, decision_id~ : String, decided_at~ : Int, outcome? : OutcomeObservation) -> BookkeeperDecision
 
@@ -88,6 +93,38 @@ pub(all) enum AcceptanceRequirementKind {
   PublicationAuthorization
   Custom(String)
 } derive(Eq, ToJson, @debug.Debug)
+
+pub struct AcceptedHandoverOutcomeDecisionV1 {
+  issues : ReadOnlyArray[CollaborativeOutcomeIssueV1]
+  accepted : AcceptedHandoverOutcomeV1?
+} derive(Eq, @debug.Debug)
+pub fn AcceptedHandoverOutcomeDecisionV1::is_accepted(Self) -> Bool
+
+pub struct AcceptedHandoverOutcomeV1 {
+  contract_id : String
+  record_id : String
+  handover_id : String
+  handover_envelope_digest : @capability.DigestRefV1
+  handover_bundle_digest : @capability.DigestRefV1
+  completion_transition_id : String
+  completion_head_digest : @capability.DigestRefV1
+  completion_receipt : @capability.ContentAddressedEvidenceRefV1
+  bundle_id : String
+  bundle_version : String
+  bundle_digest : @capability.DigestRefV1
+  observation_id : String
+  observation_version : String
+  observation_digest : @capability.DigestRefV1
+  reviewer : @capability.PrincipalRefV1
+  reviewer_authority : @capability.AuthorityDecisionRefV1
+  review_evidence : @capability.ContentAddressedEvidenceRefV1
+  three_gap_assessment_id : String
+  three_gap_assessment_version : String
+  accepted_at : String
+  content_digest : @capability.DigestRefV1
+} derive(Eq, @debug.Debug)
+pub fn AcceptedHandoverOutcomeV1::content_digest(Self) -> @capability.DigestRefV1
+pub fn AcceptedHandoverOutcomeV1::handover_envelope_digest(Self) -> @capability.DigestRefV1
 
 pub(all) struct ArtifactBinding {
   artifact_id : String
@@ -427,6 +464,19 @@ pub(all) struct ChecklistResult {
   candidate_digest : String
   passed : Bool
   evidence_refs : ReadOnlyArray[String]
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) enum CollaborativeOutcomeIssueV1 {
+  HandoverCompletionMissing
+  HandoverBindingMismatch(String)
+  DeliverableOutcomeMismatch
+  HumanReviewRequired
+  ReviewerIdentityMismatch
+  ReviewerAuthorityInvalid
+  ReviewEvidenceMissing
+  ThreeGapBindingMismatch(String)
+  ThreeGapEvidenceMismatch(String)
+  InvalidCollaborativeOutcomeTimestamp
 } derive(Eq, ToJson, @debug.Debug)
 
 pub struct DeliverableBundle {

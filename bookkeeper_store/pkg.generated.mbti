@@ -270,8 +270,10 @@ pub(all) struct ProductOutcomeClosureReceipt {
   outcome_binding : @bookkeeper.VersionedRecordReference
   three_gap_assessment : @bookkeeper.VersionedRecordReference
   assessment_review : @bookkeeper.VersionedRecordReference?
+  assessment_disposition : @bookkeeper.BookkeeperDisposition?
   capability_proposal : @bookkeeper.VersionedRecordReference?
   proposal_review : @bookkeeper.VersionedRecordReference?
+  proposal_disposition : @bookkeeper.BookkeeperDisposition?
   moonflow_handoff : @bookkeeper.VersionedRecordReference?
   state : String
   pending_human_gate : String
@@ -334,6 +336,7 @@ pub(all) struct ProductOutcomeSubmissionReceipt {
   submission : @bookkeeper.VersionedRecordReference
   deliverable : @bookkeeper.VersionedRecordReference
   deliverable_review : @bookkeeper.VersionedRecordReference?
+  deliverable_disposition : @bookkeeper.BookkeeperDisposition?
   result : @bookkeeper.VersionedRecordReference
   closure : ProductOutcomeClosureReceipt?
   state : String

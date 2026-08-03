@@ -16,6 +16,10 @@ pub fn moonbook_outcome_closure_operation_id() -> String
 
 pub fn moonbook_outcome_closure_operation_ref() -> String
 
+pub fn moonbook_outcome_submission_operation_id() -> String
+
+pub fn moonbook_outcome_submission_operation_ref() -> String
+
 pub fn moonbook_requirements_prepare_operation_id() -> String
 
 pub fn moonbook_requirements_prepare_operation_ref() -> String
