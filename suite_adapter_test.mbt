@@ -84,8 +84,7 @@ test "MoonBook publishes exact MoonFlow v2 product-owned capability truth" {
   assert_true(outcome["supports_reconcile"] == Json::boolean(true))
   assert_true(outcome["supports_cancel"] == Json::boolean(false))
   assert_true(
-    submission["operation_id"] ==
-    Json::string("bookkeeper.outcome.submit"),
+    submission["operation_id"] == Json::string("bookkeeper.outcome.submit"),
   )
   assert_true(submission["supports_reconcile"] == Json::boolean(true))
   assert_true(submission["supports_cancel"] == Json::boolean(false))
@@ -127,8 +126,7 @@ test "MoonBook health attestation is evidence-bound and expiring" {
   assert_true(
     health["operation_refs"] ==
     [
-      "moonbook/bookkeeper.outcome.close@0.1.0",
-      "moonbook/bookkeeper.outcome.submit@0.1.0",
+      "moonbook/bookkeeper.outcome.close@0.1.0", "moonbook/bookkeeper.outcome.submit@0.1.0",
       "moonbook/wiki.requirements.prepare@0.1.0",
     ].to_json(),
   )

@@ -152,9 +152,10 @@ fn assessment_evidence_is_bound_v1(
   observation : OutcomeObservation,
   issues : Array[CollaborativeOutcomeIssueV1],
 ) -> Unit {
-  let known : Array[String] = observation.evidence_refs.map(item =>
-    item.reference_id
-  ).iter().to_array()
+  let known : Array[String] = observation.evidence_refs
+    .map(item => item.reference_id)
+    .iter()
+    .to_array()
   let findings = [
     ("information", assessment.information_gap),
     ("recognition", assessment.recognition_gap),
@@ -206,10 +207,12 @@ pub fn accept_completed_handover_outcome_v1(
   if envelope.bundle_digest() != handover_bundle.content_digest() {
     issues.push(HandoverBindingMismatch("handover bundle digest"))
   }
-  if !handover_bundle.entries().any(entry =>
-      entry.artifact().evidence_digest() == bundle.bundle_digest
-    ) {
-    issues.push(HandoverBindingMismatch("deliverable is absent from handover bundle"))
+  if !handover_bundle
+    .entries()
+    .any(entry => entry.artifact().evidence_digest() == bundle.bundle_digest) {
+    issues.push(
+      HandoverBindingMismatch("deliverable is absent from handover bundle"),
+    )
   }
   if !bundle.matches_outcome(observation) {
     issues.push(DeliverableOutcomeMismatch)
@@ -238,19 +241,9 @@ pub fn accept_completed_handover_outcome_v1(
     return { issues: ReadOnlyArray::from_array(issues), accepted: None }
   }
   let payload = accepted_handover_outcome_payload_v1(
-    record_id,
-    envelope,
-    handover_bundle,
-    completion_transition_id,
-    completion_head_digest,
-    completion_receipt,
-    bundle,
-    observation,
-    reviewer,
-    reviewer_authority,
-    review_evidence,
-    assessment,
-    accepted_at,
+    record_id, envelope, handover_bundle, completion_transition_id, completion_head_digest,
+    completion_receipt, bundle, observation, reviewer, reviewer_authority, review_evidence,
+    assessment, accepted_at,
   )
   let content_digest = @capability.sha256_digest_ref_v1(
     @encoding/utf8.encode(payload.to_json().stringify()),
@@ -269,24 +262,24 @@ pub fn accept_completed_handover_outcome_v1(
       bundle_id: bundle.bundle_id,
       bundle_version: bundle.bundle_version,
       bundle_digest: @capability.digest_ref_v1(bundle.bundle_digest) catch {
-        _ => return {
-          issues: ReadOnlyArray::from_array([
-            HandoverBindingMismatch("bundle digest"),
-          ]),
-          accepted: None,
-        }
+        _ =>
+          return {
+            issues: ReadOnlyArray::from_array([
+              HandoverBindingMismatch("bundle digest"),
+            ]),
+            accepted: None,
+          }
       },
       observation_id: observation.observation_id,
       observation_version: observation.observation_version,
       observation_digest: @capability.digest_ref_v1(
         observation.observation_digest,
       ) catch {
-        _ => return {
-          issues: ReadOnlyArray::from_array([
-            DeliverableOutcomeMismatch,
-          ]),
-          accepted: None,
-        }
+        _ =>
+          return {
+            issues: ReadOnlyArray::from_array([DeliverableOutcomeMismatch]),
+            accepted: None,
+          }
       },
       reviewer,
       reviewer_authority,

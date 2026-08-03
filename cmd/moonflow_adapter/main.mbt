@@ -213,10 +213,7 @@ async fn run_outcome_closure_direct(args : Array[String]) -> Unit {
 ///|
 async fn run_outcome_submission_direct(args : Array[String]) -> Unit {
   let root = option(args, "--workspace")
-  let request_path = workspace_path(
-    root,
-    option(args, "--submission"),
-  )
+  let request_path = workspace_path(root, option(args, "--submission"))
   let submission : @bookkeeper_store.ProductOutcomeSubmission = @json.from_json(
     read_json(request_path),
   )
@@ -492,8 +489,7 @@ async fn run_unattended(args : Array[String]) -> Unit {
   if operation == @moonbook.moonbook_outcome_closure_operation_id() ||
     operation == @moonbook.moonbook_outcome_closure_operation_ref() {
     run_outcome_closure_unattended(args)
-  } else if operation ==
-    @moonbook.moonbook_outcome_submission_operation_id() ||
+  } else if operation == @moonbook.moonbook_outcome_submission_operation_id() ||
     operation == @moonbook.moonbook_outcome_submission_operation_ref() {
     run_outcome_submission_unattended(args)
   } else if operation == @moonbook.moonbook_requirements_prepare_operation_id() ||
