@@ -107,6 +107,7 @@ MoonBook is strongest when you want one local system to handle:
 - 📦 generated `book/site/generated/book-state.json` plus `knowledge-bundle.json` so suite apps can read current book state through stable MoonBook contracts
 - 🔎 generated research-report projection with executive summary, architecture/runtime/memory sections, relationships, maturity gaps, and evidence table derived from `raw/bootstrap/` plus wiki synthesis pages
 - 🧾 seeded `skills/research-report/SKILL.md` that tells keepers how to turn `research-question`, `source-screen`, `evidence-matrix`, local sources, and synthesis briefs into reader-facing reports without dumping raw table rows
+- 🐾 seeded `skills/book-pet-query/SKILL.md` as the product-agnostic, read-only policy for pets, mascots, and embedded assistants, with bounded evidence, adapter, and security contracts
 - 🧩 seeded `skills/document-reverse-engineer/SKILL.md` for turning a strong finished document into deconstruction, argument map, style profile, improvement plan, and regenerated draft artifacts
 - 🕰️ seeded `skills/standing-watch/SKILL.md` for recurring topic checks that compare new evidence against the current book baseline and emit machine-readable decision, source-count, fact-count, changed-page, and `book_changed` markers
 - 🧭 durable standing-watch history under `wiki/history/standing-watch.md`, written when a book-local watch result is persisted

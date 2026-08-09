@@ -183,6 +183,8 @@ Copies one seeded skill into workspace `skills/` so it becomes locally owned and
 Current behavior:
 
 - resolves the named skill from repo-seeded core or extension packs
+- includes `book-pet-query` as the reusable read-only policy for product pets,
+  mascots, and embedded assistants backed by a MoonBook
 - prefers the core-seeded variant when the same name also exists in extension packs
 - accepts `name@extension` when you want the extension-specific variant explicitly
 - preserves bundled `references/` and other skill files by copying the whole skill directory

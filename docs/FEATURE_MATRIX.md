@@ -87,6 +87,7 @@ Implemented behaviors:
 - `wiki init` scaffolds a `site/` marketing website projection with `index.html`, `styles.css`, and `app.js`
 - `wiki init` seeds a dedicated `skills/wiki-marketing/SKILL.md` routine for writing real product marketing: buyer pain, promise, differentiation, proof, objections, and conversion path
 - `wiki init` seeds a dedicated `skills/research-report/SKILL.md` routine for turning screened research artifacts into article-quality reports with evidence-backed claims
+- `wiki init` seeds a product-agnostic `skills/book-pet-query/SKILL.md` policy for read-only pets, mascots, and embedded assistants, including bounded evidence, adapter, privacy, and action-handoff rules
 - `wiki init` seeds a dedicated `skills/standing-watch/SKILL.md` routine for recurring topic checks that decide whether new evidence changes the current book baseline
 - `wiki init` seeds a dedicated `skills/document-reverse-engineer/SKILL.md` routine for deconstructing a finished document into thesis, argument map, style profile, improvement plan, and regenerated draft artifacts
 - `wiki init` copies repo-owned static `SKILL.md` templates from `seed/wiki/skills/` instead of generating them in code

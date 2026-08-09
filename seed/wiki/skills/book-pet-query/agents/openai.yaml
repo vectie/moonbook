@@ -1,0 +1,4 @@
+interface:
+  display_name: "Book Pet Query"
+  short_description: "Answer through bounded MoonBook evidence"
+  default_prompt: "Use $book-pet-query to answer this embedded assistant question safely from MoonBook evidence."
