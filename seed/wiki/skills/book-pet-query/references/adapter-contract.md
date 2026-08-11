@@ -48,8 +48,8 @@ Implement this sequence:
    context against allowlists.
 2. Classify only supported intents. Return no classification when ambiguous.
 3. Normalize terms and filters into typed values.
-4. Execute a parameterized helper query or a fixed upstream request. Never
-   accept user SQL, arbitrary URLs, paths, headers, or request bodies.
+4. Execute a parameterized helper query or a fixed upstream request.
+   Never accept user SQL, arbitrary URLs, paths, headers, or request bodies.
 5. Convert the result into `moonbook.pet-evidence.v1`.
 6. Remove private fields before model invocation.
 7. Ask the model to answer only from the packet and active skill.

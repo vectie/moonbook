@@ -329,11 +329,13 @@ fn reader_source_revision(markdown : String) -> String {
 ///|
 fn reader_artifact_summary(markdown : String) -> String {
   match reader_first_labeled_value(markdown, ["Main message:"]) {
-    Some(message) => return clamp_text(strip_inline_markup(message), 320)
+    Some(message) =>
+      return clamp_text(strip_inline_markup(message).trim().to_owned(), 320)
     None => ()
   }
   match reader_named_markdown_block(markdown, ["main message"]).get(0) {
-    Some(message) => return clamp_text(strip_inline_markup(message), 320)
+    Some(message) =>
+      return clamp_text(strip_inline_markup(message).trim().to_owned(), 320)
     None => ()
   }
   for paragraph in reader_summary_paragraphs(markdown) {
