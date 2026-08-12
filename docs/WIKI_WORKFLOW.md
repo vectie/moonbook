@@ -107,12 +107,19 @@ The workflow must:
 - record revision, dirty state, repository-relative sources, and SHA-256
   digests in `coursebook-evidence.json`;
 - classify claims as implemented, documented, planned, simulated, or unknown;
-- organize lessons around Start here, System tour, Data flows, Use it, Operate
-  it, Debug it, and Reference rather than mirroring directories;
+- organize the standard reader journey around Overview, Quickstart, How it
+  works, Deployment, Operations, Troubleshooting, and Reference rather than
+  mirroring directories;
+- keep revision state, source provenance, generation process, claim status, and
+  readiness judgment in an explicit advanced-only Technical notes view;
 - author `coursebook.json` against the
   `moonbook.repository-coursebook.v1` contract;
+- when requested, author every-page `coursebook.zh-CN.json` localization without
+  translating code, paths, protocol values, or user-authored technical input;
+- capture screenshots from the current rendered product and publish task recipes
+  only from repository-owned scripts with exercised success signals;
 - reuse `skills/wiki-course/assets/coursebook-site/` for navigation, local
-  search, source disclosure, responsive layout, and print;
+  search, explicit advanced source disclosure, responsive layout, and print;
 - keep the site useful when the optional MoonClaw documentation pet is offline;
 - permit the pet to answer only from published coursebook evidence with public
   page citations and no tools, mutation, secret access, or operator actions;

@@ -19,7 +19,8 @@ does not evaluate HTML from the content file.
     "updated_at": "RFC 3339 timestamp"
   },
   "navigation": [
-    {"id":"start","label":"Start here","page_ids":["welcome"]}
+    {"id":"overview","label":"Overview","page_ids":["welcome"]},
+    {"id":"advanced","label":"Technical notes","visibility":"advanced","page_ids":["readiness"]}
   ],
   "pages": [],
   "suggested_questions": []
@@ -28,6 +29,13 @@ does not evaluate HTML from the content file.
 
 Page IDs and navigation IDs are unique lowercase slugs. Every page appears
 exactly once in navigation.
+
+Navigation groups, pages, and individual blocks may set
+`"visibility":"advanced"`. The standard reader view excludes those values
+from navigation, search, pagination, status display, and rendering. The reader
+must explicitly select Technical notes or open a direct advanced-page URL.
+Visibility is progressive disclosure, not an access-control boundary; never
+put secrets or private repository data in either JSON file.
 
 ## Page shape
 
@@ -42,6 +50,7 @@ exactly once in navigation.
   "status": "implemented|documented|planned|simulated|unknown",
   "tags": ["overview"],
   "source_ids": ["product-contract"],
+  "visibility": "advanced",
   "blocks": []
 }
 ```
@@ -61,16 +70,36 @@ exactly once in navigation.
 - `troubleshooting`: `symptom`, `likely_causes`, `checks`, `resolution`, and
   optional `escalate_when`, all string arrays except `symptom`.
 - `checkpoint`: `question`, `answer`, optional `revisit_after_days`.
+- `image`: repository-owned `src` below `./images/`, descriptive `alt`, and
+  optional `caption`. Capture the actual rendered product when possible; never
+  substitute a concept mockup while calling it a product screenshot.
 
 Keep raw wire IDs, commands, paths, and error codes unchanged inside code or
 reference fields. Explain them in adjacent prose instead of translating or
 rewriting them.
+
+## Localization projection
+
+When bilingual delivery is requested, publish `coursebook.zh-CN.json` beside
+the English source. It uses contract
+`moonbook.repository-coursebook-locale.v1`, locale `zh-CN`, a `ui` string map,
+localized navigation labels, every page id, and one overlay block for every
+base block. Overlay blocks retain the base `kind`; they translate labels,
+prose, table cells, captions, and alt text but never replace `code`, ids, paths,
+protocol values, or wire enums. Use `coursebook.zh-CN.example.json` as the
+structural reference. A partial locale file is invalid.
 
 ## Source linkage
 
 Every factual page has `source_ids`. High-risk claims—security, data handling,
 destructive operations, production readiness, billing, or access—also need an
 adjacent callout describing their limitation or verification boundary.
+
+Evidence records and claim classifications remain complete even when their UI
+is advanced-only. Ordinary safety boundaries, destructive-operation warnings,
+and user-visible limitations stay in standard lessons; only internal process,
+provenance, freshness, readiness judgment, and reviewer material are hidden by
+default.
 
 ## Page anatomy
 

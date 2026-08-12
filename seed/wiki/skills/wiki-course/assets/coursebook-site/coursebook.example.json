@@ -11,13 +11,14 @@
     "updated_at": "2026-01-01T00:00:00Z"
   },
   "navigation": [
-    {"id":"start","label":"Start here","page_ids":["welcome"]},
-    {"id":"operate","label":"Operate it","page_ids":["first-run"]}
+    {"id":"overview","label":"Overview","page_ids":["welcome"]},
+    {"id":"quickstart","label":"Quickstart","page_ids":["first-run"]},
+    {"id":"advanced","label":"Technical notes","visibility":"advanced","page_ids":["readiness"]}
   ],
   "pages": [
     {
       "id": "welcome",
-      "group_id": "start",
+      "group_id": "overview",
       "title": "What is Example Platform?",
       "summary": "Example Platform turns a repository into a working system with explicit boundaries.",
       "audience": "New platform operator",
@@ -38,7 +39,7 @@
     },
     {
       "id": "first-run",
-      "group_id": "operate",
+      "group_id": "quickstart",
       "title": "Run the first safe check",
       "summary": "Start with a non-mutating health check and confirm the expected response.",
       "audience": "Operator with a local checkout",
@@ -49,6 +50,21 @@
       "blocks": [
         {"kind":"code","language":"sh","label":"Health check","code":"curl --fail http://127.0.0.1:8080/health"},
         {"kind":"callout","tone":"warning","title":"Observe before mutating","text":"Do not turn a failed health check into a restart until the documented diagnostics identify the cause."}
+      ]
+    },
+    {
+      "id": "readiness",
+      "group_id": "advanced",
+      "visibility": "advanced",
+      "title": "How was this guide verified?",
+      "summary": "Technical notes record repository freshness, source provenance, claim status, and unresolved evidence gaps for reviewers.",
+      "audience": "Documentation reviewer",
+      "estimated_minutes": 5,
+      "status": "documented",
+      "tags": ["readiness", "sources"],
+      "source_ids": ["readme"],
+      "blocks": [
+        {"kind":"paragraph","text":"Keep repository process and reviewer judgments here instead of placing them in the newcomer learning path."}
       ]
     }
   ],

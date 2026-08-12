@@ -89,10 +89,13 @@ Implemented behaviors:
 - `wiki init` seeds a dedicated `skills/research-report/SKILL.md` routine for turning screened research artifacts into article-quality reports with evidence-backed claims
 - `wiki init` seeds `skills/wiki-course/SKILL.md` with repository intake,
   evidence and coursebook contracts plus a standalone responsive site template
-  for feature, architecture, data-flow, usage, operation, and debugging lessons
+  for newcomer-first feature, architecture, data-flow, usage, operation, and
+  debugging lessons with opt-in Technical notes
 - the repository-coursebook template uses safe text rendering, local search,
-  grouped navigation, source disclosure, print/mobile layouts, and an optional
-  same-origin MoonClaw pet adapter that is read-only and citation-bounded
+  grouped navigation, advanced-only source disclosure, print/mobile layouts,
+  complete English/简体中文 overlays, real-state screenshot blocks, exercised
+  copy-paste deployment recipes, and an optional same-origin MoonClaw pet
+  adapter that is read-only and citation-bounded
 - `wiki init` seeds a product-agnostic `skills/book-pet-query/SKILL.md` policy for read-only pets, mascots, and embedded assistants, including bounded evidence, adapter, privacy, and action-handoff rules
 - `wiki init` seeds a dedicated `skills/standing-watch/SKILL.md` routine for recurring topic checks that decide whether new evidence changes the current book baseline
 - `wiki init` seeds a dedicated `skills/document-reverse-engineer/SKILL.md` routine for deconstructing a finished document into thesis, argument map, style profile, improvement plan, and regenerated draft artifacts
