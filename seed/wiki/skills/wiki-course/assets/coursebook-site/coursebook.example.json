@@ -1,0 +1,60 @@
+{
+  "contract_version": "moonbook.repository-coursebook.v1",
+  "project": {
+    "name": "Example Platform",
+    "short_name": "EX",
+    "tagline": "A source-grounded guide to the system.",
+    "description": "Learn what the platform does, how data moves, and how to operate it safely.",
+    "language": "en",
+    "revision": "replace-with-source-revision",
+    "freshness": "draft",
+    "updated_at": "2026-01-01T00:00:00Z"
+  },
+  "navigation": [
+    {"id":"start","label":"Start here","page_ids":["welcome"]},
+    {"id":"operate","label":"Operate it","page_ids":["first-run"]}
+  ],
+  "pages": [
+    {
+      "id": "welcome",
+      "group_id": "start",
+      "title": "What is Example Platform?",
+      "summary": "Example Platform turns a repository into a working system with explicit boundaries.",
+      "audience": "New platform operator",
+      "estimated_minutes": 4,
+      "status": "documented",
+      "tags": ["overview", "features"],
+      "source_ids": ["readme"],
+      "blocks": [
+        {"kind":"heading","level":2,"id":"purpose","text":"Purpose"},
+        {"kind":"paragraph","text":"Replace this sample with an evidence-backed explanation."},
+        {"kind":"flow","title":"One useful flow","steps":[
+          {"title":"Intent","text":"A user states a bounded goal."},
+          {"title":"Control","text":"The system validates and plans it."},
+          {"title":"Result","text":"The operator observes a typed outcome."}
+        ]},
+        {"kind":"checkpoint","question":"Who owns the authoritative state?","answer":"The component named by the repository's product contract.","revisit_after_days":3}
+      ]
+    },
+    {
+      "id": "first-run",
+      "group_id": "operate",
+      "title": "Run the first safe check",
+      "summary": "Start with a non-mutating health check and confirm the expected response.",
+      "audience": "Operator with a local checkout",
+      "estimated_minutes": 6,
+      "status": "documented",
+      "tags": ["quickstart", "debugging"],
+      "source_ids": ["operations"],
+      "blocks": [
+        {"kind":"code","language":"sh","label":"Health check","code":"curl --fail http://127.0.0.1:8080/health"},
+        {"kind":"callout","tone":"warning","title":"Observe before mutating","text":"Do not turn a failed health check into a restart until the documented diagnostics identify the cause."}
+      ]
+    }
+  ],
+  "suggested_questions": [
+    "What is the platform boundary?",
+    "How does the main data flow work?",
+    "What should I inspect when the health check fails?"
+  ]
+}

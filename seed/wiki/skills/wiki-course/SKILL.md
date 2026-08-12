@@ -1,286 +1,198 @@
 ---
 name: wiki-course
-description: Maintain evidence-linked reader projections that teach a specific audience through plain explanations, worked examples, practice, retrieval, and progressively deeper views.
+description: Turn a software repository into a source-grounded, multi-page coursebook site that explains features, architecture, data flow, operation, and debugging, with a bounded MoonClaw documentation pet. Use when creating or refreshing repository documentation, onboarding material, operator guides, architecture tours, troubleshooting playbooks, or a Suanli-style docs portal from code and maintained evidence.
 ---
 
-# Wiki Course
+# Repository Coursebook
 
-## Purpose
+## Outcome
 
-Use this skill to teach a named reader through a course.
-This is not marketing, not journaling, and not a research report.
+Transform one repository into a useful coursebook, not a prettified README.
+The result must let a new reader answer three questions:
 
-Before drafting, read
-[`references/human-readable-content.md`](references/human-readable-content.md).
-It defines the MoonBook reader loop, projection levels, and release gates.
+1. What does this system do, and what does it deliberately not do?
+2. How do its components and data flows work?
+3. How do I use, operate, and debug it without guessing?
 
-The course layer should explain the subject the reader needs to understand or
-use. For a software workspace, that can include:
+The generated site is a disposable projection over repository evidence. The
+repository and accepted MoonBook pages remain authoritative.
 
-- actors
-- data flow
-- process stages
-- operator choices
-- why the components relate the way they do
+Before acting, read:
 
-For another domain, replace those system-specific topics with the domain's
-core concepts, decisions, procedures, and evidence boundaries. Do not force a
-software-workspace outline onto every book.
+- `references/repository-intake.md` for evidence collection and freshness;
+- `references/coursebook-contract.md` for information architecture and the
+  structured content schema;
+- `references/pet-contract.md` before enabling the embedded assistant;
+- `references/human-readable-content.md` when authoring lessons, examples, or
+  exercises.
+
+Reuse `assets/coursebook-site/`. Do not invent another site shell unless the
+user explicitly asks for a different product surface.
 
 ## Inputs
 
-Read these first:
+Require:
 
-1. `wiki/index.md`
-2. `wiki/history/journey.md`
-3. `wiki/synthesis/map.md`
-4. `wiki/synthesis/evidence.md`
+- an absolute repository root;
+- an output directory outside ignored build artifacts;
+- a named primary reader, such as a new operator, platform engineer, or API
+  client developer;
+- a current repository revision and dirty-state marker;
+- the repository's own instructions and product/architecture/operations docs.
 
-Then inspect:
+Optional inputs include a public product-docs reference, preferred language,
+deployment target, and a MoonClaw Gateway endpoint. Treat reference sites as
+layout and information-architecture evidence, never as copy to reproduce.
 
-- relevant source pages
-- key entity and concept pages
-- current generated course output if it exists
+## Workflow
 
-Also establish a reader contract before writing:
+### 1. Establish the truth boundary
 
-- a specific primary audience; `general public` is not specific enough
-- what the reader already knows
-- what the reader should understand or accomplish
-- one main message, expressed in one to three short sentences
-- the next useful action the reader should be able to take
+Read repository instructions before source. Identify authoritative documents,
+public contracts, executable entrypoints, deployment manifests, tests, and
+known readiness or limitation records. Record contradictions rather than
+silently choosing the most optimistic statement.
 
-## Educational boundary
+Do not ingest secrets, generated dependency trees, build outputs, production
+state, raw prompts, credentials, private keys, model weights, or user data.
 
-Keep the course:
+### 2. Build a repository evidence map
 
-- explanatory
-- modular
-- plain-language
-- structured
-- evidence-linked
-- appropriate to the named reader
+Create `coursebook-evidence.json` using the contract in
+`references/repository-intake.md`. Every public factual page must name one or
+more repository-relative sources. Record the inspected revision, working-tree
+state, source digest, and inspection time.
 
-Do not make it:
+Classify each claim as:
 
-- a product pitch
-- a debug log
-- a dense wiki dump
+- `implemented` — supported by current code or executable tests;
+- `documented` — promised by current authoritative documentation but not
+  independently exercised during this run;
+- `planned` — explicitly future or gated work;
+- `simulated` — proven only by a fake, local, or synthetic environment;
+- `unknown` — evidence is missing or contradictory.
 
-## Recommended structure
+Never turn `planned`, `simulated`, or `unknown` into an implemented feature.
 
-For a beginner software course, a sequence might be:
+### 3. Design the reader journey
 
-1. what the system is
-2. what the major actors do
-3. how data moves
-4. what a run looks like
-5. where failures happen
-6. what the operator can inspect
+Use this default top-level structure, adapting names without removing the
+reader jobs:
 
-Use checkpoints, glossaries, and short examples. Change the sequence when the
-reader's actual task requires a different route.
+1. **Start here** — product purpose, audience, boundaries, current readiness.
+2. **System tour** — feature map, architecture, ownership, trust boundaries.
+3. **Data flows** — request, deployment, state, and failure flows.
+4. **Use it** — quickstarts and task-oriented guides with expected results.
+5. **Operate it** — installation, configuration, observability, recovery.
+6. **Debug it** — symptom-first playbooks, messages, causes, checks, fixes.
+7. **Reference** — contracts, configuration, states, glossary, source ledger.
 
-For a full workbook, write 10-12 lessons unless the user requests a different
-length. Each lesson should include:
+Do not mirror the repository folder tree. Organize around reader questions.
+Keep marketing, learning, operating, and evidence views distinguishable.
 
-- Objective
-- Plain explanation
-- Why it matters
-- Worked example with visible steps and result
-- Exercise
-- Output artifact
-- Self-explanation question
-- Closed-book retrieval checkpoint with a concealed answer
-- Transfer task in a new situation
-- Revisit prompt and `Revisit after days:` interval
-- Common mistake
-- Source references and important limitations
+### 4. Author structured pages
 
-If the topic is a design/build topic, make every lesson produce a usable
-artifact, such as a label JSON, tile grammar, style sheet, placement rule,
-runtime binding, QA checklist, or final capstone page.
+Create `coursebook.json` with contract
+`moonbook.repository-coursebook.v1`. Use only the block kinds and fields in
+`references/coursebook-contract.md`; the bundled client renders every value as
+text and never trusts authored HTML.
 
-## Good explanations
+Each page must include:
 
-Prefer:
+- a single reader question;
+- a concise answer in the first screenful;
+- audience and prerequisite information when relevant;
+- one useful visual for multi-component architecture or multi-step flow;
+- concrete commands or examples for task pages;
+- observable success criteria;
+- limitations or failure boundaries;
+- repository-relative source references.
 
-- concrete examples
-- named files and artifacts
-- one concept per section
-- simple diagrams or flow language
-- the main message and next action in the first screenful
-- familiar words, active voice, short chunks, and definitions at first use
-- relevant words and visuals together when a visual materially helps
-- a concrete case before asking a novice to solve an abstract case
+Debug pages must start with the symptom, then show likely causes, safe checks,
+expected observations, and recovery. Never publish a command that destroys
+state, disables security, prints secrets, or broadens authority without an
+explicit warning and confirmation boundary.
 
-Avoid:
+### 5. Install the reusable site
 
-- unexplained internal jargon
-- giant prose blocks
-- replaying every journal event
-- `Deep Research Analysis` as a title
-- `Verified Findings` or source audit as the main structure
-- provider task status, ReviewQueued state, run ids, or raw execution logs in
-  reader-facing lessons
-- decorative visuals that do not teach
-- readability scores as a substitute for comprehension testing
+Copy the contents of `assets/coursebook-site/` into the requested site root,
+then replace `coursebook.example.json` with the authored `coursebook.json`.
+Keep the asset filenames stable:
 
-## Reader projections
-
-Maintain one accepted body of knowledge and derive views from it. Do not write
-three unrelated books whose facts can drift.
-
-- **Learn** orients a newcomer, explains terms, shows worked examples, and
-  provides retrieval checkpoints.
-- **Apply** emphasizes procedures, decisions, templates, exercises, outputs,
-  trade-offs, and transfer tasks.
-- **Research** exposes methods, source anchors, contradictory evidence,
-  uncertainty, limitations, and review lineage.
-
-Operational state, raw execution logs, provider details, and maintenance
-diagnostics belong in a separate **How maintained** disclosure. They must not
-interrupt the reading path.
-
-## Output expectations
-
-When used through provider-task execution, return JSON with:
-
-- `task_id`
-- `summary`
-- `artifacts`
-- `memory_candidates`
-- `requires_review`
-- `notify_town`
-
-When the task asks for course artifacts, the artifact list should include:
-
-- `raw/bootstrap/course-outline.md`
-- `raw/bootstrap/deep-report.md` when it is intentionally used as the workbook
-- `wiki/synthesis/beginner-course.md`
-
-## Success criteria
-
-A good course page should let a new reader answer:
-
-- what is the main idea
-- why it matters to the named audience
-- how the central mechanism or procedure works
-- what a concrete example looks like
-- what action or exercise comes next
-- which claims are supported, uncertain, or limited
-
-For a MoonSuite workspace course, the page may additionally teach product
-roles, raw-first bootstrap, keeper behavior, durable knowledge, and the debug
-path. Those are examples, not universal success criteria.
-
-## Example success summary
-
-- "Refreshed the course projection to explain raw/bootstrap staging, keeper ingest, durable page revision, and the debug path from observations to journal and evidence."
-
-## Anti-patterns
-
-Do not:
-
-- write like a press release
-- assume the reader already knows the repos
-- copy journal content verbatim
-- replace the wiki with simplified but inaccurate claims
-
-## Checklist
-
-Before finishing, confirm:
-
-- a specific reader contract and one-to-three-sentence main message exist
-- the page teaches rather than pitches
-- the sections follow a learning sequence
-- the language is plain enough for a new reader
-- unfamiliar terms are defined at first use
-- concrete worked examples show steps, reasoning, and results
-- every lesson has a practice output, self-explanation prompt, retrieval
-  checkpoint, transfer task, and positive revisit interval
-- factual claims retain source references and important limitations
-- the Learn, Apply, and Research projections point to the same accepted book
-  revision
-- maintenance details are outside the primary reading path
-- a separate reviewer checks that simplification did not change the claim
-- no research-report skeleton leaked into the course
-
-## Example Course Shape
-
-```markdown
-# Wenyu Valley Tile-Map Design: A Beginner Workbook
-
-## Course Goal
-Teach a beginner to build Wenyu Valley from reference map to working town UI.
-
-## Lesson 1: Name The Product Before Drawing
-
-### Objective
-Define what the town is for before placing buildings.
-
-### Plain explanation
-A game-like town needs a product model, not only scenery.
-
-### Why it matters
-Without this, roads, buildings, agents, and tasks become unrelated decorations.
-
-### Worked example
-Wenyu Valley is an AI innovation town where buildings host civic protocols and
-agents move between home books and exchange buildings.
-
-1. Name one building's domain.
-2. Attach the accepted MoonBook for that domain.
-3. Route a research task to the building.
-4. Show the resulting book revision only after review.
-
-### Exercise
-Write a one-paragraph product statement and list three non-goals.
-
-### Output artifact
-`docs/product-definition.md`
-
-### Self-explanation
-Why should the town link to a MoonBook projection instead of keeping a second
-copy of the explanation?
-
-### Retrieval checkpoint
-Without looking back, name the owner of domain knowledge and the owner of task
-movement.
-
-<details><summary>Reveal answer</summary>MoonBook owns the accepted domain
-knowledge; MoonTown owns the civic visualization and task movement.</details>
-
-### Transfer task
-Apply the same ownership test to a MoonDesk view that displays this book.
-
-### Revisit
-Three days later, explain the ownership split without looking at the lesson.
-
-Revisit after days: 3
-
-### Common mistake
-Starting with CSS offsets or random assets before defining the role of the
-space.
-
-### Sources and limitations
-Link the product contracts that define ownership. Mark any unimplemented
-handoff as proposed rather than implying that it already works.
+```text
+index.html
+styles.css
+app.js
+server.mjs
+coursebook.json
+coursebook-evidence.json
 ```
 
-## Exploration Quality Contract
+The shell owns responsive navigation, local search, page routing, source
+disclosure, code copying, next/previous navigation, and the pet panel. Product
+facts belong only in `coursebook.json` and `coursebook-evidence.json`.
 
-Every run should improve the book's ability to answer deeper and broader
-questions about its topic.
+### 6. Configure the documentation pet
 
-- Go deeper: explain the mechanism, evidence chain, confidence boundary,
-  contradiction, or internal dependency that makes the result true, weak, or
-  blocked.
-- Go broader: connect the result to adjacent entities, concepts, source pages,
-  downstream decisions, and book-maintenance consequences.
-- Generate new questions: record follow-up questions that would change the
-  answer, expose missing evidence, or open a useful next investigation.
-- Generate new directions: name the next durable page, review item, experiment,
-  comparison, or synthesis update that should grow from this work.
-- Prefer longer meaningful text over short status output when evidence exists:
-  give enough context that a future keeper can resume without the chat history.
+The static coursebook must remain fully usable without an agent. The pet is an
+optional same-origin enhancement served by `server.mjs`.
+
+The pet may answer only from the generated coursebook and its public evidence
+map. It returns typed public page citations, not filesystem paths or tool
+traces. It is read-only and cannot edit the repository, run user commands,
+browse arbitrary URLs, or execute an operational action.
+
+Follow `references/pet-contract.md` exactly. Reuse MoonClaw's read-only Cowork
+session endpoint; do not create another agent runtime.
+
+### 7. Verify before publishing
+
+Run all of these:
+
+- parse both JSON files;
+- scan for absolute paths, credentials, private addresses, unresolved
+  placeholders, raw prompts, and secret-like values;
+- verify every navigation page id and every citation target exists;
+- verify every source reference is repository-relative and present;
+- serve the site and exercise search, routing, back/forward, code copy, mobile
+  navigation, empty search, pet-offline, pet-refusal, and pet-success states;
+- inspect desktop and 390 px layouts, keyboard focus, 200% text zoom, reduced
+  motion, and print output;
+- compare important claims against the current repository revision again.
+
+Publication is a freshness claim. If the repository changes after inspection,
+mark the site stale or regenerate it.
+
+## Output contract
+
+Return a compact completion record containing:
+
+- repository root and inspected revision;
+- site root;
+- page count and navigation groups;
+- source count and unresolved evidence gaps;
+- pet status (`disabled`, `configured`, or `verified`);
+- checks performed and checks that require the real deployment;
+- exact preview and production serve commands.
+
+When used through provider-task execution, retain the standard fields
+`task_id`, `summary`, `artifacts`, `memory_candidates`, `requires_review`, and
+`notify_town`.
+
+## Quality bar
+
+A strong coursebook:
+
+- teaches the actual system rather than paraphrasing directory names;
+- distinguishes feature, mechanism, procedure, and evidence;
+- makes architecture and data movement visible;
+- gives commands together with expected results and rollback boundaries;
+- turns error messages into symptom-first debugging paths;
+- preserves uncertainty and production-readiness gaps;
+- works without JavaScript-generated unsafe HTML or third-party CDN assets;
+- remains useful when MoonClaw is offline;
+- keeps every assistant answer bounded to public coursebook evidence.
+
+Reject the result when it is mostly a landing page, a single giant article, a
+folder-tree dump, generic AI prose, or a collection of commands without
+observable outcomes.

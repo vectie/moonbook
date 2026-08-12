@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repository Coursebook"
+  short_description: "Turn a code repository into a grounded docs course"
+  default_prompt: "Use $wiki-course to inspect this repository and build or refresh its source-grounded coursebook site, including architecture, data flow, usage, debugging, and the bounded documentation pet."

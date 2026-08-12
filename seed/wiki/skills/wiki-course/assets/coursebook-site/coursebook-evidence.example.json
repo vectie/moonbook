@@ -1,0 +1,15 @@
+{
+  "contract_version": "moonbook.repository-coursebook-evidence.v1",
+  "repository": {
+    "name": "example-platform",
+    "revision": "replace-with-source-revision",
+    "working_tree": "unavailable",
+    "inspected_at": "2026-01-01T00:00:00Z"
+  },
+  "sources": [
+    {"id":"readme","path":"README.md","digest":"sha256:replace","kind":"overview","public":true},
+    {"id":"operations","path":"docs/OPERATIONS.md","digest":"sha256:replace","kind":"operations","public":true}
+  ],
+  "claims": [],
+  "open_gaps": []
+}
