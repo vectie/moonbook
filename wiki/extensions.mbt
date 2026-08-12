@@ -198,14 +198,15 @@ test "moonclaw ingest profiles request web search explicitly" {
 }
 
 ///|
-test "moonclaw course profile avoids research report injection" {
+test "moonclaw coursebook profile avoids research report injection" {
   let text = moonclaw_jobs_text()
   assert_true(text.contains("\"wiki_course_controller\""))
   assert_true(text.contains("\"child_profile\": \"wiki_course_worker\""))
   assert_true(text.contains("\"preferred_skills\": [\"wiki-course\"]"))
   assert_true(text.contains("Do not use research-report/SKILL.md"))
-  assert_true(text.contains("raw/bootstrap/course-outline.md"))
-  assert_true(text.contains("wiki/synthesis/beginner-course.md"))
+  assert_true(text.contains("site/coursebook/coursebook-evidence.json"))
+  assert_true(text.contains("site/coursebook/coursebook.json"))
+  assert_true(text.contains("moonbook.repository-coursebook.v1"))
 }
 
 ///|

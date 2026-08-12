@@ -71,6 +71,8 @@ MoonBook is strongest when you want one local system to handle:
 - 🌐 a marketing-oriented website projection for demos and launches
 - 🧭 a journey layer that turns noisy runs into a readable operator timeline
 - 🎓 Learn, Apply, and Research views over one accepted book revision
+- 🎓 a repository-to-coursebook skill and standalone site template for features,
+  architecture, data flow, operation, debugging, and a bounded documentation pet
 - 🧠 small rewriteable Keeper memory between worker runs
 - 🧩 a typed MoonBook knowledge bundle for suite consumers
 - 🕸️ a generated graph of durable pages and cross-links
@@ -78,6 +80,7 @@ MoonBook is strongest when you want one local system to handle:
 
 ## News
 
+- `2026-08-12`: rebuilt `wiki-course` as a source-grounded repository-to-coursebook workflow with a structured evidence ledger, seven reader journeys, a responsive standalone site template, freshness checks, and an optional read-only MoonClaw documentation pet
 - `2026-08-01`: replaced the generic generated course mockup with reader-first Learn, Apply, and Research routes sourced from the book's actual course, practice, and research artifacts; added the typed `moonbook.reader_projection.v1` contract, fail-closed quality/review readiness, provenance state, and a systematic plain-language + learning-science authoring loop
 - `2026-07-31`: added the generic `moonbook/bookkeeper.outcome.submit@0.1.0` intake plus `moonbook/bookkeeper.outcome.close@0.1.0`: external decision evidence enters the existing Rabbita review queue, deterministic Three-Gap assessment and capability proposal gates replay safely, and no receipt grants activation
 - `2026-07-12`: added governed Bookkeeper metacognition with a persistent three-gap graph, consequence/invalidation-aware beliefs, evidence-qualified procedure learning, immutable plan revision lineage, and MoonFlow v3 reconciliation
@@ -117,6 +120,9 @@ MoonBook is strongest when you want one local system to handle:
 - 📦 generated `book/site/generated/book-state.json` plus `knowledge-bundle.json` so suite apps can read current book state through stable MoonBook contracts
 - 🔎 generated research-report projection with executive summary, architecture/runtime/memory sections, relationships, maturity gaps, and evidence table derived from `raw/bootstrap/` plus wiki synthesis pages
 - 🧾 seeded `skills/research-report/SKILL.md` that tells keepers how to turn `research-question`, `source-screen`, `evidence-matrix`, local sources, and synthesis briefs into reader-facing reports without dumping raw table rows
+- 🎓 seeded `skills/wiki-course/SKILL.md` plus a reusable standalone coursebook
+  site for turning a software repository into source-grounded feature,
+  architecture, data-flow, usage, operations, and debugging lessons
 - 🐾 seeded `skills/book-pet-query/SKILL.md` as the product-agnostic, read-only policy for pets, mascots, and embedded assistants, with bounded evidence, adapter, and security contracts
 - 🧩 seeded `skills/document-reverse-engineer/SKILL.md` for turning a strong finished document into deconstruction, argument map, style profile, improvement plan, and regenerated draft artifacts
 - 🕰️ seeded `skills/standing-watch/SKILL.md` for recurring topic checks that compare new evidence against the current book baseline and emit machine-readable decision, source-count, fact-count, changed-page, and `book_changed` markers

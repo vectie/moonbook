@@ -318,17 +318,17 @@ fn moonclaw_jobs_text() -> String {
   "        \"family\": \"wiki_course_controller\",\n" +
   "        \"role\": \"controller\",\n" +
   "        \"priority\": 125,\n" +
-  "        \"tags\": [\"wiki\", \"course\", \"teaching\", \"beginner\"],\n" +
+  "        \"tags\": [\"wiki\", \"coursebook\", \"documentation\", \"teaching\"],\n" +
   "        \"match\": {\n" +
   "          \"all\": [\"wiki\"],\n" +
-  "          \"any\": [\"course\", \"syllabus\", \"lesson\", \"learning path\", \"beginner\", \"workbook\", \"curriculum\", \"teach\"]\n" +
+  "          \"any\": [\"course\", \"coursebook\", \"documentation\", \"docs portal\", \"architecture guide\", \"operator guide\", \"learning path\", \"teach\"]\n" +
   "        },\n" +
   "        \"steps\": [\n" +
   "          {\n" +
   "            \"id\": \"plan_course\",\n" +
-  "            \"title\": \"Plan beginner course\",\n" +
+  "            \"title\": \"Plan repository coursebook\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Act as the MoonBook course keeper for ${proposal.title}. Load wiki-course/SKILL.md first. Read maintained wiki pages, journey state, synthesis pages, and any raw/bootstrap context. Produce a course plan that teaches a beginner through ordered lessons, exercises, output artifacts, checkpoints, and common mistakes. Do not use research-report/SKILL.md and do not shape the output as Deep Research Analysis or Verified Findings.\",\n" +
+  "            \"prompt_template\": \"Act as the MoonBook repository-coursebook keeper for ${proposal.title}. Load wiki-course/SKILL.md plus references/repository-intake.md and references/coursebook-contract.md first. Identify the repository root and primary reader, inspect repository instructions and authoritative product, architecture, contract, operations, deployment, and test evidence, then plan the seven reader journeys: Start here, System tour, Data flows, Use it, Operate it, Debug it, and Reference. Preserve implemented, documented, planned, simulated, and unknown distinctions. Do not use research-report/SKILL.md or shape the output as marketing, a folder tree, or one giant article.\",\n" +
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-course\"],\n" +
   "              \"enable_tools\": true,\n" +
@@ -338,10 +338,10 @@ fn moonclaw_jobs_text() -> String {
   "            }\n" +
   "          },\n" +
   "          {\n" +
-  "            \"id\": \"write_course_workbook\",\n" +
-  "            \"title\": \"Write beginner workbook\",\n" +
+  "            \"id\": \"write_repository_coursebook\",\n" +
+  "            \"title\": \"Write repository coursebook\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Write course artifacts for ${proposal.title}. Load wiki-course/SKILL.md and references/human-readable-content.md only. Write raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md, and wiki/synthesis/beginner-course.md as one evidence-linked beginner course/workbook. Name the audience, prior knowledge, one-to-three-sentence main message, and next action. Use 10-12 lessons unless the request says otherwise. Each lesson needs Objective, Plain explanation, Why it matters, Worked example, Exercise, Output artifact, Self-explanation, Retrieval checkpoint with concealed answer, Transfer task, Revisit plus a positive Revisit after days value, Common mistake, and Source references or limitations. Return those paths as artifacts. Reject research-report headings, source-audit structure, provider status, or run-log prose.\",\n" +
+  "            \"request_template\": \"Build the standalone repository coursebook for ${proposal.title}. Load wiki-course/SKILL.md and all directly referenced repository-coursebook contracts. Write site/coursebook/coursebook-evidence.json with revision, dirty state, repository-relative sources, SHA-256 digests, claim statuses, limitations, and gaps. Write site/coursebook/coursebook.json using moonbook.repository-coursebook.v1, then copy the bundled site asset into site/coursebook/ without replacing the authored JSON. Teach features and boundaries, architecture and data flows, use and operation, and symptom-first debugging with observable results and public source ids. Keep the static site complete when the optional same-origin, read-only, citation-bounded MoonClaw pet is offline. Return the coursebook paths as artifacts. Reject ungrounded claims, private data, source-tree narration, marketing structure, provider status, and run-log prose.\",\n" +
   "            \"child_profile\": \"wiki_course_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
@@ -355,9 +355,9 @@ fn moonclaw_jobs_text() -> String {
   "          },\n" +
   "          {\n" +
   "            \"id\": \"review_course\",\n" +
-  "            \"title\": \"Review course quality\",\n" +
+  "            \"title\": \"Review coursebook truth and usability\",\n" +
   "            \"kind\": \"job.delegate\",\n" +
-  "            \"request_template\": \"Review the course artifacts for ${proposal.title}. Check beginner clarity, lesson order, exercises, concrete outputs, checkpoints, common mistakes, and whether any research-report or source-audit structure leaked into the visible course. Findings first; if clean, state residual risk.\",\n" +
+  "            \"request_template\": \"Review the repository coursebook for ${proposal.title}. Verify navigation and citation targets, current source digests, claim status, commands and expected observations, debugging paths, secret and private-path scans, desktop and 390 px behavior, 200% zoom, print, and pet offline/refusal/success states. Confirm the coursebook remains a projection over evidence and that no research-report, folder-tree, provider, or run-log structure leaked into the reader surface. Findings first; if clean, state residual risk.\",\n" +
   "            \"child_profile\": \"wiki_review_worker\",\n" +
   "            \"include_parent_outputs\": true,\n" +
   "            \"max_depth\": 3,\n" +
@@ -673,13 +673,13 @@ fn moonclaw_jobs_text() -> String {
   "      \"wiki_course_worker\": {\n" +
   "        \"family\": \"wiki_course_worker\",\n" +
   "        \"priority\": 22,\n" +
-  "        \"tags\": [\"wiki\", \"course\", \"worker\", \"teaching\"],\n" +
+  "        \"tags\": [\"wiki\", \"coursebook\", \"worker\", \"documentation\"],\n" +
   "        \"steps\": [\n" +
   "          {\n" +
   "            \"id\": \"write_course\",\n" +
-  "            \"title\": \"Write course artifacts\",\n" +
+  "            \"title\": \"Write repository coursebook artifacts\",\n" +
   "            \"kind\": \"job.analysis\",\n" +
-  "            \"prompt_template\": \"Act as the wiki course worker for ${request}. Load wiki-course/SKILL.md and references/human-readable-content.md. Edit only course-facing artifacts: raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md when it is being used as the course workbook, and wiki/synthesis/beginner-course.md. Teach a named audience through ordered lessons with worked examples, exercises, output artifacts, self-explanation, retrieval checkpoints with concealed answers, transfer tasks, positive Revisit after days intervals, common mistakes, and source anchors. Keep Apply and Research as projections over the same accepted book. Do not use research-report/SKILL.md, Deep Research Analysis headings, source-audit structure, or provider/run-log prose.\",\n" +
+  "            \"prompt_template\": \"Act as the wiki repository-coursebook worker for ${request}. Load wiki-course/SKILL.md plus references/repository-intake.md, references/coursebook-contract.md, references/pet-contract.md, and references/human-readable-content.md. Edit only site/coursebook/coursebook-evidence.json, site/coursebook/coursebook.json, and the files copied from skills/wiki-course/assets/coursebook-site/. Keep source paths repository-relative and digests current. Organize around reader questions, teach feature and boundary semantics, architecture and data flows, task outcomes, and symptom-first debugging. Keep the site useful without MoonClaw; its optional pet is read-only and public-citation-bounded. Do not use research-report/SKILL.md, folder-tree structure, marketing copy, private paths, secrets, provider status, or run-log prose.\",\n" +
   "            \"metadata\": {\n" +
   "              \"preferred_skills\": [\"wiki-course\"],\n" +
   "              \"enable_tools\": true,\n" +

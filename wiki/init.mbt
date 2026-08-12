@@ -1125,7 +1125,7 @@ fn base_routines_text() -> String {
   "2. Load the relevant `skills/*/SKILL.md` file before planning or writing.\n" +
   "3. Keep deterministic work in MoonBook code and judgment work in skills.\n" +
   "4. Persist durable outcomes back into `wiki/`, `keeper/`, and review queues.\n" +
-  "5. Keep `wiki/` detailed and truth-oriented; keep `site/` projection-oriented with distinct marketing, journal, and course surfaces.\n"
+  "5. Keep `wiki/` detailed and truth-oriented; keep `site/` projection-oriented with distinct marketing and standalone repository-coursebook surfaces.\n"
 }
 
 ///|
@@ -1167,8 +1167,8 @@ fn resolver_text() -> String {
   "  load_first: `wiki/synthesis/overview.md`, `wiki/index.md`, `wiki/synthesis/map.md`, `keeper/INSIGHTS.md`, `site/index.html`\n" +
   "- intent: course\n" +
   "  skill: `skills/wiki-course/SKILL.md`\n" +
-  "  supporting_skills: `skills/wiki-query/SKILL.md`, `skills/wiki-marketing/SKILL.md`, `skills/query-promote/SKILL.md`\n" +
-  "  load_first: `wiki/index.md`, `wiki/history/journey.md`, `wiki/synthesis/map.md`, `wiki/synthesis/evidence.md`, `site/index.html`\n" +
+  "  supporting_skills: `skills/wiki-query/SKILL.md`, `skills/claim-audit/SKILL.md`, `skills/wiki-review/SKILL.md`, `skills/book-pet-query/SKILL.md`\n" +
+  "  load_first: repository instructions and authoritative contracts, then `wiki/index.md`, `wiki/history/journey.md`, `wiki/synthesis/map.md`, `wiki/synthesis/evidence.md`, `site/coursebook/`\n" +
   "- intent: planbook\n" +
   "  skill: `skills/planbook/SKILL.md`\n" +
   "  supporting_skills: `skills/wiki-memory/SKILL.md`, `skills/wiki-review/SKILL.md`, `skills/index-maintain/SKILL.md`\n" +
@@ -1216,7 +1216,7 @@ fn schema_text() -> String {
   "- `raw/`: immutable source documents. Read-only unless the user explicitly asks to organize files.\n" +
   "- `plans/`: durable executable plans, acceptance criteria, validation commands, and handoffs.\n" +
   "- `wiki/`: maintained markdown knowledge base. The LLM owns updates here.\n" +
-  "- `site/`: optional marketing website projection for presentation. Build copies it to `book/site/`.\n" +
+  "- `site/`: optional presentation projections. Marketing stays at the root; a repository coursebook owns `site/coursebook/`. Build copies the tree to `book/site/`.\n" +
   "- `wiki/index.md`: content catalog. Update it whenever pages are added or meaningfully changed.\n" +
   "- `wiki/log.md`: append-only activity log. Add one entry per ingest, query, or lint pass.\n\n" +
   "- `wiki/reviews/pending.md`: items that should be reviewed before being treated as trusted synthesis.\n" +
@@ -1273,12 +1273,13 @@ fn schema_text() -> String {
   "4. Treat `wiki/` as the detailed source of truth and the generated marketing page as the compressed presentation layer\n" +
   "5. Keep claims accurate, but rewrite them into seller-facing product language\n" +
   "6. Do not hard-code sales claims in renderer code; improve the brief and skill instead\n\n" +
-  "### Course\n\n" +
-  "When updating the educational course projection:\n\n" +
+  "### Repository Coursebook\n\n" +
+  "When creating or refreshing a repository coursebook:\n\n" +
   "1. Read `RESOLVER.md` and load `skills/wiki-course/SKILL.md`\n" +
-  "2. Treat the course as a teaching surface, not as the canonical source of truth\n" +
-  "3. Use module-based explanation, plain language, and interactive checkpoints to explain how the workspace works\n" +
-  "4. Keep the course educational and procedural; do not collapse it into marketing or operator journaling\n\n" +
+  "2. Record revision, dirty state, repository-relative sources, digests, claim status, limitations, and gaps in `site/coursebook/coursebook-evidence.json`\n" +
+  "3. Author `site/coursebook/coursebook.json` around Start here, System tour, Data flows, Use it, Operate it, Debug it, and Reference reader jobs\n" +
+  "4. Copy the bundled site template instead of inventing a second shell, and keep it complete when the optional MoonClaw pet is offline\n" +
+  "5. Treat the coursebook as a disposable teaching projection, not canonical truth; regenerate or mark stale when source bytes change\n\n" +
   "### Lint\n\n" +
   "Periodically check for:\n\n" +
   "- orphan pages\n" +

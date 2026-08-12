@@ -99,11 +99,14 @@ fn course_provider_result_contract_lines() -> Array[String] {
     "Return exactly one JSON object.", "Do not output markdown fences or prose outside the JSON object.",
     "Use keys: result_id, summary, artifacts, memory_candidates, requires_review, notify_town.",
     "Set result_id to a stable identifier for this worker result.", "artifacts must be an array of workspace-relative output paths.",
-    "This is a course task, not a research bootstrap task.", "Do not require research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, or marketing-brief.md unless the course prompt explicitly asks for them.",
-    "Course artifacts should include raw/bootstrap/course-outline.md, raw/bootstrap/deep-report.md when used as the workbook, and wiki/synthesis/beginner-course.md.",
-    "The visible course must name a specific audience, state one main message and next action first, and teach through plain explanations, worked examples, exercises, output artifacts, self-explanation, retrieval checkpoints with concealed answers, transfer tasks, positive Revisit after days intervals, and common mistakes.",
-    "Factual claims must retain source anchors and limitations. Learn, Apply, and Research are projections over one accepted book revision, not independently invented claims.",
-    "Reject Deep Research Analysis, Verified Findings, source-audit headings, provider status, ReviewQueued state, run ids, and process logs as reader-facing course structure.",
+    "This is a repository-coursebook task, not a research bootstrap task or a marketing projection.",
+    "Do not require research-question.md, search-log.md, source-screen.md, evidence-matrix.md, local-sources.md, synthesis-brief.md, or marketing-brief.md unless the course prompt explicitly asks for them.",
+    "Coursebook artifacts belong under site/coursebook/ and must include coursebook.json plus coursebook-evidence.json; projection tasks also include index.html, styles.css, app.js, and server.mjs copied from the bundled template.",
+    "coursebook-evidence.json must record revision, dirty state, repository-relative sources, SHA-256 digests, claim statuses, limitations, and unresolved gaps.",
+    "coursebook.json must use moonbook.repository-coursebook.v1 and teach Start here, System tour, Data flows, Use it, Operate it, Debug it, and Reference reader jobs.",
+    "Factual claims must retain source ids and visible limitations. The coursebook is a disposable projection over repository or accepted book evidence, never independently invented truth.",
+    "The optional MoonClaw pet is read-only, same-origin, citation-bounded, and useful only as an enhancement; the static coursebook must remain complete when it is offline.",
+    "Reject folder-tree dumps, one giant articles, generic AI prose, hidden prompts, private paths, provider status, ReviewQueued state, run ids, and process logs as reader-facing structure.",
     "Use [] for empty arrays and null for missing target_page.",
   ]
 }
@@ -171,8 +174,8 @@ fn standing_watch_task_kind(kind : String) -> Bool {
 
 ///|
 fn course_task_kind(kind : String) -> Bool {
-  kind == "course_outline" ||
-  kind == "course_workbook" ||
+  kind == "course_evidence" ||
+  kind == "course_author" ||
   kind == "course_project" ||
   kind == "course_review"
 }
@@ -491,12 +494,12 @@ fn task_skill_names(task : BookTask) -> Array[String] {
         names.push("wiki-memory")
         names.push("wiki-review")
       }
-      "course_outline" => {
+      "course_evidence" => {
         names.push("wiki-course")
         names.push("source-diarize")
         names.push("index-maintain")
       }
-      "course_workbook" => {
+      "course_author" => {
         names.push("wiki-course")
         names.push("claim-audit")
         names.push("index-maintain")

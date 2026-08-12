@@ -2350,22 +2350,24 @@ async test "produce task batch routes course goals without research report skill
     root, "create a beginner course and workbook for Wenyu Valley tile-map game design",
   )
   assert_true(batch.summary.contains("course_phases"))
-  assert_true(batch.tasks.any(fn(task) { task.kind == "course_outline" }))
-  assert_true(batch.tasks.any(fn(task) { task.kind == "course_workbook" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "course_evidence" }))
+  assert_true(batch.tasks.any(fn(task) { task.kind == "course_author" }))
   assert_true(batch.tasks.any(fn(task) { task.kind == "course_project" }))
   assert_true(batch.tasks.any(fn(task) { task.kind == "course_review" }))
   assert_true(!batch.tasks.any(fn(task) { task.kind == "bootstrap_gather" }))
   assert_true(!batch.tasks.any(fn(task) { task.kind == "marketing_project" }))
-  let workbook = batch.tasks
+  let author = batch.tasks
     .iter()
-    .find_first(fn(task : BookTask) { task.kind == "course_workbook" })
+    .find_first(fn(task : BookTask) { task.kind == "course_author" })
     .unwrap()
-  assert_true(workbook.prompt.contains("skills/wiki-course/SKILL.md"))
-  assert_true(!workbook.prompt.contains("skills/research-report/SKILL.md"))
+  assert_true(author.prompt.contains("skills/wiki-course/SKILL.md"))
+  assert_true(!author.prompt.contains("skills/research-report/SKILL.md"))
   assert_true(
-    workbook.target_pages.contains("../raw/bootstrap/course-outline.md"),
+    author.target_pages.contains("../site/coursebook/coursebook-evidence.json"),
   )
-  assert_true(workbook.target_pages.contains("../raw/bootstrap/deep-report.md"))
+  assert_true(
+    author.target_pages.contains("../site/coursebook/coursebook.json"),
+  )
 }
 
 ///|
@@ -2381,7 +2383,7 @@ async test "course worker context uses course contract not research bootstrap co
   assert_true(context.prompt.contains("Loaded skill body excerpts"))
   assert_true(
     context.output_contract.contains(
-      "This is a course task, not a research bootstrap task.",
+      "This is a repository-coursebook task, not a research bootstrap task or a marketing projection.",
     ),
   )
   assert_true(

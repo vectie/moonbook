@@ -49,6 +49,7 @@ This creates:
 - `keeper/POLICY.md`
 - `keeper/INSIGHTS.md`
 - `skills/research-report/SKILL.md`
+- `skills/wiki-course/SKILL.md`
 - `skills/standing-watch/SKILL.md`
 - `skills/document-reverse-engineer/SKILL.md`
 
@@ -94,6 +95,31 @@ Research workspaces should keep raw gathering separate from presentation:
 - MoonBook owns durable materialization into `wiki/sources/`, `wiki/entities/`, `wiki/concepts/`, and `wiki/synthesis/`.
 - The generated site uses `skills/research-report/SKILL.md` as the synthesis contract: reports should read as article-quality knowledge pages, cite source IDs, include a long-form `deep-report.md`, and avoid pasting raw evidence tables as prose.
 - If required artifacts are missing, the projection should stay diagnostic and explain the blocker instead of falling back to generic product copy.
+
+### Repository Coursebook Projection
+
+`skills/wiki-course/SKILL.md` is the repository-to-coursebook route. Unlike the
+generated reader view over an existing MoonBook revision, it can inspect a
+software repository and emit a separate, disposable documentation site.
+
+The workflow must:
+
+- record revision, dirty state, repository-relative sources, and SHA-256
+  digests in `coursebook-evidence.json`;
+- classify claims as implemented, documented, planned, simulated, or unknown;
+- organize lessons around Start here, System tour, Data flows, Use it, Operate
+  it, Debug it, and Reference rather than mirroring directories;
+- author `coursebook.json` against the
+  `moonbook.repository-coursebook.v1` contract;
+- reuse `skills/wiki-course/assets/coursebook-site/` for navigation, local
+  search, source disclosure, responsive layout, and print;
+- keep the site useful when the optional MoonClaw documentation pet is offline;
+- permit the pet to answer only from published coursebook evidence with public
+  page citations and no tools, mutation, secret access, or operator actions;
+- fail freshness checks when a recorded source changes after inspection.
+
+The coursebook is a reader projection, not an authority. Repository contracts,
+accepted MoonBook pages, and deployment evidence remain the source of truth.
 
 ### Marketing Projection
 
