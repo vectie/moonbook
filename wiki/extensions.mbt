@@ -207,6 +207,11 @@ test "moonclaw coursebook profile avoids research report injection" {
   assert_true(text.contains("site/coursebook/coursebook-evidence.json"))
   assert_true(text.contains("site/coursebook/coursebook.json"))
   assert_true(text.contains("moonbook.repository-coursebook.v1"))
+  assert_true(text.contains("Overview, Quickstart, How it works"))
+  assert_true(text.contains("opt-in Technical notes"))
+  assert_true(text.contains("coursebook.zh-CN.json"))
+  assert_true(text.contains("real current-state product screenshots"))
+  assert_true(text.contains("repository-owned recipes"))
 }
 
 ///|

@@ -2362,6 +2362,9 @@ async test "produce task batch routes course goals without research report skill
     .unwrap()
   assert_true(author.prompt.contains("skills/wiki-course/SKILL.md"))
   assert_true(!author.prompt.contains("skills/research-report/SKILL.md"))
+  assert_true(author.prompt.contains("Overview, Quickstart, How it works"))
+  assert_true(author.prompt.contains("opt-in Technical notes"))
+  assert_true(author.prompt.contains("coursebook.zh-CN.json"))
   assert_true(
     author.target_pages.contains("../site/coursebook/coursebook-evidence.json"),
   )
@@ -2385,6 +2388,21 @@ async test "course worker context uses course contract not research bootstrap co
     context.output_contract.contains(
       "This is a repository-coursebook task, not a research bootstrap task or a marketing projection.",
     ),
+  )
+  assert_true(
+    context.output_contract.any(fn(line) {
+      line.contains("beginner-first Overview, Quickstart, How it works")
+    }),
+  )
+  assert_true(
+    context.output_contract.any(fn(line) {
+      line.contains("complete coursebook.zh-CN.json")
+    }),
+  )
+  assert_true(
+    context.output_contract.any(fn(line) {
+      line.contains("real product captures")
+    }),
   )
   assert_true(
     !context.output_contract.any(fn(line) {

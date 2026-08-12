@@ -1277,8 +1277,8 @@ fn schema_text() -> String {
   "When creating or refreshing a repository coursebook:\n\n" +
   "1. Read `RESOLVER.md` and load `skills/wiki-course/SKILL.md`\n" +
   "2. Record revision, dirty state, repository-relative sources, digests, claim status, limitations, and gaps in `site/coursebook/coursebook-evidence.json`\n" +
-  "3. Author `site/coursebook/coursebook.json` around Start here, System tour, Data flows, Use it, Operate it, Debug it, and Reference reader jobs\n" +
-  "4. Copy the bundled site template instead of inventing a second shell, and keep it complete when the optional MoonClaw pet is offline\n" +
+  "3. Author `site/coursebook/coursebook.json` around beginner-first Overview, Quickstart, How it works, Deployment, Operations, Troubleshooting, and Reference journeys; keep process, provenance, claim status, and readiness judgment in opt-in Technical notes\n" +
+  "4. Copy the bundled site template instead of inventing a second shell; add complete requested localization, real current-state screenshots, and exercised repository-owned recipes, and keep it complete when the optional MoonClaw pet is offline\n" +
   "5. Treat the coursebook as a disposable teaching projection, not canonical truth; regenerate or mark stale when source bytes change\n\n" +
   "### Lint\n\n" +
   "Periodically check for:\n\n" +
@@ -1448,6 +1448,30 @@ async test "seeded wiki ingest skill is copied from repo templates" {
   assert_true(text.contains("references/raw-first-contract.md"))
   assert_true(text.contains("Gather lane contract"))
   assert_true(reference.contains("## Non-negotiable sequence"))
+}
+
+///|
+async test "seeded repository coursebook uses the rebuilt beginner contract" {
+  let root = unique_test_root("/tmp/moonbook-coursebook-skill-copy")
+  ignore(init_workspace(root))
+  let skill = @fsx.read_file(root + "/skills/wiki-course/SKILL.md")
+  let locale = @fsx.read_file(
+    root +
+    "/skills/wiki-course/assets/coursebook-site/coursebook.zh-CN.example.json",
+  )
+  let repository_instructions = @fsx.read_file(root + "/AGENTS.md")
+  assert_true(skill.contains("beginner-first top-level structure"))
+  assert_true(skill.contains("complete `coursebook.zh-CN.json` overlay"))
+  assert_true(skill.contains("real screenshots"))
+  assert_true(skill.contains("copy-paste recipes"))
+  assert_true(locale.contains("moonbook.repository-coursebook-locale.v1"))
+  assert_true(
+    repository_instructions.contains("Overview, Quickstart, How it works"),
+  )
+  assert_true(repository_instructions.contains("opt-in Technical notes"))
+  assert_true(
+    repository_instructions.contains("real current-state screenshots"),
+  )
 }
 
 ///|
