@@ -33,6 +33,8 @@ The CLI is now split more cleanly:
 - `moonbook skill ...` for skill inventory, diagnostics, and live skill management
 - `moonbook doctor ...` for top-level health checks
 - `moonbook wiki ...` for wiki-specific operations
+- `moonbook agent ...` for portable agent pack, inspection, verification,
+  comparison, staged merge, import, upgrade and rollback
 
 It is designed for:
 
@@ -79,6 +81,9 @@ MoonBook is strongest when you want one local system to handle:
 - 🧩 a typed MoonBook knowledge bundle for suite consumers
 - 🕸️ a generated graph of durable pages and cross-links
 - 🤝 runtime-agnostic wiki workspaces without hard-coupling to one agent
+- 📦 content-addressed `.moonbook-agent` exports that carry accepted book
+  identity, preferences, knowledge, skills and adopted procedures without live
+  runtime state or credentials
 
 ## News
 

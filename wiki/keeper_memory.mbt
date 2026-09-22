@@ -148,22 +148,22 @@ fn keeper_relative_path(path : String, paths : KeeperPaths) -> String {
 ///|
 fn keeper_entry_limit(path : String, paths : KeeperPaths) -> Int {
   if path == paths.user_path {
-    10
+    KeeperPreferenceEntryLimit
   } else if path == paths.working_path {
-    7
+    KeeperWorkingEntryLimit
   } else {
-    12
+    KeeperActiveEntryLimit
   }
 }
 
 ///|
 fn keeper_char_limit(path : String, paths : KeeperPaths) -> Int {
   if path == paths.user_path {
-    1400
+    KeeperPreferenceCharacterLimit
   } else if path == paths.working_path {
-    2400
+    KeeperWorkingCharacterLimit
   } else {
-    1800
+    KeeperActiveCharacterLimit
   }
 }
 
@@ -415,4 +415,35 @@ test "keeper candidate kind routes user memory" {
     target_page: None,
   })
   assert_eq(path, paths.user_path)
+}
+
+///|
+const KeeperActiveEntryLimit : Int = 12
+
+///|
+const KeeperPreferenceEntryLimit : Int = 10
+
+///|
+const KeeperWorkingEntryLimit : Int = 7
+
+///|
+const KeeperActiveCharacterLimit : Int = 1800
+
+///|
+const KeeperPreferenceCharacterLimit : Int = 1400
+
+///|
+const KeeperWorkingCharacterLimit : Int = 2400
+
+///|
+pub fn keeper_memory_policy() -> KeeperMemoryPolicy {
+  {
+    contract: "moonbook.memory_policy.v1",
+    active_entry_limit: KeeperActiveEntryLimit,
+    preference_entry_limit: KeeperPreferenceEntryLimit,
+    working_entry_limit: KeeperWorkingEntryLimit,
+    active_character_limit: KeeperActiveCharacterLimit,
+    preference_character_limit: KeeperPreferenceCharacterLimit,
+    working_character_limit: KeeperWorkingCharacterLimit,
+  }
 }

@@ -423,7 +423,7 @@ async fn summarize_source_coverage(wiki_dir : String) -> SourceCoverageSummary {
       _ => verified_count += 1
     }
   }
-  { total_count, candidate_count, provisional_count, verified_count }
+  { total_count, candidate_count, provisional_count, verified_count, }
 }
 
 ///|

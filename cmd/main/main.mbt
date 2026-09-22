@@ -5,6 +5,7 @@ async fn main {
     ["book", .. book_args] => run_book(book_args.to_owned())
     ["bookkeeper", .. bookkeeper_args] =>
       run_bookkeeper(bookkeeper_args.to_owned())
+    ["agent", .. agent_args] => run_agent(agent_args.to_owned())
     ["pack", .. pack_args] => run_pack(pack_args.to_owned())
     ["skill", .. skill_args] => run_skill(skill_args.to_owned())
     ["doctor", .. doctor_args] => run_doctor(doctor_args.to_owned())

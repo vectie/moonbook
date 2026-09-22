@@ -250,7 +250,7 @@ async fn ui_bookkeeper_state(root : String) -> @bookkeeper.BookkeeperUiState {
     parsed.projection_version != "moonbook.bookkeeper.ui.v1" {
     return empty
   }
-  { ..parsed, source_path: path, loaded: true }
+  { ..parsed, source_path: path, loaded: true, }
 }
 
 ///|
@@ -604,7 +604,7 @@ fn ui_status_chips(
     },
   })
   if health.maintenance_entry_count > 0 || health.keeper_working_count >= 8 {
-    chips.push({ label: "planning pressure", tone: "alert" })
+    chips.push({ label: "planning pressure", tone: "alert", })
   }
   chips
 }

@@ -43,7 +43,7 @@ fn build_review_block(block : String) -> ReviewBlock {
   let review_id = find_review_field(block, "- Review ID: `").unwrap_or(
     fallback_review_id(kind, title),
   )
-  { review_id, kind, title, block }
+  { review_id, kind, title, block, }
 }
 
 ///|

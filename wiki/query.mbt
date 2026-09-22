@@ -45,7 +45,7 @@ pub async fn query_wiki(
       Some((_, related)) => related
       None => []
     }
-    return { question, answer, citations: [], saved_page, related_pages }
+    return { question, answer, citations: [], saved_page, related_pages, }
   }
   let answer = answer_text(question, selected)
   let citations = selected.map(match_ => match_.relative_path)
@@ -62,7 +62,7 @@ pub async fn query_wiki(
     Some((_, related)) => related
     None => []
   }
-  { question, answer, citations, saved_page, related_pages }
+  { question, answer, citations, saved_page, related_pages, }
 }
 
 ///|

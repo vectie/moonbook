@@ -56,6 +56,19 @@ pub struct MemoryCandidate {
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
+/// Named Keeper bounds shared with portable-agent export. These are policy,
+/// not hidden truncation literals or model-output limits.
+pub struct KeeperMemoryPolicy {
+  contract : String
+  active_entry_limit : Int
+  preference_entry_limit : Int
+  working_entry_limit : Int
+  active_character_limit : Int
+  preference_character_limit : Int
+  working_character_limit : Int
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
 pub struct BookResult {
   result_id : String
   summary : String
@@ -106,7 +119,7 @@ pub fn decode_book_result_payload(value : Json) -> BookResult raise {
 fn decode_provider_task_result(value : Json) -> BookResult? {
   guard value is Object(fields) else { return None }
   guard fields.get("task_id") is Some(String(task_id)) else { return None }
-  let normalized : Map[String, Json] = {}
+  let normalized : Map[String, Json] = Map([])
   for key, value in fields {
     normalized[key] = value
   }
@@ -378,6 +391,20 @@ pub fn knowledge_bundle_contract() -> String {
 }
 
 ///|
+pub struct KnowledgeSourceLocation {
+  workspace_path : String
+  kind : String
+  page : Int?
+  slide : Int?
+  sheet : String?
+  cell_range : String?
+  section : String?
+  anchor : String?
+  label : String
+  content_digest : String
+} derive(Debug, Eq, ToJson, FromJson)
+
+///|
 pub struct KnowledgePageRecord {
   path : String
   moonbook_type : String
@@ -387,6 +414,14 @@ pub struct KnowledgePageRecord {
   source_quality : String
   tags : Array[String]
   outbound_links : Array[String]
+  content_digest : String
+  revision : String
+  provenance_refs : Array[String]
+  locations : Array[KnowledgeSourceLocation]
+  review_receipt_ref : String
+  sensitivity : String
+  invalidation_conditions : Array[String]
+  supersedes : String?
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|

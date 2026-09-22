@@ -317,5 +317,5 @@ pub async fn compile_executable_document_file(
     create=0o644,
   )
   @fsx.write_to_file(graph_path, graph.stringify(indent=2) + "\n", create=0o644)
-  { declaration_path, graph_path, graph }
+  { declaration_path, graph_path, graph, }
 }

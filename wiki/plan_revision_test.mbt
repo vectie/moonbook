@@ -38,13 +38,13 @@ test "Bookkeeper compiles immutable revision proposal and lineage" {
 
 ///|
 test "revision rejects history rewrite, evidence escape, and ambiguous declarations" {
-  let same_revision = { ..revision_request(), proposed_revision: "r1" }
+  let same_revision = { ..revision_request(), proposed_revision: "r1", }
   assert_true(
     same_revision
     .quality_issues()
     .contains("a revision must not rewrite its parent"),
   )
-  let escaped = { ..revision_request(), evidence_refs: ["../outside.json"] }
+  let escaped = { ..revision_request(), evidence_refs: ["../outside.json"], }
   assert_true(
     escaped
     .quality_issues()

@@ -490,9 +490,9 @@ async fn parse_wiki_query_args(args : Array[String]) -> ParsedWikiQueryArgs {
     fail("usage: moonbook wiki query [root] <question> [--save]")
   }
   if filtered.length() >= 2 && looks_like_wiki_root(filtered[0]) {
-    { root: filtered[0], question: filtered[1:].join(" "), save }
+    { root: filtered[0], question: filtered[1:].join(" "), save, }
   } else {
-    { root: ".", question: filtered.join(" "), save }
+    { root: ".", question: filtered.join(" "), save, }
   }
 }
 
@@ -520,9 +520,9 @@ async fn parse_wiki_extension_goal_args(
     fail("usage requires a goal")
   }
   if filtered.length() >= 2 && looks_like_wiki_root(filtered[0]) {
-    { root: filtered[0], goal: filtered[1:].join(" "), task_id }
+    { root: filtered[0], goal: filtered[1:].join(" "), task_id, }
   } else {
-    { root: ".", goal: filtered.join(" "), task_id }
+    { root: ".", goal: filtered.join(" "), task_id, }
   }
 }
 

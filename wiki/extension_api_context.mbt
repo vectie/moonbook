@@ -582,8 +582,8 @@ async fn skill_markdown_paths(root : String) -> Array[String] {
     return paths
   }
   for child in @fsx.list_directory(dir) {
-    let candidate = moonbook_wiki_path(dir)
-      .join(moonbook_wiki_path(child))
+    // fsx returns full child paths, not directory entry basenames.
+    let candidate = moonbook_wiki_path(child)
       .join(moonbook_wiki_path("SKILL.md"))
       .to_string()
     if @fsx.exists(candidate) {

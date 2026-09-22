@@ -48,7 +48,7 @@ async fn ui_reader_artifacts(root : String) -> ReaderArtifactBundle {
   let apply = ui_apply_artifact(root, learn)
   let research = ui_research_artifact(root)
   let identity = reader_canonical_book_identity(root, learn, apply, research)
-  { identity, learn, apply, research }
+  { identity, learn, apply, research, }
 }
 
 ///|
@@ -72,7 +72,7 @@ fn reader_canonical_book_identity(
   }
   let digest = @bookkeeper_store.bookkeeper_payload_digest(payload)
   let subject_id = "reader-source:{book_id}:{digest[7:]}"
-  { book_id, subject_id, revision: digest, digest, payload }
+  { book_id, subject_id, revision: digest, digest, payload, }
 }
 
 ///|

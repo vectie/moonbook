@@ -41,6 +41,8 @@ runtimes or standalone applications.
 | Deterministic MoonWiki requirements packet preparation and reconciliation | available locally |
 | Automatic capability promotion | excluded; named review required |
 | Multi-user hosted knowledge service | planned |
+| Portable agent pack/inspect/verify/diff | available locally |
+| Agent merge preview, import, upgrade and rollback | available locally |
 
 Conformance: **L2 usable locally** for the ordinary Bookkeeper review and
 replay-recovery journey. Cross-product L3 remains conditional on an exact
@@ -99,3 +101,5 @@ for changed workflows.
 - Make Three-Gap outcome binding visible in the MoonBook/MoonDesk UI.
 - Prove one learning proposal through canary, review, promotion or rollback.
 - Clarify extension installation, permissions and upgrade behavior.
+- Qualify `moonbook.agent_bundle.v1` across fresh import, protected merge,
+  upgrade, rollback and tamper-rejection scenarios.

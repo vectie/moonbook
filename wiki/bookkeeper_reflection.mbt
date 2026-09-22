@@ -623,7 +623,7 @@ async fn persist_bookkeeper_observation(
     proposals_document.stringify(indent=2) + "\n",
     create=0o644,
   )
-  { reflection_path, episode_path, proposals_path, reflection }
+  { reflection_path, episode_path, proposals_path, reflection, }
 }
 
 ///|
@@ -724,7 +724,7 @@ pub async fn record_spatial_reference_file(
     normalized_root, observation,
   )
   @fsx.write_to_file(study_path, canonical_study, create=0o644)
-  { study_path, reflection_record }
+  { study_path, reflection_record, }
 }
 
 ///|
@@ -772,7 +772,7 @@ pub async fn promote_bookkeeper_procedures(
         "procedure promotion requires evidence, verification, and failure modes",
       )
     }
-    let procedure = { ..candidate, status: "accepted" }
+    let procedure = { ..candidate, status: "accepted", }
     let stable_key = procedure_stable_key(candidate)
     let mut indexed = false
     for record in procedure_index.procedures {

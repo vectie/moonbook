@@ -1,0 +1,267 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "vectie/moonbook/agent"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn agent_bundle_contract() -> String
+
+pub fn agent_installation_receipt_contract() -> String
+
+pub fn agent_installation_state_contract() -> String
+
+pub fn agent_memory_policy_contract() -> String
+
+pub fn agent_merge_plan_contract() -> String
+
+pub fn agent_rollback_result_contract() -> String
+
+pub fn agent_source_location_contract() -> String
+
+pub async fn build_agent_bundle(String, version? : String) -> AgentBundle
+
+pub async fn diff_agent_bundles(String, String) -> AgentBundleDiff
+
+pub async fn import_agent_bundle(String, String) -> AgentInstallationReceipt
+
+pub async fn inspect_agent_bundle(String) -> AgentBundleInspection
+
+pub async fn pack_agent(String, version? : String, output? : String) -> String
+
+pub async fn plan_agent_merge(String, String) -> AgentMergePlan
+
+pub async fn read_agent_bundle(String) -> AgentBundle
+
+pub async fn rollback_agent_bundle(String, String) -> AgentRollbackResult
+
+pub async fn upgrade_agent_bundle(String, String) -> AgentInstallationReceipt
+
+pub async fn verify_agent_bundle(String) -> AgentBundleVerification
+
+pub async fn write_agent_merge_plan(String, String) -> String
+
+// Errors
+
+// Types and methods
+pub struct AgentArtifactLocation {
+  sandbox_id : String?
+  workspace_path : String
+  mime_type : String
+  preview_path : String?
+  location : AgentSourceLocation?
+  content_digest : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentBundle {
+  contract : String
+  agent_id : String
+  version : String
+  book_revision : String
+  created_at : Int64
+  knowledge_contract : String
+  compatibility : AgentCompatibility
+  export_policy : AgentExportPolicy
+  memory_policy : AgentMemoryPolicy
+  memory_metrics : AgentMemoryMetrics
+  files : Array[AgentBundleFile]
+  exclusions : Array[AgentBundleExclusion]
+  bundle_digest : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentBundleDiff {
+  left_agent_id : String
+  right_agent_id : String
+  left_version : String
+  right_version : String
+  added : Array[String]
+  removed : Array[String]
+  changed : Array[String]
+  unchanged : Array[String]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentBundleExclusion {
+  path : String
+  reason : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentBundleFile {
+  path : String
+  role : String
+  encoding : String
+  digest : String
+  size_bytes : Int
+  review_status : String
+  sensitivity : String
+  content : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentBundleFileSummary {
+  path : String
+  role : String
+  digest : String
+  size_bytes : Int
+  review_status : String
+  sensitivity : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentBundleInspection {
+  contract : String
+  agent_id : String
+  version : String
+  book_revision : String
+  bundle_digest : String
+  file_count : Int
+  total_bytes : Int
+  files : Array[AgentBundleFileSummary]
+  exclusions : Array[AgentBundleExclusion]
+  compatibility : AgentCompatibility
+  export_policy : AgentExportPolicy
+  memory_policy : AgentMemoryPolicy
+  memory_metrics : AgentMemoryMetrics
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentBundleVerification {
+  ok : Bool
+  agent_id : String
+  version : String
+  bundle_digest : String
+  checked_file_count : Int
+  issues : Array[String]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentCompatibility {
+  moonclaw_contract : String
+  moonfort_contract : String
+  moontown_contract : String
+  moongate_contract : String
+  required_capabilities : Array[String]
+  dependency_locks : Array[AgentDependencyLock]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentDependencyLock {
+  component : String
+  contract : String
+  version_range : String
+  required : Bool
+  capabilities : Array[String]
+  migration : String
+  lock_digest : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentExportPolicy {
+  accepted_knowledge_only : Bool
+  include_working_memory : Bool
+  include_runtime_state : Bool
+  include_credentials : Bool
+  relative_paths_only : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentInstallationReceipt {
+  contract : String
+  receipt_id : String
+  action : String
+  agent_id : String
+  version : String
+  bundle_digest : String
+  target_root : String
+  created_at : Int64
+  applied_files : Array[String]
+  previous_files : Array[AgentPriorFile]
+  previous_installation : String
+  rollback_available : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentInstallationState {
+  contract : String
+  agent_id : String
+  version : String
+  bundle_digest : String
+  installed_at : Int64
+  receipt_path : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentMemoryMetrics {
+  admitted : Int
+  rejected : Int
+  deduplicated : Int
+  expired : Int
+  promoted : Int
+  exported : Int
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentMemoryPolicy {
+  contract : String
+  active_entry_limit : Int
+  preference_entry_limit : Int
+  working_entry_limit : Int
+  active_character_limit : Int
+  preference_character_limit : Int
+  working_character_limit : Int
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentMemoryRecord {
+  semantic_id : String
+  kind : String
+  title : String
+  detail : String
+  scope : String
+  lifecycle : String
+  sensitivity : String
+  provenance : Array[AgentSourceLocation]
+  evidence_refs : Array[String]
+  confidence : Double
+  review_required : Bool
+  expires_at : Int?
+  invalidation_conditions : Array[String]
+  supersedes : String?
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentMergePlan {
+  contract : String
+  agent_id : String
+  version : String
+  bundle_digest : String
+  target_root : String
+  add : Array[String]
+  replace : Array[String]
+  unchanged : Array[String]
+  protected_conflicts : Array[String]
+  applies_changes : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentPriorFile {
+  path : String
+  existed : Bool
+  encoding : String
+  digest : String
+  content : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentRollbackResult {
+  contract : String
+  receipt_id : String
+  target_root : String
+  restored : Array[String]
+  removed : Array[String]
+  installation_restored : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct AgentSourceLocation {
+  workspace_path : String
+  kind : String
+  page : Int?
+  slide : Int?
+  sheet : String?
+  cell_range : String?
+  section : String?
+  anchor : String?
+  label : String
+  content_digest : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+// Type aliases
+
+// Traits

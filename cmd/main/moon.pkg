@@ -9,6 +9,7 @@ import {
   "vectie/moonbook/internal/watcher",
   "vectie/moonbook/bookkeeper",
   "vectie/moonbook/bookkeeper_store",
+  "vectie/moonbook/agent",
   "vectie/moonbook/driver",
   "vectie/moonbook/core",
   "vectie/moonbook/wiki",
@@ -23,3 +24,7 @@ import {
 supported_targets = "native"
 
 pkgtype(kind: "executable")
+
+options(
+  link: { "native": { "cc-link-flags": "-pthread -ldl" } },
+)

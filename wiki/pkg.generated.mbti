@@ -78,6 +78,8 @@ pub async fn init_workspace(String, title? : String?) -> WikiWorkspace
 
 pub async fn install_skill(String, String) -> SkillInstallResult
 
+pub fn keeper_memory_policy() -> KeeperMemoryPolicy
+
 pub fn knowledge_bundle_contract() -> String
 
 pub async fn lint_wiki(String) -> LintResult
@@ -524,6 +526,16 @@ pub struct IngestResult {
 
 type JourneyEntry derive(Eq, @debug.Debug)
 
+pub struct KeeperMemoryPolicy {
+  contract : String
+  active_entry_limit : Int
+  preference_entry_limit : Int
+  working_entry_limit : Int
+  active_character_limit : Int
+  preference_character_limit : Int
+  working_character_limit : Int
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
 pub struct KnowledgeBundle {
   contract : String
   book_id : String
@@ -557,6 +569,27 @@ pub struct KnowledgePageRecord {
   source_quality : String
   tags : Array[String]
   outbound_links : Array[String]
+  content_digest : String
+  revision : String
+  provenance_refs : Array[String]
+  locations : Array[KnowledgeSourceLocation]
+  review_receipt_ref : String
+  sensitivity : String
+  invalidation_conditions : Array[String]
+  supersedes : String?
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct KnowledgeSourceLocation {
+  workspace_path : String
+  kind : String
+  page : Int?
+  slide : Int?
+  sheet : String?
+  cell_range : String?
+  section : String?
+  anchor : String?
+  label : String
+  content_digest : String
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub struct LintFinding {

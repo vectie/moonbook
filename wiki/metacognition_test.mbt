@@ -79,7 +79,7 @@ async test "gap graph deduplicates stable gaps and records their resolution" {
   assert_eq(snapshot.open_information_gaps, 1)
   let repeated = metacognition_reflection(
     "reflection-gap-2",
-    [{ ..gap, gap_id: "information-observation-2" }],
+    [{ ..gap, gap_id: "information-observation-2", }],
     [],
     "2026-07-12T14:01:00+08:00",
   )

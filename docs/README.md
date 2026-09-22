@@ -15,6 +15,9 @@ Bookkeeper ownership, capability labels and release gates.
 - [Human-readable reader projections](READER_PROJECTIONS.md) — the evidence-led
   Learn, Apply, and Research contract, authoring loop, quality gates, and
   ownership boundary for MoonBook's reading experience.
+- [Portable and evolving agents](PORTABLE_EVOLVING_AGENT.md) — the
+  `moonbook.agent_bundle.v1` export, verification, merge, import, upgrade and
+  rollback lifecycle plus the MoonBook/MoonClaw/MoonDesk ownership split.
 
 MoonBook is the durable executable book for MoonSuite. It owns accepted book
 truth: raw sources, wiki pages, review queues, generated sites, book-owned
@@ -55,6 +58,8 @@ books, MoonGate observes, and MoonLib defines shared layout.
     drafts.
 11. [READER_PROJECTIONS.md](READER_PROJECTIONS.md): one canonical book exposed
     through audience-appropriate Learn, Apply, and Research views.
+12. [PORTABLE_EVOLVING_AGENT.md](PORTABLE_EVOLVING_AGENT.md): export a book as
+    a portable agent and advance it through governed evidence.
 
 ## Implementation Guidance
 

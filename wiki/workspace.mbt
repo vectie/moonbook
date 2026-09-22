@@ -18,5 +18,5 @@ fn workspace_paths(root : String) -> Paths {
   let summary_path = moonbook_wiki_path(wiki_dir)
     .join(moonbook_wiki_path("SUMMARY.md"))
     .to_string()
-  { root: normalized_root, raw_dir, wiki_dir, summary_path }
+  { root: normalized_root, raw_dir, wiki_dir, summary_path, }
 }

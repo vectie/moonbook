@@ -199,7 +199,7 @@ fn normalize_marketing_sections(
       }
     }
     if !body_parts.is_empty() || !bullets.is_empty() {
-      normalized.push({ title, body: body_parts.join(" "), bullets })
+      normalized.push({ title, body: body_parts.join(" "), bullets, })
     }
   }
   if normalized.is_empty() {
@@ -997,13 +997,13 @@ priv struct ResearchArtifactSpec {
 ///|
 fn research_artifact_specs() -> Array[ResearchArtifactSpec] {
   [
-    { title: "Research question", path: "raw/bootstrap/research-question.md" },
-    { title: "Search log", path: "raw/bootstrap/search-log.md" },
-    { title: "Source screen", path: "raw/bootstrap/source-screen.md" },
-    { title: "Evidence matrix", path: "raw/bootstrap/evidence-matrix.md" },
-    { title: "Local sources", path: "raw/bootstrap/local-sources.md" },
-    { title: "Synthesis brief", path: "raw/bootstrap/synthesis-brief.md" },
-    { title: "Deep report", path: "raw/bootstrap/deep-report.md" },
+    { title: "Research question", path: "raw/bootstrap/research-question.md", },
+    { title: "Search log", path: "raw/bootstrap/search-log.md", },
+    { title: "Source screen", path: "raw/bootstrap/source-screen.md", },
+    { title: "Evidence matrix", path: "raw/bootstrap/evidence-matrix.md", },
+    { title: "Local sources", path: "raw/bootstrap/local-sources.md", },
+    { title: "Synthesis brief", path: "raw/bootstrap/synthesis-brief.md", },
+    { title: "Deep report", path: "raw/bootstrap/deep-report.md", },
   ]
 }
 

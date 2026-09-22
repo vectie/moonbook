@@ -24,6 +24,13 @@ MoonBook should not become an agent runtime. It stores accepted knowledge,
 accepted code, sources, evidence, review receipts, generated sites, package
 manifests, and durable outputs.
 
+MoonBook can export that durable state as `moonbook.agent_bundle.v1`. The
+portable bundle is an agent definition, not a runtime snapshot: it contains
+accepted identity, preferences, knowledge, skills, procedures and compatible
+capability declarations, while excluding live MoonClaw queues, MoonFort state,
+credentials, working memory and machine-local roots. See
+[PORTABLE_EVOLVING_AGENT.md](PORTABLE_EVOLVING_AGENT.md).
+
 Bookkeeper agent work runs on MoonClaw. Bookkeeper's existing visual surface is
 MoonBook Rabbita; it does not introduce another runtime or frontend. When that
 work needs durable orchestration, MoonClaw may use MoonFlow as a generic engine,

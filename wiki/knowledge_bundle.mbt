@@ -197,6 +197,7 @@ fn knowledge_page_record(
   let title = detect_page_title(relative, body)
   let summary = infer_page_summary(body)
   let links = extract_knowledge_links(relative, body)
+  let content_digest = executable_sha256(content)
   {
     path: relative,
     moonbook_type,
@@ -206,6 +207,32 @@ fn knowledge_page_record(
     source_quality: infer_page_source_quality(relative, content),
     tags: infer_page_tags(relative, moonbook_type),
     outbound_links: links,
+    content_digest,
+    revision: content_digest,
+    provenance_refs: links.filter(link => {
+      link.has_prefix("http://") ||
+      link.has_prefix("https://") ||
+      link.has_prefix("raw/") ||
+      link.has_prefix("wiki/sources/")
+    }),
+    locations: [
+      {
+        workspace_path: relative,
+        kind: "section",
+        page: None,
+        slide: None,
+        sheet: None,
+        cell_range: None,
+        section: Some(title),
+        anchor: None,
+        label: title,
+        content_digest,
+      },
+    ],
+    review_receipt_ref: "",
+    sensitivity: "book-exportable",
+    invalidation_conditions: [],
+    supersedes: None,
   }
 }
 
@@ -312,11 +339,11 @@ fn build_knowledge_graph(pages : Array[KnowledgePageRecord]) -> KnowledgeGraph {
   for page in pages {
     for link in page.outbound_links {
       if known.contains(link) {
-        edges.push({ from: page.path, to: link, label: "links_to" })
+        edges.push({ from: page.path, to: link, label: "links_to", })
       }
     }
   }
-  { nodes: pages, edges }
+  { nodes: pages, edges, }
 }
 
 ///|
@@ -473,7 +500,15 @@ async test "knowledge bundle builds graph from maintained pages" {
   assert_eq(bundle.contract, "moonbook.knowledge_bundle.v1")
   assert_true(
     bundle.pages.any(fn(page) {
-      page.path == "wiki/entities/moonbook.md" && page.moonbook_type == "entity"
+      page.path == "wiki/entities/moonbook.md" &&
+      page.moonbook_type == "entity" &&
+      page.content_digest.has_prefix("sha256:") &&
+      page.revision == page.content_digest &&
+      page.locations.any(location => {
+        location.workspace_path == page.path &&
+        location.section == Some("MoonBook") &&
+        location.content_digest == page.content_digest
+      })
     }),
   )
   assert_true(

@@ -435,7 +435,7 @@ async test "Bookkeeper MoonClaw result ingests once into the Rabbita review queu
   }
   let invented = {
     ..result,
-    candidate: { ..result.candidate, payload: invented_payload },
+    candidate: { ..result.candidate, payload: invented_payload, },
   }
   try
     ingest_bookkeeper_moonclaw_result(root, packet_path, invented.to_json())
@@ -668,7 +668,7 @@ async test "MoonBook owns capability promotion policy and aggregation receipt" {
   let mixed_key = moonclaw_result_gap_record(
     "finding-e-mixed-key",
     outcome.record,
-    { ..learning_key, record_digest: "sha256:mixed-learning-key" },
+    { ..learning_key, record_digest: "sha256:mixed-learning-key", },
     "information_gap",
     4,
     "owner://learning",

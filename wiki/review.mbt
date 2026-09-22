@@ -163,7 +163,7 @@ async fn apply_review_action(
   if !promoted_pages.contains(synthesis_map_relative) {
     promoted_pages.push(synthesis_map_relative)
   }
-  { review_id, action, promoted_pages }
+  { review_id, action, promoted_pages, }
 }
 
 ///|
