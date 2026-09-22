@@ -138,7 +138,7 @@ async fn copy_static_assets(
   extra_markdown : Array[String],
   html_assets : Array[String],
 ) -> Unit {
-  let copied : Map[String, Unit] = {}
+  let copied : Map[String, Unit] = Map([])
   for chapter in chapters {
     let chapter_dir = match chapter.source_path {
       Some(path) => path_dirname(path)

@@ -30,4 +30,3 @@ pub async fn verify(String, String, String) -> @installer.InstalledVerification
 // Type aliases
 
 // Traits
-

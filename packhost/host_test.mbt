@@ -25,14 +25,14 @@ async fn write_fixture(root : String) -> Unit {
   @fs.write_file(
     root + "/pack.json",
     @utf8.encode(@pack.encode_manifest(manifest)),
-    create=0o644,
-    truncate=true,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   @fs.write_file(
     root + "/UNINSTALL.md",
     @utf8.encode("Preserve user data.\n"),
-    create=0o644,
-    truncate=true,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
 }
 

@@ -97,7 +97,7 @@ fn collect_html_attribute_values(html : String, attr : String) -> Array[String] 
 ///|
 fn split_link_references(markdown : String) -> (String, Map[String, String]) {
   let body : Array[String] = []
-  let references : Map[String, String] = {}
+  let references : Map[String, String] = Map([])
   for raw_line in markdown.split("\n") {
     let line = raw_line.to_owned()
     let trimmed = line.trim().to_owned()

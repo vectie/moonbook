@@ -68,7 +68,7 @@ async fn closure_test_decide(
     decided_at: record.recorded_at + 1,
   })
   if !result.accepted {
-    fail("fixture review \{suffix} rejected: \{to_repr(result.issues)}")
+    fail("fixture review \{suffix} rejected: \{Repr(result.issues)}")
   }
   result.review.unwrap()
 }

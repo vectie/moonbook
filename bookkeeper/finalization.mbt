@@ -436,7 +436,7 @@ pub fn finalize_deliverable(
       candidate_digest: candidate.candidate_digest,
       reviewer_id,
       reviewer_authority_ref,
-      issues: ReadOnlyArray::default(),
+      issues: Default::default(),
       bundle: None,
     }
   }
@@ -477,7 +477,7 @@ pub fn finalize_deliverable(
     candidate_digest: candidate.candidate_digest,
     reviewer_id,
     reviewer_authority_ref,
-    issues: ReadOnlyArray::default(),
+    issues: Default::default(),
     bundle: Some(bundle),
   }
 }

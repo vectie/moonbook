@@ -644,7 +644,7 @@ async fn emit_ingest_keeper_packet(
   }
   @fsx.write_to_file(
     packet_path,
-    packet.to_json().stringify(indent=2),
+    ToJson::to_json(packet).stringify(indent=2),
     create=0o644,
   )
   packet_path

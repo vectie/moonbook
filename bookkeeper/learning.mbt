@@ -45,7 +45,7 @@ pub fn CapabilityProposal::new(
     summary,
     evidence_refs: ReadOnlyArray::from_array(evidence_refs),
     supersedes_version,
-    source_finding_refs: ReadOnlyArray::default(),
+    source_finding_refs: Default::default(),
     promotion_policy_ref: None,
     aggregation_digest: None,
     policy_promoted: false,

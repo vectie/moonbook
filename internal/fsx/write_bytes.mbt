@@ -4,5 +4,10 @@ pub async fn write_bytes(
   content : Bytes,
   create? : Int = 0o644,
 ) -> Unit {
-  @fs.write_file(path.to_owned(), content, create~, truncate=true)
+  @fs.write_file(
+    path.to_owned(),
+    content,
+    create_mode=@fs.CreateOrTruncate,
+    permission=create,
+  )
 }

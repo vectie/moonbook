@@ -68,8 +68,8 @@ async fn acquire_store_lock(root : String) -> @fs.File {
   let lock = @fs.open(
     @pathx.join(store_root(root), "store.lock"),
     mode=@fs.ReadWrite,
-    create=0o600,
-    truncate=false,
+    create_mode=@fs.OpenOrCreate,
+    permission=0o600,
   )
   lock.lock(@fs.Exclusive)
   lock

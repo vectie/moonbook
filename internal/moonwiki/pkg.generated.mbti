@@ -37,4 +37,3 @@ pub async fn Server::serve_directory(Self, String, live_reload_endpoint? : Strin
 // Type aliases
 
 // Traits
-

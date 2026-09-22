@@ -91,7 +91,7 @@ pub async fn scan_paths_filtered(
   root_paths : Array[String],
   filter : WatchFilter?,
 ) -> Map[String, FileState] {
-  let states : Map[String, FileState] = {}
+  let states : Map[String, FileState] = Map([])
   for root in root_paths {
     scan_path(root, states, filter)
   }

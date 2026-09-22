@@ -33,4 +33,3 @@ pub fn moonwiki_moonflow_adapter_capability_json() -> Json
 // Type aliases
 
 // Traits
-

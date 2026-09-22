@@ -37,7 +37,7 @@ fn valid_rollout_mode(mode : String) -> Bool {
 
 ///|
 fn valid_activation_participants(participant_ids : ArrayView[String]) -> Bool {
-  let seen : Map[String, Bool] = {}
+  let seen : Map[String, Bool] = Map([])
   for participant_id in participant_ids {
     if participant_id.is_blank() || seen.contains(participant_id) {
       return false

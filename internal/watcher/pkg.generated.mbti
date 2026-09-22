@@ -50,4 +50,3 @@ pub enum WatcherKind {
 // Type aliases
 
 // Traits
-

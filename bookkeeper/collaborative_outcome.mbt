@@ -246,7 +246,7 @@ pub fn accept_completed_handover_outcome_v1(
     assessment, accepted_at,
   )
   let content_digest = @capability.sha256_digest_ref_v1(
-    @encoding/utf8.encode(payload.to_json().stringify()),
+    @encoding/utf8.encode(ToJson::to_json(payload).stringify()),
   )
   {
     issues: ReadOnlyArray::from_array([]),
@@ -322,7 +322,7 @@ pub fn encode_accepted_handover_outcome_v1(
       three_gap_assessment_id: accepted.three_gap_assessment_id,
       three_gap_assessment_version: accepted.three_gap_assessment_version,
       accepted_at: accepted.accepted_at,
-    }.to_json(),
+    } |> ToJson::to_json,
     content_digest: accepted.content_digest.text(),
-  }.to_json()
+  } |> ToJson::to_json
 }

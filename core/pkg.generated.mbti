@@ -99,4 +99,3 @@ pub fn SectionNumber::to_string(Self) -> String
 // Type aliases
 
 // Traits
-

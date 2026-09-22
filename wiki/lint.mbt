@@ -118,7 +118,7 @@ pub async fn lint_wiki(root : String) -> LintResult {
     .to_string(),
     findings.length(),
   )
-  { findings, report }
+  { findings, report, }
 }
 
 ///|
@@ -137,7 +137,7 @@ fn lint_paths(root : String) -> LintPaths {
   let summary_path = moonbook_wiki_path(wiki_dir)
     .join(moonbook_wiki_path("SUMMARY.md"))
     .to_string()
-  { root: normalized_root, wiki_dir, summary_path }
+  { root: normalized_root, wiki_dir, summary_path, }
 }
 
 ///|
@@ -172,7 +172,7 @@ async fn inbound_link_counts(
   page_paths : Array[String],
   root : String,
 ) -> Map[String, Int] {
-  let counts : Map[String, Int] = {}
+  let counts : Map[String, Int] = Map([])
   for path in page_paths {
     let current_relative = relative_to_root(path, root)
     let current_dir = moonbook_wiki_path(current_relative).dirname().to_string()
@@ -193,7 +193,7 @@ async fn page_content_map(
   page_paths : Array[String],
   root : String,
 ) -> Map[String, String] {
-  let contents : Map[String, String] = {}
+  let contents : Map[String, String] = Map([])
   for path in page_paths {
     contents[relative_to_root(path, root)] = maintained_analysis_content(
       @fsx.read_file(path),
@@ -383,7 +383,7 @@ fn stale_wording_findings(contents : Map[String, String]) -> Array[LintFinding] 
 ///|
 fn contradiction_findings(contents : Map[String, String]) -> Array[LintFinding] {
   let findings : Array[LintFinding] = []
-  let claims : Map[String, Array[Claim]] = {}
+  let claims : Map[String, Array[Claim]] = Map([])
   for path in contents.keys() {
     for claim in extract_claims(path, contents[path]) {
       let bucket = claims.get(claim.subject).unwrap_or([])
@@ -428,13 +428,13 @@ fn missing_concept_page_findings(
   if !has_source_evidence {
     return findings
   }
-  let concept_pages : Map[String, Bool] = {}
+  let concept_pages : Map[String, Bool] = Map([])
   for path in contents.keys() {
     if path.has_prefix("wiki/concepts/") {
       concept_pages[file_stem(path)] = true
     }
   }
-  let suggested : Map[String, Array[String]] = {}
+  let suggested : Map[String, Array[String]] = Map([])
   for path in contents.keys() {
     if !path.has_prefix("wiki/sources/") &&
       !path.has_prefix("wiki/entities/") &&
@@ -606,7 +606,7 @@ fn extract_claims(path : String, content : String) -> Array[Claim] {
         let subject = line[:index].trim().to_owned()
         let predicate = cleanup_predicate(line[index + 4:].to_owned())
         if likely_claim_subject(subject) && likely_claim_predicate(predicate) {
-          claims.push({ subject, predicate, path })
+          claims.push({ subject, predicate, path, })
         }
       }
       None => ()

@@ -24,7 +24,7 @@ fn render_markdown_with_refs(
   let paragraph : Array[String] = []
   let list_stack : Array[(Int, Bool, Int, Array[String])] = []
   let quote_lines : Array[String] = []
-  let heading_ids : Map[String, Int] = {}
+  let heading_ids : Map[String, Int] = Map([])
   let mut pending_table_header : String? = None
   let mut table_header : (Array[String], Array[String])? = None
   let table_rows : Array[Array[String]] = []

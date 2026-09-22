@@ -1161,9 +1161,9 @@ test "BK-3 reject revise and escalate are always non-adopting audit decisions" {
       candidate,
       evaluation,
       decision={
-        record_id: "non-accept-\{to_repr(disposition)}",
+        record_id: "non-accept-\{Repr(disposition)}",
         record_version: "1",
-        record_digest: "sha256:non-accept-\{to_repr(disposition)}",
+        record_digest: "sha256:non-accept-\{Repr(disposition)}",
       },
       requested=disposition,
       reviewer=bk3_adoption_reviewer(),

@@ -13,7 +13,7 @@ pub fn make_skill_hub_serve_options(
   port : Int,
   open_browser : Bool,
 ) -> SkillHubServeOptions {
-  { root, hostname, port, open_browser }
+  { root, hostname, port, open_browser, }
 }
 
 ///|
@@ -94,14 +94,14 @@ pub async fn serve_skill_hub(options : SkillHubServeOptions) -> Unit {
   let state_dir = skill_hub_state_dir(root)
   ensure_skill_hub_dirs(root)
   refresh_skill_hub_state(root)
-  let server = @http.Server::new(
+  let server = @http.Server(
     @socket.Addr::parse(
       "\{skill_hub_bind_host(options.hostname)}:\{options.port}",
     ),
   ) catch {
     error => fail("moonbook skill hub failed: \{error}")
   }
-  let serving_url = "http://\{options.hostname}:\{server.addr().port()}"
+  let serving_url = "http://\{options.hostname}:\{server.addr.port()}"
   println("skill hub state: \{state_dir}")
   println("skill hub listening on \{serving_url}")
   @async.with_task_group(group => {
@@ -348,7 +348,7 @@ fn skill_hub_scan_roots(root : String) -> Array[SkillHubScanRoot] {
     depth += 1
   }
   for extra in skill_hub_extra_paths() {
-    roots.push({ path: extra, category: "extra" })
+    roots.push({ path: extra, category: "extra", })
   }
   roots
 }

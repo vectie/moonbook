@@ -42,4 +42,3 @@ type UiClientConfig derive(ToJson, @debug.Debug)
 // Type aliases
 
 // Traits
-

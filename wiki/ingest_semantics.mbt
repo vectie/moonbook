@@ -886,7 +886,7 @@ fn extract_candidate_entities(
   content : String,
 ) -> Array[String] {
   let selected = detect_known_entities(title, content)
-  let counts : Map[String, Int] = {}
+  let counts : Map[String, Int] = Map([])
   for phrase in candidate_titlecase_phrases(title + "\n" + content) {
     if should_keep_entity_phrase(phrase) {
       counts[phrase] = counts.get(phrase).unwrap_or(0) + 1
@@ -917,7 +917,7 @@ fn extract_candidate_concepts(content : String) -> Array[String] {
   if selected.length() >= 3 {
     return selected
   }
-  let counts : Map[String, Int] = {}
+  let counts : Map[String, Int] = Map([])
   for word in lowercase_word_candidates(content) {
     if should_keep_concept_word(word) {
       counts[word] = counts.get(word).unwrap_or(0) + 1
