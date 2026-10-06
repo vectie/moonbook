@@ -40,11 +40,21 @@ pub async fn materialize_mooncode_draft_packet(String, MoonCodeDraftImportReques
 
 pub fn mooncode_draft_delivery_contract_version() -> String
 
+pub async fn outcome_lesson_history(String, String) -> Json
+
+pub async fn outcome_lesson_request(String, String, Json) -> (Int, Json) noraise
+
 pub async fn persist_bookkeeper_record(String, DurableBookkeeperRecord) -> BookkeeperMutationResult
 
 pub async fn persist_transport_envelope(String, BookkeeperTransportEnvelope) -> BookkeeperMutationResult
 
 pub async fn prepare_mooncode_draft_delivery(String, MoonCodeDraftDeliveryRequest) -> Result[MoonCodeDraftDeliveryPlan, String]
+
+pub async fn prepare_outcome_lesson(String, OutcomeLessonDraft) -> BookkeeperMutationResult
+
+pub async fn prepare_outcome_lesson_revision(String, OutcomeLessonRevision) -> BookkeeperMutationResult
+
+pub async fn prepare_outcome_lesson_selection(String, OutcomeLessonSelection) -> BookkeeperMutationResult
 
 pub fn product_outcome_closure_contract_version() -> String
 
@@ -61,6 +71,14 @@ pub async fn project_governed_mooncode_work_order(String, GovernedWorkOrderBridg
 pub async fn rebuild_bookkeeper_projection(String) -> BookkeeperStoreSnapshot
 
 pub async fn replay_bookkeeper_store(String) -> BookkeeperStoreSnapshot
+
+pub async fn resolve_outcome_lesson_handoff(String, OutcomeLessonTaskHandoff) -> Json
+
+pub fn resolve_task_guidance_query(Json) -> Json raise
+
+pub async fn retrieve_outcome_lessons(String, OutcomeLessonQuery) -> Json
+
+pub async fn select_task_guidance(String, Json) -> Json
 
 pub async fn submit_product_outcome(String, ProductOutcomeSubmission) -> ProductOutcomeSubmissionReceipt
 
@@ -264,6 +282,67 @@ pub(all) struct MoonCodeDraftImportRequest {
   envelope : @bookkeeper.VersionedRecordReference
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
+pub(all) struct OutcomeLessonCondition {
+  key : String
+  value : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct OutcomeLessonDraft {
+  contract_version : String
+  lesson_id : String
+  lesson_version : String
+  title : String
+  guidance : String
+  outcome : @bookkeeper.VersionedRecordReference
+  assessment : @bookkeeper.VersionedRecordReference
+  assessment_review : @bookkeeper.VersionedRecordReference
+  applicability : Array[OutcomeLessonCondition]
+  invalidation : Array[OutcomeLessonCondition]
+  recorded_at : Int
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct OutcomeLessonQuery {
+  contract_version : String
+  target_task : @bookkeeper.VersionedRecordReference
+  conditions : Array[OutcomeLessonCondition]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct OutcomeLessonRevision {
+  contract_version : String
+  lesson : OutcomeLessonDraft
+  supersedes : @bookkeeper.VersionedRecordReference
+  expected_head : @bookkeeper.VersionedRecordReference?
+  accepted_reviews : Array[@bookkeeper.VersionedRecordReference]
+  reason : String
+} derive(Eq, @debug.Debug)
+pub impl ToJson for OutcomeLessonRevision
+pub impl @json.FromJson for OutcomeLessonRevision
+
+pub(all) struct OutcomeLessonSelection {
+  contract_version : String
+  selection_id : String
+  lesson_id : String
+  target : @bookkeeper.VersionedRecordReference
+  expected_head : @bookkeeper.VersionedRecordReference?
+  accepted_reviews : Array[@bookkeeper.VersionedRecordReference]
+  reason : String
+  recorded_at : Int
+} derive(Eq, @debug.Debug)
+pub impl ToJson for OutcomeLessonSelection
+pub impl @json.FromJson for OutcomeLessonSelection
+
+pub(all) struct OutcomeLessonTaskHandoff {
+  contract_version : String
+  source_product : String
+  task : @bookkeeper.VersionedRecordReference
+  report : @bookkeeper.VersionedRecordReference
+  task_snapshot : String
+  report_snapshot : String
+  customer_acceptance : String
+  cash : String
+  authorizing : Bool
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
 pub(all) struct ProductOutcomeClosureReceipt {
   contract_version : String
   request : @bookkeeper.VersionedRecordReference
@@ -297,11 +376,13 @@ pub(all) struct ProductOutcomeClosureRequest {
   information_gap : ProductOutcomeGapStatement
   recognition_gap : ProductOutcomeGapStatement
   decisiveness_gap : ProductOutcomeGapStatement
-  capability_id : String
-  capability_version : String
-  capability_change_digest : String
-  capability_summary : String
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+  capability_id : String?
+  capability_version : String?
+  capability_change_digest : String?
+  capability_summary : String?
+} derive(Eq, @debug.Debug)
+pub impl ToJson for ProductOutcomeClosureRequest
+pub impl @json.FromJson for ProductOutcomeClosureRequest
 
 pub(all) struct ProductOutcomeGapStatement {
   present : Bool
@@ -325,11 +406,13 @@ pub(all) struct ProductOutcomeSubmission {
   information_gap : ProductOutcomeGapStatement
   recognition_gap : ProductOutcomeGapStatement
   decisiveness_gap : ProductOutcomeGapStatement
-  capability_id : String
-  capability_version : String
-  capability_change_digest : String
-  capability_summary : String
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+  capability_id : String?
+  capability_version : String?
+  capability_change_digest : String?
+  capability_summary : String?
+} derive(Eq, @debug.Debug)
+pub impl ToJson for ProductOutcomeSubmission
+pub impl @json.FromJson for ProductOutcomeSubmission
 
 pub(all) struct ProductOutcomeSubmissionReceipt {
   contract_version : String

@@ -1,0 +1,11 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "vectie/moonbook/bookkeeper_store",
+  "vectie/moonbook/internal/fsx",
+}
+
+supported_targets = "native"
+
+pkgtype(kind: "executable")

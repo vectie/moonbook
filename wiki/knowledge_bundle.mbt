@@ -140,6 +140,17 @@ pub async fn write_generated_knowledge_bundle(
   root : String,
   generated_dir : String,
 ) -> String {
+  render_generated_knowledge_bundle(root, generated_dir, async fn(path, text) {
+    @fsx.write_to_file(path, text, create=0o644)
+  })
+}
+
+///|
+async fn render_generated_knowledge_bundle(
+  root : String,
+  generated_dir : String,
+  publish : async (String, String) -> Unit,
+) -> String {
   let bundle = generate_knowledge_bundle(root)
   let bundle_path = moonbook_wiki_path(generated_dir)
     .join(moonbook_wiki_path("knowledge-bundle.json"))
@@ -147,16 +158,8 @@ pub async fn write_generated_knowledge_bundle(
   let graph_path = moonbook_wiki_path(generated_dir)
     .join(moonbook_wiki_path("graph.json"))
     .to_string()
-  @fsx.write_to_file(
-    bundle_path,
-    bundle.to_json().stringify(indent=2),
-    create=0o644,
-  )
-  @fsx.write_to_file(
-    graph_path,
-    bundle.graph.to_json().stringify(indent=2),
-    create=0o644,
-  )
+  publish(bundle_path, bundle.to_json().stringify(indent=2))
+  publish(graph_path, bundle.graph.to_json().stringify(indent=2))
   bundle_path
 }
 

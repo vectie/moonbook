@@ -29,6 +29,57 @@ async fn agent_test_book(label : String) -> String {
 }
 
 ///|
+async test "accepted learned procedures survive portable agent import" {
+  let root = agent_test_book("learned-procedure")
+  let target = root + "-imported"
+  @fsx.make_directory(
+    @pathx.join(root, "memory/procedures"),
+    recursive=true,
+    exists_ok=true,
+  )
+  let accepted = "{\n  \"procedure_id\": \"learned-check\",\n  \"status\": \"accepted\",\n  \"steps\": [\"Run the focused test before delivery\"]\n}\n"
+  @fsx.write_to_file(
+    @pathx.join(root, "memory/procedures/accepted.json"),
+    accepted,
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    @pathx.join(root, "memory/procedures/candidate.json"),
+    "{\"status\": \"candidate\"}\n",
+    create=0o644,
+  )
+  @fsx.write_to_file(
+    @pathx.join(root, "memory/procedures/legacy.json"),
+    "{\"status\": \"promoted\"}\n",
+    create=0o644,
+  )
+  let bundle_path = pack_agent(root)
+  let bundle = read_agent_bundle(bundle_path)
+  assert_true(
+    bundle.files.any(file => {
+      file.path == "memory/procedures/accepted.json" &&
+      file.review_status == "accepted"
+    }),
+  )
+  assert_true(
+    bundle.files.any(file => file.path == "memory/procedures/legacy.json"),
+  )
+  assert_false(
+    bundle.files.any(file => file.path == "memory/procedures/candidate.json"),
+  )
+  import_agent_bundle(bundle_path, target) |> ignore
+  assert_eq(
+    @fsx.read_file(@pathx.join(target, "memory/procedures/accepted.json")),
+    accepted,
+  )
+  assert_false(
+    @fsx.exists(@pathx.join(target, "memory/procedures/candidate.json")),
+  )
+  @fs.rmdir(root, recursive=true)
+  @fs.rmdir(target, recursive=true)
+}
+
+///|
 async test "agent bundle is portable accepted and content addressed" {
   let root = agent_test_book("portable")
   @fsx.make_directory(

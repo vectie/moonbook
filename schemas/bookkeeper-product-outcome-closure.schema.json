@@ -18,11 +18,10 @@
     "evidence_refs",
     "information_gap",
     "recognition_gap",
-    "decisiveness_gap",
-    "capability_id",
-    "capability_version",
-    "capability_change_digest",
-    "capability_summary"
+    "decisiveness_gap"
+  ],
+  "allOf": [
+    { "$ref": "#/$defs/capabilityDescriptorPresence" }
   ],
   "properties": {
     "contract_version": {
@@ -45,15 +44,37 @@
     "information_gap": { "$ref": "#/$defs/gapStatement" },
     "recognition_gap": { "$ref": "#/$defs/gapStatement" },
     "decisiveness_gap": { "$ref": "#/$defs/gapStatement" },
-    "capability_id": { "type": "string", "minLength": 1 },
-    "capability_version": { "type": "string", "minLength": 1 },
+    "capability_id": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "capability_version": { "type": "string", "minLength": 1, "pattern": "\\S" },
     "capability_change_digest": {
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
     },
-    "capability_summary": { "type": "string", "minLength": 1 }
+    "capability_summary": { "type": "string", "minLength": 1, "pattern": "\\S" }
   },
   "$defs": {
+    "capabilityDescriptorPresence": {
+      "anyOf": [
+        {
+          "required": ["capability_id", "capability_version", "capability_change_digest", "capability_summary"]
+        },
+        {
+          "not": {
+            "anyOf": [
+              { "required": ["capability_id"] },
+              { "required": ["capability_version"] },
+              { "required": ["capability_change_digest"] },
+              { "required": ["capability_summary"] }
+            ]
+          },
+          "properties": {
+            "information_gap": { "properties": { "present": { "const": false }, "severity": { "const": 0 } } },
+            "recognition_gap": { "properties": { "present": { "const": false }, "severity": { "const": 0 } } },
+            "decisiveness_gap": { "properties": { "present": { "const": false }, "severity": { "const": 0 } } }
+          }
+        }
+      ]
+    },
     "recordReference": {
       "type": "object",
       "additionalProperties": false,

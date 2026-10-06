@@ -20,6 +20,16 @@ enum InterfaceMessage {
   SidebarNextStep
   SidebarRefreshing
   SidebarLoaded
+  SnapshotUnavailable
+  SnapshotStale
+  SnapshotWaiting
+  SnapshotRetained
+  SnapshotMissing
+  SnapshotLiveMode
+  SnapshotStaticMode
+  SnapshotRetry
+  SnapshotRefresh
+  SnapshotDetails
   HeroEyebrow
   WorkflowTitle
   WorkflowSubtitle
@@ -45,7 +55,6 @@ enum InterfaceMessage {
   OperatorReaderNavigation
   OperatorDashboard
   OperatorSynthesisPanel
-  OperatorSnapshotReady
 }
 
 ///|
@@ -67,7 +76,22 @@ fn interface_message(
     (SimplifiedChinese, SidebarProduct) => "MoonBook 界面"
     (SimplifiedChinese, SidebarNextStep) => "下一步"
     (SimplifiedChinese, SidebarRefreshing) => "正在刷新工作区快照。"
-    (SimplifiedChinese, SidebarLoaded) => "实时工作区快照已加载。"
+    (SimplifiedChinese, SidebarLoaded) => "工作区快照已加载。"
+    (SimplifiedChinese, SnapshotUnavailable) => "工作区快照不可用。"
+    (SimplifiedChinese, SnapshotStale) => "工作区快照可能已过期。"
+    (SimplifiedChinese, SnapshotWaiting) =>
+      "正在读取工作区快照，尚未加载工作区数据。"
+    (SimplifiedChinese, SnapshotRetained) =>
+      "正在显示上次成功读取的数据；数据可能已过期。"
+    (SimplifiedChinese, SnapshotMissing) =>
+      "尚未加载工作区数据。重试以读取快照。"
+    (SimplifiedChinese, SnapshotLiveMode) =>
+      "已配置自动更新。需要时也可刷新快照。"
+    (SimplifiedChinese, SnapshotStaticMode) =>
+      "静态快照模式：未启用自动更新。刷新以重新读取快照。"
+    (SimplifiedChinese, SnapshotRetry) => "重试快照"
+    (SimplifiedChinese, SnapshotRefresh) => "刷新快照"
+    (SimplifiedChinese, SnapshotDetails) => "快照诊断详情"
     (SimplifiedChinese, HeroEyebrow) => "知识工作区"
     (SimplifiedChinese, WorkflowTitle) => "工作流界面"
     (SimplifiedChinese, WorkflowSubtitle) =>
@@ -103,7 +127,6 @@ fn interface_message(
       "审核积压、证据和开放事项的仪表盘视图。"
     (SimplifiedChinese, OperatorSynthesisPanel) =>
       "反映生成规划层的综合地图面板。"
-    (SimplifiedChinese, OperatorSnapshotReady) => "快照就绪"
     (_, LanguageSystem) => "System"
     (_, LanguageEnglish) => "English"
     (_, LanguageSimplifiedChinese) => "简体中文"
@@ -117,7 +140,22 @@ fn interface_message(
     (_, SidebarProduct) => "MoonBook UI"
     (_, SidebarNextStep) => "Next Step"
     (_, SidebarRefreshing) => "Refreshing workspace snapshot."
-    (_, SidebarLoaded) => "Live workspace snapshot loaded."
+    (_, SidebarLoaded) => "Workspace snapshot loaded."
+    (_, SnapshotUnavailable) => "Workspace snapshot unavailable."
+    (_, SnapshotStale) => "Workspace snapshot may be out of date."
+    (_, SnapshotWaiting) =>
+      "Reading the workspace snapshot. Workspace data has not loaded yet."
+    (_, SnapshotRetained) =>
+      "Showing the last successful read; this data may be out of date."
+    (_, SnapshotMissing) =>
+      "Workspace data has not loaded. Retry to read the snapshot."
+    (_, SnapshotLiveMode) =>
+      "Automatic updates are configured. You can also refresh the snapshot."
+    (_, SnapshotStaticMode) =>
+      "Static snapshot mode: automatic updates are off. Refresh to read the snapshot again."
+    (_, SnapshotRetry) => "Retry snapshot"
+    (_, SnapshotRefresh) => "Refresh snapshot"
+    (_, SnapshotDetails) => "Snapshot diagnostics"
     (_, HeroEyebrow) => "Knowledge workspace"
     (_, WorkflowTitle) => "Workflow Surface"
     (_, WorkflowSubtitle) =>
@@ -153,21 +191,23 @@ fn interface_message(
       "Dashboard view for review backlog, evidence, and open loops."
     (_, OperatorSynthesisPanel) =>
       "A synthesis map panel that reflects the generated planning layer."
-    (_, OperatorSnapshotReady) => "Snapshot Ready"
   }
 }
 
 ///|
 #cfg(target="js")
-extern "js" fn browser_interface_locale() -> String = "()=>{const cookie=document.cookie.match(/(?:^|; )moonsuite_interface_locale=([^;]+)/);const stored=cookie?decodeURIComponent(cookie[1]):localStorage.getItem('moonsuite.interfaceLocale');const raw=!stored||stored==='system'?(navigator.languages?.[0]||navigator.language||'en-US'):stored;return /^(zh(?:-|_)(?:Hans|CN|SG)|zh$)/i.test(raw)?'zh-Hans':'en-US'}"
+extern "js" fn browser_interface_locale() -> String = "()=>{let stored=null;try{const cookie=document.cookie.match(/(?:^|; )moonsuite_interface_locale=([^;]+)/);stored=cookie?decodeURIComponent(cookie[1]):localStorage.getItem('moonsuite.interfaceLocale')}catch(_){}const raw=!stored||stored==='system'?(globalThis.navigator?.languages?.[0]||globalThis.navigator?.language||'en-US'):stored;return /^(zh(?:-|_)(?:Hans|CN|SG)|zh$)/i.test(raw)?'zh-Hans':'en-US'}"
 
 ///|
 #cfg(target="js")
-extern "js" fn persist_browser_interface_locale(locale : String) = "(locale)=>{document.cookie='moonsuite_interface_locale='+encodeURIComponent(locale)+'; Path=/; Max-Age=31536000; SameSite=Lax';localStorage.setItem('moonsuite.interfaceLocale',locale);document.documentElement.lang=locale;document.documentElement.dir='ltr'}"
+extern "js" fn persist_browser_interface_locale(locale : String) = "(locale)=>{try{document.cookie='moonsuite_interface_locale='+encodeURIComponent(locale)+'; Path=/; Max-Age=31536000; SameSite=Lax';localStorage.setItem('moonsuite.interfaceLocale',locale)}catch(_){}document.documentElement.lang=locale;document.documentElement.dir='ltr'}"
 
 ///|
 #cfg(target="js")
-extern "js" fn use_browser_system_locale() = "()=>{document.cookie='moonsuite_interface_locale=system; Path=/; Max-Age=31536000; SameSite=Lax';localStorage.setItem('moonsuite.interfaceLocale','system');window.location.reload()}"
+extern "js" fn use_browser_system_locale() = "()=>{try{document.cookie='moonsuite_interface_locale=system; Path=/; Max-Age=31536000; SameSite=Lax';localStorage.setItem('moonsuite.interfaceLocale','system')}catch(_){}const raw=globalThis.navigator?.languages?.[0]||globalThis.navigator?.language||'en-US';document.documentElement.lang=/^(zh(?:-|_)(?:Hans|CN|SG)|zh$)/i.test(raw)?'zh-Hans':'en-US';document.documentElement.dir='ltr'}"
+
+///|
+extern "js" fn browser_system_locale() -> String = "()=>/^(zh(?:-|_)(?:Hans|CN|SG)|zh$)/i.test(globalThis.navigator?.languages?.[0]||globalThis.navigator?.language||'en-US')?'zh-Hans':'en-US'"
 
 ///|
 fn initial_interface_locale() -> InterfaceLocale {

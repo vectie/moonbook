@@ -54,10 +54,12 @@ fn submission_fixture() -> ProductOutcomeSubmission {
       summary: "The accepted experiment is not yet an operating rule.",
       evidence_refs: [synthesis.reference_id, decision.reference_id],
     },
-    capability_id: "moonfind.cross-paper-synthesis",
-    capability_version: "2",
-    capability_change_digest: "sha256:" + "d".repeat(64),
-    capability_summary: "Propose the reviewed evidence-routing improvement.",
+    capability_id: Some("moonfind.cross-paper-synthesis"),
+    capability_version: Some("2"),
+    capability_change_digest: Some("sha256:" + "d".repeat(64)),
+    capability_summary: Some(
+      "Propose the reviewed evidence-routing improvement.",
+    ),
   }
 }
 

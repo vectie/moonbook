@@ -42,11 +42,22 @@ pub async fn write_generated_book_state(
   root : String,
   generated_dir : String,
 ) -> String {
+  render_generated_book_state(root, generated_dir, async fn(path, text) {
+    @fsx.write_to_file(path, text, create=0o644)
+  })
+}
+
+///|
+async fn render_generated_book_state(
+  root : String,
+  generated_dir : String,
+  publish : async (String, String) -> Unit,
+) -> String {
   let snapshot = generate_book_state_snapshot(root)
   let path = moonbook_wiki_path(generated_dir)
     .join(moonbook_wiki_path("book-state.json"))
     .to_string()
-  @fsx.write_to_file(path, snapshot.to_json().stringify(indent=2), create=0o644)
+  publish(path, snapshot.to_json().stringify(indent=2))
   path
 }
 

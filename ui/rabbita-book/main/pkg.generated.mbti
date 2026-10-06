@@ -11,15 +11,45 @@ import {
 // Errors
 
 // Types and methods
+type BookkeeperAuthorityGrant derive(ToJson, @debug.Debug, @json.FromJson)
+
+type BookkeeperAuthorityRegistry derive(@debug.Debug, @json.FromJson)
+
+type BookkeeperBrowserResponse derive(@debug.Debug, @json.FromJson)
+
+type BookkeeperEvidenceReference derive(ToJson, @debug.Debug, @json.FromJson)
+
 type BookkeeperItem derive(@debug.Debug, @json.FromJson)
 
+type BookkeeperJourneyStep derive(Eq, @debug.Debug)
+
+type BookkeeperMutationResult derive(@debug.Debug, @json.FromJson)
+
+type BookkeeperRawRecord derive(ToJson, @debug.Debug, @json.FromJson)
+
+type BookkeeperRawReview derive(@debug.Debug, @json.FromJson)
+
+type BookkeeperRecordReference derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type BookkeeperReviewDraft derive(ToJson, @debug.Debug)
+
+type BookkeeperReviewerAuthority derive(ToJson, @debug.Debug, @json.FromJson)
+
 type BookkeeperState derive(@debug.Debug, @json.FromJson)
+
+type BookkeeperStoreSnapshot derive(@debug.Debug, @json.FromJson)
+
+type BookkeeperWorkOrderEgressDraft derive(ToJson, @debug.Debug)
+
+type BookkeeperWorkOrderProjectDraft derive(ToJson, @debug.Debug)
 
 type ChapterLink derive(@debug.Debug, @json.FromJson)
 
 type InterfaceLocale derive(Eq)
 
 type InterfaceMessage
+
+type LessonReceiverBrowser
 
 type Model
 
@@ -33,6 +63,28 @@ type UiClientConfig derive(@debug.Debug, @json.FromJson)
 
 type UiState derive(@debug.Debug, @json.FromJson)
 
+type WikiReviewBrowserResponse derive(@json.FromJson)
+
+type WikiReviewChoice derive(Eq, @debug.Debug)
+
+type WikiReviewDetail derive(@debug.Debug, @json.FromJson)
+
+type WikiReviewDetailWire derive(@json.FromJson)
+
+type WikiReviewEffect derive(@debug.Debug)
+
+type WikiReviewItem derive(@debug.Debug, @json.FromJson)
+
+type WikiReviewMsg derive(@debug.Debug)
+
+type WikiReviewPending derive(@debug.Debug)
+
+type WikiReviewQueueWire derive(@json.FromJson)
+
+type WikiReviewResolution derive(@debug.Debug)
+
+type WikiReviewState derive(@debug.Debug)
+
 type WorkflowItem derive(@debug.Debug, @json.FromJson)
 
 type WorkspaceMetric derive(@debug.Debug, @json.FromJson)
@@ -40,4 +92,3 @@ type WorkspaceMetric derive(@debug.Debug, @json.FromJson)
 // Type aliases
 
 // Traits
-

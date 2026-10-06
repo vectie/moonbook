@@ -27,11 +27,11 @@ pub(all) struct ProductOutcomeSubmission {
   information_gap : ProductOutcomeGapStatement
   recognition_gap : ProductOutcomeGapStatement
   decisiveness_gap : ProductOutcomeGapStatement
-  capability_id : String
-  capability_version : String
-  capability_change_digest : String
-  capability_summary : String
-} derive(Debug, Eq, ToJson, FromJson)
+  capability_id : String?
+  capability_version : String?
+  capability_change_digest : String?
+  capability_summary : String?
+} derive(Debug, Eq)
 
 ///|
 /// The receipt is deliberately non-activating. Replaying the exact submission
@@ -122,13 +122,18 @@ fn validate_product_outcome_submission(
     submission.deliverable_summary.is_blank() ||
     submission.outcome_summary.is_blank() ||
     submission.owner_route.is_blank() ||
-    submission.decision_evidence_id.is_blank() ||
-    submission.capability_id.is_blank() ||
-    submission.capability_version.is_blank() ||
-    !product_outcome_digest_valid(submission.capability_change_digest) ||
-    submission.capability_summary.is_blank() {
+    submission.decision_evidence_id.is_blank() {
     fail("product outcome submission metadata is incomplete")
   }
+  validate_outcome_capability(
+    submission.capability_id,
+    submission.capability_version,
+    submission.capability_change_digest,
+    submission.capability_summary,
+    submission.information_gap,
+    submission.recognition_gap,
+    submission.decisiveness_gap,
+  )
   if submission.observed_at < 0 ||
     submission.recorded_at < submission.observed_at {
     fail("product outcome submission timestamps are invalid")
@@ -213,17 +218,15 @@ fn product_submission_receipt(
 }
 
 ///|
-/// Import a product outcome into the existing Bookkeeper store and advance it
-/// only as far as already-recorded named-human decisions allow.
-///
-/// First execution creates a reviewable deliverable and a correlated
-/// `product.result` ingress. A replay after MoonBook accepts the deliverable
-/// delegates to `close_product_outcome`, which owns the deterministic
-/// Three-Gap assessment and later proposal gates.
-pub async fn submit_product_outcome(
+// Shared intake stops before any review-dependent progression. UI import and
+// interrupted-intake recovery reuse the same immutable records as the adapter.
+async fn intake_product_outcome(
   root : String,
   submission : ProductOutcomeSubmission,
-) -> ProductOutcomeSubmissionReceipt {
+) -> (
+  @bookkeeper.VersionedRecordReference,
+  @bookkeeper.VersionedRecordReference,
+) {
   validate_product_outcome_submission(submission)
   let deliverable_payload : Json = {
     "contract_version": @bookkeeper.bookkeeper_contract_version(),
@@ -294,7 +297,51 @@ pub async fn submit_product_outcome(
     persist_transport_envelope(root, result),
     "product result ingress",
   )
+  (deliverable_ref, result_ref)
+}
 
+///|
+fn submission_closure_request(
+  submission : ProductOutcomeSubmission,
+  deliverable_ref : @bookkeeper.VersionedRecordReference,
+  result_ref : @bookkeeper.VersionedRecordReference,
+  review : GovernedReviewReceipt,
+) -> ProductOutcomeClosureRequest {
+  {
+    contract_version: product_outcome_closure_contract_version(),
+    request: submission.submission,
+    source_product: submission.source_product,
+    deliverable: deliverable_ref,
+    result: result_ref,
+    deliverable_review: review.receipt,
+    observed_at: submission.observed_at,
+    recorded_at: submission.recorded_at,
+    outcome_summary: submission.outcome_summary,
+    owner_route: submission.owner_route,
+    evidence_refs: submission.evidence_refs,
+    information_gap: submission.information_gap,
+    recognition_gap: submission.recognition_gap,
+    decisiveness_gap: submission.decisiveness_gap,
+    capability_id: submission.capability_id,
+    capability_version: submission.capability_version,
+    capability_change_digest: submission.capability_change_digest,
+    capability_summary: submission.capability_summary,
+  }
+}
+
+///|
+/// Import a product outcome into the existing Bookkeeper store and advance it
+/// only as far as already-recorded named-human decisions allow.
+///
+/// First execution creates a reviewable deliverable and a correlated
+/// `product.result` ingress. A replay after MoonBook accepts the deliverable
+/// delegates to `close_product_outcome`, which owns the deterministic
+/// Three-Gap assessment and later proposal gates.
+pub async fn submit_product_outcome(
+  root : String,
+  submission : ProductOutcomeSubmission,
+) -> ProductOutcomeSubmissionReceipt {
+  let (deliverable_ref, result_ref) = intake_product_outcome(root, submission)
   let snapshot = replay_bookkeeper_store(root)
   let review = product_outcome_exact_human_decision(
     snapshot,
@@ -324,26 +371,12 @@ pub async fn submit_product_outcome(
     )
   }
 
-  let closure_request : ProductOutcomeClosureRequest = {
-    contract_version: product_outcome_closure_contract_version(),
-    request: submission.submission,
-    source_product: submission.source_product,
-    deliverable: deliverable_ref,
-    result: result_ref,
-    deliverable_review: review.unwrap().receipt,
-    observed_at: submission.observed_at,
-    recorded_at: submission.recorded_at,
-    outcome_summary: submission.outcome_summary,
-    owner_route: submission.owner_route,
-    evidence_refs: submission.evidence_refs,
-    information_gap: submission.information_gap,
-    recognition_gap: submission.recognition_gap,
-    decisiveness_gap: submission.decisiveness_gap,
-    capability_id: submission.capability_id,
-    capability_version: submission.capability_version,
-    capability_change_digest: submission.capability_change_digest,
-    capability_summary: submission.capability_summary,
-  }
+  let closure_request = submission_closure_request(
+    submission,
+    deliverable_ref,
+    result_ref,
+    review.unwrap(),
+  )
   let closure = close_product_outcome(root, closure_request)
   product_submission_receipt(
     submission,

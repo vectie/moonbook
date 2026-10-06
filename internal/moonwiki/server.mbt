@@ -84,7 +84,7 @@ pub fn parse_serve_args(args : Array[String]) -> ServeOptions? {
         }
     }
   }
-  Some({ root, hostname, port, dest_dir, open_browser, watcher_kind })
+  Some({ root, hostname, port, dest_dir, open_browser, watcher_kind, })
 }
 
 ///|
@@ -116,7 +116,7 @@ pub async fn Server::new(
     dual_stack~,
     reuse_addr~,
   )
-  { server, port: server.addr.port() }
+  { server, port: server.addr.port(), }
 }
 
 ///|
@@ -217,6 +217,47 @@ async fn handle_bookkeeper_request(
 ) -> Bool {
   let path = request_path_without_query(request.path)
   match (request.meth, path) {
+    (Post, "/api/bookkeeper/lessons/prepare")
+    | (Post, "/api/bookkeeper/lessons/task-handoff")
+    | (Post, "/api/bookkeeper/lessons/outcome-import")
+    | (Post, "/api/bookkeeper/lessons/outcome-continue")
+    | (Post, "/api/bookkeeper/lessons/history")
+    | (Post, "/api/bookkeeper/lessons/revise")
+    | (Post, "/api/bookkeeper/lessons/select")
+    | (Post, "/api/bookkeeper/lessons/retrieve")
+    | (Post, "/api/bookkeeper/lessons/guidance-query")
+    | (Post, "/api/bookkeeper/lessons/guidance-select") => {
+      let payload : Json = parse_json_body(body) catch {
+        error => {
+          send_json_status(conn, 400, "Bad Request", {
+            "ok": false,
+            "error": error.to_string(),
+          })
+          return true
+        }
+      }
+      let (status, response) = @bookkeeper_store.outcome_lesson_request(
+        workspace_root, path, payload,
+      )
+      if status == 200 &&
+        [
+          "/api/bookkeeper/lessons/prepare", "/api/bookkeeper/lessons/revise", "/api/bookkeeper/lessons/select",
+          "/api/bookkeeper/lessons/outcome-import", "/api/bookkeeper/lessons/outcome-continue",
+        ].contains(path) {
+        sync_bookkeeper_projection_to_served_ui(static_root, workspace_root)
+      }
+      send_json_status(
+        conn,
+        status,
+        if status == 200 {
+          "OK"
+        } else {
+          "Lesson Request Rejected"
+        },
+        response,
+      )
+      true
+    }
     (Get, "/api/bookkeeper/state") => {
       let snapshot = @bookkeeper_store.replay_bookkeeper_store(workspace_root)
       send_json_status(conn, 200, "OK", snapshot.to_json())
@@ -489,11 +530,16 @@ async fn handle_application_request(
   live_reload_endpoint : String?,
 ) -> Unit {
   match workspace_root {
-    Some(root) =>
+    Some(root) => {
       if request.path.has_prefix("/api/bookkeeper/") &&
         handle_bookkeeper_request(static_root, root, request, body, conn) {
         return
       }
+      if wiki_review_http_route(request.path) {
+        handle_wiki_review_request(root, request, body, conn)
+        return
+      }
+    }
     None => ()
   }
   handle_file_request(

@@ -61,6 +61,27 @@ The producing product supplies three structured gap statements:
 - recognition: known → matters;
 - decisiveness: matters → action.
 
+When all three supplied gaps explicitly state `present: false` and `severity: 0`,
+the existing v1 submission and closure contracts permit all four capability
+descriptor fields to be omitted together: `capability_id`, `capability_version`,
+`capability_change_digest`, and `capability_summary`. A partial group or null is
+invalid. A present gap still requires the complete real descriptor. Existing
+complete descriptors remain valid even for no-gap outcomes, and their canonical
+serialization and assessment summary are unchanged. Omission does not remove
+evidence, summaries, or the existing human review gates.
+
+An omitted descriptor uses the supplied outcome summary for the assessment and,
+after its existing review, closes as `closed_no_capability_change`. It produces
+no capability proposal or activation handoff. Native typed callers use four
+`String?` fields (`Some` for existing values, `None` for omission); function names
+and flat JSON field names remain unchanged. See the checked
+[no-change example](../bookkeeper_store/OUTCOME_NO_CHANGE.mbt.md).
+
+This compatibility applies to MoonBook's direct, unattended, and UI-host intake
+paths. MoonClaw's independent supervisor schema still requires a complete
+descriptor and is not changed by this feature. Existing full-descriptor producers
+continue to use their current wire without modification.
+
 MoonBook validates severity and evidence linkage and deterministically records
 all three dimensions in one `ThreeGapAssessment`. It does not ask an LLM to
 invent a gap, severity or evidence reference.
@@ -173,7 +194,55 @@ health attestation into `moonflow.capability-source-bundle.v1`, and compiles a
 catalog. MoonGate only projects the operation after that catalog passes
 conformance.
 
+## Continue an imported task outcome in the browser
+
+After receiving an accepted Proj task in **Make and reuse a lesson**, the
+outcome-review panel shows already-saved submissions bound to that exact task
+and accepted report. A new task handoff alone supplies context, not outcome
+evidence. If no submission exists, choose **Import outcome file** and select a
+complete `ProductOutcomeSubmission` produced for this task. Inspect its outcome
+summary and evidence before explicitly saving it for review. Raw contract details
+stay available in the disclosure.
+
+The ordered path uses the existing decisions:
+
+1. Import the complete evidence-bound outcome, or resume an existing submission
+2. Open its exact deliverable in the existing named-human review controls
+3. After acceptance, choose **Continue outcome review** to prepare the assessment
+4. Open and review that exact assessment using the same controls
+5. Refresh the handoff and choose **Start lesson from this assessment**
+
+The existing host exposes `/api/bookkeeper/lessons/outcome-import` and
+`/api/bookkeeper/lessons/outcome-continue`. Both receive the exact task handoff;
+import also receives the complete submission, while continuation receives only
+the saved submission reference and reloads its original immutable payload.
+Responses use the existing lesson-operation wrapper and fresh task-handoff
+readback. No Book path is accepted from the request. The handoff readback adds
+`outcome_submissions`, including the next exact record and current review stage.
+
+Import only reconciles the deliverable and result ingress. Continuation shares
+the existing intake and assessment-preparation implementation and structurally
+stops before capability proposals. It does not perform a human review, modify
+accepted knowledge, activate a capability, or turn Proj's internal acceptance
+into a customer outcome. The general adapter's later capability progression is
+unchanged. Repeated calls preserve journal identities; an interrupted intake can
+resume from its saved submission. Rejected versions stay rejected, and incomplete,
+changed or differently bound files are rejected without inventing missing fields.
+
+A complete producer file remains a prerequisite, using the conditional descriptor
+rule above for an explicitly no-gap outcome. Successful execution does not
+guarantee that one exists. The browser does not author or infer Three-Gap claims,
+capability metadata, post-delivery observations, customer acceptance or cash.
+Existing installed reviewer permissions are still required; no new review gate
+or authority grant is added. The ordinary **Replay and verify** action continues
+to rebuild projections, and is distinct from explicitly continuing an outcome.
+
 ## Remaining human gates
+
+After assessment review, [reviewed outcome lessons](REVIEWED_OUTCOME_LESSONS.md)
+can preserve explicit guidance and applicability in the existing journal. The
+Bookkeeper UI supports authoring, named review and retrieval for a later task;
+this does not activate the capability proposal.
 
 - The deterministic Three-Gap assessment requires named-human review.
 - A proposed capability change requires a second named-human review.

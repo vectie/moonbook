@@ -23,6 +23,10 @@ import {
 
 supported_targets = "native"
 
+import {
+  "moonbitlang/async/fs",
+} for "wbtest"
+
 pkgtype(kind: "executable")
 
 options(

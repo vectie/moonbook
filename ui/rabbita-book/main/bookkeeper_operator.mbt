@@ -164,18 +164,18 @@ fn render_bookkeeper_primary_action(
         class="moonbook-action-row",
         style=["display:flex", "flex-wrap:wrap", "gap:10px"],
         [
-        @html.button(
-          class="moonbook-primary-action",
-          title="Prepare acceptance bound to this exact record",
-          on_click=emit(PrepareBookkeeperReview("Accept")),
-          [ui_icon("review"), @html.span("Prepare acceptance")],
-        ),
-        @html.button(
-          class="moonbook-secondary-action",
-          title="Prepare rejection bound to this exact record",
-          on_click=emit(PrepareBookkeeperReview("Reject")),
-          [ui_icon("review"), @html.span("Prepare rejection")],
-        ),
+          @html.button(
+            class="moonbook-primary-action",
+            title="Prepare acceptance bound to this exact record",
+            on_click=emit(PrepareBookkeeperReview("Accept")),
+            [ui_icon("review"), @html.span("Prepare acceptance")],
+          ),
+          @html.button(
+            class="moonbook-secondary-action",
+            title="Prepare rejection bound to this exact record",
+            on_click=emit(PrepareBookkeeperReview("Reject")),
+            [ui_icon("review"), @html.span("Prepare rejection")],
+          ),
         ],
       )
     "submit-review" =>
@@ -183,6 +183,8 @@ fn render_bookkeeper_primary_action(
         class="moonbook-primary-action",
         title="Save the named-human review as durable evidence",
         disabled=model.bookkeeper_busy ||
+          book_draft_is_stale(model) ||
+          book_draft_waiting_for_evidence(model) ||
           model.bookkeeper_draft.trim().is_blank(),
         on_click=emit(SubmitBookkeeperMutation),
         [ui_icon("review"), @html.span("Save governed review")],
@@ -270,7 +272,12 @@ fn bookkeeper_operator_panel(
         ),
       ]),
       render_bookkeeper_progress(step),
+      selected_outcome_lesson_detail(model),
+      lesson_history_workspace_view(emit, model),
+      outcome_lesson_workspace_view(emit, model),
+      book_summary_editor(emit, model),
       @html.div(
+        id="bookkeeper-review-controls",
         style=[
           "display:flex", "align-items:center", "gap:12px", "flex-wrap:wrap",
         ],
@@ -360,6 +367,7 @@ fn bookkeeper_operator_panel(
             ],
             ([] : Array[@rabbita.Html]),
           ),
+          book_technical_recovery_view(emit, model),
         ]),
       ]),
       match model.bookkeeper_notice {

@@ -1,0 +1,41 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "vectie/moonbook/native_wenyu_import"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub async fn persist(String, Json) -> Json
+
+pub async fn resolve_review(String, String, String, String, String) -> NativeWenyuReviewResolution noraise
+
+// Errors
+
+// Types and methods
+pub struct NativeWenyuReviewResolution {
+  contract : String
+  status : NativeWenyuReviewStatus
+  root : String
+  work_id : String
+  request_digest : String
+  payload_digest : String
+  result_id : String
+  review_id : String
+  evidence_id : String
+  resolution_timestamp : String?
+  original_task_acceptance : String
+  reason : String
+} derive(ToJson, @debug.Debug)
+
+pub(all) enum NativeWenyuReviewStatus {
+  Pending
+  Approved
+  Rejected
+  Unresolved
+} derive(Eq, @debug.Debug)
+pub impl ToJson for NativeWenyuReviewStatus
+
+// Type aliases
+
+// Traits

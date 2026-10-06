@@ -459,6 +459,17 @@ pub async fn write_marketing_projection(
   root : String,
   site_root : String,
 ) -> String {
+  render_marketing_projection(root, site_root, async fn(path, text) {
+    @fsx.write_to_file(path, text, create=0o644)
+  })
+}
+
+///|
+async fn render_marketing_projection(
+  root : String,
+  site_root : String,
+  publish : async (String, String) -> Unit,
+) -> String {
   let state = generate_ui_state(root)
   let reader = ui_reader_artifacts(root)
   let reader_projections = ui_reader_projections(root, reader)
@@ -503,62 +514,28 @@ pub async fn write_marketing_projection(
   let skills_state_path = moonbook_wiki_path(generated_dir)
     .join(moonbook_wiki_path("skills-state.json"))
     .to_string()
-  @fsx.write_to_file(
-    state_path,
-    state.to_json().stringify(indent=2),
-    create=0o644,
-  )
-  @fsx.write_to_file(
-    index_path,
-    marketing_projection_html(state, updated_note),
-    create=0o644,
-  )
-  @fsx.write_to_file(
-    entry_index_path,
-    marketing_projection_entry_html(state),
-    create=0o644,
-  )
-  @fsx.write_to_file(
-    journal_state_path,
-    state.to_json().stringify(indent=2),
-    create=0o644,
-  )
-  @fsx.write_to_file(
-    journal_index_path,
-    journal_projection_html(state, updated_note),
-    create=0o644,
-  )
-  @fsx.write_to_file(
-    course_state_path,
-    state.to_json().stringify(indent=2),
-    create=0o644,
-  )
-  @fsx.write_to_file(
+  publish(state_path, state.to_json().stringify(indent=2))
+  publish(index_path, marketing_projection_html(state, updated_note))
+  publish(entry_index_path, marketing_projection_entry_html(state))
+  publish(journal_state_path, state.to_json().stringify(indent=2))
+  publish(journal_index_path, journal_projection_html(state, updated_note))
+  publish(course_state_path, state.to_json().stringify(indent=2))
+  publish(
     reader_state_path,
     reader_bundle_projection_json(reader, reader_projections).stringify(
       indent=2,
     ),
-    create=0o644,
   )
-  @fsx.write_to_file(
+  publish(
     course_index_path,
     course_projection_html(state, reader, reader_projections),
-    create=0o644,
   )
-  @fsx.write_to_file(
-    skills_state_path,
-    state.to_json().stringify(indent=2),
-    create=0o644,
-  )
-  @fsx.write_to_file(
-    skills_index_path,
-    skills_projection_html(state, updated_note),
-    create=0o644,
-  )
-  let _ = write_generated_knowledge_bundle(root, generated_dir)
-  let _ = write_generated_book_state(root, generated_dir)
-  @fsx.write_to_file(styles_path, marketing_projection_styles(), create=0o644)
-  @fsx.write_to_file(script_path, marketing_projection_script(), create=0o644)
+  publish(skills_state_path, state.to_json().stringify(indent=2))
+  publish(skills_index_path, skills_projection_html(state, updated_note))
+  let _ = render_generated_knowledge_bundle(root, generated_dir, publish)
+  let _ = render_generated_book_state(root, generated_dir, publish)
+  publish(styles_path, marketing_projection_styles())
+  publish(script_path, marketing_projection_script())
   index_path
 }
 

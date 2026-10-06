@@ -18,11 +18,10 @@
     "recorded_at",
     "information_gap",
     "recognition_gap",
-    "decisiveness_gap",
-    "capability_id",
-    "capability_version",
-    "capability_change_digest",
-    "capability_summary"
+    "decisiveness_gap"
+  ],
+  "allOf": [
+    { "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/capabilityDescriptorPresence" }
   ],
   "properties": {
     "contract_version": {
@@ -59,12 +58,12 @@
     "decisiveness_gap": {
       "$ref": "bookkeeper-product-outcome-closure.schema.json#/$defs/gapStatement"
     },
-    "capability_id": { "type": "string", "minLength": 1 },
-    "capability_version": { "type": "string", "minLength": 1 },
+    "capability_id": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "capability_version": { "type": "string", "minLength": 1, "pattern": "\\S" },
     "capability_change_digest": {
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
     },
-    "capability_summary": { "type": "string", "minLength": 1 }
+    "capability_summary": { "type": "string", "minLength": 1, "pattern": "\\S" }
   }
 }

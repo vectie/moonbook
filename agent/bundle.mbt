@@ -148,13 +148,7 @@ fn agent_review_status_for_path(path : String, content : Bytes) -> String {
     }
   } else if path.has_prefix("memory/procedures/") ||
     path.has_prefix("memory/beliefs/") {
-    if text.contains("\"status\": \"promoted\"") ||
-      text.contains("status: promoted") ||
-      text.contains("\"accepted\": true") {
-      "accepted"
-    } else {
-      "candidate"
-    }
+    agent_memory_review_status(@utf8.decode_lossy(content))
   } else if path.has_prefix("capabilities/") || path.has_prefix("evaluations/") {
     if text.contains("\"adoption_authorized\": true") ||
       text.contains("\"result\": \"pass\"") ||
@@ -446,6 +440,7 @@ fn agent_default_export_policy() -> AgentExportPolicy {
 pub async fn build_agent_bundle(
   root : String,
   version? : String = "1.0.0",
+  outputs? : Array[PortableOutputSelection] = [],
 ) -> AgentBundle {
   if !agent_version_valid(version) {
     fail("agent version must be a nonempty portable identifier")
@@ -471,6 +466,7 @@ pub async fn build_agent_bundle(
     ] {
     agent_collect_tree(normalized_root, relative, files, exclusions)
   }
+  agent_collect_outputs(normalized_root, outputs, files)
   files.sort_by((left, right) => left.path.compare(right.path))
   exclusions.sort_by((left, right) => left.path.compare(right.path))
   let created_at = @env.now().to_int64()
@@ -498,8 +494,9 @@ pub async fn pack_agent(
   root : String,
   version? : String = "1.0.0",
   output? : String,
+  outputs? : Array[PortableOutputSelection] = [],
 ) -> String {
-  let bundle = build_agent_bundle(root, version~)
+  let bundle = build_agent_bundle(root, version~, outputs~)
   let normalized_root = @pathx.normalize(root)
   let path = output.unwrap_or(
     @pathx.join(
@@ -561,7 +558,6 @@ pub async fn inspect_agent_bundle(path : String) -> AgentBundleInspection {
 
 ///|
 pub async fn verify_agent_bundle(path : String) -> AgentBundleVerification {
-  let issues : Array[String] = []
   let bundle = read_agent_bundle(path) catch {
     error =>
       return {
@@ -573,6 +569,12 @@ pub async fn verify_agent_bundle(path : String) -> AgentBundleVerification {
         issues: ["bundle cannot be decoded: \{error}"],
       }
   }
+  agent_verify_bundle_value(bundle)
+}
+
+///|
+fn agent_verify_bundle_value(bundle : AgentBundle) -> AgentBundleVerification {
+  let issues : Array[String] = []
   if bundle.contract != agent_bundle_contract() {
     issues.push("unsupported contract: " + bundle.contract)
   }
@@ -664,6 +666,9 @@ pub async fn verify_agent_bundle(path : String) -> AgentBundleVerification {
   }
   if agent_book_revision(bundle.files) != bundle.book_revision {
     issues.push("book revision does not match the file set")
+  }
+  (portable_manifest_from_files(bundle.files) |> ignore) catch {
+    error => issues.push("invalid portable outputs: \{error}")
   }
   if !@wiki.executable_source_digest_is_valid(bundle.bundle_digest) ||
     agent_bundle_digest(bundle) != bundle.bundle_digest {

@@ -8,6 +8,26 @@ async fn run_agent(args : Array[String]) -> Unit {
     ["pack", root, version] => run_agent_pack(root, version, None)
     ["pack", root, version, output] =>
       run_agent_pack(root, version, Some(output))
+    ["pack", root, version, output, selection] => {
+      let outputs : Array[@agent.PortableOutputSelection] = @json.from_json(
+        @json.parse(@fsx.read_file(selection)),
+      )
+      println(
+        "agent bundle: " + @agent.pack_agent(root, version~, output~, outputs~),
+      )
+    }
+    ["source", bundle] => print_json(@agent.describe_portable_source(bundle))
+    ["import-exact", bundle, root, binding] =>
+      print_json(@agent.import_agent_bundle_exact(bundle, root, binding))
+    ["verify-import", bundle, root] => {
+      let changed = @agent.verify_portable_import_members(bundle, root)
+      print_json(
+        ({ "ok": changed.is_empty(), "changed_members": changed } : Json),
+      )
+      if !changed.is_empty() {
+        @sys.exit(1)
+      }
+    }
     ["inspect", bundle] =>
       print_json(@agent.inspect_agent_bundle(bundle)) catch {
         error => {
@@ -32,6 +52,18 @@ async fn run_agent(args : Array[String]) -> Unit {
     ["merge", bundle, root] => run_agent_merge(bundle, root)
     ["import", bundle, root] =>
       print_json(@agent.import_agent_bundle(bundle, root)) catch {
+        error => {
+          println("moonbook agent import failed: \{error}")
+          @sys.exit(1)
+        }
+      }
+    ["import", bundle, root, source_path] =>
+      try {
+        let expected_source : @agent.PortableSource = @json.from_json(
+          @json.parse(@fsx.read_file(source_path)),
+        )
+        print_json(@agent.import_agent_bundle(bundle, root, expected_source~))
+      } catch {
         error => {
           println("moonbook agent import failed: \{error}")
           @sys.exit(1)
@@ -104,12 +136,15 @@ async fn run_agent_merge(bundle : String, root : String) -> Unit {
 
 ///|
 fn print_agent_usage() -> Unit {
-  println("moonbook agent pack [root] [version] [output]")
+  println("moonbook agent pack [root] [version] [output] [outputs.json]")
+  println("moonbook agent source <bundle>")
+  println("moonbook agent import-exact <bundle> <new-book> <town-binding.json>")
+  println("moonbook agent verify-import <bundle> <book>")
   println("moonbook agent inspect <bundle>")
   println("moonbook agent verify <bundle>")
   println("moonbook agent diff <left-bundle> <right-bundle>")
   println("moonbook agent merge <bundle> <book>")
-  println("moonbook agent import <bundle> <new-book>")
+  println("moonbook agent import <bundle> <new-book> [source.json]")
   println("moonbook agent upgrade <bundle> <book>")
   println("moonbook agent rollback <book> <receipt>")
 }

@@ -1,0 +1,19 @@
+import {
+  "moonbitlang/async/fs",
+  "moonbitlang/async/os_error",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x/crypto",
+  "vectie/moonbook/internal/fsx",
+  "vectie/moonbook/internal/pathx",
+}
+
+supported_targets = "native"
+
+import {
+  "moonbitlang/async",
+} for "test"
+
+import {
+  "moonbitlang/async",
+} for "wbtest"

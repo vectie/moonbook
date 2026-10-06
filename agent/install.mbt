@@ -151,6 +151,15 @@ async fn apply_agent_bundle(
   action : String,
 ) -> AgentInstallationReceipt {
   let bundle = agent_bundle_for_application(bundle_path)
+  apply_agent_bundle_value(bundle, target_root, action)
+}
+
+///|
+async fn apply_agent_bundle_value(
+  bundle : AgentBundle,
+  target_root : String,
+  action : String,
+) -> AgentInstallationReceipt {
   let root = @pathx.normalize(target_root)
   if !@fsx.exists(root) {
     fail("agent installation target does not exist")
@@ -229,9 +238,12 @@ async fn apply_agent_bundle(
 
 ///|
 /// Import into a new MoonBook workspace. Existing targets fail closed.
+/// Validate one package snapshot before initializing the destination. A source
+/// retained during review pins the exact bytes, allowing only a filename change.
 pub async fn import_agent_bundle(
   bundle_path : String,
   target_root : String,
+  expected_source? : PortableSource,
 ) -> AgentInstallationReceipt {
   let root = @pathx.normalize(target_root)
   if @fsx.exists(root) {
@@ -239,8 +251,25 @@ pub async fn import_agent_bundle(
       "agent import target already exists; use merge to preview or upgrade to apply",
     )
   }
+  let (actual, bundle) = portable_source_from_bytes(
+    @fsx.read_bytes(bundle_path),
+    bundle_path,
+  )
+  if expected_source is Some(expected) {
+    guard { ..actual, package_filename: expected.package_filename, } == expected else {
+      fail("package does not match the expected portable source")
+    }
+  }
+  @fsx.make_directory(
+    @pathx.dirname(root).to_owned(),
+    recursive=true,
+    exists_ok=true,
+  )
+  // Reserve only this new root exclusively. A concurrent import or an existing
+  // symlink must not be accepted by init_workspace's exists-ok directory setup.
+  @fs.mkdir(root, permission=0o755)
   @wiki.init_workspace(root) |> ignore
-  apply_agent_bundle(bundle_path, root, "import")
+  apply_agent_bundle_value(bundle, root, "import")
 }
 
 ///|

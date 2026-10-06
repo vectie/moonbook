@@ -95,6 +95,9 @@ pub async fn apply_governed_review(
     }
   }
   let receipt = review_receipt(snapshot, mutation, authority_grant_valid~)
+  validate_lesson_transition_review(snapshot, receipt) catch {
+    error => return rejected_result(root, [error.to_string()])
+  }
   if !receipt.issues.is_empty() {
     return {
       accepted: false,

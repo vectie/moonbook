@@ -21,15 +21,19 @@ pub fn agent_rollback_result_contract() -> String
 
 pub fn agent_source_location_contract() -> String
 
-pub async fn build_agent_bundle(String, version? : String) -> AgentBundle
+pub async fn build_agent_bundle(String, version? : String, outputs? : Array[PortableOutputSelection]) -> AgentBundle
+
+pub async fn describe_portable_source(String) -> PortableSource
 
 pub async fn diff_agent_bundles(String, String) -> AgentBundleDiff
 
-pub async fn import_agent_bundle(String, String) -> AgentInstallationReceipt
+pub async fn import_agent_bundle(String, String, expected_source? : PortableSource) -> AgentInstallationReceipt
+
+pub async fn import_agent_bundle_exact(String, String, String) -> PortableImportReceipt
 
 pub async fn inspect_agent_bundle(String) -> AgentBundleInspection
 
-pub async fn pack_agent(String, version? : String, output? : String) -> String
+pub async fn pack_agent(String, version? : String, output? : String, outputs? : Array[PortableOutputSelection]) -> String
 
 pub async fn plan_agent_merge(String, String) -> AgentMergePlan
 
@@ -40,6 +44,10 @@ pub async fn rollback_agent_bundle(String, String) -> AgentRollbackResult
 pub async fn upgrade_agent_bundle(String, String) -> AgentInstallationReceipt
 
 pub async fn verify_agent_bundle(String) -> AgentBundleVerification
+
+pub async fn verify_agent_bundle_against_source(String, PortableSource) -> PortableSource
+
+pub async fn verify_portable_import_members(String, String) -> Array[String]
 
 pub async fn write_agent_merge_plan(String, String) -> String
 
@@ -260,6 +268,94 @@ pub struct AgentSourceLocation {
   anchor : String?
   label : String
   content_digest : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct PortableImportReceipt {
+  contract : String
+  source : PortableSource
+  listing_id : String
+  publisher_principal_id : String
+  tenant_id : String
+  binding_digest : String
+  installation_receipt_id : String
+  local_target_root : String
+  local_book_id : String
+  imported_at : Int64
+  member_bytes_verified : Bool
+  status : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct PortableOutput {
+  artifact_id : String
+  label : String
+  mime_type : String
+  included : Bool
+  files : Array[PortableOutputFile]
+  reference : String?
+  declared_digest : String?
+  preview_path : String?
+  app_entrypoint : String?
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct PortableOutputFile {
+  path : String
+  size_bytes : Int
+  digest : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct PortableOutputSelection {
+  artifact_id : String
+  label : String
+  mime_type : String
+  included : Bool
+  files : Array[PortableOutputSelectionFile]
+  reference : String?
+  declared_digest : String?
+  preview_path : String?
+  app_entrypoint : String?
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct PortableOutputSelectionFile {
+  source_path : String
+  path : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct PortableOutputsManifest {
+  contract : String
+  outputs : Array[PortableOutput]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct PortableSource {
+  contract : String
+  bundle_contract : String
+  agent_id : String
+  agent_version : String
+  book_revision : String
+  bundle_digest : String
+  package_filename : String
+  package_size_bytes : Int
+  package_sha256 : String
+  file_count : Int
+  total_decoded_bytes : Int
+  outputs_manifest_path : String?
+  outputs_manifest_digest : String?
+  included_output_count : Int
+  reference_only_count : Int
+  transport : String
+} derive(Eq, @debug.Debug)
+pub impl ToJson for PortableSource
+pub impl @json.FromJson for PortableSource
+
+pub(all) struct PortableTownBinding {
+  contract : String
+  listing_id : String
+  publisher_principal_id : String
+  tenant_id : String
+  binding_revision : Int
+  source : PortableSource
+  reuse_mode : String
+  verification_scope : String
+  binding_digest : String
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 // Type aliases

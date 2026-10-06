@@ -102,7 +102,7 @@ fn empty_snapshot() -> BookkeeperStoreSnapshot {
 
 ///|
 fn empty_authority_registry() -> BookkeeperAuthorityRegistry {
-  { contract_version: bookkeeper_store_contract_version(), grants: [] }
+  { contract_version: bookkeeper_store_contract_version(), grants: [], }
 }
 
 ///|
@@ -368,6 +368,12 @@ fn validate_record(
   record : DurableBookkeeperRecord,
 ) -> Array[String] {
   let issues : Array[String] = []
+  validate_outcome_lesson_record(snapshot, record) catch {
+    error => issues.push(error.to_string())
+  }
+  validate_lesson_selection_record(snapshot, record) catch {
+    error => issues.push(error.to_string())
+  }
   if record.contract_version != bookkeeper_store_contract_version() {
     issues.push("invalid store contract: \{record.contract_version}")
   }
@@ -734,6 +740,17 @@ fn apply_replayed_event(
             decided_at: review.decided_at,
           })
           if replayed == review {
+            validate_lesson_transition_review(snapshot, review) catch {
+              error => {
+                snapshot.replay_issues.push(
+                  "review " +
+                  review.receipt.record_id +
+                  ": " +
+                  error.to_string(),
+                )
+                return
+              }
+            }
             snapshot.reviews.push(review)
           } else {
             snapshot.replay_issues.push(

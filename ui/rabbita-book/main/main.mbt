@@ -256,26 +256,36 @@ struct Model {
   state : UiState
   error : String?
   refresh_count : Int
+  snapshot_request : Int
   live_reload_endpoint : String?
   locale : InterfaceLocale
   bookkeeper_store : BookkeeperStoreSnapshot?
   bookkeeper_authorities : BookkeeperAuthorityRegistry?
+  bookkeeper_reads : BookkeeperReads
   selected_bookkeeper_record : BookkeeperRecordReference?
   selected_bookkeeper_authority : String?
   bookkeeper_mode : String
   bookkeeper_draft : String
   bookkeeper_busy : Bool
   bookkeeper_notice : String?
+  draft_recovery : BookDraftRecovery
+  wiki_review : WikiReviewState
+  outcome_lessons : OutcomeLessonWorkspace
 }
 
 ///|
 enum Msg {
-  Loaded(Result[UiState, Error])
+  OutcomeLesson(OutcomeLessonMsg)
+  DraftRecovery(BookDraftMsg)
+  Loaded(Int, Result[UiState, Error])
+  RetrySnapshot
+  RefreshSnapshot
+  LiveDataChanged(String)
   LoadedConfig(Result[UiClientConfig, Error])
   SetInterfaceLocale(InterfaceLocale)
   UseSystemInterfaceLocale
-  LoadedBookkeeperStore(Result[BookkeeperStoreSnapshot, Error])
-  LoadedBookkeeperAuthorities(Result[BookkeeperAuthorityRegistry, Error])
+  LoadedBookkeeperStore(Int, Result[BookkeeperStoreSnapshot, Error])
+  LoadedBookkeeperAuthorities(Int, Result[BookkeeperAuthorityRegistry, Error])
   SelectBookkeeperItem(BookkeeperItem)
   SelectBookkeeperAuthority(String)
   SetBookkeeperMode(String)
@@ -285,6 +295,7 @@ enum Msg {
   BookkeeperMutationFinished(Result[BookkeeperMutationResult, String])
   ReplayBookkeeper
   BookkeeperReplayFinished(Result[BookkeeperStoreSnapshot, String])
+  WikiReview(WikiReviewMsg)
 }
 
 ///|
@@ -293,9 +304,9 @@ fn demo_state() -> UiState {
     title: "MoonBook",
     summary: "A single Rabbita surface for reading chapters, inspecting workspace health, and steering Keeper-driven maintenance.",
     status_chips: [
-      { label: "healthy", tone: "healthy" },
-      { label: "pending review", tone: "review" },
-      { label: "planning pressure", tone: "alert" },
+      { label: "healthy", tone: "healthy", },
+      { label: "pending review", tone: "review", },
+      { label: "planning pressure", tone: "alert", },
     ],
     metrics: workspace_metrics(),
     workflow: workflow_items(),
@@ -303,7 +314,12 @@ fn demo_state() -> UiState {
     keeper_items: keeper_items(),
     page_families: chapter_preview_items(),
     chapters: [
-      { title: "Home", href: "index.html", source_path: "Home.md", number: "1" },
+      {
+        title: "Home",
+        href: "index.html",
+        source_path: "Home.md",
+        number: "1",
+      },
       {
         title: "Claims Register",
         href: "synthesis/claims.html",
@@ -1253,17 +1269,6 @@ fn render_sidebar(
   state : UiState,
   model : Model,
 ) -> @rabbita.Html {
-  let sidebar_note = match model.error {
-    Some(error) =>
-      "Using fallback snapshot because the last refresh of `moonbook-ui-state.json` failed: \{error}"
-    None =>
-      match model.live_reload_endpoint {
-        Some(endpoint) =>
-          "The UI is subscribed to live updates from `\{endpoint}` and fetches `moonbook-ui-state.json` only after rebuild events."
-        None =>
-          "The UI is using static snapshot mode because no live update endpoint was configured for this build."
-      }
-  }
   aside(
     style=panel_style() +
       [
@@ -1352,40 +1357,85 @@ fn render_sidebar(
           render_chapter_links(state.chapters),
         ),
       ]),
-      article(
-        style=[
-          "padding:18px", "border-radius:20px", "background:linear-gradient(180deg,#0f172a,#1e293b)",
-          "color:#e2e8f0", "display:flex", "flex-direction:column", "gap:12px",
-        ],
-        [
-          small(
-            style=[
-              "font-size:12px", "text-transform:uppercase", "letter-spacing:.05em",
-              "color:#93c5fd",
-            ],
-            interface_message(model.locale, SidebarNextStep),
-          ),
-          h3(
-            style=["margin:0", "font-size:18px"],
-            if model.loading {
-              interface_message(model.locale, SidebarRefreshing)
-            } else {
-              interface_message(model.locale, SidebarLoaded)
-            },
-          ),
-          p(
-            style=["margin:0", "line-height:1.6", "color:#cbd5e1"],
-            sidebar_note,
-          ),
-        ],
-      ),
+      snapshot_status_panel(emit, model),
     ],
   )
 }
 
 ///|
+fn wiki_review_is_next(
+  state : WikiReviewState,
+  bookkeeper_selected : Bool,
+) -> Bool {
+  if state.pending is Some(_) ||
+    state.readback is Some(_) ||
+    state.confirmation is Some(_) {
+    true
+  } else {
+    !bookkeeper_selected &&
+    (
+      state.selected_id is Some(_) ||
+      state.queue_error is Some(_) ||
+      (state.queue_loaded && !state.items.is_empty())
+    )
+  }
+}
+
+///|
+fn wiki_review_next_copy(state : WikiReviewState) -> (String, String) {
+  if state.pending is Some(_) {
+    (
+      "Saving your Book decision", "Wait for the saved decision to be read back. No second decision is needed while this request is pending.",
+    )
+  } else if state.readback is Some(_) {
+    (
+      "Verify the Book decision", "The decision is being checked against the exact saved review. If the readback failed, open the queue and reload; do not submit a new decision while the outcome is uncertain.",
+    )
+  } else if state.confirmation is Some(_) {
+    (
+      "Confirm your Book decision", "Check the exact review and the prepared decision below, then explicitly confirm or cancel. Task and goal acceptance remain separate.",
+    )
+  } else if state.queue_error is Some(_) || state.detail_error is Some(_) {
+    (
+      "Reload Book review information", "Open the review queue and use Reload queue and detail to recover current information. Decisions remain unavailable from stale or failed reads.",
+    )
+  } else if state.detail_loading || state.queue_loading {
+    (
+      "Read the selected Book review", "The queue or selected review is still loading. Inspect the current source and evidence once the read finishes.",
+    )
+  } else {
+    match state.detail {
+      Some(detail) if !detail.can_resolve =>
+        (
+          "Inspect the saved Book decision",
+          "This local review is " +
+          detail.status +
+          ". It cannot be resolved again. Task and goal acceptance remain separate.",
+        )
+      _ =>
+        (
+          "Review in this Book", "Inspect the selected review and its evidence, choose approve or reject, then verify the saved local decision. Task and goal acceptance remain separate.",
+        )
+    }
+  }
+}
+
+///|
+fn bookkeeper_anchor_selected(url : String) -> Bool {
+  url.has_suffix("#bookkeeper") || url.has_suffix("#bookkeeper-lanes")
+}
+
+///|
 fn hero_section(state : UiState, model : Model) -> @rabbita.Html {
   let next_step = bookkeeper_journey_step(model)
+  let (local_title, local_detail) = wiki_review_next_copy(model.wiki_review)
+  let local_review_next = wiki_review_is_next(
+    model.wiki_review,
+    model.selected_bookkeeper_record is Some(_) ||
+    model.bookkeeper_busy ||
+    model.bookkeeper_mode != "ingress" ||
+    bookkeeper_anchor_selected(wiki_review_browser_url()),
+  )
   header(
     id="overview",
     style=panel_style() +
@@ -1453,15 +1503,67 @@ fn hero_section(state : UiState, model : Model) -> @rabbita.Html {
               ],
               interface_message(model.locale, SidebarNextStep),
             ),
-            h2(style=["margin:0 0 5px", "font-size:20px"], next_step.title),
-            p(style=muted_text_style() + ["margin:0"], next_step.detail),
+            h2(
+              style=["margin:0 0 5px", "font-size:20px"],
+              if local_review_next {
+                local_title
+              } else {
+                next_step.title
+              },
+            ),
+            p(
+              style=muted_text_style() + ["margin:0"],
+              if local_review_next {
+                local_detail
+              } else {
+                next_step.detail
+              },
+            ),
           ]),
-          a(
-            class="moonbook-primary-action",
-            title="Continue to the Bookkeeper review workflow",
-            href="#bookkeeper",
-            [ui_icon("review"), span("Continue review")],
-          ),
+          div(style=["display:flex", "gap:10px", "flex-wrap:wrap"], [
+            a(
+              class="moonbook-primary-action",
+              title=if local_review_next {
+                "Continue to the local Book review queue"
+              } else {
+                "Continue to the Bookkeeper review workflow"
+              },
+              href=if local_review_next { "#reviews" } else { "#bookkeeper" },
+              [
+                ui_icon("review"),
+                span(
+                  if local_review_next {
+                    "Continue Book review"
+                  } else {
+                    "Continue Bookkeeper review"
+                  },
+                ),
+              ],
+            ),
+            if local_review_next {
+              a(
+                class="moonbook-secondary-action",
+                title="Open the separate Bookkeeper workflow",
+                href="#bookkeeper",
+                [ui_icon("review"), span("Open Bookkeeper")],
+              )
+            } else if model.wiki_review.queue_loaded &&
+              !model.wiki_review.items.is_empty() {
+              a(
+                class="moonbook-secondary-action",
+                title="Inspect and explicitly decide local Book review items",
+                href="#reviews",
+                [
+                  ui_icon("queue"),
+                  span(
+                    "Review Book queue (\{model.wiki_review.items.length()})",
+                  ),
+                ],
+              )
+            } else {
+              div("")
+            },
+          ]),
         ],
       ),
     ],
@@ -1471,19 +1573,6 @@ fn hero_section(state : UiState, model : Model) -> @rabbita.Html {
 ///|
 fn render_page(emit : @rabbita.Emit[Msg], model : Model) -> @rabbita.Html {
   let state = model.state
-  let operator_note = match model.error {
-    Some(error) => "Last refresh error: \{error}"
-    None => "Workspace snapshot currently available."
-  }
-  let refresh_note = if model.refresh_count == 0 {
-    "Waiting for the first successful live snapshot refresh."
-  } else {
-    "Snapshot refresh count: \{model.refresh_count}"
-  }
-  let transport_note = match model.live_reload_endpoint {
-    Some(endpoint) => "Live update transport: SSE via \{endpoint}"
-    None => "Live update transport: disabled for static builds"
-  }
   div(style=app_shell_style(), [
     app_accessibility_styles(),
     a(class="moonbook-skip-link", href="#moonbook-main", "Skip to workspace"),
@@ -1529,10 +1618,11 @@ fn render_page(emit : @rabbita.Emit[Msg], model : Model) -> @rabbita.Html {
                   ],
                   render_workflow_cards(state.workflow),
                 ),
-                panel_list(
-                  interface_message(model.locale, ReviewsTitle),
-                  interface_message(model.locale, ReviewsSubtitle),
-                  state.review_queue,
+                wiki_review_panel(
+                  emit,
+                  model.wiki_review,
+                  title=interface_message(model.locale, ReviewsTitle),
+                  subtitle=interface_message(model.locale, ReviewsSubtitle),
                 ),
               ]),
               section(style=["display:grid", "gap:14px"], [
@@ -1610,25 +1700,9 @@ fn render_page(emit : @rabbita.Emit[Msg], model : Model) -> @rabbita.Html {
                       li(
                         interface_message(model.locale, OperatorSynthesisPanel),
                       ),
-                      li(
-                        if model.loading {
-                          "Fetching `moonbook-ui-state.json` after a live update signal."
-                        } else {
-                          "Latest snapshot loaded from `moonbook-ui-state.json`."
-                        },
-                      ),
-                      li(refresh_note),
-                      li(transport_note),
-                      li(operator_note),
                     ],
                   ),
-                  button(
-                    style=[
-                      "margin-top:auto", "padding:13px 16px", "border:none", "border-radius:16px",
-                      "background:#0f172a", "color:#fff", "font-weight:700", "cursor:pointer",
-                    ],
-                    interface_message(model.locale, OperatorSnapshotReady),
-                  ),
+                  snapshot_diagnostics(model),
                 ],
               ),
             ],
@@ -1655,9 +1729,9 @@ test {
 }
 
 ///|
-fn fetch_ui_state_cmd(emit : @rabbita.Emit[Msg]) -> @rabbita.Cmd {
+fn fetch_ui_state_cmd(emit : @rabbita.Emit[Msg], request : Int) -> @rabbita.Cmd {
   @http.get("./moonbook-ui-state.json").expect_json(
-    emit.map(fn(result) { Loaded(result) }),
+    emit.map(fn(result) { Loaded(request, result) }),
   )
 }
 
@@ -1669,16 +1743,22 @@ fn fetch_ui_config_cmd(emit : @rabbita.Emit[Msg]) -> @rabbita.Cmd {
 }
 
 ///|
-fn fetch_bookkeeper_store_cmd(emit : @rabbita.Emit[Msg]) -> @rabbita.Cmd {
+fn fetch_bookkeeper_store_cmd(
+  emit : @rabbita.Emit[Msg],
+  request : Int,
+) -> @rabbita.Cmd {
   @http.get("/api/bookkeeper/state").expect_json(
-    emit.map(fn(result) { LoadedBookkeeperStore(result) }),
+    emit.map(fn(result) { LoadedBookkeeperStore(request, result) }),
   )
 }
 
 ///|
-fn fetch_bookkeeper_authorities_cmd(emit : @rabbita.Emit[Msg]) -> @rabbita.Cmd {
+fn fetch_bookkeeper_authorities_cmd(
+  emit : @rabbita.Emit[Msg],
+  request : Int,
+) -> @rabbita.Cmd {
   @http.get("/api/bookkeeper/authorities").expect_json(
-    emit.map(fn(result) { LoadedBookkeeperAuthorities(result) }),
+    emit.map(fn(result) { LoadedBookkeeperAuthorities(request, result) }),
   )
 }
 
@@ -1719,10 +1799,10 @@ async fn await_bookkeeper_response(
 ) -> BookkeeperBrowserResponse noraise {
   let text : String = promise.wait().cast() catch {
       error =>
-        return { ok: false, status: 0, body: "", error: Some("\{error}") }
+        return { ok: false, status: 0, body: "", error: Some("\{error}"), }
     }
   @json.from_json(@json.parse(text)) catch {
-    error => { ok: false, status: 0, body: text, error: Some("\{error}") }
+    error => { ok: false, status: 0, body: text, error: Some("\{error}"), }
   }
 }
 
@@ -1861,103 +1941,72 @@ fn bookkeeper_mode_template(mode : String) -> String {
 }
 
 ///|
-#cfg(target="js")
-extern "js" fn install_live_reload(endpoint : String) = "(endpoint)=>{if(!window.EventSource)return;const existing=window.__moonbookLiveReload;if(existing&&existing.endpoint===endpoint)return;if(existing&&existing.source){try{existing.source.close()}catch(_){}}const source=new EventSource(endpoint);source.addEventListener('reload',()=>window.location.reload());source.onerror=()=>{};window.__moonbookLiveReload={endpoint,source}}"
-
-///|
-fn subscribe_live_reload_cmd(
-  emit : @rabbita.Emit[Msg],
-  endpoint : String,
-) -> @rabbita.Cmd {
-  ignore(emit)
-  @cmd.custom_cmd(_ => install_live_reload(endpoint), kind=@cmd.after_render)
-}
-
-///|
-fn update(
+fn update_core(
   emit : @rabbita.Emit[Msg],
   msg : Msg,
   model : Model,
 ) -> (@rabbita.Cmd, Model) {
   match msg {
-    UseSystemInterfaceLocale => (use_system_interface_locale_cmd(), model)
-    SetInterfaceLocale(locale) =>
+    OutcomeLesson(message) => outcome_lesson_update(emit, model, message)
+    DraftRecovery(message) => book_draft_reduce(emit, model, message)
+    WikiReview(message) => {
+      let (wiki_review, effects) = wiki_review_reduce(
+        model.wiki_review,
+        message,
+      )
       (
-        persist_interface_locale_cmd(locale),
+        @rabbita.batch(
+          effects.map(effect => wiki_review_effect_cmd(emit, effect)),
+        ),
+        { ..model, wiki_review, },
+      )
+    }
+    UseSystemInterfaceLocale =>
+      (
+        use_system_interface_locale_cmd(),
         {
           ..model,
-          locale,
-          state: if model.loading {
-            demo_state()
+          locale: if browser_system_locale() == "zh-Hans" {
+            SimplifiedChinese
           } else {
-            model.state
+            English
           },
         },
       )
+    SetInterfaceLocale(locale) =>
+      (persist_interface_locale_cmd(locale), { ..model, locale, })
     LoadedConfig(Ok(config)) =>
       match config.live_reload_endpoint {
         Some(endpoint) =>
           (
             subscribe_live_reload_cmd(emit, endpoint),
-            { ..model, live_reload_endpoint: Some(endpoint) },
+            { ..model, live_reload_endpoint: Some(endpoint), },
           )
-        None => (@rabbita.none, { ..model, live_reload_endpoint: None })
+        None =>
+          (
+            subscribe_live_reload_cmd(emit, ""),
+            { ..model, live_reload_endpoint: None, },
+          )
       }
     LoadedConfig(Err(_)) =>
-      (@rabbita.none, { ..model, live_reload_endpoint: None })
-    Loaded(Ok(state)) =>
       (
-        @rabbita.none,
-        {
-          ..model,
-          loading: false,
-          state,
-          error: None,
-          refresh_count: model.refresh_count + 1,
-        },
+        subscribe_live_reload_cmd(emit, ""),
+        { ..model, live_reload_endpoint: None, },
       )
-    Loaded(Err(error)) =>
-      (@rabbita.none, { ..model, loading: false, error: Some("\{error}") })
-    LoadedBookkeeperStore(Ok(snapshot)) =>
-      (@rabbita.none, { ..model, bookkeeper_store: Some(snapshot) })
-    LoadedBookkeeperStore(Err(error)) =>
-      (
-        @rabbita.none,
-        {
-          ..model,
-          bookkeeper_notice: Some("Store state unavailable: \{error}"),
-        },
-      )
-    LoadedBookkeeperAuthorities(Ok(registry)) => {
-      let selected = match model.selected_bookkeeper_authority {
-        Some(authority_ref) => Some(authority_ref)
-        None => {
-          let mut first : String? = None
-          for grant in registry.grants {
-            if grant.active && first is None {
-              first = Some(grant.authority_ref)
-            }
-          }
-          first
-        }
+    LiveDataChanged(endpoint) =>
+      if model.live_reload_endpoint == Some(endpoint) {
+        start_workspace_read(emit, model, force=true)
+      } else {
+        (@rabbita.none, model)
       }
-      (
-        @rabbita.none,
-        {
-          ..model,
-          bookkeeper_authorities: Some(registry),
-          selected_bookkeeper_authority: selected,
-        },
-      )
-    }
-    LoadedBookkeeperAuthorities(Err(error)) =>
-      (
-        @rabbita.none,
-        {
-          ..model,
-          bookkeeper_notice: Some("Authority status unavailable: \{error}"),
-        },
-      )
+    RetrySnapshot => start_workspace_read(emit, model, force=false)
+    RefreshSnapshot => start_snapshot_read(emit, model, force=true)
+    Loaded(request, result) =>
+      (@rabbita.none, finish_snapshot_read(model, request, result))
+    LoadedBookkeeperStore(request, result) =>
+      (@rabbita.none, finish_bookkeeper_store_read(model, request, result))
+    LoadedBookkeeperAuthorities(request, result) =>
+      (@rabbita.none, finish_bookkeeper_authority_read(model, request, result))
     SelectBookkeeperItem(item) => {
       let mut selected : BookkeeperRecordReference? = None
       match model.bookkeeper_store {
@@ -1970,9 +2019,9 @@ fn update(
           }
         None => ()
       }
-      let next = { ..model, selected_bookkeeper_record: selected }
+      let next = { ..model, selected_bookkeeper_record: selected, }
       let draft = if model.bookkeeper_mode == "review" {
-        review_draft_for_selection(next, "Accept").unwrap_or(
+        review_draft_for_selection(next, model.draft_recovery.decision).unwrap_or(
           model.bookkeeper_draft,
         )
       } else if model.bookkeeper_mode == "project-work-order" {
@@ -2000,9 +2049,12 @@ fn update(
       )
     }
     SelectBookkeeperAuthority(authority_ref) => {
-      let next = { ..model, selected_bookkeeper_authority: Some(authority_ref) }
+      let next = {
+        ..model,
+        selected_bookkeeper_authority: Some(authority_ref),
+      }
       let draft = if model.bookkeeper_mode == "review" {
-        review_draft_for_selection(next, "Accept").unwrap_or(
+        review_draft_for_selection(next, model.draft_recovery.decision).unwrap_or(
           model.bookkeeper_draft,
         )
       } else if model.bookkeeper_mode == "project-work-order" {
@@ -2022,9 +2074,9 @@ fn update(
       )
     }
     SetBookkeeperMode(mode) => {
-      let next = { ..model, bookkeeper_mode: mode }
+      let next = { ..model, bookkeeper_mode: mode, }
       let draft = if mode == "review" {
-        review_draft_for_selection(next, "Accept").unwrap_or(
+        review_draft_for_selection(next, model.draft_recovery.decision).unwrap_or(
           bookkeeper_mode_template(mode),
         )
       } else if mode == "project-work-order" {
@@ -2040,11 +2092,11 @@ fn update(
       }
       (
         @rabbita.none,
-        { ..next, bookkeeper_draft: draft, bookkeeper_notice: None },
+        { ..next, bookkeeper_draft: draft, bookkeeper_notice: None, },
       )
     }
     PrepareBookkeeperReview(requested) => {
-      let next = { ..model, bookkeeper_mode: "review" }
+      let next = { ..model, bookkeeper_mode: "review", }
       let draft = review_draft_for_selection(next, requested).unwrap_or(
         bookkeeper_mode_template("review"),
       )
@@ -2060,8 +2112,11 @@ fn update(
       )
     }
     SetBookkeeperDraft(draft) =>
-      (@rabbita.none, { ..model, bookkeeper_draft: draft })
+      (@rabbita.none, { ..model, bookkeeper_draft: draft, })
     SubmitBookkeeperMutation => {
+      if model.bookkeeper_busy {
+        return (@rabbita.none, model)
+      }
       let parsed : Result[Json, Error] = try? @json.parse(
         model.bookkeeper_draft,
       )
@@ -2085,35 +2140,40 @@ fn update(
           )
       }
     }
-    BookkeeperMutationFinished(Ok(result)) =>
+    BookkeeperMutationFinished(Ok(result)) => {
+      let (read_cmd, next) = start_bookkeeper_read(emit, {
+        ..model,
+        bookkeeper_busy: false,
+        bookkeeper_notice: Some(
+          if result.accepted {
+            "Mutation accepted. Projection and durable state are refreshing."
+          } else {
+            "Mutation rejected: \{result.issues.join(", ")}"
+          },
+        ),
+      })
       (
         @rabbita.batch([
-          fetch_ui_state_cmd(emit),
-          fetch_bookkeeper_store_cmd(emit),
-          fetch_bookkeeper_authorities_cmd(emit),
+          emit(RefreshSnapshot),
+          read_cmd,
+          emit(OutcomeLesson(OutcomeReview(RefreshOutcomes))),
         ]),
-        {
-          ..model,
-          bookkeeper_busy: false,
-          bookkeeper_notice: Some(
-            if result.accepted {
-              "Mutation accepted. Projection and durable state are refreshing."
-            } else {
-              "Mutation rejected: \{result.issues.join(", ")}"
-            },
-          ),
-        },
+        next,
       )
+    }
     BookkeeperMutationFinished(Err(error)) =>
       (
-        @rabbita.none,
+        emit(OutcomeLesson(OutcomeReview(RefreshOutcomes))),
         {
           ..model,
           bookkeeper_busy: false,
           bookkeeper_notice: Some("Mutation failed or was rejected: \{error}"),
         },
       )
-    ReplayBookkeeper =>
+    ReplayBookkeeper => {
+      if model.bookkeeper_busy {
+        return (@rabbita.none, model)
+      }
       (
         replay_bookkeeper_cmd(emit),
         {
@@ -2122,21 +2182,18 @@ fn update(
           bookkeeper_notice: Some("Replaying durable Bookkeeper journal…"),
         },
       )
-    BookkeeperReplayFinished(Ok(snapshot)) =>
-      (
-        @rabbita.batch([
-          fetch_ui_state_cmd(emit),
-          fetch_bookkeeper_authorities_cmd(emit),
-        ]),
-        {
-          ..model,
-          bookkeeper_busy: false,
-          bookkeeper_store: Some(snapshot),
-          bookkeeper_notice: Some(
-            "Replay complete; the served projection is refreshing.",
-          ),
-        },
-      )
+    }
+    BookkeeperReplayFinished(Ok(snapshot)) => {
+      let (read_cmd, next) = start_bookkeeper_read(emit, {
+        ..model,
+        bookkeeper_busy: false,
+        bookkeeper_store: Some(snapshot),
+        bookkeeper_notice: Some(
+          "Replay complete; the served projection is refreshing.",
+        ),
+      })
+      (@rabbita.batch([emit(RefreshSnapshot), read_cmd]), next)
+    }
     BookkeeperReplayFinished(Err(error)) =>
       (
         @rabbita.none,
@@ -2155,19 +2212,26 @@ fn main {
   let (emit, cell) = @rabbita.cell_with_emit(
     model={
       loading: true,
-      state: demo_state(),
+      state: empty_snapshot_state(),
       error: None,
       refresh_count: 0,
+      snapshot_request: 1,
       live_reload_endpoint: None,
       locale,
       bookkeeper_store: None,
       bookkeeper_authorities: None,
+      bookkeeper_reads: initial_bookkeeper_reads(),
       selected_bookkeeper_record: None,
       selected_bookkeeper_authority: None,
       bookkeeper_mode: "ingress",
       bookkeeper_draft: bookkeeper_mode_template("ingress"),
       bookkeeper_busy: false,
       bookkeeper_notice: None,
+      draft_recovery: initial_book_draft_recovery(),
+      outcome_lessons: initial_outcome_lesson_workspace(),
+      wiki_review: wiki_review_initial_state(
+        restore_id=wiki_review_url_hint(wiki_review_browser_url()),
+      ),
     },
     update~,
     view=(emit, model) => render_page(emit, model),
@@ -2175,10 +2239,11 @@ fn main {
   let app = @rabbita.new(cell)
   app.with_init(
     @rabbita.batch([
-      fetch_ui_state_cmd(emit),
+      fetch_ui_state_cmd(emit, 1),
       fetch_ui_config_cmd(emit),
-      fetch_bookkeeper_store_cmd(emit),
-      fetch_bookkeeper_authorities_cmd(emit),
+      fetch_bookkeeper_store_cmd(emit, 1),
+      fetch_bookkeeper_authorities_cmd(emit, 1),
+      wiki_review_effect_cmd(emit, LoadQueue(1)),
     ]),
   )
   app.mount("app")

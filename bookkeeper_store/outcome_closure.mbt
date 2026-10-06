@@ -40,11 +40,11 @@ pub(all) struct ProductOutcomeClosureRequest {
   information_gap : ProductOutcomeGapStatement
   recognition_gap : ProductOutcomeGapStatement
   decisiveness_gap : ProductOutcomeGapStatement
-  capability_id : String
-  capability_version : String
-  capability_change_digest : String
-  capability_summary : String
-} derive(Debug, Eq, ToJson, FromJson)
+  capability_id : String?
+  capability_version : String?
+  capability_change_digest : String?
+  capability_summary : String?
+} derive(Debug, Eq)
 
 ///|
 /// Durable progress receipt. Replaying the same request after a named human
@@ -299,14 +299,18 @@ fn validate_closure_source(
   if request.source_product.is_blank() || request.source_product == "moonbook" {
     fail("product outcome closure must name an external source product")
   }
-  if request.owner_route.is_blank() ||
-    request.outcome_summary.is_blank() ||
-    request.capability_id.is_blank() ||
-    request.capability_version.is_blank() ||
-    !product_outcome_digest_valid(request.capability_change_digest) ||
-    request.capability_summary.is_blank() {
+  if request.owner_route.is_blank() || request.outcome_summary.is_blank() {
     fail("product outcome closure metadata is incomplete")
   }
+  validate_outcome_capability(
+    request.capability_id,
+    request.capability_version,
+    request.capability_change_digest,
+    request.capability_summary,
+    request.information_gap,
+    request.recognition_gap,
+    request.decisiveness_gap,
+  )
   if request.observed_at < 0 || request.recorded_at < request.observed_at {
     fail("product outcome closure timestamps are invalid")
   }
@@ -359,7 +363,13 @@ fn validate_closure_source(
 fn closure_proposal_payload(
   request : ProductOutcomeClosureRequest,
   evidence : ArrayView[@bookkeeper.VersionedEvidenceReference],
-) -> Json {
+) -> Json raise {
+  guard request.capability_id is Some(capability_id) &&
+    request.capability_version is Some(capability_version) &&
+    request.capability_change_digest is Some(change_digest) &&
+    request.capability_summary is Some(summary) else {
+    fail("A capability proposal requires the complete supplied descriptor")
+  }
   let legacy_evidence : Array[@bookkeeper.EvidenceReference] = []
   for reference in evidence {
     legacy_evidence.push({
@@ -371,29 +381,48 @@ fn closure_proposal_payload(
   @bookkeeper.CapabilityProposal::new(
     proposal_id=request.request.record_id + ".capability-proposal",
     proposal_version=request.request.record_version,
-    capability_id=request.capability_id,
-    capability_version=request.capability_version,
+    capability_id~,
+    capability_version~,
     owner_route=request.owner_route,
-    change_digest=request.capability_change_digest,
-    summary=request.capability_summary,
+    change_digest~,
+    summary~,
     evidence_refs=legacy_evidence,
   ).to_json()
 }
 
 ///|
-/// Close one exact product outcome through the existing durable Bookkeeper
-/// store. The first call records the outcome binding and one explicit Three-Gap
-/// assessment. Replays advance only after separately persisted named-human
-/// reviews: assessment review creates a reviewable proposal; proposal review
-/// emits a non-activating MoonFlow handoff. The operation never approves its
-/// own records and never activates a capability.
-pub async fn close_product_outcome(
+// Shared preparation has a structural stop at the assessment. The founder's
+// lesson workflow cannot enter capability-proposal progression on a retry.
+async fn prepare_product_outcome_assessment(
   root : String,
   request : ProductOutcomeClosureRequest,
-) -> ProductOutcomeClosureReceipt {
+) -> (
+  DurableBookkeeperRecord,
+  BookkeeperTransportEnvelope,
+  GovernedReviewReceipt,
+  Array[@bookkeeper.VersionedEvidenceReference],
+  @bookkeeper.VersionedRecordReference,
+  @bookkeeper.VersionedRecordReference,
+) {
   let source_snapshot = replay_bookkeeper_store(root)
   let (deliverable, result, deliverable_review, evidence) = validate_closure_source(
     source_snapshot, request,
+  )
+  // Validate the complete supplied gap statements before any durable write.
+  let information = closure_gap_finding(
+    request.information_gap,
+    evidence,
+    "information gap",
+  )
+  let recognition = closure_gap_finding(
+    request.recognition_gap,
+    evidence,
+    "recognition gap",
+  )
+  let decisiveness = closure_gap_finding(
+    request.decisiveness_gap,
+    evidence,
+    "decisiveness gap",
   )
   let outcome_payload : Json = {
     "contract_version": @bookkeeper.three_gap_contract_version(),
@@ -435,21 +464,6 @@ pub async fn close_product_outcome(
     "outcome binding",
   )
 
-  let information = closure_gap_finding(
-    request.information_gap,
-    evidence,
-    "information gap",
-  )
-  let recognition = closure_gap_finding(
-    request.recognition_gap,
-    evidence,
-    "recognition gap",
-  )
-  let decisiveness = closure_gap_finding(
-    request.decisiveness_gap,
-    evidence,
-    "decisiveness gap",
-  )
   let assessment = @bookkeeper.ThreeGapAssessment::new(
     assessment_id=request.request.record_id + ".three-gap",
     assessment_version=request.request.record_version,
@@ -480,7 +494,7 @@ pub async fn close_product_outcome(
     subject: Some(outcome_ref),
     links: [outcome_ref],
     title: "Three-Gap outcome assessment",
-    summary: request.capability_summary,
+    summary: request.capability_summary.unwrap_or(request.outcome_summary),
     owner_route: request.owner_route,
     status: "awaiting human review",
     evidence_refs: evidence,
@@ -496,7 +510,30 @@ pub async fn close_product_outcome(
     persist_bookkeeper_record(root, assessment_record),
     "Three-Gap assessment",
   )
+  (
+    deliverable, result, deliverable_review, evidence, outcome_ref, assessment_ref,
+  )
+}
 
+///|
+/// Close one exact product outcome through the existing durable Bookkeeper
+/// store. The first call records the outcome binding and one explicit Three-Gap
+/// assessment. Replays advance only after separately persisted named-human
+/// reviews: assessment review creates a reviewable proposal; proposal review
+/// emits a non-activating MoonFlow handoff. The operation never approves its
+/// own records and never activates a capability.
+pub async fn close_product_outcome(
+  root : String,
+  request : ProductOutcomeClosureRequest,
+) -> ProductOutcomeClosureReceipt {
+  let (
+    deliverable,
+    result,
+    deliverable_review,
+    evidence,
+    outcome_ref,
+    assessment_ref,
+  ) = prepare_product_outcome_assessment(root, request)
   let assessed_snapshot = replay_bookkeeper_store(root)
   let assessment_review = product_outcome_exact_human_decision(
     assessed_snapshot,
@@ -530,9 +567,9 @@ pub async fn close_product_outcome(
     )
   }
 
-  let any_gap = information.present ||
-    recognition.present ||
-    decisiveness.present
+  let any_gap = request.information_gap.present ||
+    request.recognition_gap.present ||
+    request.decisiveness_gap.present
   if !any_gap {
     return closure_receipt(
       request,
@@ -560,7 +597,7 @@ pub async fn close_product_outcome(
     subject: Some(assessment_ref),
     links: [assessment_ref, assessment_review.unwrap().receipt],
     title: "Capability improvement proposal",
-    summary: request.capability_summary,
+    summary: request.capability_summary.unwrap(),
     owner_route: request.owner_route,
     status: "awaiting human review",
     evidence_refs: evidence,

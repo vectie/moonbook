@@ -13,6 +13,8 @@ pub let live_reload_token_file : String
 
 pub fn parse_serve_args(Array[String]) -> ServeOptions?
 
+pub async fn wiki_review_http_response(String, String, String, Map[String, String], String) -> (Int, Json) noraise
+
 // Errors
 
 // Types and methods

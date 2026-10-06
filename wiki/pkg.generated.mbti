@@ -12,6 +12,8 @@ pub async fn accept_goal(String, String, goal_id? : String?) -> BookGoalAcceptan
 
 pub async fn approve_review(String, String) -> ReviewActionResult
 
+pub fn book_identity(String) -> String
+
 pub fn book_state_contract() -> String
 
 pub async fn catalog_record(String) -> BookCatalogRecord
@@ -51,6 +53,8 @@ pub fn decode_flow_outcome_observation(Json, String, String) -> FlowOutcomeObser
 pub async fn doctor_skills(String) -> SkillDoctorReport
 
 pub async fn enable_extension(String, String) -> ExtensionInstallResult
+
+pub async fn ensure_local_projection(String) -> LocalProjectionOutcome
 
 pub fn executable_authority_is_canonical(String) -> Bool
 
@@ -94,9 +98,13 @@ pub async fn metacognition_status_json(String) -> Json
 
 pub fn native_attestor_executable(String, String) -> String raise
 
+pub async fn native_review_status(String, String, String, String, String) -> Json noraise
+
 pub async fn persist_metacognition(String, String, BookkeeperReflection) -> MetacognitionSnapshot
 
 pub async fn persist_result(String, BookResult, lifecycle_proof? : ExecutableBookLifecycleProof?) -> PersistResultOutcome
+
+pub async fn persist_result_payload(String, Json) -> PersistResultOutcome
 
 pub async fn prepare_goal_unattended_runtime(String, String, String, String, String, String, String) -> GoalRuntimeRecord
 
@@ -133,6 +141,8 @@ pub fn requirements_prepare_contract_version() -> String
 pub async fn resolve_task_for_goal(String, String, task_id? : String?) -> BookTask?
 
 pub fn retrieve_applicable_procedures(ProcedureLearningIndex, Array[String], Array[String]) -> Json
+
+pub async fn review_operator_request(String, String, String, Json) -> (Int, Json) noraise
 
 pub async fn scaffold_skill(String, String) -> SkillInstallResult
 
@@ -602,6 +612,13 @@ pub struct LintResult {
   findings : Array[LintFinding]
   report : String
 } derive(ToJson, @debug.Debug)
+
+pub(all) struct LocalProjectionOutcome {
+  contract : String
+  generated_artifacts : Array[String]
+  preserved_artifacts : Array[String]
+  missing_artifacts : Array[String]
+} derive(ToJson, @debug.Debug, @json.FromJson)
 
 pub struct MemoryCandidate {
   kind : String

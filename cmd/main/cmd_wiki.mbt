@@ -8,6 +8,8 @@ async fn run_wiki(args : Array[String]) -> Unit {
     ["keeper", .. keeper_args] => run_wiki_keeper(keeper_args.to_owned())
     ["state", root] => run_wiki_state(root)
     ["state"] => run_wiki_state(".")
+    ["projection", root] => run_wiki_projection(root)
+    ["projection"] => run_wiki_projection(".")
     ["bundle", root] => run_wiki_bundle(root)
     ["bundle"] => run_wiki_bundle(".")
     ["graph", root] => run_wiki_graph(root)
@@ -28,9 +30,20 @@ async fn run_wiki(args : Array[String]) -> Unit {
     ["init"] => run_wiki_init(".")
     _ =>
       println(
-        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki state [root]\nmoonbook wiki bundle [root]\nmoonbook wiki graph [root]\nmoonbook wiki lint [root]\nmoonbook wiki readiness [root] [--revision <revision>]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki keeper submit [root] <packet.json> [--confirm] [--inline] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]\nmoonbook wiki extension accept [root] <goal>\nmoonbook wiki extension tasks [root] <goal>\nmoonbook wiki extension context [root] <goal> [--task <task-id>]\nmoonbook wiki extension persist [root] <result.json>\nmoonbook wiki extension summary [root]\nmoonbook wiki extension health [root]",
+        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki state [root]\nmoonbook wiki projection [root] (fill missing local site outputs; preserve existing files)\nmoonbook wiki bundle [root]\nmoonbook wiki graph [root]\nmoonbook wiki lint [root]\nmoonbook wiki readiness [root] [--revision <revision>]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki keeper submit [root] <packet.json> [--confirm] [--inline] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]\nmoonbook wiki extension accept [root] <goal>\nmoonbook wiki extension tasks [root] <goal>\nmoonbook wiki extension context [root] <goal> [--task <task-id>]\nmoonbook wiki extension persist [root] <result.json>\nmoonbook wiki extension summary [root]\nmoonbook wiki extension health [root]",
       )
   }
+}
+
+///|
+async fn run_wiki_projection(root : String) -> Unit {
+  let outcome = @wiki.ensure_local_projection(root) catch {
+    error => {
+      println("moonbook wiki projection failed: \{error}")
+      @os.exit(1)
+    }
+  }
+  println(outcome.to_json().stringify())
 }
 
 ///|
@@ -163,6 +176,12 @@ async fn run_wiki_graph(root : String) -> Unit {
 ///|
 async fn run_wiki_review(args : Array[String]) -> Unit {
   match args {
+    ["native-status", root, work_id, request_digest, payload_digest, result_id] =>
+      print_json(
+        @wiki.native_review_status(
+          root, work_id, request_digest, payload_digest, result_id,
+        ),
+      )
     ["list", root] => run_wiki_review_list(root)
     ["list"] => run_wiki_review_list(".")
     ["approve", root, review_id] =>
@@ -173,7 +192,7 @@ async fn run_wiki_review(args : Array[String]) -> Unit {
     ["reject", review_id] => run_wiki_review_action(".", review_id, "reject")
     _ =>
       println(
-        "moonbook wiki review usage: moonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>",
+        "moonbook wiki review usage: moonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki review native-status <root> <work-id> <request-digest> <payload-digest> <result-id>",
       )
   }
 }
@@ -387,17 +406,13 @@ async fn run_wiki_extension_persist(root : String, path : String) -> Unit {
       return
     }
   }
-  let payload = @wiki.decode_book_result_payload_with_metadata_text(text) catch {
+  let payload = @json.parse(text) catch {
     error => {
       println("moonbook wiki extension persist failed: \{error}")
       return
     }
   }
-  let outcome = @wiki.persist_result(
-    root,
-    payload.result,
-    lifecycle_proof=payload.lifecycle_proof,
-  ) catch {
+  let outcome = @wiki.persist_result_payload(root, payload) catch {
     error => {
       println("moonbook wiki extension persist failed: \{error}")
       return

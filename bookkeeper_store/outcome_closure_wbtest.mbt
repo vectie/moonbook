@@ -188,10 +188,10 @@ fn closure_test_request(
         result_evidence.reference_id,
       ],
     },
-    capability_id: "mooncast-retention-edit-rule",
-    capability_version: "2",
-    capability_change_digest: "sha256:" + "a".repeat(64),
-    capability_summary: "Propose a reviewed retention-aware edit rule.",
+    capability_id: Some("mooncast-retention-edit-rule"),
+    capability_version: Some("2"),
+    capability_change_digest: Some("sha256:" + "a".repeat(64)),
+    capability_summary: Some("Propose a reviewed retention-aware edit rule."),
   }
 }
 
@@ -337,7 +337,7 @@ async test "product outcome closure rejects partial or substituted evidence" {
     deliverable, result, deliverable_review, deliverable_evidence, result_evidence,
   )
   try
-    close_product_outcome(root, { ..request, evidence_refs: [result_evidence] })
+    close_product_outcome(root, { ..request, evidence_refs: [result_evidence], })
   catch {
     error =>
       assert_true(

@@ -135,7 +135,8 @@ pub async fn catalog_record(root : String) -> BookCatalogRecord {
 }
 
 ///|
-fn book_identity(root : String) -> String {
+/// Read-only local catalog identity. Does not refresh workspace projections.
+pub fn book_identity(root : String) -> String {
   moonbook_wiki_path(@pathx.normalize(root)).basename().to_owned()
 }
 
