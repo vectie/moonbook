@@ -69,7 +69,7 @@ async test "native Wenyu import resumes after every write and after Book commit 
   // 0: durable intent; 1..10: individual projection/event writes;
   // 11: Book receipt committed but the caller has not received the outcome.
   for checkpoint in 0..<=11 {
-    let root = @fs.tmpdir(prefix="moonbook-native-wenyu-crash-")
+    let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-crash-"))
     let payload = native_wenyu_test_payload()
     try
       persist_native_wenyu_import(root, payload, fail_after=checkpoint)
@@ -122,7 +122,7 @@ async test "native Wenyu import resumes after every write and after Book commit 
 
 ///|
 async test "native Wenyu import rejects same work with changed payload or request without effects" {
-  let root = @fs.tmpdir(prefix="moonbook-native-wenyu-identity-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-identity-"))
   let first = persist_result_payload(root, native_wenyu_test_payload())
   let before_log = @fsx.read_file(root + "/wiki/log.md")
   let before_review = @fsx.read_file(root + "/wiki/reviews/pending.md")
@@ -154,7 +154,7 @@ async test "native Wenyu import rejects same work with changed payload or reques
 
 ///|
 async test "native Wenyu committed replay preserves reviewed pages and newer latest event" {
-  let root = @fs.tmpdir(prefix="moonbook-native-wenyu-newer-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-newer-"))
   let first = persist_result_payload(root, native_wenyu_test_payload())
   let second = persist_result_payload(
     root,
@@ -175,7 +175,7 @@ async test "native Wenyu committed replay preserves reviewed pages and newer lat
 
 ///|
 async test "native Wenyu incomplete import blocks later work and preserves human destination changes" {
-  let root = @fs.tmpdir(prefix="moonbook-native-wenyu-conflict-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-conflict-"))
   try
     persist_native_wenyu_import(root, native_wenyu_test_payload(), fail_after=1)
   catch {
@@ -217,7 +217,7 @@ async test "native Wenyu incomplete import blocks later work and preserves human
 
 ///|
 async test "native Wenyu import rejects malformed opt in without downgrading to legacy" {
-  let root = @fs.tmpdir(prefix="moonbook-native-wenyu-invalid-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-invalid-"))
   let invalid_digest : Json = {
     "book_result": native_wenyu_test_result().to_json(),
     "native_import": {
@@ -281,8 +281,8 @@ async test "native Wenyu import rejects malformed opt in without downgrading to 
 
 ///|
 async test "native Wenyu import rejects symlink destinations and resumes after corrected first attempt" {
-  let root = @fs.tmpdir(prefix="moonbook-native-wenyu-symlink-")
-  let outside = @fs.tmpdir(prefix="moonbook-native-wenyu-outside-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-symlink-"))
+  let outside = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-outside-"))
   @fs.mkdir(root + "/wiki")
   @fs.symlink(target=outside, root + "/wiki/synthesis")
   try persist_result_payload(root, native_wenyu_test_payload()) catch {

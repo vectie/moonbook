@@ -1,6 +1,6 @@
 ///|
 async test "no change owner summary persists through public Book API without accepting original task" {
-  let root = @fs.tmpdir(prefix="moonbook-no-change-public-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-no-change-public-"))
   let result : Json = {
     "result_id": "wenyu-no-change-code-patch",
     "summary": "No net source change; required checks passed; human review required; original-task acceptance unevaluated.",

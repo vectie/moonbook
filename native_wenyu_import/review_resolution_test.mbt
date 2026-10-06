@@ -1,6 +1,6 @@
 ///|
 async test "native review public query is typed read only and never initializes missing state" {
-  let root = @fs.tmpdir(prefix="moonbook-review-empty-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-empty-"))
   let missing = @native_wenyu_import.resolve_review(
     root, "missing-work", "bad-request", "bad-payload", "result",
   )
@@ -22,7 +22,7 @@ async test "native review public query is typed read only and never initializes 
 
 ///|
 async test "native review public query returns exact committed pending binding without changing receipt" {
-  let root = @fs.tmpdir(prefix="moonbook-review-public-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-public-"))
   let result : Json = {
     "result_id": "same-result",
     "summary": "Completed engineering; acceptance unevaluated.",

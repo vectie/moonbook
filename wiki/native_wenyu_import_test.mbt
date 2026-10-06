@@ -1,6 +1,6 @@
 ///|
 async test "native Wenyu public payload API retains exact receipt and leaves BookResult shape unchanged" {
-  let root = @fs.tmpdir(prefix="moonbook-native-wenyu-public-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-public-"))
   let result : @wiki.BookResult = @json.from_json({
     "result_id": "wenyu-public-code-patch",
     "summary": "Verified native implementation awaiting product review.",

@@ -1,7 +1,7 @@
 ///|
 async test "native readback observes existing manual approve and reject without migration or acceptance" {
   for action in ["approved", "rejected"] {
-    let root = @fs.tmpdir(prefix="moonbook-native-human-review-")
+    let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-human-review-"))
     ignore(@wiki.init_workspace(root))
     let result : @wiki.BookResult = @json.from_json({
       "result_id": "human-reviewed-result",

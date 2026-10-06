@@ -62,7 +62,7 @@ async fn native_review_test_snapshot(root : String) -> Array[(String, String)] {
 ///|
 async test "native review approved and rejected readback preserves every file and historical receipt" {
   for disposition in ["approved", "rejected"] {
-    let root = @fs.tmpdir(prefix="moonbook-review-final-")
+    let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-final-"))
     let original = persist(root, native_wenyu_test_payload())
     native_review_test_finalize(root, disposition)
     let before = native_review_test_snapshot(root)
@@ -87,7 +87,7 @@ async test "native review approved and rejected readback preserves every file an
 
 ///|
 async test "native review exact identity isolates same result across work and request generations" {
-  let root = @fs.tmpdir(prefix="moonbook-review-isolation-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-isolation-"))
   ignore(persist(root, native_wenyu_test_payload()))
   native_review_test_finalize(root, "approved")
   ignore(
@@ -135,7 +135,7 @@ async test "native review exact identity isolates same result across work and re
     native_review_test_query(root, work_id="absent-work").status,
     Unresolved,
   )
-  let other = @fs.tmpdir(prefix="moonbook-review-other-")
+  let other = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-other-"))
   assert_eq(native_review_test_query(other).status, Unresolved)
   assert_eq(@fsx.list_directory(other).length(), 0)
   assert_eq(native_review_test_snapshot(root), before)
@@ -143,7 +143,7 @@ async test "native review exact identity isolates same result across work and re
 
 ///|
 async test "native pending review never infers approval from removal or partial evidence" {
-  let root = @fs.tmpdir(prefix="moonbook-review-pending-debt-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-pending-debt-"))
   ignore(persist(root, native_wenyu_test_payload()))
   let path = root + "/wiki/reviews/pending.md"
   let pending = @fsx.read_file(path)
@@ -169,7 +169,7 @@ async test "native pending review never infers approval from removal or partial 
 
 ///|
 async test "native review fails closed for partial conflicting duplicate and mismatched final records" {
-  let root = @fs.tmpdir(prefix="moonbook-review-invalid-records-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-invalid-records-"))
   ignore(persist(root, native_wenyu_test_payload()))
   let original_pending = @fsx.read_file(root + "/wiki/reviews/pending.md")
   native_review_test_finalize(root, "approved")
@@ -352,7 +352,7 @@ async test "native review fails closed for partial conflicting duplicate and mis
 
 ///|
 async test "native review missing corrupt mismatched and noncanonical committed bindings never resolve" {
-  let root = @fs.tmpdir(prefix="moonbook-review-invalid-commit-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-invalid-commit-"))
   ignore(persist(root, native_wenyu_test_payload()))
   native_review_test_finalize(root, "approved")
   let key = native_wenyu_digest("native-work-1")
@@ -415,10 +415,10 @@ async test "native review missing corrupt mismatched and noncanonical committed 
 
 ///|
 async test "native review rejects root parent and destination symlinks without writes" {
-  let root = @fs.tmpdir(prefix="moonbook-review-symlink-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-symlink-"))
   ignore(persist(root, native_wenyu_test_payload()))
   native_review_test_finalize(root, "approved")
-  let outside = @fs.tmpdir(prefix="moonbook-review-link-container-")
+  let outside = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-link-container-"))
   @fs.symlink(target=root, outside + "/linked-root")
   assert_eq(
     native_review_test_query(outside + "/linked-root").status,

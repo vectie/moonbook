@@ -1,6 +1,6 @@
 ///|
 async test "native Wenyu public API persists an exact wire payload and replays its receipt" {
-  let root = @fs.tmpdir(prefix="moonbook-native-wenyu-wire-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-wire-"))
   let result : Json = {
     "result_id": "wenyu-public-code-patch",
     "summary": "Verified native implementation awaiting product review.",

@@ -442,7 +442,7 @@ pub struct KnowledgeBundle {
   contract : String
   book_id : String
   root : String
-  generated_at : Int
+  generated_at : Double
   summary : BookStateSummary
   health : BookHealthReport
   pages : Array[KnowledgePageRecord]
@@ -470,7 +470,7 @@ pub struct BookStateSnapshot {
   contract : String
   book_id : String
   root : String
-  generated_at : Int
+  generated_at : Double
   catalog : BookCatalogRecord
   summary : BookStateSummary
   health : BookHealthReport

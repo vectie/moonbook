@@ -79,7 +79,7 @@ async test "operator lists all legacy reviews and reads exact detail without wri
 ///|
 async test "explicit native approve and reject preserve exact result and unevaluated acceptance" {
   for decision in ["approve", "reject"] {
-    let root = @fs.tmpdir(prefix="book-operator-native-")
+    let root = @fs.realpath(@fs.tmpdir(prefix="book-operator-native-"))
     ignore(@wiki.init_workspace(root))
     let summary = "Exact full human-visible result: " +
       "long engineering detail ".repeat(25) +
