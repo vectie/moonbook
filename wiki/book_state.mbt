@@ -12,7 +12,7 @@ pub async fn generate_book_state_snapshot(root : String) -> BookStateSnapshot {
     contract: book_state_contract(),
     book_id: summary.book_id,
     root: workspace.root,
-    generated_at: @async.now().to_int(),
+    generated_at: current_epoch_millis_json_number(),
     catalog,
     summary,
     health,
@@ -94,6 +94,27 @@ async test "book state snapshot includes knowledge bundle and latest event path"
   let snapshot = generate_book_state_snapshot(root)
   assert_eq(snapshot.contract, "moonbook.book_state.v1")
   assert_eq(snapshot.knowledge.contract, "moonbook.knowledge_bundle.v1")
+  assert_true(snapshot.generated_at > 1_000_000_000_000.0)
+  assert_true(snapshot.knowledge.generated_at > 1_000_000_000_000.0)
+  assert_eq(snapshot.generated_at, snapshot.generated_at.trunc())
+  assert_eq(
+    snapshot.knowledge.generated_at,
+    snapshot.knowledge.generated_at.trunc(),
+  )
+  let old_json = snapshot
+    .to_json()
+    .stringify()
+    .replace_all(
+      old=snapshot.generated_at.to_json().stringify(),
+      new="-236941825",
+    )
+    .replace_all(
+      old=snapshot.knowledge.generated_at.to_json().stringify(),
+      new="-236941825",
+    )
+  let legacy : BookStateSnapshot = @json.from_json(@json.parse(old_json))
+  assert_eq(legacy.generated_at, -236941825.0)
+  assert_eq(legacy.knowledge.generated_at, -236941825.0)
   assert_eq(snapshot.paths.latest_event, "events/latest.json")
   assert_true(snapshot.latest_event is None)
 }

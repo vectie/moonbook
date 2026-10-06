@@ -42,7 +42,7 @@ pub async fn generate_knowledge_bundle(root : String) -> KnowledgeBundle {
     contract: knowledge_bundle_contract(),
     book_id: summary.book_id,
     root: workspace.root,
-    generated_at: @async.now().to_int(),
+    generated_at: current_epoch_millis_json_number(),
     summary,
     health,
     pages,
@@ -50,6 +50,17 @@ pub async fn generate_knowledge_bundle(root : String) -> KnowledgeBundle {
     review_queue_path: "wiki/reviews/pending.md",
     event_protocol: executable_book_event_protocol(),
   }
+}
+
+///|
+fn current_epoch_millis_json_number() -> Double {
+  let millis = @async.now()
+  // JSON numeric consumers can represent integer milliseconds exactly only
+  // within the IEEE-754 safe integer range.
+  if millis < 0L || millis > 9007199254740991L {
+    abort("MoonBook timestamp exceeds exact JSON millisecond range")
+  }
+  millis.to_double()
 }
 
 ///|
@@ -501,6 +512,8 @@ async test "knowledge bundle builds graph from maintained pages" {
   )
   let bundle = generate_knowledge_bundle(root)
   assert_eq(bundle.contract, "moonbook.knowledge_bundle.v1")
+  assert_true(bundle.generated_at > 1_000_000_000_000.0)
+  assert_eq(bundle.generated_at, bundle.generated_at.trunc())
   assert_true(
     bundle.pages.any(fn(page) {
       page.path == "wiki/entities/moonbook.md" &&
