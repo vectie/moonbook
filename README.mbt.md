@@ -68,7 +68,7 @@ MoonBook is strongest when you want one local system to handle:
 
 - 📝 authored markdown books
 - 🔁 repeatable static builds
-- 🧭 readable navigation and rendering
+- 🧭 readable navigation and rendering, including [in-chapter section outlines](docs/CHAPTER_OUTLINE.md)
 - 🗂️ persistent wiki pages between sessions
 - 🌐 a marketing-oriented website projection for demos and launches
 - 🧭 a journey layer that turns noisy runs into a readable operator timeline
@@ -314,3 +314,10 @@ That extension API surface now also smooths over two integration details:
 - `wiki enable moonclaw` seeds `.moonsuite/products/moonclaw/providers.json` with the MoonClaw provider target name `moonbook`, so MoonClaw has a suite-local manifest for `wiki extension tasks/context/persist`
 
 The `moonclaw` add-on is also aligned with MoonClaw's current role substrate: MoonBook seeds a host-owned `Keeper` policy, wiki-maintainer/review skills, and role-aware controller/worker profiles so the embedded planner feels book-specific without hard-coding MoonClaw product policy into MoonBook core.
+
+## Compare cited wiki pages
+
+Use `moonbook wiki compare-pages [root] <before-citation> <after-citation>` to
+inspect complete line changes between maintained source or knowledge pages,
+with exact content digests and no review-state changes. Add `--json` for a
+reconstructable machine-readable comparison. See [the comparison guide](docs/PAGE_COMPARISON.md).

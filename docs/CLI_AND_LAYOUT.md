@@ -26,7 +26,7 @@ Build pipeline:
 2. parse `src/SUMMARY.md`
 3. load chapter files
 4. preprocess README chapter paths into `index.*`
-5. render HTML output
+5. render chapter HTML, offline search, and `__moonbook/print.html` for whole-book reading/printing
 6. copy the optional root `site/` authored website into `book/site/` when present
 7. generate a live marketing projection into `book/site/generated/` from wiki, keeper, review, and journey state when the workspace is a wiki
 8. write `book/book.json`
@@ -849,3 +849,28 @@ moon run cmd/main -- bookkeeper state /absolute/book
 # only after a named human prepares and authorizes a separate mutation:
 moon run cmd/main -- bookkeeper review /absolute/book /absolute/book/review-mutation.json
 ```
+
+## Static reader search
+
+`build`, and the builds performed by `serve`/`watch`, now write an offline
+`<build-dir>/__moonbook/search.html` projection and link it from the reader
+contents. It indexes the complete Markdown of SUMMARY-rendered chapters, with
+no runtime API. `__moonbook/` is reserved for generated reader tools. See
+[Static book search](STATIC_BOOK_SEARCH.md) for scope, rebuild and sharing notes.
+
+## Explore chapter connections
+
+`build`, and the builds performed by `serve`/`watch`, write
+`<build-dir>/__moonbook/connections.html` and link it from the ordinary chapter
+navigation. Each rendered chapter also shows **Referenced by** and **Links to**
+below its content. These are explicit chapter references from author content,
+not inferred relationships or menu links. No new CLI option or runtime service
+is needed. See [Chapter connections](CHAPTER_CONNECTIONS.md).
+
+## Dedicated offline ebook entrypoint
+
+`moon run cmd/epub --target native -- <book-root>` exports an existing SUMMARY
+book to `<build-dir>/__moonbook/book.epub`. It does not invoke ordinary HTML
+builds. The thin `cmd/epub` entrypoint calls `driver/export_epub.mbt`; EPUB
+packaging, XHTML conversion and resource rewriting live in cohesive `html/epub*`
+files. See [EPUB export](EPUB_EXPORT.md) for supported content and repair steps.

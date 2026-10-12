@@ -1,0 +1,9 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/env",
+  "vectie/moonbook/driver",
+  "hustcer/fzip",
+}
+
+supported_targets = "native"

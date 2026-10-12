@@ -358,7 +358,31 @@ fn is_text_source(path : String) -> Bool {
     | ".json"
     | ".yaml"
     | ".yml"
-    | ".csv" => true
+    | ".csv"
+    | ".docx"
+    | ".eml" => true
     _ => false
+  }
+}
+
+///|
+fn is_docx_source(path : String) -> Bool {
+  @pathx.ext(path).to_owned().to_lower() == ".docx"
+}
+
+///|
+// Text-bearing office sources keep their original bytes in raw/. Only the
+// reader's plain-text projection enters the normal source/query workflow.
+async fn read_source_text(path : String) -> String {
+  if is_email_source(path) {
+    let email = parse_email(@fsx.read_bytes(path))
+    email.attribution + "\n\n" + email.body
+  } else if is_docx_source(path) {
+    let bytes = @fsx.read_bytes(path)
+    @docx.read(@opc.open(bytes.to_fixedarray())).plain_text() catch {
+      error => fail("DOCX text extraction failed for \{path}: \{error}")
+    }
+  } else {
+    @fsx.read_file(path)
   }
 }

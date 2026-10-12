@@ -5,6 +5,7 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "vectie/moonbook/bookkeeper",
+  "vectie/moonbook/page_compare",
 }
 
 // Values
@@ -21,6 +22,8 @@ pub async fn catalog_record(String) -> BookCatalogRecord
 pub fn classify_goal_intent(String) -> GoalIntentClass
 
 pub async fn compare_skill(String, String) -> SkillCompareResult
+
+pub async fn compare_wiki_pages(String, String, String) -> WikiPageComparison
 
 pub fn compile_executable_document(ExecutableDocument) -> Json raise
 
@@ -64,6 +67,8 @@ pub fn executable_sha256(String) -> String
 
 pub fn executable_source_digest_is_valid(String) -> Bool
 
+pub async fn export_wiki_pages(String, Array[String]) -> WikiPageDossier
+
 pub async fn find_skill(String, String) -> SkillRecord?
 
 pub async fn generate_book_state_snapshot(String) -> BookStateSnapshot
@@ -75,6 +80,10 @@ pub async fn generate_ui_state(String) -> UiState
 pub fn goal_artifact_prefixes(String) -> Array[String] raise
 
 pub async fn hydrate_worker_context(String, BookTask) -> WorkerContextBundle
+
+pub async fn import_bibtex(String, String) -> BibtexImportResult
+
+pub async fn import_ris(String, String) -> RisImportResult
 
 pub async fn ingest_source(String, String) -> IngestResult
 
@@ -114,7 +123,19 @@ pub async fn produce_task_batch(String, String, goal_id? : String?) -> BookTaskB
 
 pub async fn promote_bookkeeper_procedures(String, String, String) -> Array[String]
 
+pub fn query_context_brief(QueryResult) -> String
+
+pub async fn query_page_text(String, String) -> String
+
+pub async fn query_retained_descriptor(String, String, String) -> QueryRetainedDescriptor? noraise
+
+pub async fn query_retained_source(String, String, String) -> QueryRetainedSource
+
 pub async fn query_wiki(String, String, save? : Bool) -> QueryResult
+
+pub async fn query_wiki_page(String, String, Int) -> QueryWindow
+
+pub fn query_window_context_brief(QueryWindow) -> String
 
 pub async fn reconcile_flow_projection_file(String, String, String, String) -> BookkeeperReflectionRecord
 
@@ -181,6 +202,19 @@ pub async fn write_wiki_readiness(String, revision? : String) -> Json
 // Errors
 
 // Types and methods
+pub struct BibtexImportResult {
+  raw_path : String
+  references : Array[BibtexImportedReference]
+} derive(ToJson, @debug.Debug)
+
+pub struct BibtexImportedReference {
+  record_number : Int
+  title : String
+  citation_key : String
+  citation : String
+  page_path : String
+} derive(ToJson, @debug.Debug)
+
 pub struct BookCatalogRecord {
   id : String
   name : String
@@ -384,6 +418,12 @@ pub(all) struct BookkeeperReflectionRecord {
 
 type CanonicalRequirementStatement derive(Eq, @debug.Debug)
 
+pub struct ComparedWikiPage {
+  citation : String
+  digest : String
+  metadata_status : String
+} derive(ToJson)
+
 pub struct DecodedBookResultPayload {
   result : BookResult
   lifecycle_proof : ExecutableBookLifecycleProof?
@@ -449,6 +489,13 @@ pub(all) struct ExecutableExecutionBinding {
   input_artifacts : Array[String]
   timeout_ms : Int
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub struct ExportedWikiPage {
+  citation : String
+  digest : String
+  metadata_status : String
+  content : String
+} derive(ToJson)
 
 pub struct ExtensionInstallResult {
   root : String
@@ -768,12 +815,50 @@ pub(all) struct ProcedureLearningRecord {
   mut updated_at : String
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
+pub struct QueryExcerpt {
+  citation : String
+  title : String
+  excerpt : String
+  score : Int
+  metadata_status : String
+} derive(ToJson, @debug.Debug)
+
+pub struct QueryPaging {
+  page : Int
+  page_size : Int
+  matched_count : Int
+  window_count : Int
+  has_next : Bool
+  truncated : Bool
+  fresh_scan : Bool
+} derive(ToJson, @debug.Debug)
+
 pub struct QueryResult {
   question : String
   answer : String
   citations : Array[String]
   saved_page : String?
   related_pages : Array[String]
+  excerpts : Array[QueryExcerpt]
+} derive(ToJson, @debug.Debug)
+
+pub(all) struct QueryRetainedDescriptor {
+  reference : String
+  page_digest : String
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct QueryRetainedSource {
+  reference : String
+  page_digest : String
+  digest : String
+  size : Int
+  bytes_base64 : String
+  text : String?
+} derive(Eq, ToJson, @debug.Debug)
+
+pub struct QueryWindow {
+  result : QueryResult
+  paging : QueryPaging
 } derive(ToJson, @debug.Debug)
 
 pub(all) struct RequirementPacketStatement {
@@ -847,6 +932,18 @@ pub struct ReviewItem {
   kind : String
   title : String
   status : String
+} derive(ToJson, @debug.Debug)
+
+pub struct RisImportResult {
+  raw_path : String
+  references : Array[RisImportedReference]
+} derive(ToJson, @debug.Debug)
+
+pub struct RisImportedReference {
+  record_number : Int
+  title : String
+  citation : String
+  page_path : String
 } derive(ToJson, @debug.Debug)
 
 pub struct SkillCompareResult {
@@ -1080,6 +1177,21 @@ pub struct UiWorkflowItem {
   detail : String
   status : String
 } derive(ToJson, @debug.Debug, @json.FromJson)
+
+pub struct WikiPageComparison {
+  schema : String
+  before : ComparedWikiPage
+  after : ComparedWikiPage
+  diff : @page_compare.PageTextDiff
+} derive(ToJson)
+pub fn WikiPageComparison::to_text(Self) -> String
+
+pub struct WikiPageDossier {
+  schema : String
+  notice : String
+  pages : Array[ExportedWikiPage]
+} derive(ToJson)
+pub fn WikiPageDossier::to_markdown(Self) -> String
 
 pub struct WikiWorkspace {
   root : String

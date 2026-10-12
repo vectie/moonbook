@@ -7,6 +7,8 @@ import {
 }
 
 // Values
+pub async fn export_epub(RenderContext) -> String
+
 pub fn new_render_context(String, String, @core.Config, @core.Book) -> RenderContext
 
 pub async fn render_html(RenderContext) -> Unit

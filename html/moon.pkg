@@ -1,8 +1,18 @@
 import {
+  "hustcer/fzip",
+  "vectie/moonleaf/xml",
+  "moonbitlang/async/fs" @afs,
+  "moonbitlang/x/crypto",
+  "moonbitlang/x/time",
   "vectie/moonbook/internal/fsx",
   "vectie/moonbook/internal/pathx",
   "vectie/moonbook/core",
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/x/path",
 }
+
+import {
+  "moonbitlang/core/json",
+} for "test"
 
 supported_targets = "native"

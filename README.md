@@ -126,6 +126,7 @@ MoonBook is strongest when you want one local system to handle:
   - seeded `entities/`, `concepts/`, `synthesis/`, `queries/`, `reviews/`, and `sources/`
 - 📥 `wiki ingest` that:
   - imports sources
+  - extracts searchable DOCX headings, paragraphs, and table text through MoonLeaf while preserving the original attachment ([usage](docs/DOCX_SOURCES.md))
   - creates source pages
   - updates entity pages
   - updates concept pages
@@ -239,6 +240,8 @@ moon test wiki
 
 ## Docs
 
+- [Search this Book](docs/SEARCH_THIS_BOOK.md): live maintained-page search,
+  cited context export, startup, read-only boundaries and tested limits
 - [docs/FEATURE_MATRIX.md](/Users/kq/Workspace/moonbook/docs/FEATURE_MATRIX.md)
   concrete implemented cases and current behavior
 - [docs/CLI_AND_LAYOUT.md](/Users/kq/Workspace/moonbook/docs/CLI_AND_LAYOUT.md)

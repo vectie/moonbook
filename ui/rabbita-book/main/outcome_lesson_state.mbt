@@ -14,6 +14,8 @@ priv struct OutcomeLessonWorkspace {
   saved_return : SavedLessonReturn
   outcome_review : OutcomeReviewWorkspace
   task_guidance : TaskGuidanceWorkspace
+  browser : LessonBrowserWorkspace
+  products : ProductOutcomeWorkspace
 }
 
 ///|
@@ -41,6 +43,8 @@ priv enum OutcomeLessonMsg {
   SavedLessonReturned(Int, Bool)
   OutcomeReview(OutcomeReviewMsg)
   TaskGuidance(TaskGuidanceMsg)
+  Browser(LessonBrowserMsg)
+  ProductOutcome(ProductOutcomeMsg)
 }
 
 ///|
@@ -74,6 +78,8 @@ fn initial_outcome_lesson_workspace() -> OutcomeLessonWorkspace {
     saved_return: initial_saved_lesson_return(),
     outcome_review: initial_outcome_review_workspace(),
     task_guidance: initial_task_guidance_workspace(),
+    browser: initial_lesson_browser_workspace(),
+    products: initial_product_outcome_workspace(),
   }
 }
 
@@ -335,6 +341,16 @@ fn decode_outcome_lesson_response(
           !digest.is_blank() else {
           return Err("The Book host did not confirm a saved lesson reference")
         }
+      } else if operation.has_prefix("product-") {
+        match product_outcome_response(operation, payload, result) {
+          Err(error) => return Err(error)
+          Ok(_) => ()
+        }
+      } else if operation == "browse" {
+        match parse_lesson_browser_result(result, payload) {
+          Err(error) => return Err(error)
+          Ok(_) => ()
+        }
       } else if operation == "history" {
         let history = match parse_lesson_history(result) {
           Ok(value) => value
@@ -426,6 +442,8 @@ fn outcome_lesson_update(
 ) -> (@rabbita.Cmd, Model) {
   let state = model.outcome_lessons
   let (command, next) = match message {
+    ProductOutcome(action) => product_outcome_update(emit, model, action)
+    Browser(action) => lesson_browser_update(emit, model, action)
     TaskGuidance(action) => task_guidance_update(emit, model, action)
     RefreshSavedLessons(_) if state.outcome_review.pending =>
       (@rabbita.none, model)

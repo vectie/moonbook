@@ -77,6 +77,50 @@ request is pending; an unchanged retry reuses the same immutable lesson identity
 Choosing the same source again does not allocate another identity. Browser reload
 or leaving the page loses an unsaved lesson form; the form states this limit.
 
+## Browse while planning, before a task exists
+
+The Bookkeeper screen has a visible **Reviewed lessons** browser outside the
+lesson-authoring disclosure. Load the current reviewed lessons, or search words
+from the title, guidance, applicability, invalidation conditions, lesson ID, or
+named reviewer. Search is case-insensitive; every space-separated word must occur
+somewhere in that human-readable context. An empty search browses all current
+reviewed lessons. No task ID, version, digest, or invented task context is needed.
+
+Each current card shows the original guidance, full required and invalidation
+conditions, and its named-human review. Open the original or existing version
+history to inspect the evidence and decisions. Other matching versions are
+available separately with their exclusion reason and history links. Proposed,
+rejected, and historical versions never appear as current cards. If a legacy
+family has several accepted versions but no selected current version, all remain
+available in history, and none is silently selected for the current-card list.
+The existing task-scoped legacy retrieval behavior remains unchanged.
+
+The browser uses a read-only request on the existing Book host:
+
+```json
+{"contract_version":"moonbook.outcome-lesson-browse-query.v1","text":"vendor comparison"}
+```
+
+POST this JSON to `/api/bookkeeper/lessons/browse`, or save it as `browse.json`:
+
+```sh
+moon run cmd/outcome_lessons -- browse /path/to/book browse.json
+```
+
+The `moonbook.outcome-lesson-browser.v1` result echoes the query and returns
+`lessons`, `exclusions`, and false activation/side-effect flags. It reconstructs
+current state from the journal, reuses existing exact source/review/version
+validation, and creates no journal events, reviews, projections, task attachments,
+or acceptance decisions. An empty Book root is not initialized by browsing.
+Reload/search always rereads current state; an error clears current cards rather
+than presenting stale guidance as current. Draft authoring and received task
+handoffs have independent state and remain intact.
+
+Text discovery does not establish that a lesson applies to a new decision. Read
+its conditions and original evidence. Once a real task exists, use the existing
+Proj handoff and scoped retrieval below; only that workflow can prepare guidance
+for an exact task. No source-ingest trust policy or review authority is changed.
+
 ## Retrieve for another task
 
 The query records the caller-supplied exact target task identity and useful named

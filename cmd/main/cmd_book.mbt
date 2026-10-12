@@ -361,6 +361,12 @@ fn print_usage() -> Unit {
   println("moonbook wiki init [root]")
   println("moonbook wiki enable <extension> [root]")
   println("moonbook wiki ingest [root] <source>")
+  println("moonbook wiki import-ris [root] <library.ris>")
+  println("moonbook wiki import-bibtex [root] <library.bib>")
+  println(
+    "moonbook wiki compare-pages [root] <before-citation> <after-citation> [--json]",
+  )
+  println("moonbook wiki export-pages <root> <citation>... [--json]")
   println("moonbook wiki query [root] <question> [--save]")
   println("moonbook wiki lint [root]")
   println("moonbook wiki extension accept [root] <goal>")

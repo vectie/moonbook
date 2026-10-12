@@ -13,13 +13,15 @@ pub fn new_render_context(
   config : @core.Config,
   book : @core.Book,
 ) -> RenderContext {
-  { root, build_dir, config, book }
+  { root, build_dir, config, book, }
 }
 
 ///|
 pub async fn render_html(context : RenderContext) -> Unit {
+  check_static_search_paths(context)
   ensure_dir(context.build_dir)
   let chapters = context.book.chapters()
+  let connections = chapter_connections(chapters)
   let src_root = moonbook_html_path(context.root)
     .join(moonbook_html_path(context.config.book.src))
     .to_string()
@@ -73,7 +75,7 @@ pub async fn render_html(context : RenderContext) -> Unit {
     .to_string(),
     index_body,
   )
-  for chapter in chapters {
+  for index, chapter in chapters {
     let output_path = chapter_output_path(chapter)
     let path = moonbook_html_path(context.build_dir).join(
       moonbook_html_path(output_path),
@@ -83,7 +85,8 @@ pub async fn render_html(context : RenderContext) -> Unit {
       context.config,
       chapter.display(),
       render_navigation(context.book.items, output_path),
-      render_chapter_body(chapter),
+      connections.bodies[index] +
+      render_chapter_connections(connections, index, output_path),
       render_pagelinks(context.config, previous, next, output_path),
       render_live_reload_script(context.config),
       render_head_assets(context.config, output_path),
@@ -92,6 +95,10 @@ pub async fn render_html(context : RenderContext) -> Unit {
     write_text_file(path.to_string(), page)
   }
   render_not_found_page(context, not_found_markdown)
+  write_chapter_connections(context, connections)
+  write_static_search(context)
+  write_whole_book(context)
+  write_reader_notebook(context)
 }
 
 ///|

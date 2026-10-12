@@ -2,13 +2,25 @@
 async fn main {
   let args = @env.args()
   match args[1:] {
+    ["browse", root, path] => {
+      let query : @bookkeeper_store.OutcomeLessonBrowseQuery = @json.from_json(
+        @json.parse(@fsx.read_file(path)),
+      )
+      println(
+        @bookkeeper_store.browse_outcome_lessons(root, query).stringify(
+          indent=2,
+        ),
+      )
+    }
     ["history", root, lesson_id] =>
       println(
         @bookkeeper_store.outcome_lesson_history(root, lesson_id).stringify(
           indent=2,
         ),
       )
-    [operation, root, path] if operation == "revise" || operation == "select" => {
+    [operation, root, path] if operation == "revise" ||
+      operation == "select" ||
+      operation.has_prefix("product-") => {
       let (status, response) = @bookkeeper_store.outcome_lesson_request(
         root,
         "/api/bookkeeper/lessons/" + operation,
@@ -41,7 +53,7 @@ async fn main {
     }
     _ =>
       fail(
-        "Usage: outcome_lessons prepare|revise|select|retrieve <book-root> <request.json> | history <book-root> <lesson-id>",
+        "Usage: outcome_lessons prepare|revise|select|retrieve|browse|product-import|product-list|product-read|product-continue <book-root> <request.json> | history <book-root> <lesson-id>",
       )
   }
 }

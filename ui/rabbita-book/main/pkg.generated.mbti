@@ -11,6 +11,38 @@ import {
 // Errors
 
 // Types and methods
+type BookCollectionArchive derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type BookCollectionFindHit derive(Eq, @debug.Debug)
+
+type BookCollectionItem derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type BookCollectionMergePlan derive(Eq, @debug.Debug)
+
+type BookCollectionMsg derive(@debug.Debug)
+
+type BookCollectionState derive(@debug.Debug)
+
+type BookRetainedDescriptor derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type BookRetainedResponse derive(Eq, @debug.Debug, @json.FromJson)
+
+type BookRetainedSource derive(Eq, @debug.Debug, @json.FromJson)
+
+type BookSearchEffect
+
+type BookSearchExcerpt derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type BookSearchMsg derive(@debug.Debug)
+
+type BookSearchPage derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type BookSearchPaging derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type BookSearchResult derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+type BookSearchState derive(@debug.Debug)
+
 type BookkeeperAuthorityGrant derive(ToJson, @debug.Debug, @json.FromJson)
 
 type BookkeeperAuthorityRegistry derive(@debug.Debug, @json.FromJson)

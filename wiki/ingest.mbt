@@ -37,6 +37,12 @@ priv struct IngestGatherLane {
 
 ///|
 pub async fn ingest_source(root : String, source_path : String) -> IngestResult {
+  if is_transcript_source(source_path) {
+    return ingest_transcript_source(root, source_path)
+  }
+  if is_email_source(source_path) {
+    return ingest_email_source(root, source_path)
+  }
   let workspace = workspace_paths(root)
   @fsx.make_directory(
     moonbook_wiki_path(workspace.wiki_dir)
@@ -206,7 +212,7 @@ async fn suggest_source_slug(title : String, path : String) -> String {
   if !is_text_source(path) {
     return prefer_non_generic_slug(slugify_title(title), basename_slug)
   }
-  let content = @fsx.read_file(path)
+  let content = read_source_text(path)
   let title_signal = (title + "\n" + file_stem(path)).to_lower()
   let content_signal = content.to_lower()
   let title_slug = slugify_title(title)
@@ -321,7 +327,7 @@ async fn unique_import_path(imported_dir : String, basename : String) -> String 
 ///|
 async fn detect_source_title(path : String) -> String {
   if is_text_source(path) {
-    let content = @fsx.read_file(path)
+    let content = read_source_text(path)
     if @pathx.ext(path).to_owned().to_lower() == ".json" {
       match detect_json_source_title(content) {
         Some(title) => return title
@@ -386,7 +392,7 @@ async fn source_rejection_reason(path : String) -> String? {
   if [".gitkeep", ".keep", ".ds_store", "thumbs.db"].contains(lowered) {
     return Some("workspace placeholder files are not ingestable sources")
   }
-  if is_text_source(path) {
+  if is_text_source(path) && !is_docx_source(path) {
     if @fsx.read_file(path).trim().to_owned().is_blank() {
       return Some("empty text files are not ingestable sources")
     }
@@ -406,17 +412,27 @@ async fn source_page_text(
   let raw_link = relative_from_page("wiki/" + relative_page, relative_raw)
   let now = "\{@async.now().to_int()}"
   if is_text_source(stored_raw_path) {
-    let content = @fsx.read_file(stored_raw_path)
+    let content = read_source_text(stored_raw_path)
+    let docx_source = is_docx_source(stored_raw_path)
     let remote_packet = content.contains(
       "- Retrieval mode: bounded remote extract",
     )
-    let overview = if remote_packet {
+    let overview = if docx_source && content.trim().is_empty() {
+      "No readable document text was found. Open the original DOCX attachment to review images and other content."
+    } else if remote_packet {
       "Bounded remote capture of \{title}. Treat extracted text as provisional research material and verify promoted claims against the recorded source URL."
     } else {
       summarize_source(title, content)
     }
-    let excerpt = excerpt_source(content, 24)
-    let source_type = if remote_packet {
+    // Keep the reader's entire projection searchable, including later tables.
+    let excerpt = if docx_source {
+      content
+    } else {
+      excerpt_source(content, 24)
+    }
+    let source_type = if docx_source {
+      "DOCX document"
+    } else if remote_packet {
       "remote web source"
     } else {
       detect_source_type(title, stored_raw_path, content)
@@ -448,6 +464,11 @@ async fn source_page_text(
     "- Raw source: [\{relative_raw}](\{raw_link})\n" +
     "- Source type: \{source_type}\n" +
     "- Scope: \{scope}\n" +
+    (if docx_source {
+      "- Extraction: MoonLeaf DOCX plain text; original attachment retained. Images, layout, and OCR are not extracted.\n"
+    } else {
+      ""
+    }) +
     "- Ingested at: `\{now}`\n\n" +
     "## Summary\n\n" +
     "\{overview}\n\n" +
@@ -544,7 +565,7 @@ async fn enrich_ingest(
     return pages
   }
 
-  let content = @fsx.read_file(stored_raw_path)
+  let content = read_source_text(stored_raw_path)
   let related_pages : Array[String] = []
   let remote_packet = content.contains(
     "- Retrieval mode: bounded remote extract",
@@ -660,7 +681,7 @@ async fn ingest_packet_notes(
       "binary-source: review raw asset directly before semantic revision", "skill-followup: source-diarize, synthesis-revise, index-maintain",
     ]
   }
-  let content = @fsx.read_file(stored_raw_path)
+  let content = read_source_text(stored_raw_path)
   if content.contains("- Retrieval mode: bounded remote extract") {
     return [
       "remote-source: bounded capture; review the recorded URL before promoting claims",

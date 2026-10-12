@@ -26,6 +26,8 @@ pub fn bookkeeper_ui_state_path(String) -> String
 
 pub fn bookkeeper_work_order_bridge_contract_version() -> String
 
+pub async fn browse_outcome_lessons(String, OutcomeLessonBrowseQuery) -> Json
+
 pub async fn close_product_outcome(String, ProductOutcomeClosureRequest) -> ProductOutcomeClosureReceipt
 
 pub async fn complete_mooncode_draft_delivery(String, MoonCodeDraftDeliveryPlan, Json) -> Result[MoonCodeDraftImportReceipt, String]
@@ -280,6 +282,11 @@ pub(all) struct MoonCodeDraftImportReceipt {
 pub(all) struct MoonCodeDraftImportRequest {
   contract_version : String
   envelope : @bookkeeper.VersionedRecordReference
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct OutcomeLessonBrowseQuery {
+  contract_version : String
+  text : String
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
 
 pub(all) struct OutcomeLessonCondition {

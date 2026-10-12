@@ -23,16 +23,35 @@ async fn run_wiki(args : Array[String]) -> Unit {
     ["readiness", root] => run_wiki_readiness(root, "workspace")
     ["readiness"] => run_wiki_readiness(".", "workspace")
     ["review", .. review_args] => run_wiki_review(review_args.to_owned())
+    ["export-pages", .. export_args] =>
+      run_wiki_export_pages(export_args.to_owned())
+    ["compare-pages", .. compare_args] =>
+      run_wiki_compare_pages(compare_args.to_owned())
     ["query", .. query_args] => run_wiki_query(query_args.to_owned())
     ["ingest", root, source] => run_wiki_ingest(root, source)
     ["ingest", source] => run_wiki_ingest(".", source)
+    ["import-bibtex", root, source] => run_wiki_import_bibtex(root, source)
+    ["import-bibtex", source] => run_wiki_import_bibtex(".", source)
+    ["import-ris", root, source] => run_wiki_import_ris(root, source)
+    ["import-ris", source] => run_wiki_import_ris(".", source)
     ["init", root] => run_wiki_init(root)
     ["init"] => run_wiki_init(".")
     _ =>
       println(
-        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki state [root]\nmoonbook wiki projection [root] (fill missing local site outputs; preserve existing files)\nmoonbook wiki bundle [root]\nmoonbook wiki graph [root]\nmoonbook wiki lint [root]\nmoonbook wiki readiness [root] [--revision <revision>]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki keeper submit [root] <packet.json> [--confirm] [--inline] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]\nmoonbook wiki extension accept [root] <goal>\nmoonbook wiki extension tasks [root] <goal>\nmoonbook wiki extension context [root] <goal> [--task <task-id>]\nmoonbook wiki extension persist [root] <result.json>\nmoonbook wiki extension summary [root]\nmoonbook wiki extension health [root]",
+        "moonbook wiki usage: moonbook wiki init [root]\nmoonbook wiki enable <extension> [root]\nmoonbook wiki ingest [root] <source>\nmoonbook wiki import-ris [root] <library.ris>\nmoonbook wiki import-bibtex [root] <library.bib>\nmoonbook wiki export-pages <root> <citation>... [--json]\nmoonbook wiki compare-pages [root] <before-citation> <after-citation> [--json]\nmoonbook wiki query [root] <question> [--save]\nmoonbook wiki state [root]\nmoonbook wiki projection [root] (fill missing local site outputs; preserve existing files)\nmoonbook wiki bundle [root]\nmoonbook wiki graph [root]\nmoonbook wiki lint [root]\nmoonbook wiki readiness [root] [--revision <revision>]\nmoonbook wiki review list [root]\nmoonbook wiki review approve [root] <review-id>\nmoonbook wiki review reject [root] <review-id>\nmoonbook wiki keeper submit [root] <packet.json> [--confirm] [--inline] [--home <dir>] [--cwd <dir>] [--moonclaw <dir>] [--latest]\nmoonbook wiki extension accept [root] <goal>\nmoonbook wiki extension tasks [root] <goal>\nmoonbook wiki extension context [root] <goal> [--task <task-id>]\nmoonbook wiki extension persist [root] <result.json>\nmoonbook wiki extension summary [root]\nmoonbook wiki extension health [root]",
       )
   }
+}
+
+///|
+async fn run_wiki_import_ris(root : String, source : String) -> Unit {
+  let result = @wiki.import_ris(root, source) catch {
+    error => {
+      println("moonbook wiki import-ris failed: \{error}")
+      @os.exit(1)
+    }
+  }
+  println(result.to_json().stringify(indent=2))
 }
 
 ///|
@@ -502,7 +521,9 @@ async fn parse_wiki_query_args(args : Array[String]) -> ParsedWikiQueryArgs {
     }
   }
   if filtered.is_empty() {
-    fail("usage: moonbook wiki query [root] <question> [--save]")
+    fail(
+      "usage: moonbook wiki export-pages <root> <citation>... [--json]\nmoonbook wiki compare-pages [root] <before-citation> <after-citation> [--json]\nmoonbook wiki query [root] <question> [--save]",
+    )
   }
   if filtered.length() >= 2 && looks_like_wiki_root(filtered[0]) {
     { root: filtered[0], question: filtered[1:].join(" "), save, }
@@ -734,3 +755,14 @@ fn default_moonclaw_root(root : String) -> String {
 }
 
 ///|
+
+///|
+async fn run_wiki_import_bibtex(root : String, source : String) -> Unit {
+  let result = @wiki.import_bibtex(root, source) catch {
+    error => {
+      println("moonbook wiki import-bibtex failed: \{error}")
+      @os.exit(1)
+    }
+  }
+  println(result.to_json().stringify(indent=2))
+}

@@ -7,6 +7,8 @@ import {
 }
 
 // Values
+pub async fn book_search_http_response(String, String, String, Map[String, String], String) -> (Int, Json) noraise
+
 pub fn default_options(String) -> ServeOptions
 
 pub let live_reload_token_file : String

@@ -36,6 +36,7 @@ fn guided_book_model(state : WikiReviewState) -> Model {
     draft_recovery: initial_book_draft_recovery(),
     wiki_review: state,
     outcome_lessons: initial_outcome_lesson_workspace(),
+    book_search: book_search_initial(),
   }
 }
 

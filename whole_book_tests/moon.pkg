@@ -1,0 +1,8 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/env",
+  "vectie/moonbook/driver",
+}
+
+supported_targets = "native"

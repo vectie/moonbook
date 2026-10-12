@@ -3,9 +3,11 @@ name = "vectie/moonbook"
 version = "0.1.1"
 
 import {
+  "hustcer/fzip@0.8.5",
   "moonbitlang/async@0.19.4",
   "moonbitlang/x@0.4.50",
   "vectie/moonlib@0.1.19",
+  "vectie/moonleaf@0.1.16",
 }
 
 readme = "README.mbt.md"

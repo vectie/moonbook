@@ -16,6 +16,10 @@ pub async fn read_bytes(StringView) -> Bytes
 
 pub async fn read_file(StringView) -> String
 
+pub fn read_maintained_bytes(String, String) -> Bytes raise
+
+pub fn read_retained_bytes(String, String) -> Bytes raise
+
 pub async fn write_bytes(StringView, Bytes, create? : Int) -> Unit
 
 pub async fn write_to_file(StringView, StringView, create? : Int) -> Unit

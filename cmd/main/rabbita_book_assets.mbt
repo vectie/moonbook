@@ -157,7 +157,7 @@ async fn install_rabbita_book_operator_app(
     )
   }
   let build_status = @process.run("moon", [
-    "-C", ui_root, "build", "--target", "js", "--release",
+    "-C", ui_root, "build", "--target", "js", "--release", "--frozen",
   ])
   if build_status != 0 {
     fail("MoonBook Rabbita JS build exited with code \{build_status}")

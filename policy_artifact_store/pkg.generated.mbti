@@ -1,0 +1,55 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "vectie/moonbook/policy_artifact_store"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub async fn append_batch(String, ArtifactBatch) -> StoredBatch
+
+pub fn capability() -> Json
+
+pub fn content_digest(String) -> String
+
+pub async fn read_journal(String) -> ArtifactJournal
+
+pub fn validate_journal(ArtifactJournal) -> Unit raise
+
+// Errors
+
+// Types and methods
+pub(all) struct ArtifactBatch {
+  contract_id : String
+  execution_mode : String
+  batch_id : String
+  book_id : String
+  case_id : String
+  expected_book_version : String
+  requests : Array[Json]
+  payloads : Array[ArtifactPayload]
+  context : Json
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct ArtifactJournal {
+  contract_id : String
+  book_id : String
+  case_id : String
+  version : Int
+  batches : Array[StoredBatch]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct ArtifactPayload {
+  record_id : String
+  content : String
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+pub(all) struct StoredBatch {
+  batch : ArtifactBatch
+  receipts : Array[Json]
+} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+
+// Type aliases
+
+// Traits

@@ -12,6 +12,8 @@ Bookkeeper ownership, capability labels and release gates.
 - [UI-to-UI use cases](qualification/UI_TO_UI_USE_CASES.md) — reproducible
   book, Bookkeeper, named-human review, Three-Gap, and negative-authority
   qualification in the existing Rabbita application.
+- [Offline reader notebook](READER_NOTEBOOK.md) — personal reading notes,
+  discovery, progress, external Markdown editing and reviewed selective restore.
 - [Human-readable reader projections](READER_PROJECTIONS.md) — the evidence-led
   Learn, Apply, and Research contract, authoring loop, quality gates, and
   ownership boundary for MoonBook's reading experience.
@@ -99,3 +101,22 @@ state, and accepted artifact paths.
 - Keep standing-watch and reverse-document routines book-local and inspectable.
 - Add stronger end-to-end coverage for generated app-tool and executable-book
   promotion.
+
+- [Chapter connections](CHAPTER_CONNECTIONS.md): find chapters that cite the
+  current one and explore explicit links across a static book.
+
+- [Offline EPUB export](EPUB_EXPORT.md): portable SUMMARY book snapshots with
+  chapter navigation, local images, editable-source preservation and tested limits.
+
+- [Reader notebook external editing](READER_NOTEBOOK.md#edit-notes-in-a-text-editor):
+  export chapter notes to Markdown, revise them in a text editor, then preview
+  and selectively merge those edits back by exact source path.
+
+- [Move reading progress](READER_NOTEBOOK.md#move-reading-progress-to-another-browser-or-book-copy):
+  export read marks and resume position, preview exact source paths in another
+  notebook, then merge without changing notes or authored book content.
+
+- [Recover renamed-chapter notes](READER_NOTEBOOK.md#recover-notes-after-a-chapter-rename):
+  manually select an old retained note and its current chapter, preview the
+  exact copy/append/replacement, and save the destination while retaining the
+  original and leaving unrelated drafts and reading progress unchanged.

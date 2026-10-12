@@ -41,7 +41,7 @@ pub async fn load(book_root : String) -> MDBook {
     create_missing(src_dir, parsed_summary)
   }
   let book = load_book_from_disk(parsed_summary, src_dir)
-  { root: book_root, config, book, summary: parsed_summary }
+  { root: book_root, config, book, summary: parsed_summary, }
 }
 
 ///|
@@ -62,7 +62,7 @@ pub async fn load_with_config(
     create_missing(src_dir, parsed_summary)
   }
   let book = load_book_from_disk(parsed_summary, src_dir)
-  { root: book_root, config, book, summary: parsed_summary }
+  { root: book_root, config, book, summary: parsed_summary, }
 }
 
 ///|
@@ -144,7 +144,7 @@ pub async fn MDBook::build(self : MDBook) -> Unit {
   let manifest_path = moonbook_driver_path(build_dir)
     .join(moonbook_driver_path("book.json"))
     .to_string()
-  let manifest = { ..self, book: preprocessed_book }
+  let manifest = { ..self, book: preprocessed_book, }
   write_text_file(manifest_path, manifest.to_json().stringify(indent=2))
   if is_wiki_workspace(self.root, self.config) {
     let ui_state_path = moonbook_driver_path(build_dir)
@@ -544,11 +544,11 @@ fn escape_html(text : String) -> String {
 ///|
 fn collect_clean_stats(path : String) -> CleanStats raise {
   if !@fs.path_exists(path) {
-    return { files_removed: 0, directories_removed: 0, bytes_removed: 0 }
+    return { files_removed: 0, directories_removed: 0, bytes_removed: 0, }
   }
   if @fs.is_file(path) {
     let bytes = @fs.read_file_to_bytes(path).length()
-    return { files_removed: 1, directories_removed: 0, bytes_removed: bytes }
+    return { files_removed: 1, directories_removed: 0, bytes_removed: bytes, }
   }
   let mut files_removed = 0
   let mut directories_removed = 1
@@ -562,7 +562,7 @@ fn collect_clean_stats(path : String) -> CleanStats raise {
     directories_removed += nested.directories_removed
     bytes_removed += nested.bytes_removed
   }
-  { files_removed, directories_removed, bytes_removed }
+  { files_removed, directories_removed, bytes_removed, }
 }
 
 ///|

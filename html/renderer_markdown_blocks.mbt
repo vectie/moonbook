@@ -3,10 +3,10 @@
 
 fn escape_html(text : String) -> String {
   text
-  .replace(old="&", new="&amp;")
-  .replace(old="<", new="&lt;")
-  .replace(old=">", new="&gt;")
-  .replace(old="\"", new="&quot;")
+  .replace_all(old="&", new="&amp;")
+  .replace_all(old="<", new="&lt;")
+  .replace_all(old=">", new="&gt;")
+  .replace_all(old="\"", new="&quot;")
   .to_string()
 }
 
@@ -19,6 +19,7 @@ fn render_markdown(markdown : String) -> String {
 fn render_markdown_with_refs(
   markdown : String,
   references : Map[String, String],
+  headings? : Array[ChapterHeading] = [],
 ) -> String {
   let builder = StringBuilder::new()
   let paragraph : Array[String] = []
@@ -173,10 +174,9 @@ fn render_markdown_with_refs(
           builder, table_header, table_rows, references,
         )
         let text = trimmed[level + 1:].trim().to_owned()
-        let id = unique_heading_id(
-          inline_text_content(text, references),
-          heading_ids,
-        )
+        let label = inline_text_content(text, references)
+        let id = unique_heading_id(label, heading_ids)
+        headings.push({ level, id, label, })
         let title = render_inline_with_refs(text, references)
         builder.write_string(
           "<h\{level} id=\"\{id}\"><a class=\"header-link\" href=\"#\{id}\">\{title}</a></h\{level}>",
@@ -685,14 +685,22 @@ fn list_indent(line : String) -> Int {
 
 ///|
 fn unique_heading_id(text : String, ids : Map[String, Int]) -> String {
-  let base = slugify_heading(text)
-  let count = ids.get(base).unwrap_or(0)
-  ids[base] = count + 1
-  if count == 0 {
+  let slug = slugify_heading(text)
+  let base = if slug.is_empty() { "section" } else { slug }
+  let mut count = ids.get(base).unwrap_or(0)
+  let mut candidate = if count == 0 {
     base
   } else {
     base + "-" + count.to_string()
   }
+  // Also reserve generated suffixes: A, A-1, A must never emit duplicate IDs.
+  while ids.contains(candidate) {
+    count += 1
+    candidate = base + "-" + count.to_string()
+  }
+  ids[base] = count + 1
+  ids[candidate] = ids.get(candidate).unwrap_or(1)
+  candidate
 }
 
 ///|

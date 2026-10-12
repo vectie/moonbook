@@ -443,7 +443,7 @@ fn fix_link_path(path : String) -> String {
 ///|
 fn is_local_asset(path : String) -> Bool {
   let plain = strip_link_anchor(path)
-  !plain.has_prefix("#") &&
+  !path.has_prefix("#") &&
   !plain.contains("://") &&
   !plain.has_prefix("mailto:") &&
   !plain.has_prefix("tel:") &&

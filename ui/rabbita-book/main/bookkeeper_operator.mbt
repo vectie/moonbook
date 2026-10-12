@@ -272,6 +272,8 @@ fn bookkeeper_operator_panel(
         ),
       ]),
       render_bookkeeper_progress(step),
+      product_outcome_view(emit, model),
+      lesson_browser_view(emit, model),
       selected_outcome_lesson_detail(model),
       lesson_history_workspace_view(emit, model),
       outcome_lesson_workspace_view(emit, model),

@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "vectie/moonbook/page_compare"
+
+// Values
+pub fn compare_page_text(String, String) -> PageTextDiff raise
+
+// Errors
+
+// Types and methods
+pub struct PageDiffLine {
+  kind : String
+  before_line : Int?
+  after_line : Int?
+  text : String
+} derive(ToJson)
+
+pub struct PageTextDiff {
+  before_lines : Int
+  after_lines : Int
+  added : Int
+  removed : Int
+  unchanged : Int
+  lines : Array[PageDiffLine]
+} derive(ToJson)
+
+// Type aliases
+
+// Traits

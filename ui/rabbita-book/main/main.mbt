@@ -271,10 +271,12 @@ struct Model {
   draft_recovery : BookDraftRecovery
   wiki_review : WikiReviewState
   outcome_lessons : OutcomeLessonWorkspace
+  book_search : BookSearchState
 }
 
 ///|
 enum Msg {
+  BookSearch(BookSearchMsg)
   OutcomeLesson(OutcomeLessonMsg)
   DraftRecovery(BookDraftMsg)
   Loaded(Int, Result[UiState, Error])
@@ -1094,7 +1096,14 @@ extern "js" fn bookkeeper_unix_seconds() -> Int = "()=>Math.floor(Date.now()/100
 
 ///|
 fn review_draft_for_selection(model : Model, requested : String) -> String? {
-  guard requested == "Accept" || requested == "Reject" else { return None }
+  guard requested == "Accept" ||
+    requested == "Reject" ||
+    (
+      (requested == "Revise" || requested == "Escalate") &&
+      product_outcome_can_defer(model)
+    ) else {
+    return None
+  }
   guard model.selected_bookkeeper_record is Some(reference) else { return None }
   guard selected_raw_record(model, reference) is Some(record) else {
     return None
@@ -1125,11 +1134,7 @@ fn review_draft_for_selection(model : Model, requested : String) -> String? {
       evidence_refs: grant.evidence_refs,
     },
     evidence_refs: record.evidence_refs,
-    summary: if requested == "Accept" {
-      "Named reviewer accepted the exact selected record and evidence."
-    } else {
-      "Named reviewer rejected the exact selected record and evidence."
-    },
+    summary: book_draft_default_summary(requested),
     decided_at: bookkeeper_unix_seconds(),
   }
   Some(draft.to_json().stringify(indent=2))
@@ -1586,6 +1591,7 @@ fn render_page(emit : @rabbita.Emit[Msg], model : Model) -> @rabbita.Html {
         ],
         [
           hero_section(state, model),
+          book_search_panel(emit, model.book_search),
           section(
             style=[
               "display:grid", "grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))",
@@ -1947,6 +1953,16 @@ fn update_core(
   model : Model,
 ) -> (@rabbita.Cmd, Model) {
   match msg {
+    BookSearch(message) => {
+      let (book_search, effects) = book_search_reduce(
+        model.book_search,
+        message,
+      )
+      (
+        @rabbita.batch(effects.map(effect => book_search_effect(emit, effect))),
+        { ..model, book_search, },
+      )
+    }
     OutcomeLesson(message) => outcome_lesson_update(emit, model, message)
     DraftRecovery(message) => book_draft_reduce(emit, model, message)
     WikiReview(message) => {
@@ -2229,6 +2245,7 @@ fn main {
       bookkeeper_notice: None,
       draft_recovery: initial_book_draft_recovery(),
       outcome_lessons: initial_outcome_lesson_workspace(),
+      book_search: book_search_initial(),
       wiki_review: wiki_review_initial_state(
         restore_id=wiki_review_url_hint(wiki_review_browser_url()),
       ),
@@ -2244,6 +2261,7 @@ fn main {
       fetch_bookkeeper_store_cmd(emit, 1),
       fetch_bookkeeper_authorities_cmd(emit, 1),
       wiki_review_effect_cmd(emit, LoadQueue(1)),
+      emit(OutcomeLesson(Browser(Reload))),
     ]),
   )
   app.mount("app")

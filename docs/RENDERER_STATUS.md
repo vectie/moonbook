@@ -6,6 +6,9 @@ project as the target product.
 
 ## What Is Solid Right Now
 
+- explicit native offline EPUB export with SUMMARY navigation, chapter links and
+  local raster images; supported content and reader limits in [EPUB export](EPUB_EXPORT.md)
+
 - native MoonBit model for books/config
 - `SUMMARY.md` parsing for the currently documented cases
 - end-to-end local CLI flow for `book init`, `build`, `serve`, `watch`,
@@ -18,6 +21,10 @@ project as the target product.
 - reusable extension API flow with `moonbook wiki extension`
 - extension manifests under `extensions/`
 - static HTML generation for normal chapter trees
+- offline chapter connection explorer and bidirectional chapter navigation
+  derived from rendered author links, refreshed by ordinary builds
+- whole-book reading and browser-print projection with contents, cross-chapter
+  anchors and chapter page breaks (printer pagination is browser-dependent)
 - broad markdown coverage for common book content
 - stable heading/link behavior for many inline cases
 - playground and hidden-line treatment for code blocks
@@ -76,8 +83,10 @@ project as the target product.
 ### Rendering Gaps
 
 - complete markdown edge-case coverage
-- search output generation
-- print renderer
+- advanced search configuration (basic offline chapter search is implemented; see
+  [Static book search](STATIC_BOOK_SEARCH.md))
+- advanced print configuration and native PDF export; broader EPUB content and
+  real-reader/device compatibility remain unqualified
 - complete theme assets and theming behavior
 - syntax highlighting integration
 - more edge cases around HTML trees, escapes, and markdown nesting

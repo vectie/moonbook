@@ -9,6 +9,7 @@ pub async fn outcome_lesson_request(
   let operation = match path {
     "/api/bookkeeper/lessons/prepare" => "prepare"
     "/api/bookkeeper/lessons/retrieve" => "retrieve"
+    "/api/bookkeeper/lessons/browse" => "browse"
     "/api/bookkeeper/lessons/guidance-query" => "guidance-query"
     "/api/bookkeeper/lessons/guidance-select" => "guidance-select"
     "/api/bookkeeper/lessons/task-handoff" => "task-handoff"
@@ -17,10 +18,18 @@ pub async fn outcome_lesson_request(
     "/api/bookkeeper/lessons/select" => "select"
     "/api/bookkeeper/lessons/outcome-import" => "outcome-import"
     "/api/bookkeeper/lessons/outcome-continue" => "outcome-continue"
+    "/api/bookkeeper/lessons/product-import" => "product-import"
+    "/api/bookkeeper/lessons/product-list" => "product-list"
+    "/api/bookkeeper/lessons/product-read" => "product-read"
+    "/api/bookkeeper/lessons/product-continue" => "product-continue"
     _ => return (404, { "ok": false, "error": "Unsupported lesson route" })
   }
   try {
-    let result = if operation == "guidance-query" {
+    let result = if operation.has_prefix("product-") {
+      product_outcome_package_operation(root, operation, payload)
+    } else if operation == "browse" {
+      browse_outcome_lessons(root, @json.from_json(payload))
+    } else if operation == "guidance-query" {
       resolve_task_guidance_query(payload)
     } else if operation == "guidance-select" {
       select_task_guidance(root, payload)

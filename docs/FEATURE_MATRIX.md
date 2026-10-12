@@ -6,6 +6,10 @@ This document tracks the currently implemented moonbook behavior. It is intentio
 
 Implemented commands:
 
+- Dedicated native EPUB exporter: `moon run cmd/epub --target native -- <book-root>`,
+  producing one offline ebook with SUMMARY order/nesting, chapter/heading links,
+  metadata and local raster images. See [EPUB export](EPUB_EXPORT.md).
+
 - `moonbook book init [root]`
 - `moonbook book clean [root]`
 - `moonbook book load [root]`
@@ -26,6 +30,15 @@ Implemented commands:
 - `moonbook wiki init [root]`
 - `moonbook wiki enable <extension> [root]`
 - `moonbook wiki ingest [root] <source>`
+- Local `.vtt` / `.srt` ingestion preserves the original and makes complete
+  timestamped cue text and supplied speakers searchable and collectable.
+  See [Timed transcripts](TRANSCRIPT_SOURCES.md).
+- `moonbook wiki import-bibtex [root] <library.bib>`: retain a local UTF-8
+  bibliography and add searchable references with citation keys, complete fields
+  and abstracts. See [BibTeX library](BIBTEX_LIBRARY.md).
+- `moonbook wiki import-ris [root] <library.ris>`: retain a local UTF-8 RIS
+  export and create individually searchable references, including complete
+  abstracts, repeated authors and unknown fields. See [RIS library](RIS_LIBRARY.md).
 - `moonbook wiki query [root] <question> [--save]`
 - `moonbook wiki state [root]`
 - `moonbook wiki bundle [root]`
@@ -47,9 +60,22 @@ Implemented commands:
 
 Implemented behaviors:
 
+- ordinary Reader notebooks offer reviewed [selected-note JSON/Markdown export](SELECTED_NOTE_EXPORT.md), excluding unchecked notes without saving a draft.
+
+- ordinary builds include an offline **Reader notebook** with chapter-linked personal notes, browser-local saves, Markdown export/edit/import, and portable notebook archive import/export with selective conflict handling. See [Reader notebook](READER_NOTEBOOK.md).
+
 - initializes `src/`, `book/`, `book.toml`, `.gitignore`, `src/SUMMARY.md`, and `src/chapter_1.md`
 - loads `book.toml` if present, otherwise uses defaults
 - writes built HTML output under `build.build_dir`
+- ordinary builds add a Chapter connections explorer at
+  `__moonbook/connections.html` and per-chapter **Referenced by** / **Links to**
+  panels, derived from explicit links in rendered chapter content. Both
+  directions follow SUMMARY order and refresh on rebuild. See
+  [Chapter connections](CHAPTER_CONNECTIONS.md).
+- ordinary builds include a SUMMARY-ordered `__moonbook/print.html` whole-book
+  reading/printing page, linked from chapter navigation; chapter links, heading
+  anchors and footnotes are namespaced, and local assets are rebased. See
+  [Whole-book reading and printing](WHOLE_BOOK_PRINT.md).
 - `serve` performs a build first, then hosts the built output over HTTP
 - `serve` supports configurable hostname and port
 - `serve` supports `--dest-dir`
@@ -267,6 +293,10 @@ Implemented loader/preprocessor behaviors tied to summary data:
 
 Implemented page shell behaviors:
 
+- offline **Search this Book** page generated from SUMMARY chapters, with local
+  literal search, source excerpts, nested chapter links and paged results; see
+  [Static book search](STATIC_BOOK_SEARCH.md)
+
 - generated `index.html`
 - generated chapter HTML pages
 - static inline stylesheet
@@ -410,8 +440,9 @@ browser-to-durable-store scenario remains the release qualification in
 Not implemented yet:
 
 - complete MoonBook theme system
-- search index and search UI
-- print renderer/output
+- advanced search/theme configuration (the static chapter search is implemented)
+- advanced print configuration and native PDF export; the bounded EPUB exporter
+  is implemented as a dedicated native entrypoint
 - live reload websocket for `serve`
 - true native filesystem watcher backend
 - stronger `book test` rendered-output behavior
@@ -421,3 +452,5 @@ Not implemented yet:
 - redirect generation
 - full built-in theme asset pipeline
 - complete Rabbita parity with every built-book and skill-management surface
+
+- Reader notebook includes explicit chapter read/unread tracking, a SUMMARY-ordered unread queue and browser-local resume. See [Reader notebook](READER_NOTEBOOK.md#track-reading-and-resume).

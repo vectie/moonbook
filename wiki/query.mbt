@@ -5,6 +5,18 @@ pub struct QueryResult {
   citations : Array[String]
   saved_page : String?
   related_pages : Array[String]
+  excerpts : Array[QueryExcerpt]
+} derive(Debug, ToJson)
+
+///|
+/// Exact ranked text selected by the lexical query, with a Book-relative citation.
+/// Metadata is copied from the page and does not establish factual verification.
+pub struct QueryExcerpt {
+  citation : String
+  title : String
+  excerpt : String
+  score : Int
+  metadata_status : String
 } derive(Debug, ToJson)
 
 ///|
@@ -14,6 +26,7 @@ priv struct QueryMatch {
   title : String
   excerpt : String
   score : Int
+  metadata_status : String
 }
 
 ///|
@@ -22,7 +35,10 @@ pub async fn query_wiki(
   question : String,
   save? : Bool = false,
 ) -> QueryResult {
-  let workspace = workspace_paths(root)
+  if question.length() > 1024 {
+    fail("query exceeds 1024 UTF-16 code units")
+  }
+  let workspace = workspace_paths(@fs.realpath(root))
   let page_paths = collect_markdown_pages(workspace.wiki_dir)
   let terms = query_terms(question)
   if terms.is_empty() {
@@ -45,7 +61,14 @@ pub async fn query_wiki(
       Some((_, related)) => related
       None => []
     }
-    return { question, answer, citations: [], saved_page, related_pages, }
+    return {
+      question,
+      answer,
+      citations: [],
+      saved_page,
+      related_pages,
+      excerpts: [],
+    }
   }
   let answer = answer_text(question, selected)
   let citations = selected.map(match_ => match_.relative_path)
@@ -62,28 +85,54 @@ pub async fn query_wiki(
     Some((_, related)) => related
     None => []
   }
-  { question, answer, citations, saved_page, related_pages, }
+  {
+    question,
+    answer,
+    citations,
+    saved_page,
+    related_pages,
+    excerpts: selected.map(item => {
+      citation: item.relative_path,
+      title: item.title,
+      excerpt: item.excerpt,
+      score: item.score,
+      metadata_status: item.metadata_status,
+    }),
+  }
 }
 
 ///|
 async fn collect_markdown_pages(root : String) -> Array[String] {
   let pages : Array[String] = []
-  scan_markdown_pages(root, pages)
+  scan_markdown_pages(root, pages, 0)
   pages.sort()
   pages
 }
 
 ///|
-async fn scan_markdown_pages(path : String, pages : Array[String]) -> Unit {
+async fn scan_markdown_pages(
+  path : String,
+  pages : Array[String],
+  depth : Int,
+) -> Unit {
+  if depth > 32 || pages.length() > 10000 {
+    fail("Book query exceeds the 32-level or 10000-page search limit")
+  }
   if !@fsx.exists(path) {
     return
   }
   match @fs.kind(path, follow_symlink=false) {
     Directory =>
       for child in @fsx.list_directory(path) {
-        scan_markdown_pages(child, pages)
+        scan_markdown_pages(child, pages, depth + 1)
       }
-    Regular => if is_queryable_page(path) { pages.push(path) }
+    Regular =>
+      if is_queryable_page(path) {
+        if pages.length() >= 10000 {
+          fail("Book query exceeds the 10000-page search limit")
+        }
+        pages.push(path)
+      }
     _ => ()
   }
 }
@@ -114,7 +163,7 @@ async fn rank_matches(
 ) -> Array[QueryMatch] {
   let matches : Array[QueryMatch] = []
   for path in page_paths {
-    let content = @fsx.read_file(path)
+    let content = query_page_text(root, relative_to_root(path, root))
     let title = detect_page_title(path, content)
     let relative_path = relative_to_root(path, root)
     let relevance = relevance_score(title, content, terms)
@@ -130,6 +179,7 @@ async fn rank_matches(
         title,
         excerpt: matching_excerpt(content, terms),
         score,
+        metadata_status: query_metadata_status(content),
       })
     }
   }
@@ -206,6 +256,22 @@ fn occurrence_count(text : String, pattern : String) -> Int {
 
 ///|
 fn matching_excerpt(content : String, terms : Array[String]) -> String {
+  // Source summaries describe the document as a whole. A query can instead
+  // match a later paragraph or table, so show that extracted evidence first.
+  match content.find("\n## Extract\n") {
+    Some(start) =>
+      for raw in content[start:].split("\n") {
+        let line = raw.trim().to_owned()
+        if line.is_empty() || line.has_prefix("#") || line.has_prefix("```") {
+          continue
+        }
+        let lower = line.to_lower()
+        if terms.any(term => lower.contains(term)) {
+          return clamp_excerpt(strip_inline_markup(line))
+        }
+      }
+    None => ()
+  }
   match metadata_summary_excerpt(content) {
     Some(summary) => return clamp_excerpt(summary)
     None => ()
@@ -707,6 +773,17 @@ test "matching excerpt prefers maintained metadata summary" {
     ["lunar"],
   )
   assert_eq(excerpt, "Route evidence supports a bounded November traverse.")
+}
+
+///|
+test "matching excerpt uses a later source extract before unrelated summary" {
+  assert_eq(
+    matching_excerpt(
+      "---\nsummary: \"Company handbook\"\n---\n# Handbook\n\n## Extract\n\n```text\nCompany handbook\nOrchid escalation desk\n```\n",
+      ["orchid"],
+    ),
+    "Orchid escalation desk",
+  )
 }
 
 ///|

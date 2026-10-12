@@ -221,10 +221,15 @@ async fn handle_bookkeeper_request(
     | (Post, "/api/bookkeeper/lessons/task-handoff")
     | (Post, "/api/bookkeeper/lessons/outcome-import")
     | (Post, "/api/bookkeeper/lessons/outcome-continue")
+    | (Post, "/api/bookkeeper/lessons/product-import")
+    | (Post, "/api/bookkeeper/lessons/product-list")
+    | (Post, "/api/bookkeeper/lessons/product-read")
+    | (Post, "/api/bookkeeper/lessons/product-continue")
     | (Post, "/api/bookkeeper/lessons/history")
     | (Post, "/api/bookkeeper/lessons/revise")
     | (Post, "/api/bookkeeper/lessons/select")
     | (Post, "/api/bookkeeper/lessons/retrieve")
+    | (Post, "/api/bookkeeper/lessons/browse")
     | (Post, "/api/bookkeeper/lessons/guidance-query")
     | (Post, "/api/bookkeeper/lessons/guidance-select") => {
       let payload : Json = parse_json_body(body) catch {
@@ -243,6 +248,7 @@ async fn handle_bookkeeper_request(
         [
           "/api/bookkeeper/lessons/prepare", "/api/bookkeeper/lessons/revise", "/api/bookkeeper/lessons/select",
           "/api/bookkeeper/lessons/outcome-import", "/api/bookkeeper/lessons/outcome-continue",
+          "/api/bookkeeper/lessons/product-import", "/api/bookkeeper/lessons/product-continue",
         ].contains(path) {
         sync_bookkeeper_projection_to_served_ui(static_root, workspace_root)
       }
@@ -531,6 +537,10 @@ async fn handle_application_request(
 ) -> Unit {
   match workspace_root {
     Some(root) => {
+      if book_search_route(request.path) {
+        handle_book_search_request(root, request, body, conn)
+        return
+      }
       if request.path.has_prefix("/api/bookkeeper/") &&
         handle_bookkeeper_request(static_root, root, request, body, conn) {
         return

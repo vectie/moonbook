@@ -7,5 +7,5 @@ import {
 supported_targets = "native"
 
 options(
-  "native-stub": [ "stat.c" ],
+  "native-stub": [ "stat.c", "retained_read.c" ],
 )

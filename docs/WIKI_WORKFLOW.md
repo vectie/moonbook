@@ -16,6 +16,12 @@ Current commands:
 - `moonbook wiki review`
 - `moonbook wiki lint`
 
+Local meeting and interview exports in `.vtt` or `.srt` can use the ordinary
+ingest command. Searchable quotes retain their time offsets and supplied
+speaker labels, and the original is available through retained-source reading.
+See [Timed transcript sources](TRANSCRIPT_SOURCES.md) for the export shape and
+research-brief walkthrough.
+
 ## Workspace Lifecycle
 
 ### 1. Initialize
@@ -390,3 +396,10 @@ What is still missing:
 - smarter retrieval than the current ranking heuristic
 - first-class operator UI around the wiki flow
 - first-class generated UI for reverse-document deconstruction and regenerated drafts
+
+### Local email sources
+
+`wiki ingest [root] <message.eml>` retains an exact local email export and makes
+its supplied attribution and complete inline plain-text body searchable. See
+[Email sources](EMAIL_SOURCES.md) for supported MIME formats, research-brief use,
+and repairable errors. Attachments remain in the original only.

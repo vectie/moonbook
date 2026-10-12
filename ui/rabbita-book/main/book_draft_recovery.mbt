@@ -51,10 +51,14 @@ fn initial_book_draft_recovery() -> BookDraftRecovery {
 
 ///|
 fn book_draft_default_summary(decision : String) -> String {
-  if decision == "Reject" {
-    "Named reviewer rejected the exact selected record and evidence."
-  } else {
-    "Named reviewer accepted the exact selected record and evidence."
+  match decision {
+    "Reject" =>
+      "Named reviewer rejected the exact selected record and evidence."
+    "Revise" =>
+      "Named reviewer requests revision of the exact selected record; acceptance is deferred."
+    "Escalate" =>
+      "Named reviewer escalates the exact selected record for further review; acceptance is deferred."
+    _ => "Named reviewer accepted the exact selected record and evidence."
   }
 }
 

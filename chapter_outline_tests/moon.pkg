@@ -1,0 +1,9 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/core/env",
+  "vectie/moonbook/core",
+  "vectie/moonbook/html",
+}
+
+supported_targets = "native"
