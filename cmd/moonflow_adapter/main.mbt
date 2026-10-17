@@ -2,7 +2,7 @@
 fn option(
   args : Array[String],
   name : String,
-  required? : Bool = true,
+  required~ : Bool = true,
 ) -> String raise {
   for index in 0..<(args.length() - 1) {
     if args[index] == name {

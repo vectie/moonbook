@@ -11,8 +11,8 @@ pub(all) struct BookkeeperUiItem {
   tone : String
   summary : String
   owner_route : String
-  evidence_count : Int
-  issue_count : Int
+  evidence_count : Int32
+  issue_count : Int32
   requires_human_review : Bool
   next_action : String
 } derive(Debug, Eq, ToJson, FromJson)
@@ -57,7 +57,7 @@ pub fn empty_bookkeeper_ui_state(source_path : String) -> BookkeeperUiState {
 }
 
 ///|
-pub fn BookkeeperUiState::item_count(self : BookkeeperUiState) -> Int {
+pub fn BookkeeperUiState::item_count(self : BookkeeperUiState) -> Int32 {
   self.deliverable_acceptance.length() +
   self.outcome_binding.length() +
   self.three_gap_findings.length() +
@@ -72,7 +72,7 @@ pub fn BookkeeperUiState::item_count(self : BookkeeperUiState) -> Int {
 ///|
 pub fn BookkeeperUiState::pending_human_review_count(
   self : BookkeeperUiState,
-) -> Int {
+) -> Int32 {
   let mut count = 0
   for
     lane in [

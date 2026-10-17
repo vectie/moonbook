@@ -1,8 +1,8 @@
 ///|
-const REMOTE_SOURCE_MAX_BYTES : Int = 2 * 1024 * 1024
+const REMOTE_SOURCE_MAX_BYTES : Int32 = 2 * 1024 * 1024
 
 ///|
-const REMOTE_SOURCE_EXTRACT_CHARS : Int = 6000
+const REMOTE_SOURCE_EXTRACT_CHARS : Int32 = 6000
 
 ///|
 fn is_remote_source(value : String) -> Bool {

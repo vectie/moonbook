@@ -36,7 +36,7 @@ async fn native_wenyu_sync_directory(path : String) -> Unit {
 async fn native_wenyu_path(
   root : String,
   relative : String,
-  create_parents? : Bool = false,
+  create_parents~ : Bool = false,
 ) -> String {
   guard !relative.is_empty() && !relative.has_prefix("/") else {
     fail("invalid native Wenyu store path")
@@ -109,7 +109,7 @@ async fn native_wenyu_write(
 }
 
 ///|
-fn native_wenyu_checkpoint(actual : Int, fail_after : Int) -> Unit raise {
+fn native_wenyu_checkpoint(actual : Int32, fail_after : Int32) -> Unit raise {
   if actual == fail_after {
     fail("injected native Wenyu import interruption at checkpoint \{actual}")
   }
@@ -135,7 +135,7 @@ async fn native_wenyu_write_intent(
 async fn persist_native_wenyu_import(
   root : String,
   payload : Json,
-  fail_after? : Int = -1,
+  fail_after~ : Int32 = -1,
 ) -> PersistResultOutcome {
   let (identity, result, payload_text) = decode_native_wenyu_import(payload)
   let normalized_root = @pathx.normalize(root)

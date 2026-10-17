@@ -25,7 +25,7 @@ test "chapter connections are deduplicated directional authored links in book or
 
 ///|
 test "connection targets normalize nested source and output aliases and encoded filenames" {
-  let targets : Map[String, Int] = {
+  let targets : Map[String, Int32] = {
     "guide/index.html": 0,
     "guide/README.md": 0,
     "guide/README.html": 0,
@@ -142,7 +142,7 @@ test "connection page includes isolated chapters and empty books without unsafe 
 
 ///|
 test "connection attributes decode once before URL delimiters and percent filenames" {
-  let targets : Map[String, Int] = {
+  let targets : Map[String, Int32] = {
     "a&b.html": 0,
     "a#b.html": 1,
     "a&amp;b.html": 2,

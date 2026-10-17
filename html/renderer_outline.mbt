@@ -2,7 +2,7 @@
 // Collected during the same Markdown pass that assigns actual heading IDs.
 // These are generated navigation labels, not a second Markdown parser.
 priv struct ChapterHeading {
-  level : Int
+  level : Int32
   id : String
   label : String
 }

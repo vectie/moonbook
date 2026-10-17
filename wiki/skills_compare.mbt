@@ -76,11 +76,11 @@ fn resolve_skill_baseline(
 
 ///|
 priv struct SkillDiffSummary {
-  compared_line_count : Int
-  changed_line_count : Int
-  selected_only_line_count : Int
-  baseline_only_line_count : Int
-  first_change_line : Int?
+  compared_line_count : Int32
+  changed_line_count : Int32
+  selected_only_line_count : Int32
+  baseline_only_line_count : Int32
+  first_change_line : Int32?
   selected_excerpt : Array[String]
   baseline_excerpt : Array[String]
   diff_summary : String
@@ -105,7 +105,7 @@ fn summarize_skill_diff(
     baseline_lines.length()
   }
   let mut changed_line_count = 0
-  let mut first_change_line : Int? = None
+  let mut first_change_line : Int32? = None
   let mut index = 0
   while index < compared_line_count {
     if selected_lines[index] != baseline_lines[index] {
@@ -161,8 +161,8 @@ fn summarize_skill_diff(
 ///|
 fn excerpt_lines(
   text : String,
-  anchor_line : Int,
-  radius : Int,
+  anchor_line : Int32,
+  radius : Int32,
 ) -> Array[String] {
   let lines : Array[String] = []
   for line in text.split("\n") {

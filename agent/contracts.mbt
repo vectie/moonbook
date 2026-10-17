@@ -5,7 +5,7 @@ pub struct AgentBundleFile {
   role : String
   encoding : String
   digest : String
-  size_bytes : Int
+  size_bytes : Int32
   review_status : String
   sensitivity : String
   content : String
@@ -17,8 +17,8 @@ pub struct AgentBundleFile {
 pub struct AgentSourceLocation {
   workspace_path : String
   kind : String
-  page : Int?
-  slide : Int?
+  page : Int32?
+  slide : Int32?
   sheet : String?
   cell_range : String?
   section : String?
@@ -53,7 +53,7 @@ pub struct AgentMemoryRecord {
   evidence_refs : Array[String]
   confidence : Double
   review_required : Bool
-  expires_at : Int?
+  expires_at : Int32?
   invalidation_conditions : Array[String]
   supersedes : String?
 } derive(Debug, Eq, ToJson, FromJson)
@@ -62,24 +62,24 @@ pub struct AgentMemoryRecord {
 /// Named limits and counters replace anonymous memory truncation constants.
 pub struct AgentMemoryPolicy {
   contract : String
-  active_entry_limit : Int
-  preference_entry_limit : Int
-  working_entry_limit : Int
-  active_character_limit : Int
-  preference_character_limit : Int
-  working_character_limit : Int
+  active_entry_limit : Int32
+  preference_entry_limit : Int32
+  working_entry_limit : Int32
+  active_character_limit : Int32
+  preference_character_limit : Int32
+  working_character_limit : Int32
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
 /// Portable counters for observing memory admission without exporting private
 /// runtime transcripts.
 pub struct AgentMemoryMetrics {
-  admitted : Int
-  rejected : Int
-  deduplicated : Int
-  expired : Int
-  promoted : Int
-  exported : Int
+  admitted : Int32
+  rejected : Int32
+  deduplicated : Int32
+  expired : Int32
+  promoted : Int32
+  exported : Int32
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
@@ -148,7 +148,7 @@ pub struct AgentBundleFileSummary {
   path : String
   role : String
   digest : String
-  size_bytes : Int
+  size_bytes : Int32
   review_status : String
   sensitivity : String
 } derive(Debug, Eq, ToJson, FromJson)
@@ -160,8 +160,8 @@ pub struct AgentBundleInspection {
   version : String
   book_revision : String
   bundle_digest : String
-  file_count : Int
-  total_bytes : Int
+  file_count : Int32
+  total_bytes : Int32
   files : Array[AgentBundleFileSummary]
   exclusions : Array[AgentBundleExclusion]
   compatibility : AgentCompatibility
@@ -176,7 +176,7 @@ pub struct AgentBundleVerification {
   agent_id : String
   version : String
   bundle_digest : String
-  checked_file_count : Int
+  checked_file_count : Int32
   issues : Array[String]
 } derive(Debug, Eq, ToJson, FromJson)
 

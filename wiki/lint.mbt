@@ -171,8 +171,8 @@ async fn scan_lint_pages(path : String, pages : Array[String]) -> Unit {
 async fn inbound_link_counts(
   page_paths : Array[String],
   root : String,
-) -> Map[String, Int] {
-  let counts : Map[String, Int] = Map([])
+) -> Map[String, Int32] {
+  let counts : Map[String, Int32] = Map([])
   for path in page_paths {
     let current_relative = relative_to_root(path, root)
     let current_dir = moonbook_wiki_path(current_relative).dirname().to_string()
@@ -704,7 +704,7 @@ fn lint_report(findings : Array[LintFinding]) -> String {
 }
 
 ///|
-async fn append_lint_log(log_path : String, finding_count : Int) -> Unit {
+async fn append_lint_log(log_path : String, finding_count : Int32) -> Unit {
   let now = "\{@async.now().to_int()}"
   let entry = "## [\{now}] lint | wiki health check\n\n" +
     "- findings: `\{finding_count}`\n"

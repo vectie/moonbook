@@ -22,8 +22,8 @@ pub(all) struct ProductOutcomeSubmission {
   owner_route : String
   evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
   decision_evidence_id : String
-  observed_at : Int
-  recorded_at : Int
+  observed_at : Int32
+  recorded_at : Int32
   information_gap : ProductOutcomeGapStatement
   recognition_gap : ProductOutcomeGapStatement
   decisiveness_gap : ProductOutcomeGapStatement

@@ -201,7 +201,7 @@ pub fn DeliverableCandidate::new(
   candidate_digest~ : String,
   proposed_bundle_id~ : String,
   proposed_bundle_version~ : String,
-  proposed_bundle_digest? : String = "",
+  proposed_bundle_digest~ : String = "",
   pack_id~ : String,
   pack_version~ : String,
   artifacts~ : ArrayView[ArtifactBinding],
@@ -266,7 +266,7 @@ pub struct DeliverableBundle {
   bundle_version : String
   bundle_digest : String
   decision_id : String
-  decided_at : Int
+  decided_at : Int32
   candidate_id : String
   candidate_version : String
   candidate_digest : String
@@ -297,7 +297,7 @@ pub struct DeliverableBundle {
 pub struct BookkeeperDecision {
   contract_version : String
   decision_id : String
-  decided_at : Int
+  decided_at : Int32
   requested : BookkeeperDisposition
   disposition : BookkeeperDisposition
   candidate_id : String
@@ -341,7 +341,7 @@ pub struct OutcomeObservation {
   candidate_id : String
   candidate_version : String
   candidate_digest : String
-  observed_at : Int
+  observed_at : Int32
   summary : String
   evidence_refs : ReadOnlyArray[EvidenceReference]
 } derive(Debug, Eq, ToJson)
@@ -351,14 +351,14 @@ pub struct OutcomeObservation {
 pub fn OutcomeObservation::new(
   observation_id~ : String,
   observation_version~ : String,
-  observation_digest? : String = "",
+  observation_digest~ : String = "",
   bundle_id~ : String,
   bundle_version~ : String,
-  bundle_digest? : String = "",
+  bundle_digest~ : String = "",
   candidate_id~ : String,
   candidate_version~ : String,
   candidate_digest~ : String,
-  observed_at~ : Int,
+  observed_at~ : Int32,
   summary~ : String,
   evidence_refs~ : ArrayView[EvidenceReference],
 ) -> OutcomeObservation {
@@ -388,7 +388,7 @@ pub fn OutcomeObservation::new(
 /// One explicit gap dimension with its supporting evidence.
 pub(all) struct GapFinding {
   present : Bool
-  severity : Int
+  severity : Int32
   summary : String
   evidence_refs : ReadOnlyArray[String]
 } derive(Debug, Eq, ToJson)

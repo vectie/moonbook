@@ -1,10 +1,10 @@
 ///|
 fn observation(
-  evidence_refs? : Array[String] = ["terrain-edge-17"],
-  measured_value? : Double = 24.0,
-  limit_value? : Double = 15.0,
-  outcome? : String = "blocked",
-  next_action_present? : Bool = false,
+  evidence_refs~ : Array[String] = ["terrain-edge-17"],
+  measured_value~ : Double = 24.0,
+  limit_value~ : Double = 15.0,
+  outcome~ : String = "blocked",
+  next_action_present~ : Bool = false,
 ) -> BookkeeperObservation {
   {
     observation_id: "selene-route-edge-17",
@@ -139,7 +139,7 @@ async test "reviewed high-confidence procedure promotion becomes durable memory"
 }
 
 ///|
-fn spatial_study(unknowns? : Array[String] = []) -> @wiki.SpatialReferenceStudy {
+fn spatial_study(unknowns~ : Array[String] = []) -> @wiki.SpatialReferenceStudy {
   {
     study_id: if unknowns.is_empty() {
       "habitat-complete"

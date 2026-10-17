@@ -311,7 +311,7 @@ async fn routine_lines(root : String) -> Array[String] {
 }
 
 ///|
-async fn count_markdown_under(wiki_dir : String, child : String) -> Int {
+async fn count_markdown_under(wiki_dir : String, child : String) -> Int32 {
   let path = moonbook_wiki_path(wiki_dir)
     .join(moonbook_wiki_path(child))
     .to_string()
@@ -328,7 +328,7 @@ async fn count_markdown_under(wiki_dir : String, child : String) -> Int {
 }
 
 ///|
-fn count_low_confidence_claims(content : String) -> Int {
+fn count_low_confidence_claims(content : String) -> Int32 {
   let mut count = 0
   for block in claim_blocks(content) {
     if claim_block_field(block, "- Confidence: `").unwrap_or("") == "low" {
@@ -339,7 +339,7 @@ fn count_low_confidence_claims(content : String) -> Int {
 }
 
 ///|
-fn count_heading_entries(content : String) -> Int {
+fn count_heading_entries(content : String) -> Int32 {
   let mut count = 0
   for raw in content.split("\n") {
     if raw.to_owned().has_prefix("### ") {
@@ -352,9 +352,9 @@ fn count_heading_entries(content : String) -> Int {
 ///|
 fn coverage_issues(
   source_coverage : SourceCoverageSummary,
-  entity_page_count : Int,
-  concept_page_count : Int,
-  evidence_count : Int,
+  entity_page_count : Int32,
+  concept_page_count : Int32,
+  evidence_count : Int32,
 ) -> Array[String] {
   let issues : Array[String] = []
   if source_coverage.verified_count == 0 {
@@ -378,10 +378,10 @@ fn coverage_issues(
 
 ///|
 fn has_substantive_coverage(
-  verified_source_page_count : Int,
-  entity_page_count : Int,
-  concept_page_count : Int,
-  evidence_count : Int,
+  verified_source_page_count : Int32,
+  entity_page_count : Int32,
+  concept_page_count : Int32,
+  evidence_count : Int32,
 ) -> Bool {
   verified_source_page_count > 0 &&
   (entity_page_count > 0 || concept_page_count > 0) &&
@@ -390,10 +390,10 @@ fn has_substantive_coverage(
 
 ///|
 fn has_bootstrap_materialization(
-  verified_source_page_count : Int,
-  entity_page_count : Int,
-  concept_page_count : Int,
-  query_note_count : Int,
+  verified_source_page_count : Int32,
+  entity_page_count : Int32,
+  concept_page_count : Int32,
+  query_note_count : Int32,
 ) -> Bool {
   verified_source_page_count > 0 &&
   (entity_page_count > 0 || concept_page_count > 0 || query_note_count > 0)

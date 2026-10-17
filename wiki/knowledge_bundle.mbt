@@ -109,7 +109,7 @@ async fn normalize_knowledge_page_contracts(workspace : Paths) -> Unit {
 ///|
 pub async fn write_knowledge_bundle(
   root : String,
-  output_dir? : String? = None,
+  output_dir~ : String? = None,
 ) -> String {
   let workspace = workspace_paths(root)
   let bundle = generate_knowledge_bundle(root)

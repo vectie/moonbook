@@ -18,7 +18,7 @@ fn test_record(
   stage : BookkeeperStage,
   id : String,
   links : Array[@bookkeeper.VersionedRecordReference],
-  source_product? : String = "fixture",
+  source_product~ : String = "fixture",
 ) -> DurableBookkeeperRecord {
   let payload_contract = match stage {
     DeliverableAcceptance | CapabilityProposal =>
@@ -59,7 +59,7 @@ fn test_record(
 fn test_review(
   record : DurableBookkeeperRecord,
   id : String,
-  reviewer_kind? : @bookkeeper.ReviewerKind = @bookkeeper.Human,
+  reviewer_kind~ : @bookkeeper.ReviewerKind = @bookkeeper.Human,
 ) -> GovernedReviewMutation {
   {
     contract_version: bookkeeper_store_contract_version(),

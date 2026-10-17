@@ -376,7 +376,7 @@ pub fn DeliverableBundle::matches_outcome(
 fn candidate_to_bundle(
   candidate : DeliverableCandidate,
   decision_id : String,
-  decided_at : Int,
+  decided_at : Int32,
 ) -> DeliverableBundle {
   {
     contract_version: bookkeeper_contract_version(),
@@ -419,7 +419,7 @@ pub fn finalize_deliverable(
   candidate : DeliverableCandidate,
   requested~ : BookkeeperDisposition,
   decision_id~ : String,
-  decided_at~ : Int,
+  decided_at~ : Int32,
   outcome? : OutcomeObservation,
 ) -> BookkeeperDecision {
   let reviewer_id = candidate.reviewer.reviewer_id

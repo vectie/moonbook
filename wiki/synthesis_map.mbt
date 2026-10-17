@@ -126,9 +126,9 @@ async fn refresh_synthesis_map(root : String) -> String {
 async fn ranked_page_hubs(
   page_paths : Array[String],
   root : String,
-  limit : Int,
-) -> Array[(String, Int)] {
-  let ranked : Array[(String, Int)] = []
+  limit : Int32,
+) -> Array[(String, Int32)] {
+  let ranked : Array[(String, Int32)] = []
   for path in page_paths {
     let score = page_hub_score(@fsx.read_file(path))
     if score > 0 {
@@ -142,7 +142,7 @@ async fn ranked_page_hubs(
       b.1.compare(a.1)
     }
   })
-  let selected : Array[(String, Int)] = []
+  let selected : Array[(String, Int32)] = []
   for i = 0; i < ranked.length() && i < limit; i = i + 1 {
     selected.push(ranked[i])
   }
@@ -150,7 +150,7 @@ async fn ranked_page_hubs(
 }
 
 ///|
-fn page_hub_score(content : String) -> Int {
+fn page_hub_score(content : String) -> Int32 {
   count_list_entries(content, "## Sources") +
   count_list_entries(content, "## Relationships") +
   count_list_entries(content, "## Query Signals") +
@@ -158,7 +158,7 @@ fn page_hub_score(content : String) -> Int {
 }
 
 ///|
-fn count_list_entries(content : String, section_header : String) -> Int {
+fn count_list_entries(content : String, section_header : String) -> Int32 {
   let lines = lines_array(content)
   let mut in_section = false
   let mut count = 0
@@ -178,7 +178,7 @@ fn count_list_entries(content : String, section_header : String) -> Int {
 }
 
 ///|
-fn render_hub_lines(items : Array[(String, Int)]) -> String {
+fn render_hub_lines(items : Array[(String, Int32)]) -> String {
   if items.is_empty() {
     "_None yet._\n"
   } else {

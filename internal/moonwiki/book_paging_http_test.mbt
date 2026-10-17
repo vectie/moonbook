@@ -5,7 +5,7 @@ async test "paged search zero one three four many ties bounded fresh rank and un
   ignore(@wiki.init_workspace(root))
   let question = "needle"
   let headers = { "content-type": "application/json" }
-  async fn request(route : String, body : Json) -> (Int, Json) {
+  async fn request(route : String, body : Json) -> (Int32, Json) {
     @moonwiki.book_search_http_response(
       root,
       "POST",

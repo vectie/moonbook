@@ -146,7 +146,7 @@ fn keeper_relative_path(path : String, paths : KeeperPaths) -> String {
 }
 
 ///|
-fn keeper_entry_limit(path : String, paths : KeeperPaths) -> Int {
+fn keeper_entry_limit(path : String, paths : KeeperPaths) -> Int32 {
   if path == paths.user_path {
     KeeperPreferenceEntryLimit
   } else if path == paths.working_path {
@@ -157,7 +157,7 @@ fn keeper_entry_limit(path : String, paths : KeeperPaths) -> Int {
 }
 
 ///|
-fn keeper_char_limit(path : String, paths : KeeperPaths) -> Int {
+fn keeper_char_limit(path : String, paths : KeeperPaths) -> Int32 {
   if path == paths.user_path {
     KeeperPreferenceCharacterLimit
   } else if path == paths.working_path {
@@ -181,8 +181,8 @@ fn keeper_candidate_entry(candidate : MemoryCandidate) -> String {
 async fn keeper_append_entry(
   path : String,
   entry : String,
-  max_entries : Int,
-  max_chars : Int,
+  max_entries : Int32,
+  max_chars : Int32,
 ) -> Bool {
   let current = if @fsx.exists(path) { @fsx.read_file(path) } else { "" }
   let next_entries = keeper_bounded_entries(
@@ -210,8 +210,8 @@ async fn keeper_append_entry(
 fn keeper_bounded_entries(
   entries : Array[String],
   new_entry : String,
-  max_entries : Int,
-  max_chars : Int,
+  max_entries : Int32,
+  max_chars : Int32,
   title : String,
   description : String,
 ) -> Array[String] {
@@ -418,22 +418,22 @@ test "keeper candidate kind routes user memory" {
 }
 
 ///|
-const KeeperActiveEntryLimit : Int = 12
+const KeeperActiveEntryLimit : Int32 = 12
 
 ///|
-const KeeperPreferenceEntryLimit : Int = 10
+const KeeperPreferenceEntryLimit : Int32 = 10
 
 ///|
-const KeeperWorkingEntryLimit : Int = 7
+const KeeperWorkingEntryLimit : Int32 = 7
 
 ///|
-const KeeperActiveCharacterLimit : Int = 1800
+const KeeperActiveCharacterLimit : Int32 = 1800
 
 ///|
-const KeeperPreferenceCharacterLimit : Int = 1400
+const KeeperPreferenceCharacterLimit : Int32 = 1400
 
 ///|
-const KeeperWorkingCharacterLimit : Int = 2400
+const KeeperWorkingCharacterLimit : Int32 = 2400
 
 ///|
 pub fn keeper_memory_policy() -> KeeperMemoryPolicy {

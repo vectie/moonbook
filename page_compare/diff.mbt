@@ -3,18 +3,18 @@
 /// Added lines have no before_line; removed lines have no after_line.
 pub struct PageDiffLine {
   kind : String
-  before_line : Int?
-  after_line : Int?
+  before_line : Int32?
+  after_line : Int32?
   text : String
 } derive(ToJson)
 
 ///|
 pub struct PageTextDiff {
-  before_lines : Int
-  after_lines : Int
-  added : Int
-  removed : Int
-  unchanged : Int
+  before_lines : Int32
+  after_lines : Int32
+  added : Int32
+  removed : Int32
+  unchanged : Int32
   lines : Array[PageDiffLine]
 } derive(ToJson)
 

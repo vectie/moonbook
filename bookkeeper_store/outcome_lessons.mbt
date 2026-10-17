@@ -20,7 +20,7 @@ pub(all) struct OutcomeLessonDraft {
   assessment_review : @bookkeeper.VersionedRecordReference
   applicability : Array[OutcomeLessonCondition]
   invalidation : Array[OutcomeLessonCondition]
-  recorded_at : Int
+  recorded_at : Int32
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|

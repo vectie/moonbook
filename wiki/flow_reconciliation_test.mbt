@@ -1,9 +1,9 @@
 ///|
 fn flow_projection(
   status : String,
-  output_digest? : String = "sha256:33183a83f83bc9ee570fbc872ec14b8f21cdcf9068d2a50d4f327f3ea7499423",
-  blocker? : String = "",
-  error_kind? : String = "",
+  output_digest~ : String = "sha256:33183a83f83bc9ee570fbc872ec14b8f21cdcf9068d2a50d4f327f3ea7499423",
+  blocker~ : String = "",
+  error_kind~ : String = "",
 ) -> Json {
   let review_artifact = "books/generic-book/reviews/work-research-r1.json"
   let artifacts = if status == "accepted" {

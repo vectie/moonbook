@@ -1,7 +1,7 @@
 ///|
 fn executable_document(
-  research_authority? : String = "observe",
-  source_digest? : String = "sha256:7c83693394b7d8dfd98d8a3c7217cbddfa44e4b7ba5ef88c513d6da403e32f9c",
+  research_authority~ : String = "observe",
+  source_digest~ : String = "sha256:7c83693394b7d8dfd98d8a3c7217cbddfa44e4b7ba5ef88c513d6da403e32f9c",
 ) -> ExecutableDocument {
   {
     contract_id: "moonsuite.executable-document.v1",

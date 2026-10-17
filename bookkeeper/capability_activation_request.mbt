@@ -16,7 +16,7 @@ pub(all) struct CapabilityActivationRequest {
   scope_id : String
   rollout_mode : String
   challenger_participant_ids : ReadOnlyArray[String]
-  max_observations : Int
+  max_observations : Int32
   experiment : VersionedRecordReference
   old_capability : VersionedRecordReference
   new_capability : VersionedRecordReference
@@ -57,7 +57,7 @@ pub fn CapabilityVersionReceipt::activation_request(
   scope_id~ : String,
   rollout_mode~ : String,
   challenger_participant_ids~ : Array[String],
-  max_observations~ : Int,
+  max_observations~ : Int32,
   experiment~ : VersionedRecordReference,
   activation_review~ : VersionedRecordReference,
   activation_reviewer~ : ReviewerAuthority,

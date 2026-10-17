@@ -7,7 +7,7 @@ pub struct BookTask {
   title : String
   kind : String
   prompt : String
-  priority : Int
+  priority : Int32
   requires_review : Bool
   target_pages : Array[String]
 } derive(Debug, Eq, ToJson, FromJson)
@@ -25,7 +25,7 @@ pub struct BookGoalAcceptance {
   goal_id : String
   accepted : Bool
   reason : String
-  task_count : Int
+  task_count : Int32
   summary : String
 } derive(Debug, ToJson, FromJson)
 
@@ -60,12 +60,12 @@ pub struct MemoryCandidate {
 /// not hidden truncation literals or model-output limits.
 pub struct KeeperMemoryPolicy {
   contract : String
-  active_entry_limit : Int
-  preference_entry_limit : Int
-  working_entry_limit : Int
-  active_character_limit : Int
-  preference_character_limit : Int
-  working_character_limit : Int
+  active_entry_limit : Int32
+  preference_entry_limit : Int32
+  working_entry_limit : Int32
+  active_character_limit : Int32
+  preference_character_limit : Int32
+  working_character_limit : Int32
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
@@ -86,9 +86,9 @@ pub struct ExecutableBookLifecycleProof {
   book_root : String
   ready : Bool
   status : String
-  completed_step_count : Int
-  step_count : Int
-  blocked_step_count : Int
+  completed_step_count : Int32
+  step_count : Int32
+  blocked_step_count : Int32
   first_blocker_id : String
   first_blocker_label : String
   first_blocker_evidence : String
@@ -268,15 +268,15 @@ pub fn ExecutableBookEvent::new(
   book_id~ : String,
   result_id~ : String,
   summary~ : String,
-  artifacts? : Array[String] = [],
-  run_id? : String? = None,
-  event_type? : String = "knowledge_accepted",
-  accepted? : Bool = true,
-  requires_review? : Bool = false,
-  notify_town? : Bool = false,
-  evidence_id? : String? = None,
-  review_path? : String? = None,
-  lifecycle_proof? : ExecutableBookLifecycleProof? = None,
+  artifacts~ : Array[String] = [],
+  run_id~ : String? = None,
+  event_type~ : String = "knowledge_accepted",
+  accepted~ : Bool = true,
+  requires_review~ : Bool = false,
+  notify_town~ : Bool = false,
+  evidence_id~ : String? = None,
+  review_path~ : String? = None,
+  lifecycle_proof~ : ExecutableBookLifecycleProof? = None,
 ) -> ExecutableBookEvent {
   {
     protocol: executable_book_event_protocol(),
@@ -301,10 +301,10 @@ pub fn ExecutableBookEvent::new(
 pub fn BookResult::to_executable_book_event(
   self : BookResult,
   book_id~ : String,
-  evidence_id? : String? = None,
-  run_id? : String? = None,
-  review_path? : String? = None,
-  lifecycle_proof? : ExecutableBookLifecycleProof? = None,
+  evidence_id~ : String? = None,
+  run_id~ : String? = None,
+  review_path~ : String? = None,
+  lifecycle_proof~ : ExecutableBookLifecycleProof? = None,
 ) -> ExecutableBookEvent {
   let evidence_part = evidence_id.unwrap_or(self.result_id)
   let event_type = if self.requires_review {
@@ -333,23 +333,23 @@ pub fn BookResult::to_executable_book_event(
 pub struct BookStateSummary {
   book_id : String
   root : String
-  page_count : Int
-  source_count : Int
-  source_page_count : Int
-  candidate_source_count : Int
-  provisional_source_count : Int
-  verified_source_count : Int
-  entity_count : Int
-  entity_page_count : Int
-  concept_count : Int
-  concept_page_count : Int
-  query_note_count : Int
-  pending_review_count : Int
-  keeper_memory_count : Int
-  keeper_working_count : Int
-  evidence_count : Int
-  total_evidence_count : Int
-  operational_evidence_count : Int
+  page_count : Int32
+  source_count : Int32
+  source_page_count : Int32
+  candidate_source_count : Int32
+  provisional_source_count : Int32
+  verified_source_count : Int32
+  entity_count : Int32
+  entity_page_count : Int32
+  concept_count : Int32
+  concept_page_count : Int32
+  query_note_count : Int32
+  pending_review_count : Int32
+  keeper_memory_count : Int32
+  keeper_working_count : Int32
+  evidence_count : Int32
+  total_evidence_count : Int32
+  operational_evidence_count : Int32
   substantive_coverage_ready : Bool
   summary : String
 } derive(Debug, ToJson, FromJson)
@@ -358,18 +358,18 @@ pub struct BookStateSummary {
 pub struct BookHealthReport {
   level : String
   summary : String
-  source_page_count : Int
-  candidate_source_count : Int
-  provisional_source_count : Int
-  verified_source_count : Int
-  entity_page_count : Int
-  concept_page_count : Int
-  query_note_count : Int
-  pending_review_count : Int
-  low_confidence_claim_count : Int
-  maintenance_entry_count : Int
-  keeper_working_count : Int
-  evidence_count : Int
+  source_page_count : Int32
+  candidate_source_count : Int32
+  provisional_source_count : Int32
+  verified_source_count : Int32
+  entity_page_count : Int32
+  concept_page_count : Int32
+  query_note_count : Int32
+  pending_review_count : Int32
+  low_confidence_claim_count : Int32
+  maintenance_entry_count : Int32
+  keeper_working_count : Int32
+  evidence_count : Int32
   substantive_coverage_ready : Bool
   issues : Array[String]
 } derive(Debug, ToJson, FromJson)
@@ -394,8 +394,8 @@ pub fn knowledge_bundle_contract() -> String {
 pub struct KnowledgeSourceLocation {
   workspace_path : String
   kind : String
-  page : Int?
-  slide : Int?
+  page : Int32?
+  slide : Int32?
   sheet : String?
   cell_range : String?
   section : String?
@@ -481,10 +481,10 @@ pub struct BookStateSnapshot {
 
 ///|
 priv struct SourceCoverageSummary {
-  total_count : Int
-  candidate_count : Int
-  provisional_count : Int
-  verified_count : Int
+  total_count : Int32
+  candidate_count : Int32
+  provisional_count : Int32
+  verified_count : Int32
 }
 
 ///|

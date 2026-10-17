@@ -16,7 +16,7 @@ priv struct IngestKeeperProposal {
   output_contract : String
   semantic_phases : Array[String]
   execution_mode : String
-  max_parallel_workers : Int
+  max_parallel_workers : Int32
   gather_lanes : Array[IngestGatherLane]
   source_path : String
   source_page : String

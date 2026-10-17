@@ -136,7 +136,7 @@ fn validate_batch(
 }
 
 ///|
-fn receipts(batch : ArtifactBatch, version : Int) -> Array[Json] raise {
+fn receipts(batch : ArtifactBatch, version : Int32) -> Array[Json] raise {
   batch.requests.map(request => {
     let artifact = field(request, "artifact")
     let envelope = field(artifact, "envelope")

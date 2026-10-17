@@ -724,7 +724,7 @@ fn research_evidence_table_summary(rows : Array[ResearchEvidenceRow]) -> String 
 fn research_evidence_ref_count(
   rows : Array[ResearchEvidenceRow],
   prefix : String,
-) -> Int {
+) -> Int32 {
   let refs : Array[String] = []
   for row in rows {
     for field in [row.source_id, row.locator, row.evidence, row.notes] {
@@ -811,7 +811,7 @@ fn report_evidence_from_rows(
 fn select_evidence_rows(
   rows : Array[ResearchEvidenceRow],
   keywords : Array[String],
-  limit : Int,
+  limit : Int32,
 ) -> Array[ResearchEvidenceRow] {
   let selected : Array[ResearchEvidenceRow] = []
   for row in rows {
@@ -958,7 +958,7 @@ fn markdown_paragraphs(content : String) -> Array[String] {
 }
 
 ///|
-fn clamp_text(text : String, max_len : Int) -> String {
+fn clamp_text(text : String, max_len : Int32) -> String {
   if text.length() <= max_len {
     text
   } else if max_len <= 3 {
@@ -1008,7 +1008,7 @@ fn research_artifact_specs() -> Array[ResearchArtifactSpec] {
 }
 
 ///|
-fn markdown_excerpt(content : String, max_len : Int) -> String {
+fn markdown_excerpt(content : String, max_len : Int32) -> String {
   let parts : Array[String] = []
 
   for raw in content.split("\n") {

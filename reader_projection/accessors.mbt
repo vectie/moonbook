@@ -28,7 +28,7 @@ pub fn ReaderProjection::canonical_subject_id(
 }
 
 ///|
-pub fn ReaderProjection::reading_minutes(self : ReaderProjection) -> Int {
+pub fn ReaderProjection::reading_minutes(self : ReaderProjection) -> Int32 {
   self.estimated_minutes
 }
 

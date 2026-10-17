@@ -1,7 +1,7 @@
 ///|
 pub struct WatchOptions {
   root : String
-  interval_ms : Int
+  interval_ms : Int32
   dest_dir : String?
   open_browser : Bool
   watcher_kind : String
@@ -147,8 +147,8 @@ pub fn changed_paths(
 ///|
 pub async fn rebuild_on_change(
   root_paths : Array[String],
-  interval_ms? : Int = 1000,
-  filter? : WatchFilter? = None,
+  interval_ms~ : Int32 = 1000,
+  filter~ : WatchFilter? = None,
   on_change : async (Array[String]) -> Unit,
 ) -> Unit {
   let mut previous = scan_paths_filtered(root_paths, filter)
@@ -277,9 +277,9 @@ fn glob_matches(pattern : String, text : String) -> Bool {
 ///|
 fn glob_matches_from(
   pattern : String,
-  pattern_index : Int,
+  pattern_index : Int32,
   text : String,
-  text_index : Int,
+  text_index : Int32,
 ) -> Bool {
   if pattern_index >= pattern.length() {
     return text_index >= text.length()

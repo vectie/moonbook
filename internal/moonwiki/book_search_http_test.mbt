@@ -152,7 +152,7 @@ async test "Book search empty unicode no match unreadable unsafe and bounded inp
   let root = @fs.tmpdir(prefix="book-search-edge-")
   ignore(@wiki.init_workspace(root))
   let headers = { "content-type": "application/json" }
-  async fn query(text : String) -> (Int, Json) {
+  async fn query(text : String) -> (Int32, Json) {
     let body : Json = { "question": text }
     @moonwiki.book_search_http_response(
       root,

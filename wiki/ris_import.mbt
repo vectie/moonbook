@@ -1,6 +1,6 @@
 ///|
 pub struct RisImportedReference {
-  record_number : Int
+  record_number : Int32
   title : String
   citation : String
   page_path : String

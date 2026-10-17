@@ -1,6 +1,6 @@
 ///|
 priv suberror ReviewOperatorFailure {
-  Rejected(Int, String)
+  Rejected(Int32, String)
 }
 
 ///|
@@ -311,7 +311,7 @@ async fn review_operator_dispatch(
   method_ : String,
   path : String,
   body : Json,
-) -> (Int, Json) {
+) -> (Int32, Json) {
   if method_ == "GET" && path == "/api/wiki/reviews" {
     return (200, review_operator_queue(root))
   }
@@ -390,7 +390,7 @@ pub async fn review_operator_request(
   method_ : String,
   path : String,
   body : Json,
-) -> (Int, Json) noraise {
+) -> (Int32, Json) noraise {
   try {
     review_operator_mutex.acquire()
     defer review_operator_mutex.release()

@@ -210,7 +210,7 @@ fn json_string_array(value : Json?) -> Array[String] {
 ///|
 fn render_chapter_body(
   chapter : @core.Chapter,
-  outline? : Bool = false,
+  outline~ : Bool = false,
 ) -> String {
   let trail = chapter.parent_names.join(" > ")
   let breadcrumbs = if chapter.parent_names.is_empty() {

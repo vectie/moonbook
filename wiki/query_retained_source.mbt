@@ -9,7 +9,7 @@ pub(all) struct QueryRetainedSource {
   reference : String
   page_digest : String
   digest : String
-  size : Int
+  size : Int32
   bytes_base64 : String
   text : String?
 } derive(Debug, Eq, ToJson)

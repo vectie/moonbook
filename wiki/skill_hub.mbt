@@ -2,7 +2,7 @@
 pub struct SkillHubServeOptions {
   root : String
   hostname : String
-  port : Int
+  port : Int32
   open_browser : Bool
 } derive(Debug, ToJson)
 
@@ -10,7 +10,7 @@ pub struct SkillHubServeOptions {
 pub fn make_skill_hub_serve_options(
   root : String,
   hostname : String,
-  port : Int,
+  port : Int32,
   open_browser : Bool,
 ) -> SkillHubServeOptions {
   { root, hostname, port, open_browser, }
@@ -24,10 +24,10 @@ struct SkillHubRecord {
   category : String
   origin : String
   description : String
-  line_count : Int
+  line_count : Int32
   mut duplicate : Bool
   content : String
-  snapshot_count : Int
+  snapshot_count : Int32
   mtime : Int64
 } derive(Debug, ToJson, FromJson)
 
@@ -36,7 +36,7 @@ struct SkillHubRootStatus {
   path : String
   category : String
   exists : Bool
-  hit_count : Int
+  hit_count : Int32
 } derive(Debug, ToJson, FromJson)
 
 ///|
@@ -45,11 +45,11 @@ struct SkillHubState {
   root : String
   home : String
   cwd : String
-  skill_count : Int
+  skill_count : Int32
   duplicate_names : Array[String]
   roots : Array[SkillHubRootStatus]
   skills : Array[SkillHubRecord]
-  generated_at : Int
+  generated_at : Int32
 } derive(Debug, ToJson, FromJson)
 
 ///|
@@ -62,15 +62,15 @@ struct SkillHubDebug {
   watch_roots : Array[String]
   ignored_patterns : Array[String]
   errors : Array[String]
-  duration_ms : Int
-  generated_at : Int
+  duration_ms : Int32
+  generated_at : Int32
 } derive(Debug, ToJson, FromJson)
 
 ///|
 struct SkillSnapshotRecord {
   id : String
   path : String
-  created_at : Int
+  created_at : Int32
   summary : String
   content_path : String
 } derive(Debug, ToJson, FromJson)
@@ -779,7 +779,7 @@ async fn send_javascript(conn : @http.ServerConnection, body : String) -> Unit {
 ///|
 async fn send_text(
   conn : @http.ServerConnection,
-  code : Int,
+  code : Int32,
   reason : String,
   body : String,
 ) -> Unit {

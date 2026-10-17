@@ -1,6 +1,6 @@
 ///|
 pub struct BibtexImportedReference {
-  record_number : Int
+  record_number : Int32
   title : String
   citation_key : String
   citation : String

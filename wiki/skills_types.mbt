@@ -14,16 +14,16 @@ pub struct SkillRecord {
   references : Array[String]
   overrides : Array[String]
   shadowed_by : Array[String]
-  line_count : Int
+  line_count : Int32
 } derive(Debug, ToJson)
 
 ///|
 pub struct SkillDoctorReport {
   root : String
-  total_count : Int
-  workspace_count : Int
-  seed_core_count : Int
-  seed_extension_count : Int
+  total_count : Int32
+  workspace_count : Int32
+  seed_core_count : Int32
+  seed_extension_count : Int32
   duplicate_names : Array[String]
   missing_reference_paths : Array[String]
   warnings : Array[String]
@@ -48,11 +48,11 @@ pub struct SkillCompareResult {
   baseline_scope : String?
   status : String
   summary : String
-  compared_line_count : Int
-  changed_line_count : Int
-  selected_only_line_count : Int
-  baseline_only_line_count : Int
-  first_change_line : Int?
+  compared_line_count : Int32
+  changed_line_count : Int32
+  selected_only_line_count : Int32
+  baseline_only_line_count : Int32
+  first_change_line : Int32?
   selected_excerpt : Array[String]
   baseline_excerpt : Array[String]
 } derive(Debug, ToJson)
@@ -77,11 +77,11 @@ struct SkillSyncManifest {
   baseline_scope : String
   summary : String
   status : String
-  changed_line_count : Int
-  selected_only_line_count : Int
-  baseline_only_line_count : Int
-  first_change_line : Int?
-  generated_at : Int
+  changed_line_count : Int32
+  selected_only_line_count : Int32
+  baseline_only_line_count : Int32
+  first_change_line : Int32?
+  generated_at : Int32
 } derive(ToJson)
 
 ///|

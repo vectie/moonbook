@@ -1,7 +1,7 @@
 ///|
 pub async fn wiki_readiness_json(
   root : String,
-  revision? : String = "workspace",
+  revision~ : String = "workspace",
 ) -> Json {
   let normalized_root = @pathx.normalize(root)
   let book_id = moonbook_wiki_path(normalized_root).basename().to_owned()
@@ -64,7 +64,7 @@ pub fn wiki_readiness_path(root : String) -> String {
 ///|
 pub async fn write_wiki_readiness(
   root : String,
-  revision? : String = "workspace",
+  revision~ : String = "workspace",
 ) -> Json {
   let payload = wiki_readiness_json(root, revision~)
   let path = wiki_readiness_path(root)

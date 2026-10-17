@@ -665,7 +665,7 @@ fn reader_lesson_scopes(markdown : String) -> Array[String] {
 }
 
 ///|
-fn reader_checkpoint_value(values : Array[String], index : Int) -> String {
+fn reader_checkpoint_value(values : Array[String], index : Int32) -> String {
   match values.get(index) {
     Some(value) => markdown_excerpt(reader_without_details(value), 360)
     None => ""
@@ -694,7 +694,7 @@ fn reader_without_details(markdown : String) -> String {
 }
 
 ///|
-fn reader_revisit_value(values : Array[String], index : Int) -> String {
+fn reader_revisit_value(values : Array[String], index : Int32) -> String {
   match values.get(index) {
     Some(value) => {
       let lines : Array[String] = []
@@ -887,7 +887,7 @@ fn reader_block_excerpts(
 }
 
 ///|
-fn reader_revisit_days(markdown : String) -> Int {
+fn reader_revisit_days(markdown : String) -> Int32 {
   match
     reader_first_labeled_value(markdown, [
       "Revisit after days:", "Revisit in days:",
@@ -898,7 +898,7 @@ fn reader_revisit_days(markdown : String) -> Int {
 }
 
 ///|
-fn reader_decimal_int(value : String) -> Int {
+fn reader_decimal_int(value : String) -> Int32 {
   let mut parsed = 0
   let mut seen = false
   for ch in value {
@@ -1043,6 +1043,6 @@ fn reader_labeled_values(
 }
 
 ///|
-fn reader_array_value(values : Array[String], index : Int) -> String {
+fn reader_array_value(values : Array[String], index : Int32) -> String {
   values.get(index).unwrap_or("")
 }

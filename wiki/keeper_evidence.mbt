@@ -93,7 +93,7 @@ async fn update_evidence_status(
 }
 
 ///|
-async fn count_evidence_entries(root : String) -> Int {
+async fn count_evidence_entries(root : String) -> Int32 {
   let workspace = workspace_paths(root)
   let absolute = moonbook_wiki_path(workspace.wiki_dir)
     .join(moonbook_wiki_path(evidence_relative_page()))

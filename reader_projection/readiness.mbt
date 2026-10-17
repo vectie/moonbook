@@ -5,12 +5,12 @@
 pub(all) enum ReaderProjectionIssue {
   InvalidContract(String)
   MissingIdentity(String)
-  InvalidEstimatedMinutes(Int)
+  InvalidEstimatedMinutes(Int32)
   MissingAudience
   GenericAudience(String)
   MissingOutcome
   MissingMainMessage
-  MainMessageSentenceCount(Int)
+  MainMessageSentenceCount(Int32)
   MissingNextAction
   MissingRoute
   MissingPrerequisiteStatement
@@ -75,8 +75,8 @@ pub struct ReaderProjectionReadiness {
   transfer_ready : Bool
   prove_ready : Bool
   revisit_ready : Bool
-  quality_dimensions_ready : Int
-  reader_quality_score : Int
+  quality_dimensions_ready : Int32
+  reader_quality_score : Int32
   navigation_ready : Bool
   structurally_valid : Bool
   content_ready : Bool
@@ -657,7 +657,7 @@ fn generic_audience(audience : String) -> Bool {
 }
 
 ///|
-fn sentence_count(text : String) -> Int {
+fn sentence_count(text : String) -> Int32 {
   let mut count = 0
   let mut has_content = false
   for character in text.trim() {

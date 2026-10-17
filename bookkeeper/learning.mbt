@@ -280,7 +280,7 @@ pub fn review_capability_proposal(
   proposal : CapabilityProposal,
   receipt_id~ : String,
   receipt_version~ : String,
-  receipt_digest? : String = "",
+  receipt_digest~ : String = "",
   reviewer~ : ReviewerAuthority,
   requested~ : BookkeeperDisposition,
   evidence_refs~ : ArrayView[EvidenceReference],

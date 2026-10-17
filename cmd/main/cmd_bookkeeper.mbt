@@ -248,7 +248,7 @@ struct BookkeeperMoonClawRequest {
   request_version : String
   subject : @bookkeeper.VersionedRecordReference
   objective : String
-  recorded_at : Int
+  recorded_at : Int32
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
@@ -392,7 +392,7 @@ fn bookkeeper_moonclaw_learning_key(
 fn bookkeeper_moonclaw_evidence_compare(
   left : @bookkeeper.VersionedEvidenceReference,
   right : @bookkeeper.VersionedEvidenceReference,
-) -> Int {
+) -> Int32 {
   let by_id = left.reference_id.compare(right.reference_id)
   if by_id != 0 {
     return by_id

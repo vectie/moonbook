@@ -8,7 +8,7 @@ async fn persist_result_payload(
 
 ///|
 fn native_wenyu_test_result(
-  summary? : String = "Implemented the frozen Wenyu task.",
+  summary~ : String = "Implemented the frozen Wenyu task.",
 ) -> BookResult {
   {
     result_id: "wenyu-goal-1-code-patch",
@@ -22,9 +22,9 @@ fn native_wenyu_test_result(
 
 ///|
 fn native_wenyu_test_payload(
-  work_id? : String = "native-work-1",
-  result? : BookResult = native_wenyu_test_result(),
-  request_digest? : String = native_wenyu_digest("frozen-request"),
+  work_id~ : String = "native-work-1",
+  result~ : BookResult = native_wenyu_test_result(),
+  request_digest~ : String = native_wenyu_digest("frozen-request"),
 ) -> Json {
   let book_result = result.to_json()
   {
@@ -39,7 +39,7 @@ fn native_wenyu_test_payload(
 }
 
 ///|
-fn native_wenyu_count_line(text : String, target : String) -> Int {
+fn native_wenyu_count_line(text : String, target : String) -> Int32 {
   let mut count = 0
   for line in text.split("\n") {
     if line == target {

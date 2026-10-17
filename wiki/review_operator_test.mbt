@@ -31,7 +31,7 @@ async fn operator_decide(
   root : String,
   detail : Json,
   decision : String,
-) -> (Int, Json) {
+) -> (Int32, Json) {
   @wiki.review_operator_request(root, "POST", "/api/wiki/reviews/resolve", {
     "review_id": operator_text(detail, "review_id"),
     "expected_digest": operator_text(detail, "review_digest"),
@@ -212,7 +212,7 @@ async test "two explicit browser decisions serialize and only one resolves the e
     "# Pending Review\n\n## Items\n\n### Query review | Repeated click\n\n- Review ID: `repeat-id`\n- Status: `pending`\n- Candidate insight: one local decision\n",
   )
   let detail = operator_inspect(root, "repeat-id")
-  let statuses : Array[Int] = []
+  let statuses : Array[Int32] = []
   @async.with_task_group(group => {
     for _ in 0..<2 {
       group.spawn_bg(() => {

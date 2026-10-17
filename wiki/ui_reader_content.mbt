@@ -18,7 +18,7 @@ priv struct ReaderArtifactContent {
   source_review_status : String
   markdown : String
   available : Bool
-  estimated_minutes : Int
+  estimated_minutes : Int32
   next_action : String
 }
 
@@ -444,7 +444,7 @@ fn first_reader_instruction(markdown : String) -> String? {
 }
 
 ///|
-fn reader_estimated_minutes(markdown : String) -> Int {
+fn reader_estimated_minutes(markdown : String) -> Int32 {
   let mut words = 0
   for line in markdown.split("\n") {
     for part in line.split(" ") {
@@ -528,7 +528,7 @@ fn practice_markdown_from_course(title : String, course : String) -> String {
 }
 
 ///|
-fn reader_markdown_heading_depth(line : String) -> Int {
+fn reader_markdown_heading_depth(line : String) -> Int32 {
   let mut depth = 0
   while depth < line.length() && line[depth] == '#' {
     depth += 1

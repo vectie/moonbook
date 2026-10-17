@@ -20,7 +20,7 @@ pub(all) struct OutcomeLessonSelection {
   expected_head : @bookkeeper.VersionedRecordReference?
   accepted_reviews : Array[@bookkeeper.VersionedRecordReference]
   reason : String
-  recorded_at : Int
+  recorded_at : Int32
 } derive(Debug, Eq)
 
 ///|

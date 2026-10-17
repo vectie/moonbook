@@ -22,7 +22,7 @@ pub(all) struct PortableOutputSelection {
 ///|
 pub struct PortableOutputFile {
   path : String
-  size_bytes : Int
+  size_bytes : Int32
   digest : String
 } derive(Debug, Eq, ToJson, FromJson)
 

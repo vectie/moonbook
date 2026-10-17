@@ -1,5 +1,5 @@
 ///|
-const AgentBundleMaxFileBytes : Int = 16 * 1024 * 1024
+const AgentBundleMaxFileBytes : Int32 = 16 * 1024 * 1024
 
 ///|
 fn agent_sha256_bytes(content : Bytes) -> String {
@@ -439,8 +439,8 @@ fn agent_default_export_policy() -> AgentExportPolicy {
 /// Build a portable agent entirely from accepted, allow-listed MoonBook state.
 pub async fn build_agent_bundle(
   root : String,
-  version? : String = "1.0.0",
-  outputs? : Array[PortableOutputSelection] = [],
+  version~ : String = "1.0.0",
+  outputs~ : Array[PortableOutputSelection] = [],
 ) -> AgentBundle {
   if !agent_version_valid(version) {
     fail("agent version must be a nonempty portable identifier")
@@ -492,9 +492,9 @@ pub async fn build_agent_bundle(
 /// Write one self-contained `.moonbook-agent` JSON artifact.
 pub async fn pack_agent(
   root : String,
-  version? : String = "1.0.0",
+  version~ : String = "1.0.0",
   output? : String,
-  outputs? : Array[PortableOutputSelection] = [],
+  outputs~ : Array[PortableOutputSelection] = [],
 ) -> String {
   let bundle = build_agent_bundle(root, version~, outputs~)
   let normalized_root = @pathx.normalize(root)

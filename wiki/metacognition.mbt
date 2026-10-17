@@ -68,10 +68,10 @@ pub(all) struct MetacognitionSnapshot {
   gap_graph_path : String
   belief_index_path : String
   procedure_index_path : String
-  open_information_gaps : Int
-  open_cognition_gaps : Int
-  open_execution_gaps : Int
-  accepted_procedures : Int
+  open_information_gaps : Int32
+  open_cognition_gaps : Int32
+  open_execution_gaps : Int32
+  accepted_procedures : Int32
   recorded_at : String
 } derive(Debug, Eq, ToJson)
 

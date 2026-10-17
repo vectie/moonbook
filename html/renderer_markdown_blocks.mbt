@@ -19,13 +19,13 @@ fn render_markdown(markdown : String) -> String {
 fn render_markdown_with_refs(
   markdown : String,
   references : Map[String, String],
-  headings? : Array[ChapterHeading] = [],
+  headings~ : Array[ChapterHeading] = [],
 ) -> String {
   let builder = StringBuilder::new()
   let paragraph : Array[String] = []
-  let list_stack : Array[(Int, Bool, Int, Array[String])] = []
+  let list_stack : Array[(Int32, Bool, Int32, Array[String])] = []
   let quote_lines : Array[String] = []
-  let heading_ids : Map[String, Int] = Map([])
+  let heading_ids : Map[String, Int32] = Map([])
   let mut pending_table_header : String? = None
   let mut table_header : (Array[String], Array[String])? = None
   let table_rows : Array[Array[String]] = []
@@ -393,7 +393,7 @@ fn strip_duplicate_leading_title(
 }
 
 ///|
-fn heading_level(line : String) -> Int? {
+fn heading_level(line : String) -> Int32? {
   let mut level = 0
   for c in line {
     if c == '#' {
@@ -425,10 +425,10 @@ fn flush_paragraph_with_refs(
 
 ///|
 fn push_list_item(
-  list_stack : Array[(Int, Bool, Int, Array[String])],
-  indent : Int,
+  list_stack : Array[(Int32, Bool, Int32, Array[String])],
+  indent : Int32,
   ordered : Bool,
-  start : Int,
+  start : Int32,
   item : String,
 ) -> Unit {
   match list_stack.last() {
@@ -448,7 +448,7 @@ fn push_list_item(
 ///|
 fn flush_lists_with_refs(
   builder : StringBuilder,
-  list_stack : Array[(Int, Bool, Int, Array[String])],
+  list_stack : Array[(Int32, Bool, Int32, Array[String])],
   references : Map[String, String],
 ) -> Unit {
   if list_stack.is_empty() {
@@ -464,10 +464,10 @@ fn flush_lists_with_refs(
 ///|
 fn render_list_group(
   builder : StringBuilder,
-  list_stack : Array[(Int, Bool, Int, Array[String])],
-  start : Int,
+  list_stack : Array[(Int32, Bool, Int32, Array[String])],
+  start : Int32,
   references : Map[String, String],
-) -> Int {
+) -> Int32 {
   let entry = list_stack[start]
   let indent = entry.0
   let ordered = entry.1
@@ -581,7 +581,7 @@ fn flush_table_with_refs(
 }
 
 ///|
-fn table_cell_style(alignments : Array[String], index : Int) -> String {
+fn table_cell_style(alignments : Array[String], index : Int32) -> String {
   if index >= alignments.length() || alignments[index].is_empty() {
     ""
   } else {
@@ -645,8 +645,8 @@ fn parse_alignment_piece(piece : String) -> String {
 }
 
 ///|
-fn ordered_list_item(line : String) -> (Int, String)? {
-  let mut dot_index : Int? = None
+fn ordered_list_item(line : String) -> (Int32, String)? {
+  let mut dot_index : Int32? = None
   let mut number = 0
   for i = 0; i < line.length(); i = i + 1 {
     let c = line[i]
@@ -671,7 +671,7 @@ fn ordered_list_item(line : String) -> (Int, String)? {
 }
 
 ///|
-fn list_indent(line : String) -> Int {
+fn list_indent(line : String) -> Int32 {
   let mut spaces = 0
   for c in line {
     if c == ' ' {
@@ -684,7 +684,7 @@ fn list_indent(line : String) -> Int {
 }
 
 ///|
-fn unique_heading_id(text : String, ids : Map[String, Int]) -> String {
+fn unique_heading_id(text : String, ids : Map[String, Int32]) -> String {
   let slug = slugify_heading(text)
   let base = if slug.is_empty() { "section" } else { slug }
   let mut count = ids.get(base).unwrap_or(0)

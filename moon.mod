@@ -3,7 +3,7 @@ name = "vectie/moonbook"
 version = "0.1.1"
 
 import {
-  "hustcer/fzip@0.8.5",
+  "hustcer/fzip@0.8.8",
   "moonbitlang/async@0.19.4",
   "moonbitlang/x@0.4.50",
   "vectie/moonlib@0.1.19",

@@ -94,7 +94,7 @@ fn goal_binding(
   output_contracts : Array[String],
   required_claim : String,
   input_artifacts : Array[String],
-  timeout_ms : Int,
+  timeout_ms : Int32,
 ) -> ExecutableExecutionBinding {
   {
     declaration_id,
@@ -603,7 +603,7 @@ pub fn goal_artifact_prefixes(book_id : String) -> Array[String] raise {
 /// Reserve one additional stage-sized budget for bounded automatic recovery.
 /// Without this headroom, a rejection at the final stage cannot be revised even
 /// when the recovery policy and envelope otherwise permit it.
-pub fn unattended_budget_reservations(stage_count : Int) -> Int {
+pub fn unattended_budget_reservations(stage_count : Int32) -> Int32 {
   stage_count + 1
 }
 

@@ -213,7 +213,7 @@ async fn epub_destination(build_dir : String, source_root : String) -> String {
 }
 
 ///|
-fn epub_pad(value : Int) -> String {
+fn epub_pad(value : Int32) -> String {
   if value < 10 {
     "0\{value}"
   } else {

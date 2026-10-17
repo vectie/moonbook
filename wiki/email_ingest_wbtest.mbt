@@ -115,7 +115,7 @@ test "EML malformed and unsupported messages reject without inventing usable tex
       _ =>
         fail(
           "expected EML rejection: " +
-          input[:Int::min(input.length(), 100)].to_owned(),
+          input[:Int32::min(input.length(), 100)].to_owned(),
         )
     }
   }

@@ -173,8 +173,8 @@ fn likely_claim_line(line : String) -> Bool {
 }
 
 ///|
-fn rank_phrase_counts(counts : Map[String, Int]) -> Array[String] {
-  let pairs : Array[(String, Int)] = []
+fn rank_phrase_counts(counts : Map[String, Int32]) -> Array[String] {
+  let pairs : Array[(String, Int32)] = []
   for key, value in counts {
     pairs.push((key, value))
   }
@@ -206,7 +206,7 @@ fn title_case(text : String) -> String {
     } else if capitalize {
       let value = c.to_int()
       if value >= 'a'.to_int() && value <= 'z'.to_int() {
-        builder.write_char(Int::unsafe_to_char(value - 32))
+        builder.write_char(Int32::unsafe_to_char(value - 32))
       } else {
         builder.write_char(c)
       }
@@ -286,7 +286,7 @@ fn slugify_title(title : String) -> String {
       builder.write_char(c)
       wrote_dash = false
     } else if value >= 'A'.to_int() && value <= 'Z'.to_int() {
-      builder.write_char(Int::unsafe_to_char(value + 32))
+      builder.write_char(Int32::unsafe_to_char(value + 32))
       wrote_dash = false
     } else if !wrote_dash {
       builder.write_char('-')

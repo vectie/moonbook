@@ -67,7 +67,7 @@ pub(all) struct DurableBookkeeperRecord {
   requires_human_review : Bool
   next_action : String
   source_product : String
-  recorded_at : Int
+  recorded_at : Int32
   payload : Json
   side_effects_applied : Bool
 } derive(Debug, Eq, ToJson, FromJson)
@@ -92,7 +92,7 @@ pub(all) struct BookkeeperAuthorityGrant {
   authority_ref : String
   evidence_refs : Array[String]
   active : Bool
-  granted_at : Int
+  granted_at : Int32
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
@@ -113,7 +113,7 @@ pub(all) struct GovernedReviewMutation {
   reviewer : StoreReviewerAuthority
   evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
   summary : String
-  decided_at : Int
+  decided_at : Int32
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|
@@ -129,7 +129,7 @@ pub(all) struct GovernedReviewReceipt {
   reviewer : StoreReviewerAuthority
   evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
   summary : String
-  decided_at : Int
+  decided_at : Int32
   issues : Array[String]
   review_complete : Bool
   side_effects_applied : Bool
@@ -153,7 +153,7 @@ pub(all) struct BookkeeperTransportEnvelope {
   links : Array[@bookkeeper.VersionedRecordReference]
   evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
   authority_ref : String
-  recorded_at : Int
+  recorded_at : Int32
   payload : Json
   external_activation_allowed : Bool
   side_effects_applied : Bool
@@ -162,10 +162,10 @@ pub(all) struct BookkeeperTransportEnvelope {
 ///|
 pub(all) struct BookkeeperJournalEvent {
   contract_version : String
-  sequence : Int
+  sequence : Int32
   event : @bookkeeper.VersionedRecordReference
   event_kind : String
-  recorded_at : Int
+  recorded_at : Int32
   record : DurableBookkeeperRecord?
   review : GovernedReviewReceipt?
   envelope : BookkeeperTransportEnvelope?
@@ -174,7 +174,7 @@ pub(all) struct BookkeeperJournalEvent {
 ///|
 pub(all) struct BookkeeperStoreSnapshot {
   contract_version : String
-  mut last_sequence : Int
+  mut last_sequence : Int32
   records : Array[DurableBookkeeperRecord]
   reviews : Array[GovernedReviewReceipt]
   envelopes : Array[BookkeeperTransportEnvelope]

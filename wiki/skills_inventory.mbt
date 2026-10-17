@@ -238,7 +238,7 @@ fn collect_reference_paths(skill_dir : String, text : String) -> Array[String] {
 }
 
 ///|
-fn read_reference_token(line : String, start : Int) -> String {
+fn read_reference_token(line : String, start : Int32) -> String {
   let chars = line.to_array()
   let mut end = start
   while end < chars.length() {
@@ -281,7 +281,7 @@ async fn is_directory(path : String) -> Bool {
 }
 
 ///|
-fn count_lines(text : String) -> Int {
+fn count_lines(text : String) -> Int32 {
   let mut count = 0
   for _ in text.split("\n") {
     count += 1

@@ -27,7 +27,7 @@ async fn moonclaw_result_accept_record(
   root : String,
   record : @bookkeeper_store.DurableBookkeeperRecord,
   reviewer_id : String,
-  decided_at : Int,
+  decided_at : Int32,
 ) -> Unit {
   let evidence_ids = record.evidence_refs.map(reference => {
     reference.reference_id
@@ -80,10 +80,10 @@ fn moonclaw_result_gap_record(
   outcome : @bookkeeper.VersionedRecordReference,
   learning_key : @bookkeeper.VersionedRecordReference,
   gap_class : String,
-  severity : Int,
+  severity : Int32,
   owner_route : String,
   evidence : @bookkeeper.VersionedEvidenceReference,
-  recorded_at : Int,
+  recorded_at : Int32,
 ) -> @bookkeeper_store.DurableBookkeeperRecord {
   let transition = match gap_class {
     "information_gap" => "unknown_to_known"

@@ -2,7 +2,7 @@
 pub struct ServeOptions {
   root : String
   hostname : String
-  port : Int
+  port : Int32
   dest_dir : String?
   open_browser : Bool
   watcher_kind : String
@@ -90,11 +90,11 @@ pub fn parse_serve_args(args : Array[String]) -> ServeOptions? {
 ///|
 pub struct Server {
   server : @http.Server
-  port : Int
+  port : Int32
 }
 
 ///|
-pub fn Server::port(self : Server) -> Int {
+pub fn Server::port(self : Server) -> Int32 {
   self.port
 }
 
@@ -106,9 +106,9 @@ pub fn Server::close(self : Server) -> Unit {
 ///|
 pub async fn Server::new(
   host : String,
-  port : Int,
-  dual_stack? : Bool = true,
-  reuse_addr? : Bool = false,
+  port : Int32,
+  dual_stack~ : Bool = true,
+  reuse_addr~ : Bool = false,
 ) -> Server {
   let host = normalize_bind_host(host)
   let server = @http.Server::Server(
@@ -134,7 +134,7 @@ async fn handle_file_request(
   method_ : @http.RequestMethod,
   path : StringView,
   conn : @http.ServerConnection,
-  live_reload_endpoint? : String? = None,
+  live_reload_endpoint~ : String? = None,
 ) -> Unit {
   let root = @pathx.normalize(root)
   guard method_ is Get || method_ is Head else {
@@ -180,7 +180,7 @@ async fn[T : @json.FromJson] parse_json_body(body : &@io.Reader) -> T {
 ///|
 async fn send_json_status(
   conn : @http.ServerConnection,
-  code : Int,
+  code : Int32,
   reason : String,
   value : Json,
 ) -> Unit {
@@ -620,8 +620,8 @@ async fn send_not_found(
 pub async fn Server::serve_directory(
   self : Server,
   root : String,
-  live_reload_endpoint? : String? = None,
-  workspace_root? : String? = None,
+  live_reload_endpoint~ : String? = None,
+  workspace_root~ : String? = None,
 ) -> Unit {
   self.server.run_forever(
     (request, body, conn) => {
@@ -689,7 +689,7 @@ async fn send_file(
   conn : @http.ServerConnection,
   method_ : @http.RequestMethod,
   path : String,
-  code : Int,
+  code : Int32,
   reason : String,
 ) -> Unit {
   conn.send_response(code, reason, extra_headers={
@@ -706,7 +706,7 @@ async fn send_file(
 ///|
 async fn send_status(
   conn : @http.ServerConnection,
-  code : Int,
+  code : Int32,
   reason : String,
   body : String,
 ) -> Unit {

@@ -44,8 +44,8 @@ fn bk3_changed_artifacts() -> Array[@bookkeeper.ChangedArtifactReference] {
 
 ///|
 fn bk3_proposal(
-  proposal_id? : String = "proposal-bk3",
-  proposal_digest? : String = "sha256:proposal-bk3",
+  proposal_id~ : String = "proposal-bk3",
+  proposal_digest~ : String = "sha256:proposal-bk3",
 ) -> @bookkeeper.CapabilityProposal {
   @bookkeeper.aggregate_capability_proposal(
     promotion_policy(),
@@ -67,9 +67,9 @@ fn bk3_proposal(
 
 ///|
 fn bk3_work_reviewer(
-  reviewer_id? : String = "work-human-1",
-  authority_ref? : String = "authority-work-human",
-  authorized? : Bool = true,
+  reviewer_id~ : String = "work-human-1",
+  authority_ref~ : String = "authority-work-human",
+  authorized~ : Bool = true,
 ) -> @bookkeeper.ReviewerAuthority {
   { reviewer_id, authority_ref, authorized, evidence_refs: ["evidence-1"], }
 }
@@ -78,7 +78,7 @@ fn bk3_work_reviewer(
 fn bk3_review_and_work_order(
   proposal : @bookkeeper.CapabilityProposal,
   reviewer : @bookkeeper.ReviewerAuthority,
-  suffix? : String = "current",
+  suffix~ : String = "current",
 ) -> (@bookkeeper.LearningReceipt, @bookkeeper.MoonCodeWorkOrderProjection) {
   let review = @bookkeeper.review_capability_proposal(
     proposal,
@@ -126,8 +126,8 @@ fn bk3_review_and_work_order(
 
 ///|
 fn bk3_result_reference(
-  version? : String = "1",
-  digest? : String = "sha256:work-result",
+  version~ : String = "1",
+  digest~ : String = "sha256:work-result",
 ) -> @bookkeeper.VersionedRecordReference {
   {
     record_id: "work-result-1",
@@ -158,8 +158,8 @@ fn bk3_bind_candidate(
 fn bk3_test_result(
   id : String,
   evidence : @bookkeeper.VersionedEvidenceReference,
-  complete? : Bool = true,
-  passed? : Bool = true,
+  complete~ : Bool = true,
+  passed~ : Bool = true,
 ) -> @bookkeeper.CapabilityTestResult {
   {
     test_record: {
@@ -192,8 +192,8 @@ fn bk3_metric(
 
 ///|
 fn bk3_rollback(
-  version? : String = "1",
-  digest? : String = "sha256:rollback",
+  version~ : String = "1",
+  digest~ : String = "sha256:rollback",
 ) -> @bookkeeper.VersionedRecordReference {
   {
     record_id: "rollback-plan",
@@ -231,9 +231,9 @@ fn bk3_evaluation(
 
 ///|
 fn bk3_adoption_reviewer(
-  reviewer_id? : String = "adoption-human-1",
-  authority_ref? : String = "authority-adoption-human",
-  authorized? : Bool = true,
+  reviewer_id~ : String = "adoption-human-1",
+  authority_ref~ : String = "authority-adoption-human",
+  authorized~ : Bool = true,
 ) -> @bookkeeper.ReviewerAuthority {
   {
     reviewer_id,
@@ -261,7 +261,7 @@ fn bk3_attestation(
   candidate : @bookkeeper.MoonCodeWorkResultCandidate,
   evaluation : @bookkeeper.CapabilityEvaluation,
   reviewer : @bookkeeper.ReviewerAuthority,
-  reviewer_kind? : @bookkeeper.ReviewerKind = Human,
+  reviewer_kind~ : @bookkeeper.ReviewerKind = Human,
 ) -> @bookkeeper.CapabilityAdoptionAttestation {
   @bookkeeper.CapabilityAdoptionAttestation::new(
     attestation={

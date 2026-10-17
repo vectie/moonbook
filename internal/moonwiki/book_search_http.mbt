@@ -7,7 +7,7 @@ fn book_search_route(path : String) -> Bool {
 }
 
 ///|
-fn book_search_error(status : Int, message : String) -> (Int, Json) {
+fn book_search_error(status : Int32, message : String) -> (Int32, Json) {
   (status, { "schema": "moonbook.search.v1", "ok": false, "error": message })
 }
 
@@ -20,7 +20,7 @@ pub async fn book_search_http_response(
   path : String,
   headers : Map[String, String],
   text : String,
-) -> (Int, Json) noraise {
+) -> (Int32, Json) noraise {
   if !book_search_route(path) {
     return book_search_error(404, "Unknown Book search route")
   }
@@ -52,7 +52,7 @@ pub async fn book_search_http_response(
       400, "Enter a question of 1–1024 UTF-16 code units",
     )
   }
-  let page : Int? = match payload {
+  let page : Int32? = match payload {
     { "page": Number(value), .. } => {
       if value < 0.0 || value >= 10.0 {
         return book_search_error(400, "Page must be an integer between 0 and 9")

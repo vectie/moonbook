@@ -4,8 +4,8 @@ extern "c" fn retained_read_native(
   root : Bytes,
   relative : Bytes,
   output : FixedArray[Byte],
-  capacity : Int,
-) -> Int = "moonbit_moonbook_retained_read"
+  capacity : Int32,
+) -> Int32 = "moonbit_moonbook_retained_read"
 
 ///|
 /// Bounded descriptor-relative read. Reject every symlink, nonregular file,

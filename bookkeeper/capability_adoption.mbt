@@ -24,7 +24,7 @@ fn validate_adoption_record(
 fn adoption_evidence_compare(
   left : VersionedEvidenceReference,
   right : VersionedEvidenceReference,
-) -> Int {
+) -> Int32 {
   let by_id = left.reference_id.compare(right.reference_id)
   if by_id != 0 {
     return by_id
@@ -44,7 +44,7 @@ fn adoption_evidence_compare(
 fn changed_artifact_compare(
   left : ChangedArtifactReference,
   right : ChangedArtifactReference,
-) -> Int {
+) -> Int32 {
   let by_id = left.artifact_id.compare(right.artifact_id)
   if by_id != 0 {
     return by_id
@@ -60,7 +60,7 @@ fn changed_artifact_compare(
 fn test_result_compare(
   left : CapabilityTestResult,
   right : CapabilityTestResult,
-) -> Int {
+) -> Int32 {
   let by_id = left.test_record.record_id.compare(right.test_record.record_id)
   if by_id != 0 {
     return by_id
@@ -78,7 +78,7 @@ fn test_result_compare(
 fn metric_record_compare(
   left : CapabilityMetricRecord,
   right : CapabilityMetricRecord,
-) -> Int {
+) -> Int32 {
   let by_id = left.metric.record_id.compare(right.metric.record_id)
   if by_id != 0 {
     return by_id

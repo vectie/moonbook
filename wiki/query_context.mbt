@@ -39,7 +39,7 @@ pub fn query_context_brief(result : QueryResult) -> String {
 ///|
 fn query_context_brief_at(
   result : QueryResult,
-  rank_offset : Int,
+  rank_offset : Int32,
   empty_message : String,
 ) -> String {
   let out = StringBuilder()

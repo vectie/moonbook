@@ -2,10 +2,10 @@
 /// A fresh lexical scan, bounded to ten pages of three excerpts. Counts refer
 /// to readable queryable pages in this scan, not a transactional snapshot.
 pub struct QueryPaging {
-  page : Int
-  page_size : Int
-  matched_count : Int
-  window_count : Int
+  page : Int32
+  page_size : Int32
+  matched_count : Int32
+  window_count : Int32
   has_next : Bool
   truncated : Bool
   fresh_scan : Bool
@@ -23,7 +23,7 @@ pub struct QueryWindow {
 pub async fn query_wiki_page(
   root : String,
   question : String,
-  page : Int,
+  page : Int32,
 ) -> QueryWindow {
   guard page >= 0 && page < 10 else { fail("page must be between 0 and 9") }
   guard question.length() <= 1024 else {

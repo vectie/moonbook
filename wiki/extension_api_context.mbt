@@ -679,7 +679,7 @@ async fn select_context_pages(
     return selected
   }
   let pages = collect_markdown_pages(workspace.wiki_dir)
-  let ranked : Array[(String, Int)] = []
+  let ranked : Array[(String, Int32)] = []
   for path in pages {
     let relative = relative_to_root(path, workspace.root)
       .strip_prefix("wiki/")
@@ -715,13 +715,13 @@ async fn select_context_pages(
 fn select_memory_entries(
   entries : Array[String],
   terms : Array[String],
-  limit : Int,
+  limit : Int32,
 ) -> Array[String] {
   let selected : Array[String] = []
   if entries.is_empty() {
     return selected
   }
-  let ranked : Array[(String, Int)] = []
+  let ranked : Array[(String, Int32)] = []
   for entry in entries {
     ranked.push((entry, memory_entry_score(entry, terms)))
   }
@@ -741,7 +741,7 @@ fn select_memory_entries(
 }
 
 ///|
-fn memory_entry_score(entry : String, terms : Array[String]) -> Int {
+fn memory_entry_score(entry : String, terms : Array[String]) -> Int32 {
   let lowered = entry.to_lower()
   let mut score = 0
   for term in terms {

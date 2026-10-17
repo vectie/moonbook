@@ -1,5 +1,5 @@
 ///|
-fn browser_test_query(text? : String = "") -> OutcomeLessonBrowseQuery {
+fn browser_test_query(text~ : String = "") -> OutcomeLessonBrowseQuery {
   { contract_version: "moonbook.outcome-lesson-browse-query.v1", text, }
 }
 

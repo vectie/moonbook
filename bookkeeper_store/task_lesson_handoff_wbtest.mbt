@@ -68,7 +68,7 @@ fn lesson_handoff_test_payload() -> OutcomeLessonTaskHandoff {
 ///|
 fn lesson_handoff_test_submission(
   handoff : OutcomeLessonTaskHandoff,
-  id? : String = "proj-outcome-fixture",
+  id~ : String = "proj-outcome-fixture",
 ) -> ProductOutcomeSubmission {
   let original = submission_fixture()
   let evidence : Array[@bookkeeper.VersionedEvidenceReference] = [
@@ -97,7 +97,7 @@ fn lesson_handoff_test_submission(
 async fn lesson_handoff_test_reviewed(
   root : String,
   handoff : OutcomeLessonTaskHandoff,
-  id? : String = "proj-outcome-fixture",
+  id~ : String = "proj-outcome-fixture",
 ) -> ProductOutcomeClosureReceipt {
   let submission = lesson_handoff_test_submission(handoff, id~)
   let first = submit_product_outcome(root, submission)

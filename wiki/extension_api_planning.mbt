@@ -281,7 +281,7 @@ fn bootstrap_phase_task(
   goal : String,
   kind : String,
   title : String,
-  priority : Int,
+  priority : Int32,
   prompt : String,
   target_pages : Array[String],
   requires_review : Bool,
@@ -311,7 +311,7 @@ fn dedupe_tasks(tasks : Array[BookTask]) -> Array[BookTask] {
 ///|
 fn resolve_task_from_batch(
   tasks : Array[BookTask],
-  task_id? : String? = None,
+  task_id~ : String? = None,
 ) -> BookTask? {
   match task_id {
     Some(task_id) => {

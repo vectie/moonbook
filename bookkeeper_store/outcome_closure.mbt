@@ -16,7 +16,7 @@ pub fn product_outcome_closure_receipt_contract_version() -> String {
 /// LLM to invent or reclassify them.
 pub(all) struct ProductOutcomeGapStatement {
   present : Bool
-  severity : Int
+  severity : Int32
   summary : String
   evidence_refs : Array[String]
 } derive(Debug, Eq, ToJson, FromJson)
@@ -32,8 +32,8 @@ pub(all) struct ProductOutcomeClosureRequest {
   deliverable : @bookkeeper.VersionedRecordReference
   result : @bookkeeper.VersionedRecordReference
   deliverable_review : @bookkeeper.VersionedRecordReference
-  observed_at : Int
-  recorded_at : Int
+  observed_at : Int32
+  recorded_at : Int32
   outcome_summary : String
   owner_route : String
   evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
@@ -81,7 +81,7 @@ fn closure_record_complete(
 fn closure_evidence_compare(
   left : @bookkeeper.VersionedEvidenceReference,
   right : @bookkeeper.VersionedEvidenceReference,
-) -> Int {
+) -> Int32 {
   let by_id = left.reference_id.compare(right.reference_id)
   if by_id != 0 {
     return by_id

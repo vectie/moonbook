@@ -18,7 +18,7 @@ fn accepted_result(
   root : String,
   event : @bookkeeper.VersionedRecordReference,
   review? : GovernedReviewReceipt,
-  idempotent? : Bool = false,
+  idempotent~ : Bool = false,
 ) -> BookkeeperMutationResult {
   {
     accepted: true,

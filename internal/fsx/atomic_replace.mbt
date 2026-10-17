@@ -1,6 +1,6 @@
 ///|
 #borrow(source, destination)
-extern "c" fn fs_atomic_replace(source : Bytes, destination : Bytes) -> Int = "moonbit_moonbook_fs_atomic_replace"
+extern "c" fn fs_atomic_replace(source : Bytes, destination : Bytes) -> Int32 = "moonbit_moonbook_fs_atomic_replace"
 
 ///|
 /// Atomically replace `destination` with a completely written file from the

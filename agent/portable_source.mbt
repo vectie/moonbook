@@ -9,14 +9,14 @@ pub(all) struct PortableSource {
   book_revision : String
   bundle_digest : String
   package_filename : String
-  package_size_bytes : Int
+  package_size_bytes : Int32
   package_sha256 : String
-  file_count : Int
-  total_decoded_bytes : Int
+  file_count : Int32
+  total_decoded_bytes : Int32
   outputs_manifest_path : String?
   outputs_manifest_digest : String?
-  included_output_count : Int
-  reference_only_count : Int
+  included_output_count : Int32
+  reference_only_count : Int32
   transport : String
 } derive(Debug, Eq)
 
@@ -116,7 +116,7 @@ pub(all) struct PortableTownBinding {
   listing_id : String
   publisher_principal_id : String
   tenant_id : String
-  binding_revision : Int
+  binding_revision : Int32
   source : PortableSource
   reuse_mode : String
   verification_scope : String

@@ -43,13 +43,13 @@ fn acceptance_requirements() -> ReadOnlyArray[@bookkeeper.AcceptanceRequirement]
 
 ///|
 fn valid_candidate(
-  observed_digest? : String = "sha256:artifact",
-  observed_version? : String = "5",
-  include_checklist_requirement? : Bool = true,
-  delivery_authorization? : @bookkeeper.AuthorizationState = Authorized(
+  observed_digest~ : String = "sha256:artifact",
+  observed_version~ : String = "5",
+  include_checklist_requirement~ : Bool = true,
+  delivery_authorization~ : @bookkeeper.AuthorizationState = Authorized(
     "authority-delivery",
   ),
-  reviewer_authorized? : Bool = true,
+  reviewer_authorized~ : Bool = true,
 ) -> @bookkeeper.DeliverableCandidate {
   let requirement_results : Array[@bookkeeper.RequirementResult] = [
     {
@@ -427,7 +427,7 @@ fn exact_deliverable() -> @bookkeeper.DeliverableReference {
 fn outcome_evidence_record(
   id : String,
   kind : @bookkeeper.OutcomeEvidenceKind,
-  deliverable? : @bookkeeper.DeliverableReference = exact_deliverable(),
+  deliverable~ : @bookkeeper.DeliverableReference = exact_deliverable(),
 ) -> @bookkeeper.OutcomeEvidenceRecord {
   @bookkeeper.OutcomeEvidenceRecord::new(
     record={
@@ -551,10 +551,10 @@ test "canonical outcome evidence requires every typed evidence category" {
 fn gap_finding(
   id : String,
   gap_class : @bookkeeper.ThreeGapClass,
-  severity? : Int = 3,
-  owner_route? : String = "owner-1",
-  finding_version? : String = "1",
-  finding_digest? : String = "",
+  severity~ : Int32 = 3,
+  owner_route~ : String = "owner-1",
+  finding_version~ : String = "1",
+  finding_digest~ : String = "",
 ) -> @bookkeeper.CanonicalGapFinding {
   let resolved_digest = if finding_digest.is_blank() {
     "sha256:\{id}"
@@ -609,7 +609,7 @@ fn finding_review_attestation(
   finding : @bookkeeper.CanonicalGapFinding,
   receipt : @bookkeeper.VersionedRecordReference,
   reviewer : @bookkeeper.ReviewerAuthority,
-  reviewer_kind? : @bookkeeper.ReviewerKind = Human,
+  reviewer_kind~ : @bookkeeper.ReviewerKind = Human,
 ) -> @bookkeeper.FindingReviewAuthorityAttestation {
   @bookkeeper.FindingReviewAuthorityAttestation::new(
     attestation={
@@ -630,7 +630,7 @@ fn finding_review_attestation(
 fn review_finding(
   id : String,
   gap_class : @bookkeeper.ThreeGapClass,
-  severity? : Int = 3,
+  severity~ : Int32 = 3,
 ) -> @bookkeeper.ReviewedGapFinding {
   let finding = gap_finding(id, gap_class, severity~)
   let receipt = finding_receipt(id)
@@ -646,7 +646,7 @@ fn review_finding(
 
 ///|
 fn promotion_policy(
-  minimum_reviewed_findings? : Int = 3,
+  minimum_reviewed_findings~ : Int32 = 3,
 ) -> @bookkeeper.CapabilityPromotionPolicy {
   @bookkeeper.CapabilityPromotionPolicy::new(
     policy={

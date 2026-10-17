@@ -26,7 +26,7 @@ pub struct Chapter {
 
 ///|
 pub struct SectionNumber {
-  items : Array[Int]
+  items : Array[Int32]
 } derive(Debug, ToJson, FromJson)
 
 ///|
@@ -142,7 +142,7 @@ fn map_chapter_items(
 }
 
 ///|
-pub fn SectionNumber::new(items : Array[Int]) -> SectionNumber {
+pub fn SectionNumber::new(items : Array[Int32]) -> SectionNumber {
   { items, }
 }
 
@@ -150,11 +150,11 @@ pub fn SectionNumber::new(items : Array[Int]) -> SectionNumber {
 pub fn chapter(
   name : String,
   content : String,
-  number? : SectionNumber? = None,
-  sub_items? : Array[BookItem] = [],
-  path? : String? = None,
-  source_path? : String? = None,
-  parent_names? : Array[String] = [],
+  number~ : SectionNumber? = None,
+  sub_items~ : Array[BookItem] = [],
+  path~ : String? = None,
+  source_path~ : String? = None,
+  parent_names~ : Array[String] = [],
 ) -> Chapter {
   { name, content, number, sub_items, path, source_path, parent_names, }
 }

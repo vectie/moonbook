@@ -508,7 +508,7 @@ fn is_weak_summary_line(title : String, line : String) -> Bool {
 }
 
 ///|
-fn excerpt_source(content : String, max_lines : Int) -> String {
+fn excerpt_source(content : String, max_lines : Int32) -> String {
   let lines : Array[String] = []
   for raw in content.split("\n") {
     let line = raw.to_owned()
@@ -673,7 +673,7 @@ async fn contested_claims(
 }
 
 ///|
-fn parse_decimal_int(text : String) -> Int {
+fn parse_decimal_int(text : String) -> Int32 {
   let mut value = 0
   for c in text {
     if c >= '0' && c <= '9' {
@@ -886,7 +886,7 @@ fn extract_candidate_entities(
   content : String,
 ) -> Array[String] {
   let selected = detect_known_entities(title, content)
-  let counts : Map[String, Int] = Map([])
+  let counts : Map[String, Int32] = Map([])
   for phrase in candidate_titlecase_phrases(title + "\n" + content) {
     if should_keep_entity_phrase(phrase) {
       counts[phrase] = counts.get(phrase).unwrap_or(0) + 1
@@ -917,7 +917,7 @@ fn extract_candidate_concepts(content : String) -> Array[String] {
   if selected.length() >= 3 {
     return selected
   }
-  let counts : Map[String, Int] = Map([])
+  let counts : Map[String, Int32] = Map([])
   for word in lowercase_word_candidates(content) {
     if should_keep_concept_word(word) {
       counts[word] = counts.get(word).unwrap_or(0) + 1
@@ -1292,7 +1292,7 @@ fn should_keep_concept_word(word : String) -> Bool {
 fn detect_known_entities(title : String, content : String) -> Array[String] {
   let title_lowered = title.to_lower()
   let lowered = (title + "\n" + content).to_lower()
-  let ranked : Array[(String, Int)] = []
+  let ranked : Array[(String, Int32)] = []
   let known : Array[(String, String)] = [
     ("moonclaw", "MoonClaw"),
     ("moontown", "MoonTown"),
@@ -1341,7 +1341,7 @@ fn detect_known_entities(title : String, content : String) -> Array[String] {
 }
 
 ///|
-fn count_substring(text : String, pattern : String) -> Int {
+fn count_substring(text : String, pattern : String) -> Int32 {
   if pattern.is_empty() {
     return 0
   }

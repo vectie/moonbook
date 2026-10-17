@@ -94,7 +94,7 @@ fn email_headers(text : String) -> (Map[String, String], String) raise {
 }
 
 ///|
-fn email_hex(char : Char) -> Int raise {
+fn email_hex(char : Char) -> Int32 raise {
   let value = char.to_int()
   if value >= 48 && value <= 57 {
     value - 48
@@ -108,7 +108,7 @@ fn email_hex(char : Char) -> Int raise {
 }
 
 ///|
-fn email_quoted_printable(text : String, header? : Bool = false) -> Bytes raise {
+fn email_quoted_printable(text : String, header~ : Bool = false) -> Bytes raise {
   let bytes : Array[Byte] = []
   let mut index = 0
   while index < text.length() {
@@ -295,8 +295,8 @@ fn email_named_part(params : Map[String, String], name : String) -> Bool {
 fn email_plain_part(
   headers : Map[String, String],
   body : String,
-  depth : Int,
-  count : Ref[Int],
+  depth : Int32,
+  count : Ref[Int32],
 ) -> String? raise {
   count.val += 1
   if depth > 8 || count.val > 64 {

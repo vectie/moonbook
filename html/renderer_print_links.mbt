@@ -169,7 +169,11 @@ fn whole_book_link(
 
 ///|
 // ASCII tag-name matching keeps offsets correct beside non-ASCII text such as İ.
-fn whole_book_ascii_find(text : String, start : Int, pattern : String) -> Int? {
+fn whole_book_ascii_find(
+  text : String,
+  start : Int32,
+  pattern : String,
+) -> Int32? {
   for position = start
       position + pattern.length() <= text.length()
       position = position + 1 {
@@ -226,7 +230,7 @@ fn whole_book_percent_path_text(text : String) -> String {
 }
 
 ///|
-fn whole_book_hex(byte : Byte) -> Int {
+fn whole_book_hex(byte : Byte) -> Int32 {
   let value = byte.to_int()
   if value >= 48 && value <= 57 {
     value - 48

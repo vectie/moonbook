@@ -17,7 +17,7 @@ pub(all) struct ExecutableExecutionBinding {
   output_contracts : Array[String]
   required_claim : String
   input_artifacts : Array[String]
-  timeout_ms : Int
+  timeout_ms : Int32
 } derive(Debug, Eq, ToJson, FromJson)
 
 ///|

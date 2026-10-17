@@ -27,10 +27,10 @@ pub fn parse_summary(summary : String) -> Summary raise {
   let prefix_chapters : Array[SummaryItem] = []
   let numbered_chapters : Array[SummaryItem] = []
   let suffix_chapters : Array[SummaryItem] = []
-  let stack : Array[(Int, Link)] = []
+  let stack : Array[(Int32, Link)] = []
   let mut seen_numbered = false
   let mut in_suffix = false
-  let mut current_numbers : Array[Int] = []
+  let mut current_numbers : Array[Int32] = []
   for raw_line in summary.split("\n") {
     let line = raw_line.to_owned()
     let trimmed = line.trim().to_owned()
@@ -124,7 +124,7 @@ pub fn parse_summary(summary : String) -> Summary raise {
 }
 
 ///|
-fn indent_depth(line : String) -> Int {
+fn indent_depth(line : String) -> Int32 {
   let mut spaces = 0
   for c in line {
     if c == ' ' {
@@ -193,7 +193,7 @@ fn check_duplicate_files(
 }
 
 ///|
-fn next_number(current : Array[Int], depth : Int) -> Array[Int] {
+fn next_number(current : Array[Int32], depth : Int32) -> Array[Int32] {
   let next = if current.length() > depth {
     current[:depth + 1].to_owned()
   } else {
@@ -208,7 +208,7 @@ fn next_number(current : Array[Int], depth : Int) -> Array[Int] {
 
 ///|
 fn finalize_top(
-  stack : Array[(Int, Link)],
+  stack : Array[(Int32, Link)],
   destination : Array[SummaryItem],
 ) -> Unit {
   let (_, node) = stack.pop().unwrap()
@@ -223,7 +223,7 @@ fn finalize_top(
 
 ///|
 fn flush_stack(
-  stack : Array[(Int, Link)],
+  stack : Array[(Int32, Link)],
   _prefix_chapters : Array[SummaryItem],
   numbered_chapters : Array[SummaryItem],
   suffix_chapters : Array[SummaryItem],
@@ -241,9 +241,9 @@ fn flush_stack(
 
 ///|
 fn append_separator_at_depth(
-  stack : Array[(Int, Link)],
+  stack : Array[(Int32, Link)],
   destination : Array[SummaryItem],
-  depth : Int,
+  depth : Int32,
 ) -> Unit {
   while stack.length() > depth {
     finalize_top(stack, destination)

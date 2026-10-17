@@ -1,12 +1,12 @@
 ///|
 async fn native_review_test_query(
   root : String,
-  work_id? : String = "native-work-1",
-  request_digest? : String = native_wenyu_digest("frozen-request"),
-  payload_digest? : String = native_wenyu_digest(
+  work_id~ : String = "native-work-1",
+  request_digest~ : String = native_wenyu_digest("frozen-request"),
+  payload_digest~ : String = native_wenyu_digest(
     native_wenyu_test_result().to_json().stringify(),
   ),
-  result_id? : String = "wenyu-goal-1-code-patch",
+  result_id~ : String = "wenyu-goal-1-code-patch",
 ) -> NativeWenyuReviewResolution {
   resolve_review(root, work_id, request_digest, payload_digest, result_id)
 }

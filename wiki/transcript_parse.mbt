@@ -108,12 +108,12 @@ fn transcript_digits(text : String) -> Bool {
 }
 
 ///|
-fn transcript_number(text : String) -> Int {
+fn transcript_number(text : String) -> Int32 {
   text.iter().fold(init=0, (value, ch) => value * 10 + ch.to_int() - 48)
 }
 
 ///|
-fn transcript_timestamp(text : String, webvtt : Bool) -> (String, Int) raise {
+fn transcript_timestamp(text : String, webvtt : Bool) -> (String, Int32) raise {
   let normalized = if webvtt {
     text
   } else {

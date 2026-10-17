@@ -515,7 +515,7 @@ fn review_subject_evidence_exact(
 fn review_receipt(
   snapshot : BookkeeperStoreSnapshot,
   mutation : GovernedReviewMutation,
-  authority_grant_valid? : Bool = true,
+  authority_grant_valid~ : Bool = true,
 ) -> GovernedReviewReceipt {
   let issues : Array[String] = []
   if mutation.contract_version != bookkeeper_store_contract_version() {

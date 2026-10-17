@@ -40,12 +40,12 @@ pub(all) enum LearningProtocolIssue {
   ExactLinkMismatch(String)
   ConflictingRecordIdentity(String)
   MissingOutcomeEvidenceKind(OutcomeEvidenceKind)
-  InvalidSeverity(Int)
+  InvalidSeverity(Int32)
   UnauthorizedLearningReview
   LearningReceiptMismatch(String)
   InvalidPromotionPolicy(String)
-  InsufficientReviewedFindings(Int, Int)
-  InsufficientSeverity(Int, Int)
+  InsufficientReviewedFindings(Int32, Int32)
+  InsufficientSeverity(Int32, Int32)
   MissingRequiredGapClass(ThreeGapClass)
   WorkOrderProjectionDenied(String)
   ReviewAttestationMissing
@@ -187,7 +187,7 @@ fn validate_versioned_evidence(
 fn outcome_record_compare(
   left : OutcomeEvidenceRecord,
   right : OutcomeEvidenceRecord,
-) -> Int {
+) -> Int32 {
   let by_id = left.record.record_id.compare(right.record.record_id)
   if by_id != 0 {
     return by_id

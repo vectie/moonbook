@@ -30,7 +30,7 @@ pub(all) struct ArtifactJournal {
   contract_id : String
   book_id : String
   case_id : String
-  version : Int
+  version : Int32
   batches : Array[StoredBatch]
 } derive(Debug, Eq, ToJson, FromJson)
 

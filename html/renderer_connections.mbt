@@ -5,18 +5,18 @@
 priv struct ChapterConnections {
   chapters : Array[@core.Chapter]
   bodies : Array[String]
-  outgoing : Array[Array[Int]]
-  incoming : Array[Array[Int]]
+  outgoing : Array[Array[Int32]]
+  incoming : Array[Array[Int32]]
 }
 
 ///|
 fn chapter_connections(chapters : Array[@core.Chapter]) -> ChapterConnections {
-  let targets : Map[String, Int] = Map([])
+  let targets : Map[String, Int32] = Map([])
   let bodies = chapters.map(chapter => {
     render_chapter_body(chapter, outline=true)
   })
-  let outgoing : Array[Array[Int]] = chapters.map(_ => [])
-  let incoming : Array[Array[Int]] = chapters.map(_ => [])
+  let outgoing : Array[Array[Int32]] = chapters.map(_ => [])
+  let incoming : Array[Array[Int32]] = chapters.map(_ => [])
   for index, chapter in chapters {
     targets[chapter_output_path(chapter)] = index
     if chapter.source_path is Some(source) {
@@ -25,7 +25,7 @@ fn chapter_connections(chapters : Array[@core.Chapter]) -> ChapterConnections {
     }
   }
   for source, chapter in chapters {
-    let found : Map[Int, Unit] = Map([])
+    let found : Map[Int32, Unit] = Map([])
     let _ = transform_html_tags(bodies[source], fn(tag) {
       if connection_anchor_href(tag) is Some(href) &&
         connection_target(href, chapter_output_path(chapter), targets)
@@ -50,8 +50,8 @@ fn chapter_connections(chapters : Array[@core.Chapter]) -> ChapterConnections {
 fn connection_target(
   href : String,
   current_page : String,
-  targets : Map[String, Int],
-) -> Int? {
+  targets : Map[String, Int32],
+) -> Int32? {
   let href = connection_attribute_text(href).trim().to_owned()
   if href.is_empty() ||
     href.has_prefix("#") ||
@@ -102,7 +102,7 @@ fn connection_href(from : String, to : String) -> String {
 ///|
 fn connection_list(
   graph : ChapterConnections,
-  indexes : Array[Int],
+  indexes : Array[Int32],
   current_page : String,
 ) -> String {
   if indexes.is_empty() {
@@ -128,7 +128,7 @@ fn connection_list(
 ///|
 fn render_chapter_connections(
   graph : ChapterConnections,
-  index : Int,
+  index : Int32,
   current_page : String,
 ) -> String {
   let incoming = connection_list(graph, graph.incoming[index], current_page)

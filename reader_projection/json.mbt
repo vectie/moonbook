@@ -86,7 +86,7 @@ priv struct ReaderExerciseWire {
   self_explanation_prompt : String
   transfer_task : String
   revisit_prompt : String
-  revisit_after_days : Int
+  revisit_after_days : Int32
   source_ref_ids : Array[String]
 } derive(FromJson)
 
@@ -132,7 +132,7 @@ priv struct ReaderProjectionWire {
   view : ReaderView
   language : String
   title : String
-  estimated_minutes : Int
+  estimated_minutes : Int32
   audience : String
   outcome : String
   main_message : String
@@ -184,7 +184,7 @@ pub fn reader_projection_from_json_text(
 ///|
 pub fn ReaderProjection::to_json_text(
   self : ReaderProjection,
-  indent? : Int = 2,
+  indent~ : Int32 = 2,
 ) -> String {
   self.to_json().stringify(indent~)
 }

@@ -50,7 +50,7 @@ async fn unique_extension_test_root(base : String) -> String {
 ///|
 async fn unique_extension_test_root_with_attempt(
   base : String,
-  attempt : Int,
+  attempt : Int32,
 ) -> String {
   let suffix = if attempt == 0 { "" } else { "-" + attempt.to_string() }
   let candidate = base + suffix

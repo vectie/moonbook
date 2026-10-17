@@ -15,7 +15,7 @@ pub struct QueryExcerpt {
   citation : String
   title : String
   excerpt : String
-  score : Int
+  score : Int32
   metadata_status : String
 } derive(Debug, ToJson)
 
@@ -25,7 +25,7 @@ priv struct QueryMatch {
   relative_path : String
   title : String
   excerpt : String
-  score : Int
+  score : Int32
   metadata_status : String
 }
 
@@ -33,7 +33,7 @@ priv struct QueryMatch {
 pub async fn query_wiki(
   root : String,
   question : String,
-  save? : Bool = false,
+  save~ : Bool = false,
 ) -> QueryResult {
   if question.length() > 1024 {
     fail("query exceeds 1024 UTF-16 code units")
@@ -113,7 +113,7 @@ async fn collect_markdown_pages(root : String) -> Array[String] {
 async fn scan_markdown_pages(
   path : String,
   pages : Array[String],
-  depth : Int,
+  depth : Int32,
 ) -> Unit {
   if depth > 32 || pages.length() > 10000 {
     fail("Book query exceeds the 32-level or 10000-page search limit")
@@ -194,7 +194,7 @@ async fn rank_matches(
 }
 
 ///|
-fn query_page_evidence_weight(relative_path : String) -> Int {
+fn query_page_evidence_weight(relative_path : String) -> Int32 {
   if relative_path.has_prefix("wiki/sources/") {
     4
   } else if relative_path.has_prefix("wiki/entities/") ||
@@ -222,7 +222,7 @@ fn relevance_score(
   title : String,
   content : String,
   terms : Array[String],
-) -> Int {
+) -> Int32 {
   let haystack_title = title.to_lower()
   let haystack_content = content.to_lower()
   let mut score = 0
@@ -236,7 +236,7 @@ fn relevance_score(
 }
 
 ///|
-fn occurrence_count(text : String, pattern : String) -> Int {
+fn occurrence_count(text : String, pattern : String) -> Int32 {
   if pattern.is_empty() {
     return 0
   }
@@ -325,7 +325,7 @@ fn clamp_excerpt(text : String) -> String {
 }
 
 ///|
-fn top_matches(matches : Array[QueryMatch], limit : Int) -> Array[QueryMatch] {
+fn top_matches(matches : Array[QueryMatch], limit : Int32) -> Array[QueryMatch] {
   let selected : Array[QueryMatch] = []
   for i = 0; i < matches.length() && i < limit; i = i + 1 {
     selected.push(matches[i])

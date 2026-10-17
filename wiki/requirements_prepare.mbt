@@ -30,7 +30,7 @@ pub(all) struct RequirementsPrepareRequest {
   book_id : String
   goal : String
   owner_route : String
-  recorded_at : Int
+  recorded_at : Int32
   evidence_refs : Array[@bookkeeper.VersionedEvidenceReference]
   statements : Array[RequirementSourceStatement]
 } derive(Debug, Eq, ToJson, FromJson)
@@ -61,7 +61,7 @@ pub(all) struct RequirementsPacket {
   book_id : String
   goal : String
   owner_route : String
-  recorded_at : Int
+  recorded_at : Int32
   review_status : String
   accepted_truth : Bool
   accepted_into_book : Bool
@@ -109,7 +109,7 @@ fn requirements_record_complete(
 fn requirements_evidence_compare(
   left : @bookkeeper.VersionedEvidenceReference,
   right : @bookkeeper.VersionedEvidenceReference,
-) -> Int {
+) -> Int32 {
   let by_id = left.reference_id.compare(right.reference_id)
   if by_id != 0 {
     return by_id

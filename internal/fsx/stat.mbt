@@ -1,9 +1,9 @@
 ///|
-extern "c" fn fs_stat_sizeof() -> Int = "moonbit_moonbook_fs_stat_sizeof"
+extern "c" fn fs_stat_sizeof() -> Int32 = "moonbit_moonbook_fs_stat_sizeof"
 
 ///|
 #borrow(path, stat)
-extern "c" fn fs_stat_sync(path : Bytes, stat : FixedArray[Byte]) -> Int = "moonbit_moonbook_fs_stat_sync"
+extern "c" fn fs_stat_sync(path : Bytes, stat : FixedArray[Byte]) -> Int32 = "moonbit_moonbook_fs_stat_sync"
 
 ///|
 #borrow(stat)

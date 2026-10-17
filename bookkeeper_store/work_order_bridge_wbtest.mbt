@@ -51,7 +51,7 @@ async fn bridge_test_accept(
   root : String,
   record : DurableBookkeeperRecord,
   reviewer : String,
-  decided_at : Int,
+  decided_at : Int32,
 ) -> GovernedReviewReceipt {
   let evidence_ids = record.evidence_refs.map(reference => {
     reference.reference_id

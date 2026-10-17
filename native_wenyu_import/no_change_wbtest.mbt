@@ -17,7 +17,7 @@ fn native_wenyu_no_change_result() -> BookResult {
 
 ///|
 fn native_wenyu_no_change_payload(
-  work_id? : String = "native-no-change-work",
+  work_id~ : String = "native-no-change-work",
 ) -> Json {
   native_wenyu_test_payload(work_id~, result=native_wenyu_no_change_result())
 }

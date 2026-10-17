@@ -345,7 +345,7 @@ fn inline_text_content(
 }
 
 ///|
-fn scalar_width(text : String, index : Int) -> Int {
+fn scalar_width(text : String, index : Int32) -> Int32 {
   if index + 1 < text.length() {
     let first = text[index].to_int()
     let second = text[index + 1].to_int()
@@ -360,7 +360,7 @@ fn scalar_width(text : String, index : Int) -> Int {
 }
 
 ///|
-fn current_scalar(text : String, index : Int) -> String {
+fn current_scalar(text : String, index : Int32) -> String {
   text[index:index + scalar_width(text, index)].to_owned()
 }
 
@@ -377,9 +377,9 @@ fn is_autolink(text : String) -> Bool {
 ///|
 fn find_single_emphasis_end(
   text : String,
-  start : Int,
+  start : Int32,
   delimiter : Char,
-) -> Int? {
+) -> Int32? {
   let delimiter_code = delimiter.to_int()
   for i = start; i < text.length(); i = i + 1 {
     if text[i].to_int() == delimiter_code {

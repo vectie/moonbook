@@ -2,7 +2,7 @@
 async fn saved_lesson_fixture(
   root : String,
   handoff : OutcomeLessonTaskHandoff,
-  id? : String = "returned-lesson",
+  id~ : String = "returned-lesson",
 ) -> (OutcomeLessonDraft, DurableBookkeeperRecord) {
   let closure = lesson_handoff_test_reviewed(root, handoff, id~)
   let snapshot = replay_bookkeeper_store(root)

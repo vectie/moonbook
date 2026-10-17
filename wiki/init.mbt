@@ -12,7 +12,7 @@ pub struct WikiWorkspace {
 ///|
 pub async fn init_workspace(
   root : String,
-  title? : String? = None,
+  title~ : String? = None,
 ) -> WikiWorkspace {
   let normalized_root = @pathx.normalize(root)
   let raw_dir = moonbook_wiki_path(normalized_root)
@@ -1309,7 +1309,10 @@ async fn unique_test_root(base : String) -> String {
 }
 
 ///|
-async fn unique_test_root_with_attempt(base : String, attempt : Int) -> String {
+async fn unique_test_root_with_attempt(
+  base : String,
+  attempt : Int32,
+) -> String {
   let suffix = if attempt == 0 { "" } else { "-" + attempt.to_string() }
   let candidate = base + suffix
   if @fsx.exists(candidate) {

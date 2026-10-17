@@ -2,7 +2,7 @@
 pub async fn accept_goal(
   root : String,
   goal : String,
-  goal_id? : String? = None,
+  goal_id~ : String? = None,
 ) -> BookGoalAcceptance {
   let batch = produce_task_batch(root, goal, goal_id~)
   if batch.tasks.is_empty() {
@@ -28,7 +28,7 @@ pub async fn accept_goal(
 pub async fn produce_task_batch(
   root : String,
   goal : String,
-  goal_id? : String? = None,
+  goal_id~ : String? = None,
 ) -> BookTaskBatch {
   // Older workspaces may predate newer required pages such as wiki/history.
   // Re-running init is idempotent and repairs the contract before planning.
@@ -225,7 +225,7 @@ pub async fn produce_task_batch(
 pub async fn resolve_task_for_goal(
   root : String,
   goal : String,
-  task_id? : String? = None,
+  task_id~ : String? = None,
 ) -> BookTask? {
   let batch = produce_task_batch(root, goal)
   match resolve_task_from_batch(batch.tasks, task_id~) {
@@ -243,7 +243,7 @@ pub async fn resolve_task_for_goal(
 fn fallback_standing_watch_task_for_goal(
   goal : String,
   goal_id : String,
-  task_id? : String? = None,
+  task_id~ : String? = None,
 ) -> BookTask? {
   match task_id {
     Some(task_id) =>
@@ -267,7 +267,7 @@ fn fallback_standing_watch_task_for_goal(
 fn fallback_bootstrap_task_for_goal(
   goal : String,
   goal_id : String,
-  task_id? : String? = None,
+  task_id~ : String? = None,
 ) -> BookTask? {
   if course_goal(goal) {
     let kind = match task_id {
@@ -321,7 +321,7 @@ fn fallback_bootstrap_task_for_goal(
 pub async fn persist_result(
   root : String,
   result : BookResult,
-  lifecycle_proof? : ExecutableBookLifecycleProof? = None,
+  lifecycle_proof~ : ExecutableBookLifecycleProof? = None,
 ) -> PersistResultOutcome {
   let workspace = workspace_paths(root)
   let provider_result = reconcile_provider_result(root, workspace, result)
@@ -1067,7 +1067,7 @@ fn result_has_substantive_pages(pages : Array[String]) -> Bool {
 ///|
 async fn recent_substantive_pages(
   root : String,
-  limit? : Int = 8,
+  limit~ : Int32 = 8,
 ) -> Array[String] {
   let workspace = workspace_paths(root)
   let candidates : Array[(String, Int64)] = []
@@ -1368,7 +1368,7 @@ fn replace_durable_candidate_field(
   header : String,
   prefix : String,
   value : String,
-  quoted? : Bool = true,
+  quoted~ : Bool = true,
 ) -> String {
   let lines = lines_array(content)
   let rebuilt : Array[String] = []

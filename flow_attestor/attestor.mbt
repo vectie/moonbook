@@ -176,7 +176,7 @@ fn attest_research(draft_fields : Map[String, Json]) -> Json raise {
 ///|
 fn audit_reflection(
   book_id : String,
-  index : Int,
+  index : Int32,
   criterion : String,
   decision : String,
   evidence_refs : Array[String],

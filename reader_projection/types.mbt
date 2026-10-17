@@ -328,7 +328,7 @@ pub struct ReaderExercise {
   self_explanation_prompt : String
   transfer_task : String
   revisit_prompt : String
-  revisit_after_days : Int
+  revisit_after_days : Int32
   source_ref_ids : ReadOnlyArray[String]
 } derive(Debug, Eq, ToJson)
 
@@ -341,7 +341,7 @@ pub fn ReaderExercise::new(
   self_explanation_prompt~ : String,
   transfer_task~ : String,
   revisit_prompt~ : String,
-  revisit_after_days~ : Int,
+  revisit_after_days~ : Int32,
   source_ref_ids~ : ArrayView[String],
 ) -> ReaderExercise {
   {
@@ -462,7 +462,7 @@ pub struct ReaderProjection {
   view : ReaderView
   language : String
   title : String
-  estimated_minutes : Int
+  estimated_minutes : Int32
   audience : String
   outcome : String
   main_message : String
@@ -495,7 +495,7 @@ pub fn ReaderProjection::new(
   view~ : ReaderView,
   language~ : String,
   title~ : String,
-  estimated_minutes~ : Int,
+  estimated_minutes~ : Int32,
   audience~ : String,
   outcome~ : String,
   main_message~ : String,

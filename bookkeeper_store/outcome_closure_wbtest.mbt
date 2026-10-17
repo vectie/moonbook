@@ -1,7 +1,7 @@
 ///|
 fn closure_test_ref(
   id : String,
-  digest? : String = "",
+  digest~ : String = "",
 ) -> @bookkeeper.VersionedRecordReference {
   {
     record_id: id,

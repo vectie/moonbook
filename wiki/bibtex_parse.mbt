@@ -9,7 +9,7 @@ priv struct BibtexRecord {
 ///|
 priv struct BibtexReader {
   text : String
-  mut pos : Int
+  mut pos : Int32
   strings : Map[String, String]
 }
 

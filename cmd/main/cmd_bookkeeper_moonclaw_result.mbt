@@ -6,7 +6,7 @@ struct BookkeeperMoonClawResultCandidate {
   title : String
   summary : String
   owner_route : String
-  recorded_at : Int
+  recorded_at : Int32
   links : Array[@bookkeeper.VersionedRecordReference]
   issue_refs : Array[String]
   next_action : String
@@ -100,7 +100,7 @@ fn result_required_int(
   fields : Map[String, Json],
   key : String,
   label : String,
-) -> Int raise {
+) -> Int32 raise {
   match fields.get(key) {
     Some(Number(value, ..)) => value.to_int()
     _ => fail("\{label}.\{key} must be an integer")

@@ -1,5 +1,5 @@
 ///|
-fn retained_page(reference : String, target? : String = "") -> String {
+fn retained_page(reference : String, target~ : String = "") -> String {
   let target = if target == "" { "../../" + reference } else { target }
   "---\nmoonbook_type: source\n---\n\n# Lunar retained source\n\n- Raw source: [" +
   reference +
@@ -13,7 +13,7 @@ async fn retained_request(
   root : String,
   route : String,
   payload : Json,
-) -> (Int, Json) {
+) -> (Int32, Json) {
   @moonwiki.book_search_http_response(
     root,
     "POST",
@@ -26,7 +26,7 @@ async fn retained_request(
 ///|
 async fn retained_inspect(
   root : String,
-  citation? : String = "wiki/sources/retained.md",
+  citation~ : String = "wiki/sources/retained.md",
 ) -> Json {
   let (status, response) = retained_request(root, "inspect", {
     "question": "Lunar",

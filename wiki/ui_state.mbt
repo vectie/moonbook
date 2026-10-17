@@ -45,13 +45,13 @@ pub struct UiChapterLink {
 
 ///|
 pub struct UiSkillDiagnostics {
-  total_count : Int
-  workspace_count : Int
-  seed_core_count : Int
-  seed_extension_count : Int
-  duplicate_count : Int
-  missing_reference_count : Int
-  warning_count : Int
+  total_count : Int32
+  workspace_count : Int32
+  seed_core_count : Int32
+  seed_extension_count : Int32
+  duplicate_count : Int32
+  missing_reference_count : Int32
+  warning_count : Int32
   duplicate_names : Array[String]
   missing_reference_paths : Array[String]
   warnings : Array[String]
@@ -70,15 +70,15 @@ pub struct UiSkillItem {
   missing_references : Array[String]
   overrides : Array[String]
   shadowed_by : Array[String]
-  line_count : Int
+  line_count : Int32
   duplicate : Bool
   compare_status : String
   compare_summary : String
   compare_baseline_path : String
   compare_baseline_scope : String
-  compare_changed_line_count : Int
-  compare_selected_only_line_count : Int
-  compare_baseline_only_line_count : Int
+  compare_changed_line_count : Int32
+  compare_selected_only_line_count : Int32
+  compare_baseline_only_line_count : Int32
   compare_first_change_line : String
   compare_selected_excerpt : Array[String]
   compare_baseline_excerpt : Array[String]
@@ -446,7 +446,7 @@ fn compact_task_label(text : String) -> String {
 }
 
 ///|
-fn clamp_label(text : String, max_len : Int) -> String {
+fn clamp_label(text : String, max_len : Int32) -> String {
   if text.length() <= max_len {
     text
   } else {

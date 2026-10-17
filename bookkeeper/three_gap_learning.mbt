@@ -33,7 +33,7 @@ pub struct CanonicalGapFinding {
   subject : VersionedRecordReference
   gap_class : ThreeGapClass
   transition : GapTransition
-  severity : Int
+  severity : Int32
   owner_route : String
   summary : String
   evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
@@ -45,7 +45,7 @@ pub fn CanonicalGapFinding::new(
   learning_key~ : VersionedRecordReference,
   subject~ : VersionedRecordReference,
   gap_class~ : ThreeGapClass,
-  severity~ : Int,
+  severity~ : Int32,
   owner_route~ : String,
   summary~ : String,
   evidence_refs~ : ArrayView[VersionedEvidenceReference],
@@ -303,8 +303,8 @@ pub fn review_three_gap_finding(
 pub struct CapabilityPromotionPolicy {
   contract_version : String
   policy : VersionedRecordReference
-  minimum_reviewed_findings : Int
-  minimum_severity : Int
+  minimum_reviewed_findings : Int32
+  minimum_severity : Int32
   required_gap_classes : ReadOnlyArray[ThreeGapClass]
   evidence_refs : ReadOnlyArray[VersionedEvidenceReference]
 } derive(Debug, Eq, ToJson)
@@ -312,8 +312,8 @@ pub struct CapabilityPromotionPolicy {
 ///|
 pub fn CapabilityPromotionPolicy::new(
   policy~ : VersionedRecordReference,
-  minimum_reviewed_findings~ : Int,
-  minimum_severity~ : Int,
+  minimum_reviewed_findings~ : Int32,
+  minimum_severity~ : Int32,
   required_gap_classes~ : ArrayView[ThreeGapClass],
   evidence_refs~ : ArrayView[VersionedEvidenceReference],
 ) -> CapabilityPromotionPolicy {
@@ -350,7 +350,7 @@ pub fn CapabilityAggregationDecision::is_promoted(
 fn reviewed_finding_compare(
   left : ReviewedGapFinding,
   right : ReviewedGapFinding,
-) -> Int {
+) -> Int32 {
   let by_id = left.finding.finding.record_id.compare(
     right.finding.finding.record_id,
   )
@@ -372,7 +372,7 @@ fn reviewed_finding_compare(
 fn evidence_compare(
   left : VersionedEvidenceReference,
   right : VersionedEvidenceReference,
-) -> Int {
+) -> Int32 {
   let by_id = left.reference_id.compare(right.reference_id)
   if by_id != 0 {
     return by_id

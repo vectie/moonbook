@@ -29,7 +29,7 @@ fn wiki_review_http_header(
 }
 
 ///|
-fn wiki_review_http_error(status : Int, error : String) -> (Int, Json) {
+fn wiki_review_http_error(status : Int32, error : String) -> (Int32, Json) {
   (
     status,
     {
@@ -50,7 +50,7 @@ pub async fn wiki_review_http_response(
   path : String,
   headers : Map[String, String],
   text : String,
-) -> (Int, Json) noraise {
+) -> (Int32, Json) noraise {
   if !wiki_review_http_route(path) {
     return wiki_review_http_error(404, "Unsupported wiki review route")
   }

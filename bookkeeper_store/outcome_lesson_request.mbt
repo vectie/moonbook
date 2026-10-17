@@ -5,7 +5,7 @@ pub async fn outcome_lesson_request(
   root : String,
   path : String,
   payload : Json,
-) -> (Int, Json) noraise {
+) -> (Int32, Json) noraise {
   let operation = match path {
     "/api/bookkeeper/lessons/prepare" => "prepare"
     "/api/bookkeeper/lessons/prepare-rehearsal" => "prepare-rehearsal"

@@ -296,7 +296,7 @@ fn upsert_journey_block(
 ///|
 async fn recent_journey_entries(
   root : String,
-  limit? : Int = 4,
+  limit~ : Int32 = 4,
 ) -> Array[JourneyEntry] {
   let workspace = workspace_paths(root)
   let absolute = moonbook_wiki_path(workspace.wiki_dir)

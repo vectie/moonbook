@@ -41,7 +41,7 @@ pub(all) struct FlowRunReconciliation {
 } derive(Debug, Eq, ToJson)
 
 ///|
-fn flow_int(fields : Map[String, Json], key : String) -> Int raise {
+fn flow_int(fields : Map[String, Json], key : String) -> Int32 raise {
   match fields.get(key) {
     Some(Number(value, ..)) => value.to_int()
     _ => fail("MoonFlow projection requires integer field: \{key}")

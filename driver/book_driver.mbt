@@ -8,9 +8,9 @@ pub struct MDBook {
 
 ///|
 pub struct CleanStats {
-  files_removed : Int
-  directories_removed : Int
-  bytes_removed : Int
+  files_removed : Int32
+  directories_removed : Int32
+  bytes_removed : Int32
 } derive(Debug, ToJson)
 
 ///|
@@ -68,9 +68,9 @@ pub async fn load_with_config(
 ///|
 pub async fn init_book(
   book_root : String,
-  create_gitignore? : Bool = false,
-  copy_theme? : Bool = false,
-  config? : @core.Config = @core.default(),
+  create_gitignore~ : Bool = false,
+  copy_theme~ : Bool = false,
+  config~ : @core.Config = @core.default(),
 ) -> MDBook {
   ignore(copy_theme)
   ensure_dir(book_root) catch {
@@ -238,7 +238,7 @@ pub fn MDBook::iter(self : MDBook) -> Array[@core.BookItem] {
 }
 
 ///|
-pub fn MDBook::count_rust_code_blocks(self : MDBook) -> Int {
+pub fn MDBook::count_rust_code_blocks(self : MDBook) -> Int32 {
   let mut rust_block_count = 0
   for chapter in self.book.chapters() {
     rust_block_count += fenced_code_block_count(chapter.content, "rust")
@@ -249,7 +249,7 @@ pub fn MDBook::count_rust_code_blocks(self : MDBook) -> Int {
 ///|
 pub async fn clean_book(
   book_root : String,
-  dest_dir? : String? = None,
+  dest_dir~ : String? = None,
 ) -> CleanStats {
   let config_path = moonbook_driver_path(book_root)
     .join(moonbook_driver_path("book.toml"))
@@ -506,7 +506,7 @@ fn config_to_toml(config : @core.Config) -> String {
 }
 
 ///|
-fn fenced_code_block_count(content : String, language : String) -> Int {
+fn fenced_code_block_count(content : String, language : String) -> Int32 {
   let mut count = 0
   let lines = content.split("\n").map(fn(line) { line.to_owned() }).to_array()
   for line in lines {
