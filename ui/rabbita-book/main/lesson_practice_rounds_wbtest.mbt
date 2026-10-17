@@ -434,7 +434,7 @@ test "practice a recaptured lesson version applies only to the next round and ca
 
 ///|
 test "practice multiple rounds production JSON and Markdown downloads retain all exact experience" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     for markdown in [false, true] {
       let cell = Ref(practice_rounds_test_recorded())
       let state = cell.val.outcome_lessons.teaching_brief

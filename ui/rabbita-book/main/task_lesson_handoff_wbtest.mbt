@@ -165,7 +165,7 @@ extern "js" fn lesson_receiver_test_listening(
 
 ///|
 test "direct receiver checks actual opener exact origin and nonce before reading payload" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let browser = lesson_receiver_test_browser()
     let promise = lesson_receive_task_on(browser)
     for
@@ -213,7 +213,7 @@ extern "js" fn task_handoff_http_fixture(
 
 ///|
 test "task handoff UI posts exact serialized binding to its configured host route" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let payload = lesson_task_field(lesson_receiver_test_readback(), "handoff")
     let result = post_outcome_lesson(
       "task-handoff",

@@ -332,7 +332,7 @@ extern "js" fn refresh_write_evidence(
 
 ///|
 test "collected refresh synthetic production Blob save file reopen resume and brief download" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let state = refresh_fixture()
     let fresh = book_search_reduce(state, refresh_message(state)).0
     guard book_search_reduce(fresh, Collection(DownloadArchive)).1

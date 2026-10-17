@@ -465,7 +465,7 @@ test "decision notebook enforces selection and restorable export bounds without 
 
 ///|
 test "decision notebook production effects download exact HTML and JSON bytes with cleanup" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     for html in [false, true] {
       let cell = Ref(notebook_test_model())
       let before = cell.val.outcome_lessons.notebook
@@ -536,7 +536,7 @@ test "decision notebook production effects download exact HTML and JSON bytes wi
 
 ///|
 test "decision notebook failed download keeps work and late completion cannot mask new edits" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let cell = Ref(notebook_test_model())
     let before = cell.val.outcome_lessons.notebook
     let scheduler : LiveTestScheduler = {

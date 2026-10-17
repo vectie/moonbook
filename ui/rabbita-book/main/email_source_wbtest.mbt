@@ -11,7 +11,7 @@ extern "js" fn email_source_save(
 
 ///|
 test "EML native citation becomes a resumable research brief with exact attribution and retained-source binding" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let input : String = email_source_wire().wait().cast()
     if input.is_empty() {
       return

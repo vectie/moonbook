@@ -22,7 +22,7 @@ extern "js" fn lesson_transport_calls() -> String =
 
 ///|
 test "lesson GUI calls the exact existing host route with unchanged task context" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let query : Json = {
       "contract_version": "moonbook.outcome-lesson-query.v1",
       "target_task": {

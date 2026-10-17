@@ -142,7 +142,7 @@ test "task guidance cancellation ignores late results and cannot cancel unrelate
 ///|
 extern "js" fn guidance_test_browser(
   text : String,
-  mode : Int,
+  mode : Int32,
 ) -> LessonReceiverBrowser =
   #| (text,mode) => {
   #|   const listeners=new Set(),timers=new Map();let serial=0;
@@ -176,7 +176,7 @@ extern "js" fn guidance_test_browser_ack(
 
 ///|
 test "task guidance production bridge binds source nonce destination and cancels cleanly" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let handoff = guidance_ui_handoff()
     let browser = guidance_test_browser(handoff.stringify(), 0)
     let received : String = task_guidance_receive_on(browser).wait().cast()
@@ -295,7 +295,7 @@ extern "js" fn guidance_wire_write(selection : String) -> @js.Promise =
 
 ///|
 test "task guidance actual UI receives Proj bytes queries selects and returns only explicit advice" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let text : String = guidance_wire_read().wait().cast()
     if text.is_empty() {
       return

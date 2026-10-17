@@ -39,7 +39,7 @@ extern "js" fn outcome_native_fixture_write(text : String) -> @js.Promise =
 
 ///|
 test "serialized native outcome fixture drives actual UI commands and accepted review refresh" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let wire : String = outcome_native_fixture_read().wait().cast()
     if wire.is_empty() {
       return

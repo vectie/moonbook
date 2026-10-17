@@ -48,7 +48,7 @@ fn html_brief_fixture() -> BookCollectionState {
 }
 
 ///|
-extern "js" fn html_brief_structure(html : String, count : Int) -> Bool =
+extern "js" fn html_brief_structure(html : String, count : Int32) -> Bool =
   #| (html, count) => {
   #|   const ids = [...html.matchAll(/\bid="([^"]*)"/g)].map(m => m[1]);
   #|   const hrefs = [...html.matchAll(/\bhref="([^"]*)"/g)].map(m => m[1]);
@@ -300,7 +300,7 @@ extern "js" fn html_brief_evidence(
 
 ///|
 test "production HTML effect downloads real UTF8 Blob and JSON fresh resume produces equivalent HTML" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let before = html_brief_fixture()
     let expected = book_collection_html(before)
     let scheduler : LiveTestScheduler = {
@@ -392,7 +392,7 @@ test "production HTML effect downloads real UTF8 Blob and JSON fresh resume prod
 
 ///|
 test "production HTML failures preserve collection and delayed success cannot relabel an edited revision" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let before = html_brief_fixture()
     let scheduler : LiveTestScheduler = {
       hooks: { url_request: None, url_changed: None, },

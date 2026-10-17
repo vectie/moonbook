@@ -4,7 +4,7 @@ extern "js" fn browser_native_wire_read() -> @js.Promise =
 
 ///|
 test "browser native route wire crosses production transport decoder reducer and rendered workspace" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let text : String = browser_native_wire_read().wait().cast()
     if text.is_empty() {
       return

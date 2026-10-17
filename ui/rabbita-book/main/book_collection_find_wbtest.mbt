@@ -171,7 +171,7 @@ test "find scans the complete text budget and all 60 original positions" {
 
 ///|
 test "find render restore real archive Blob reopen and brief retain unfiltered scope" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let before = restore_fixture()
     let state = book_collection_reduce(
         book_collection_reduce(before, FindText("eight teams")).0,

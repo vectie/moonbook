@@ -731,7 +731,7 @@ extern "js" fn history_transport_calls(
 
 ///|
 test "history controlled transport calls only history revise and select with exact captured bodies" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     for operation in ["history", "revise", "select"] {
       let payload : Json = if operation == "history" {
         { "lesson_id": "one-stable-id" }

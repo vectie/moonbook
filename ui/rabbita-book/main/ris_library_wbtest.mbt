@@ -15,7 +15,7 @@ extern "js" fn ris_collection_save(
 
 ///|
 test "RIS native library citations become a resumable research collection and exact Markdown download" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let input : String = ris_collection_wire().wait().cast()
     if input.is_empty() {
       return

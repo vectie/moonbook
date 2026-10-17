@@ -1,5 +1,5 @@
 ///|
-fn paging_test_result(page : Int) -> BookSearchResult {
+fn paging_test_result(page : Int32) -> BookSearchResult {
   let base = search_test_result()
   let count = if page == 0 { 3 } else { 1 }
   {
@@ -179,7 +179,7 @@ extern "js" fn paging_export_capture_finish(state : @js.Value) -> @js.Promise =
 
 ///|
 test "paged actual native socket crosses compiled UI later navigation inspection retained source and exact clipboard Blob" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let input : String = paging_native_wire().wait().cast()
     if input.is_empty() {
       return

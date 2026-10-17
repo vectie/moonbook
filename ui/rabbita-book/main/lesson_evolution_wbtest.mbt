@@ -496,7 +496,7 @@ test "evolution printable output and mounted history include learning content as
 
 ///|
 test "evolution actual routed download effects preserve exact output and clean browser resources" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     for html in [false, true] {
       let cell = Ref(evolution_test_selected())
       let state = cell.val.outcome_lessons
@@ -561,7 +561,7 @@ test "evolution actual routed download effects preserve exact output and clean b
 
 ///|
 test "evolution download failure preserves pair and late completion cannot mask a new pair" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let cell = Ref(evolution_test_selected())
     let state = cell.val.outcome_lessons
     let report = lesson_evolution_selected(state).unwrap()

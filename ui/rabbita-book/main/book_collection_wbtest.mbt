@@ -1,7 +1,7 @@
 ///|
 fn collection_test_page(
-  citation? : String = "wiki/sources/route.md",
-  content? : String = "# Lunar evidence\n~~~\n<script>inactive</script>\n海风\n",
+  citation~ : String = "wiki/sources/route.md",
+  content~ : String = "# Lunar evidence\n~~~\n<script>inactive</script>\n海风\n",
 ) -> BookSearchPage {
   {
     schema: "moonbook.search.v1",
@@ -210,7 +210,7 @@ extern "js" fn collection_record_receipt(
 
 ///|
 test "research collection actual native HTTP inspections cross compiled selection note ordering and clipboard Blob" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let input : String = collection_native_wire().wait().cast()
     if input.is_empty() {
       return

@@ -336,7 +336,7 @@ async fn comparison_test_return(rejected : Bool) -> Unit {
 test "compared choice reuses confirmed exact Proj wire and host rejection preserves work" {
   // Run both browser-global fixtures serially; Rabbita async_test starts work
   // without blocking other test declarations in this process.
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     comparison_test_return(false)
     comparison_test_return(true)
   })

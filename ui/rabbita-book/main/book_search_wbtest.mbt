@@ -196,7 +196,7 @@ extern "js" fn search_export_capture_finish(state : @js.Value) -> @js.Promise =
 
 ///|
 test "real native Book host wire crosses production browser decoder view clipboard and download with exact parity" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let text : String = search_native_wire().wait().cast()
     if text.is_empty() {
       return

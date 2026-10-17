@@ -501,7 +501,7 @@ test "browser response binds exact read-only query and validates accepted named 
 
 ///|
 test "browser transport uses only read-only browse endpoint without task metadata" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let query = lesson_browser_query("  Customer-A 中文  ")
     let result = browser_test_result(text="  Customer-A 中文  ")
     let response : Json = {

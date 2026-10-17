@@ -428,7 +428,7 @@ test "teaching brief actual rendered buttons add reorder save and restore throug
 
 ///|
 test "teaching brief routed downloads preserve production Blob bytes and clean resources" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     for markdown in [false, true] {
       let cell = Ref(teaching_test_ready())
       let state = cell.val.outcome_lessons.teaching_brief
@@ -514,7 +514,7 @@ test "teaching brief practical synthetic workflow emits portable teaching materi
 
 ///|
 test "teaching brief reports failed downloads without losing authored work" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let cell = Ref(teaching_test_ready())
     let state = cell.val.outcome_lessons.teaching_brief
     let scheduler : LiveTestScheduler = {

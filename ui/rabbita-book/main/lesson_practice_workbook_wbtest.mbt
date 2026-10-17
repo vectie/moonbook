@@ -292,7 +292,7 @@ test "practice workbook real rendered controls start resume and request exact re
 
 ///|
 test "practice workbook production downloads retain actual Blob bytes and release resources" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     for markdown in [false, true] {
       let cell = Ref(practice_test_recorded())
       let state = cell.val.outcome_lessons.teaching_brief
@@ -371,7 +371,7 @@ test "practice workbook production journey emits a reusable synthetic two-lesson
 
 ///|
 test "practice workbook download failure preserves observations and cleans created resources" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let cell = Ref(practice_test_recorded())
     let state = cell.val.outcome_lessons.teaching_brief
     let scheduler : LiveTestScheduler = {

@@ -171,7 +171,7 @@ extern "js" fn restore_write_evidence(
 
 ///|
 test "restore production render JSON download reopen and Markdown export" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let before = restore_fixture()
     let html = search_test_html({ ..book_search_initial(), collection: before, })
     assert_true(html.contains("Restore historical snapshot 1 as active"))

@@ -41,7 +41,7 @@ extern "js" fn product_test_picker_failure(restore : Bool) =
 
 ///|
 test "product file read rejection settles the picker and allows retry" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     product_test_picker_failure(false)
     let result : Result[String, Error] = Ok(
       product_outcome_pick_file().wait().cast(),

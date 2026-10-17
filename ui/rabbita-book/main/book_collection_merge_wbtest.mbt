@@ -274,7 +274,7 @@ extern "js" fn merge_write_evidence(
 
 ///|
 test "combine production file reader JSON Blob escaped preview and edited Markdown Blob" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let (current, archive) = merge_fixture()
     let incoming = archive.to_json().stringify(indent=2)
     archive_file_capture_start(incoming)

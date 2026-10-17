@@ -66,9 +66,9 @@ extern "js" fn live_effect_fixture_requests() -> String =
 
 ///|
 extern "js" fn live_effect_fixture_settle(
-  start : Int,
-  end : Int,
-  version : Int,
+  start : Int32,
+  end : Int32,
+  version : Int32,
   failed : Bool,
 ) -> @js.Promise =
   #| (start, end, version, failed) => {
@@ -96,7 +96,7 @@ extern "js" fn live_effect_fixture_settle(
 
 ///|
 test "actual SSE commands refresh only read endpoints and preserve pending work through late callbacks" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     live_effect_fixture_install()
     defer live_effect_fixture_restore()
     let scheduler : LiveTestScheduler = {

@@ -11,7 +11,7 @@ extern "js" fn transcript_source_save(
 
 ///|
 test "native transcript becomes a resumable research brief preserving timed quotes speaker attribution and raw binding" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let input : String = transcript_source_wire().wait().cast()
     if input.is_empty() {
       return

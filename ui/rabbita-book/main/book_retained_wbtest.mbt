@@ -181,7 +181,7 @@ extern "js" fn retained_export_finish(
 
 ///|
 test "retained actual native HTTP wire through compiled UI decoder reducer escaped complete view and exact Blob download" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let input : String = retained_native_wire().wait().cast()
     if input.is_empty() {
       return
@@ -337,7 +337,7 @@ test "retained actual native HTTP wire through compiled UI decoder reducer escap
 
 ///|
 test "retained binary native HTTP wire remains exact in compiled UI download without active preview" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let input : String = retained_native_binary_wire().wait().cast()
     if input.is_empty() {
       return

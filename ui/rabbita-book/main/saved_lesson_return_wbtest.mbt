@@ -245,7 +245,7 @@ extern "js" fn saved_return_test_closed(browser : LessonReceiverBrowser) =
 
 ///|
 test "Book return waits for exact opener origin nonce and payload acknowledgment and recovers timeout" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let browser = lesson_receiver_test_browser()
     let promise = lesson_send_saved_receipt_on(browser, "exact-receipt")
     for
@@ -288,7 +288,7 @@ extern "js" fn saved_return_write_fixture(text : String) -> @js.Promise =
 
 ///|
 test "actual native journal receipt enters Book UI decoder and explicit selected return wrapper" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let wire : String = saved_return_native_fixture().wait().cast()
     if wire.is_empty() {
       return

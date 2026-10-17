@@ -149,7 +149,7 @@ extern "js" fn archive_file_capture_finish() -> Unit =
 
 ///|
 test "portable collection actual native inspection save Blob reopen resume and edit" {
-  @js.async_test(async fn() {
+  book_test_async(async fn() {
     let input : String = collection_native_wire().wait().cast()
     guard @json.parse(input)
       is {
