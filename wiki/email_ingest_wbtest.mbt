@@ -140,7 +140,7 @@ test "EML malformed and unsupported messages reject without inventing usable tex
 
 ///|
 async test "EML ingest retains exact original appends repeats and searches attribution and late Unicode body" {
-  let root = @fs.tmpdir(prefix="book-eml-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="book-eml-"))
   defer @fs.rmdir(root, recursive=true)
   ignore(init_workspace(root))
   let input = root + "/export [support].EML"

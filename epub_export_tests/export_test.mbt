@@ -34,6 +34,7 @@ async test "export reads SUMMARY into a portable ebook then refreshes after edit
       @fs.mkdir(root + dir, recursive=true)
     }
   }
+  let root = @fs.realpath(root)
   let intro = "# Pilot & plan\n\nA **twelve-team** proposal with [capacity](guide/README.md#capacity), [summary](r%C3%A9sum%C3%A9%20%E6%9D%B1%E4%BA%AC.md#r%C3%A9sum%C3%A9-%E6%9D%B1%E4%BA%AC) and [web evidence](https://example.com/?a=1&b=2).\n\n![Local chart](images/chart.png)\n\n- [x] capture evidence\n- [ ] revisit sizing\n\n| Scope | Teams |\n| --- | ---: |\n| Pilot | 12 |\n\nFootnote[^basis].\n\n[^basis]: A retained basis, not factual verification.\n\n```html\n<img src=\"code-only.png\">\n```\n"
   let capacity = "# Capacity\n\nEight teams fit the current staffing.\n\n[Back](../start.md#pilot-plan). ![Same chart](../images/chart.png)\n\n## Capacity\n\nMore detail.\n"
   let summary = "# Summary\n\n# Decision\n\n- [Pilot & plan](start.md)\n  - [Capacity](guide/README.md)\n- [Résumé 東京](résumé 東京.md)\n- [Draft]()\n"

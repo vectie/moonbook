@@ -97,7 +97,7 @@ test "transcript rejects malformed timing empty bodies invalid UTF8 and bounded 
 
 ///|
 async test "transcript ingest retains exact files searches late timed speech and appends repeat snapshots" {
-  let root = @fs.tmpdir(prefix="book-transcript-")
+  let root = @fs.realpath(@fs.tmpdir(prefix="book-transcript-"))
   defer @fs.rmdir(root, recursive=true)
   ignore(init_workspace(root))
   let input = root + "/Aurora interview.VTT"
