@@ -5,6 +5,17 @@ fn wiki_review_http_route(path : String) -> Bool {
 }
 
 ///|
+fn wiki_review_http_plain_headers(
+  headers : @http.Headers,
+) -> Map[String, String] {
+  let result = Map([])
+  for key, value in headers {
+    result[key.to_string()] = value
+  }
+  result
+}
+
+///|
 fn wiki_review_http_header(
   headers : Map[String, String],
   name : String,
@@ -91,7 +102,7 @@ async fn handle_wiki_review_request(
     workspace_root,
     method_,
     request.path,
-    request.headers,
+    wiki_review_http_plain_headers(request.headers),
     text,
   )
   send_json_status(

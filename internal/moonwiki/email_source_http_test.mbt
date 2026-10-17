@@ -10,7 +10,12 @@ async test "EML source crosses native HTTP search inspection and byte exact reta
     @base64.encode(@utf8.encode(body)) +
     "\r\n"
   let source_path = root + "/support.eml"
-  @fs.write_file(source_path, raw, create=0o644)
+  @fs.write_file(
+    source_path,
+    raw,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   let imported = @wiki.ingest_source(root, source_path)
   let citation = "wiki/sources/email-aurora-support-follow-up.md"
   assert_true(imported.page_path.has_suffix(citation))
@@ -30,7 +35,7 @@ async test "EML source crosses native HTTP search inspection and byte exact reta
     let (status, response) = @http.post(
       origin + "/api/book/query",
       ({ "question": question, "page": 0 } : Json).stringify(),
-      headers~,
+      headers=socket_test_headers(headers),
     )
     assert_eq(status.code, 200)
     let query = @json.parse(response.text())
@@ -47,7 +52,7 @@ async test "EML source crosses native HTTP search inspection and byte exact reta
     let (status, response) = @http.post(
       origin + "/api/book/query/inspect",
       ({ "question": question, "page": 0, "citation": citation } : Json).stringify(),
-      headers~,
+      headers=socket_test_headers(headers),
     )
     assert_eq(status.code, 200)
     let inspection = @json.parse(response.text())
@@ -70,7 +75,7 @@ async test "EML source crosses native HTTP search inspection and byte exact reta
           "citation": citation,
           "page_digest": digest,
         } : Json).stringify(),
-      headers~,
+      headers=socket_test_headers(headers),
     )
     assert_eq(status.code, 200)
     let retained = @json.parse(response.text())
@@ -90,13 +95,19 @@ async test "EML source crosses native HTTP search inspection and byte exact reta
   retained_snapshot(root, "", after)
   assert_eq(before, after)
   if @env.get_env_var("MOONBOOK_EML_EVIDENCE") is Some(path) {
-    @fs.write_file(path + "/http-support.eml", raw, create=0o644)
+    @fs.write_file(
+      path + "/http-support.eml",
+      raw,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
+    )
     @fs.write_file(
       path + "/email-http-wire.json",
       (
         { "socket_verified": true, "book_unchanged": true, "selection": wire } :
         Json).stringify(indent=2),
-      create=0o644,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
     )
   }
 }

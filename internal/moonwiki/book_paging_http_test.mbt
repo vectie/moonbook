@@ -19,7 +19,8 @@ async test "paged search zero one three four many ties bounded fresh rank and un
       @fs.write_file(
         root + "/wiki/sources/p-" + (99 + count).to_string() + ".md",
         "# Evidence\nneedle 海风 <script>inactive</script>\n",
-        create=0o644,
+        create_mode=@fs.CreateOrTruncate,
+        permission=0o644,
       )
     }
     if [0, 1, 3, 4, 35].contains(count) {
@@ -149,7 +150,12 @@ async test "paged search zero one three four many ties bounded fresh rank and un
   )
   let outside = @fs.tmpdir(prefix="book-paging-outside-")
   defer @fs.rmdir(outside, recursive=true)
-  @fs.write_file(outside + "/secret.md", "# needle\nneedle", create=0o644)
+  @fs.write_file(
+    outside + "/secret.md",
+    "# needle\nneedle",
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   @fs.symlink(target=outside + "/secret.md", root + "/wiki/sources/link.md")
   assert_eq(@wiki.query_wiki_page(root, question, 1).paging.matched_count, 34)
   assert_eq(
@@ -163,7 +169,8 @@ async test "paged search zero one three four many ties bounded fresh rank and un
   @fs.write_file(
     root + "/wiki/sources/large.md",
     "x".repeat(2097153),
-    create=0o644,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   assert_eq(request("", { "question": question, "page": 1 }).0, 422)
   @fs.remove(root + "/wiki/sources/large.md")
@@ -181,14 +188,25 @@ async test "paged search actual socket later page inspection retained bytes and 
     @fs.write_file(
       root + "/wiki/sources/first-" + index.to_string() + ".md",
       "# Lunar\n" + "Lunar ".repeat(30),
-      create=0o644,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
     )
   }
   let content = retained_page("raw/later.md") +
     "\nFinal complete later page line 海风 <script>inactive</script>.\n"
   let raw = "Complete retained later-page bytes 海风\r\n"
-  @fs.write_file(root + "/wiki/sources/later.md", content, create=0o644)
-  @fs.write_file(root + "/raw/later.md", raw, create=0o644)
+  @fs.write_file(
+    root + "/wiki/sources/later.md",
+    content,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
+  @fs.write_file(
+    root + "/raw/later.md",
+    raw,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   let before : Map[String, Json] = Map([])
   retained_snapshot(root, "", before)
   let server = @moonwiki.Server::new("127.0.0.1", 0)
@@ -205,7 +223,7 @@ async test "paged search actual socket later page inspection retained bytes and 
       let (status, data) = @http.post(
         base + route,
         payload.stringify(),
-        headers~,
+        headers=socket_test_headers(headers),
       )
       assert_eq(status.code, 200)
       @json.parse(data.text())
@@ -265,7 +283,8 @@ async test "paged search actual socket later page inspection retained bytes and 
           "metadata_before": before,
           "metadata_after": after,
         } : Json).stringify(indent=2),
-      create=0o644,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
     )
   }
 }

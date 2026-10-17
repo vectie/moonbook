@@ -18,7 +18,12 @@ async test "research collection actual socket across two searches preserves Book
       None => "# " + question + "\nSynthetic example: " + note + "\n"
     }
     let source = root + "/raw/" + name
-    @fs.write_file(source, content, create=0o644)
+    @fs.write_file(
+      source,
+      content,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
+    )
     let ingested = @wiki.ingest_source(root, source)
     let citation = ingested.page_path[root.length() + 1:].to_owned()
     sources.push(
@@ -28,14 +33,20 @@ async test "research collection actual socket across two searches preserves Book
   @fs.write_file(
     root + "/wiki/sources/unselected.md",
     "# Private unrelated record\nUNSELECTED_PRIVATE_SENTINEL\n",
-    create=0o644,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   let asset = match @env.get_env_var("MOONBOOK_COLLECTION_JS") {
     Some(path) => {
       let bytes = @fs.read_file(path).binary()
       @fs.mkdir(root + "/apps")
       @fs.mkdir(root + "/apps/moonbook")
-      @fs.write_file(root + "/apps/moonbook/main.js", bytes, create=0o644)
+      @fs.write_file(
+        root + "/apps/moonbook/main.js",
+        bytes,
+        create_mode=@fs.CreateOrTruncate,
+        permission=0o644,
+      )
       Some(bytes)
     }
     None => None
@@ -66,7 +77,7 @@ async test "research collection actual socket across two searches preserves Book
       let (status, response) = @http.post(
         origin + "/api/book/query",
         ({ "question": question, "page": 0 } : Json).stringify(),
-        headers~,
+        headers=socket_test_headers(headers),
       )
       assert_eq(status.code, 200)
       let query = @json.parse(response.text())
@@ -81,7 +92,7 @@ async test "research collection actual socket across two searches preserves Book
       let (status, inspection) = @http.post(
         origin + "/api/book/query/inspect",
         ({ "question": question, "page": 0, "citation": citation } : Json).stringify(),
-        headers~,
+        headers=socket_test_headers(headers),
       )
       assert_eq(status.code, 200)
       let inspected = @json.parse(inspection.text())
@@ -119,7 +130,8 @@ async test "research collection actual socket across two searches preserves Book
           "compiled_ui_asset_served": asset is Some(_),
           "selections": selections,
         } : Json).stringify(indent=2),
-      create=0o644,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
     )
   }
 }

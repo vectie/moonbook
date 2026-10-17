@@ -20,22 +20,30 @@ async test "Book search real temporary Book native query socket host and immutab
   let root = @fs.tmpdir(prefix="book-search-")
   ignore(@wiki.init_workspace(root))
   let page = "---\nstatus: accepted\nsummary: \"海风 Lunar <script>alert('x')</script> & exact summary\"\n---\n# Lunar <b>route</b>\n\n海风 lunar route lunar route.\nFinal complete page line.\n"
-  @fs.write_file(root + "/wiki/sources/route.md", page, create=0o644)
+  @fs.write_file(
+    root + "/wiki/sources/route.md",
+    page,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   @fs.write_file(
     root + "/wiki/sources/tie-a.md",
     "# Terrain\nLunar terrain.\n",
-    create=0o644,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   @fs.write_file(
     root + "/wiki/sources/tie-b.md",
     "# Terrain\nLunar terrain.\n",
-    create=0o644,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   @fs.mkdir(root + "/.moonbook/bookkeeper", recursive=true)
   @fs.write_file(
     root + "/.moonbook/bookkeeper/journal.jsonl",
     "{\"sentinel\":\"unchanged\"}\n",
-    create=0o644,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   let before : Map[String, String] = Map([])
   search_snapshot(root, "", before)
@@ -95,10 +103,18 @@ async test "Book search real temporary Book native query socket host and immutab
     let url = "http://127.0.0.1:" +
       server.port().to_string() +
       "/api/book/query"
-    let (http_response, data) = @http.post(url, body.stringify(), headers~)
+    let (http_response, data) = @http.post(
+      url,
+      body.stringify(),
+      headers=socket_test_headers(headers),
+    )
     assert_eq(http_response.code, 200)
     assert_eq(@json.parse(data.text()), response)
-    let (oversized, _) = @http.post(url, "x".repeat(16385), headers~)
+    let (oversized, _) = @http.post(
+      url,
+      "x".repeat(16385),
+      headers=socket_test_headers(headers),
+    )
     assert_eq(oversized.code, 413)
   })
   let after : Map[String, String] = Map([])
@@ -120,7 +136,12 @@ async test "Book search real temporary Book native query socket host and immutab
         "book_unchanged": true,
         "socket_verified": true,
       }
-      @fs.write_file(path, wire.stringify(indent=2), create=0o644)
+      @fs.write_file(
+        path,
+        wire.stringify(indent=2),
+        create_mode=@fs.CreateOrTruncate,
+        permission=0o644,
+      )
     }
     None => ()
   }
@@ -151,14 +172,16 @@ async test "Book search empty unicode no match unreadable unsafe and bounded inp
   @fs.write_file(
     root + "/wiki/sources/海风.md",
     "# 海风🛰️\n海风 observations.\n",
-    create=0o644,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   assert_true(query("海风").1 is { "excerpts": [_, ..], .. })
   let outside = @fs.tmpdir(prefix="book-search-outside-")
   @fs.write_file(
     outside + "/outside.md",
     "# Outside\nsecrets lunar\n",
-    create=0o644,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   @fs.symlink(target=outside + "/outside.md", root + "/wiki/sources/link.md")
   @fs.symlink(target=outside, root + "/wiki/sources/linked-dir")
@@ -190,7 +213,8 @@ async test "Book search empty unicode no match unreadable unsafe and bounded inp
   @fs.write_file(
     root + "/wiki/sources/unreadable.md",
     "# Unreadable\n海风\n",
-    create=0o644,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   @fs.chmod(root + "/wiki/sources/unreadable.md", 0)
   assert_eq(query("海风").0, 422)
@@ -198,7 +222,8 @@ async test "Book search empty unicode no match unreadable unsafe and bounded inp
   @fs.write_file(
     root + "/wiki/sources/large.md",
     "x".repeat(2097153),
-    create=0o644,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   assert_eq(query("海风").0, 422)
   assert_eq(

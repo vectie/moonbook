@@ -5,7 +5,12 @@ async test "timed transcript crosses real HTTP search inspection and exact raw d
   ignore(@wiki.init_workspace(root))
   let raw = "WEBVTT - Aurora workshop\r\n\r\nintro\r\n00:00.000 --> 00:04.000\r\n<v Alex>Welcome to the synthetic workshop.\r\n\r\nfeedback\r\n00:12:34.500 --> 00:12:40.000\r\n<v Mei &amp; Lin>跨团队复盘发现支持不足。 Orchid escalation desk closes Friday. 🚀</v>\r\n\r\n00:12:41.000 --> 00:12:44.000\r\n<v Alex>&lt;script&gt;literal example&lt;/script&gt; ``` stays inert.\r\n"
   let source_path = root + "/Aurora workshop.vtt"
-  @fs.write_file(source_path, raw, create=0o644)
+  @fs.write_file(
+    source_path,
+    raw,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   let imported = @wiki.ingest_source(root, source_path)
   let citation = "wiki/sources/transcript-aurora-workshop.md"
   assert_true(imported.page_path.has_suffix(citation))
@@ -25,7 +30,7 @@ async test "timed transcript crosses real HTTP search inspection and exact raw d
     let (status, response) = @http.post(
       origin + "/api/book/query",
       ({ "question": question, "page": 0 } : Json).stringify(),
-      headers~,
+      headers=socket_test_headers(headers),
     )
     assert_eq(status.code, 200)
     let query = @json.parse(response.text())
@@ -44,7 +49,7 @@ async test "timed transcript crosses real HTTP search inspection and exact raw d
     let (status, response) = @http.post(
       origin + "/api/book/query/inspect",
       ({ "question": question, "page": 0, "citation": citation } : Json).stringify(),
-      headers~,
+      headers=socket_test_headers(headers),
     )
     assert_eq(status.code, 200)
     let inspection = @json.parse(response.text())
@@ -67,7 +72,7 @@ async test "timed transcript crosses real HTTP search inspection and exact raw d
           "citation": citation,
           "page_digest": digest,
         } : Json).stringify(),
-      headers~,
+      headers=socket_test_headers(headers),
     )
     assert_eq(status.code, 200)
     let retained = @json.parse(response.text())
@@ -87,13 +92,19 @@ async test "timed transcript crosses real HTTP search inspection and exact raw d
   retained_snapshot(root, "", after)
   assert_eq(before, after)
   if @env.get_env_var("MOONBOOK_TRANSCRIPT_EVIDENCE") is Some(path) {
-    @fs.write_file(path + "/http-workshop.vtt", raw, create=0o644)
+    @fs.write_file(
+      path + "/http-workshop.vtt",
+      raw,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
+    )
     @fs.write_file(
       path + "/transcript-http-wire.json",
       (
         { "socket_verified": true, "book_unchanged": true, "selection": wire } :
         Json).stringify(indent=2),
-      create=0o644,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
     )
   }
 }

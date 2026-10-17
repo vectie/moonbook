@@ -201,7 +201,7 @@ async fn handle_book_search_request(
         "OTHER"
       },
       request.path,
-      request.headers,
+      wiki_review_http_plain_headers(request.headers),
       text,
     )
   }

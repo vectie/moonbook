@@ -74,7 +74,12 @@ async test "retained source real native HTTP generated ingest complete Unicode C
   let raw = "# Lunar retained 海风\r\n" +
     "Line 海风🛰️ <script>inactive()</script>\r\n".repeat(30) +
     "Final line beyond ingest excerpt.\r\n"
-  @fs.write_file(root + "/raw/retained.md", raw, create=0o644)
+  @fs.write_file(
+    root + "/raw/retained.md",
+    raw,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   let ingested = @wiki.ingest_source(root, root + "/raw/retained.md")
   let citation = ingested.page_path[root.length() + 1:].to_owned()
   let page = @wiki.query_page_text(root, citation)
@@ -94,13 +99,13 @@ async test "retained source real native HTTP generated ingest complete Unicode C
     let (search_status, search_bytes) = @http.post(
       base,
       ({ "question": "Lunar" } : Json).stringify(),
-      headers~,
+      headers=socket_test_headers(headers),
     )
     assert_eq(search_status.code, 200)
     let (inspect_status, inspect_bytes) = @http.post(
       base + "/inspect",
       ({ "question": "Lunar", "citation": citation } : Json).stringify(),
-      headers~,
+      headers=socket_test_headers(headers),
     )
     assert_eq(inspect_status.code, 200)
     let inspected = @json.parse(inspect_bytes.text())
@@ -126,7 +131,7 @@ async test "retained source real native HTTP generated ingest complete Unicode C
     let (status, data) = @http.post(
       base + "/retained-source",
       payload.stringify(),
-      headers~,
+      headers=socket_test_headers(headers),
     )
     assert_eq(status.code, 200)
     let source = @json.parse(data.text())
@@ -177,7 +182,8 @@ async test "retained source real native HTTP generated ingest complete Unicode C
             "metadata_before": before,
             "metadata_after": after,
           } : Json).stringify(indent=2),
-        create=0o644,
+        create_mode=@fs.CreateOrTruncate,
+        permission=0o644,
       )
     None => ()
   }
@@ -187,7 +193,12 @@ async test "retained source real native HTTP generated ingest complete Unicode C
 async test "retained source malformed duplicate remote absolute traversal symlink missing oversized and nonregular unavailable while page stays readable" {
   let root = @fs.tmpdir(prefix="book-retained-edge-")
   ignore(@wiki.init_workspace(root))
-  @fs.write_file(root + "/raw/source.txt", "Lunar full source", create=0o644)
+  @fs.write_file(
+    root + "/raw/source.txt",
+    "Lunar full source",
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   let original = retained_page("raw/source.txt")
   let invalid_pages = [
     retained_page("raw/source.txt", target="https://outside.invalid/source"),
@@ -208,17 +219,32 @@ async test "retained source malformed duplicate remote absolute traversal symlin
     retained_page("raw/missing.txt"),
   ]
   for page in invalid_pages {
-    @fs.write_file(root + "/wiki/sources/retained.md", page, create=0o644)
+    @fs.write_file(
+      root + "/wiki/sources/retained.md",
+      page,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
+    )
     let inspected = retained_inspect(root)
     assert_true(inspected is { "retained_source": Null, .. })
     assert_eq(@wiki.query_page_text(root, "wiki/sources/retained.md"), page)
   }
   let outside = @fs.tmpdir(prefix="book-retained-outside-")
-  @fs.write_file(outside + "/secret.txt", "Lunar outside", create=0o644)
+  @fs.write_file(
+    outside + "/secret.txt",
+    "Lunar outside",
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   @fs.symlink(target=outside + "/secret.txt", root + "/raw/link.txt")
   @fs.symlink(target=outside, root + "/raw/linkdir")
   @fs.mkdir(root + "/raw/directory")
-  @fs.write_file(root + "/raw/oversized.txt", "x".repeat(2097153), create=0o644)
+  @fs.write_file(
+    root + "/raw/oversized.txt",
+    "x".repeat(2097153),
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   for
     reference in [
       "raw/link.txt", "raw/linkdir/secret.txt", "raw/directory", "raw/oversized.txt",
@@ -226,11 +252,17 @@ async test "retained source malformed duplicate remote absolute traversal symlin
     @fs.write_file(
       root + "/wiki/sources/retained.md",
       retained_page(reference),
-      create=0o644,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
     )
     assert_true(retained_inspect(root) is { "retained_source": Null, .. })
   }
-  @fs.write_file(root + "/wiki/sources/retained.md", original, create=0o644)
+  @fs.write_file(
+    root + "/wiki/sources/retained.md",
+    original,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   assert_true(retained_inspect(root) is { "retained_source": { .. }, .. })
   @fs.rename(root + "/raw", root + "/saved-raw")
   @fs.symlink(target=root + "/saved-raw", root + "/raw")
@@ -241,9 +273,19 @@ async test "retained source malformed duplicate remote absolute traversal symlin
 async test "retained source binds citation and whole maintained page rejects changed binding and returns binary bytes without preview" {
   let root = @fs.tmpdir(prefix="book-retained-binding-")
   ignore(@wiki.init_workspace(root))
-  @fs.write_file(root + "/raw/source.bin", b"\x00\xff\x01\r\n", create=0o644)
+  @fs.write_file(
+    root + "/raw/source.bin",
+    b"\x00\xff\x01\r\n",
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   let page = retained_page("raw/source.bin")
-  @fs.write_file(root + "/wiki/sources/retained.md", page, create=0o644)
+  @fs.write_file(
+    root + "/wiki/sources/retained.md",
+    page,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   guard retained_inspect(root)
     is { "retained_source": { "page_digest": String(digest), .. }, .. } else {
     fail("missing binary descriptor")
@@ -291,7 +333,8 @@ async test "retained source binds citation and whole maintained page rejects cha
             "page_digest": digest,
             "socket_verified": true,
           } : Json).stringify(indent=2),
-        create=0o644,
+        create_mode=@fs.CreateOrTruncate,
+        permission=0o644,
       )
     None => ()
   }
@@ -316,16 +359,23 @@ async test "retained source binds citation and whole maintained page rejects cha
   @fs.write_file(
     root + "/wiki/sources/retained.md",
     page + "\nMaintained page changed.\n",
-    create=0o644,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   assert_eq(retained_request(root, "retained-source", payload).0, 409)
   @fs.write_file(
     root + "/wiki/sources/retained.md",
     retained_page("raw/other.bin"),
-    create=0o644,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
   )
   assert_eq(retained_request(root, "retained-source", payload).0, 409)
-  @fs.write_file(root + "/wiki/sources/retained.md", page, create=0o644)
+  @fs.write_file(
+    root + "/wiki/sources/retained.md",
+    page,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   @fs.remove(root + "/raw/source.bin")
   assert_eq(retained_request(root, "retained-source", payload).0, 409)
   assert_true(

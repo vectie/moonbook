@@ -5,7 +5,12 @@ async test "RIS library references cross native HTTP search inspection and exact
   ignore(@wiki.init_workspace(root))
   let raw = "TY  - JOUR\nTI  - Aurora onboarding study\nAU  - Lin, Mei\nAB  - Eight teams completed guided setup.\nER  -\nTY  - RPRT\nTI  - Aurora capacity counterstudy\nAU  - Chen, Li\nAB  - Only five teams received follow-up support.\nER  -\n"
   let source_path = root + "/library.ris"
-  @fs.write_file(source_path, raw, create=0o644)
+  @fs.write_file(
+    source_path,
+    raw,
+    create_mode=@fs.CreateOrTruncate,
+    permission=0o644,
+  )
   let imported = @wiki.import_ris(root, source_path)
   let before : Map[String, Json] = Map([])
   retained_snapshot(root, "", before)
@@ -26,7 +31,7 @@ async test "RIS library references cross native HTTP search inspection and exact
       let (status, response) = @http.post(
         origin + "/api/book/query",
         ({ "question": question, "page": 0 } : Json).stringify(),
-        headers~,
+        headers=socket_test_headers(headers),
       )
       assert_eq(status.code, 200)
       let query = @json.parse(response.text())
@@ -41,7 +46,7 @@ async test "RIS library references cross native HTTP search inspection and exact
       let (status, response) = @http.post(
         origin + "/api/book/query/inspect",
         ({ "question": question, "page": 0, "citation": citation } : Json).stringify(),
-        headers~,
+        headers=socket_test_headers(headers),
       )
       assert_eq(status.code, 200)
       let inspection = @json.parse(response.text())
@@ -68,7 +73,7 @@ async test "RIS library references cross native HTTP search inspection and exact
             "citation": citation,
             "page_digest": digest,
           } : Json).stringify(),
-        headers~,
+        headers=socket_test_headers(headers),
       )
       assert_eq(status.code, 200)
       let retained = @json.parse(response.text())
@@ -93,7 +98,12 @@ async test "RIS library references cross native HTTP search inspection and exact
   retained_snapshot(root, "", after)
   assert_eq(before, after)
   if @env.get_env_var("MOONBOOK_RIS_EVIDENCE") is Some(path) {
-    @fs.write_file(path + "/http-library.ris", raw, create=0o644)
+    @fs.write_file(
+      path + "/http-library.ris",
+      raw,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
+    )
     @fs.write_file(
       path + "/ris-http-wire.json",
       (
@@ -102,7 +112,8 @@ async test "RIS library references cross native HTTP search inspection and exact
           "book_unchanged": true,
           "selections": selections,
         } : Json).stringify(indent=2),
-      create=0o644,
+      create_mode=@fs.CreateOrTruncate,
+      permission=0o644,
     )
   }
 }
