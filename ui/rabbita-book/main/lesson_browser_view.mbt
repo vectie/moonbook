@@ -127,6 +127,34 @@ fn lesson_browser_card(
         },
       ]),
       lesson_browser_links(emit, model, entry.lesson),
+      @html.button(
+        disabled=model.outcome_lessons.teaching_brief.draft.items.any(item => {
+          item.snapshot.lesson_id == lesson_task_text(lesson, "lesson_id")
+        }),
+        on_click=emit(
+          OutcomeLesson(
+            TeachingBrief(
+              model.outcome_lessons.teaching_brief.revision,
+              Add(model.outcome_lessons.browser.request, entry.lesson.record),
+            ),
+          ),
+        ),
+        "Add lesson to agent teaching brief",
+      ),
+      @html.button(
+        disabled=model.outcome_lessons.notebook.draft.items.any(item => {
+          item.snapshot.reference == entry.lesson.record
+        }),
+        on_click=emit(
+          OutcomeLesson(
+            Notebook(
+              model.outcome_lessons.notebook.revision,
+              Add(model.outcome_lessons.browser.request, entry.lesson.record),
+            ),
+          ),
+        ),
+        "Add experience to decision notebook",
+      ),
     ],
   )
 }
@@ -272,6 +300,8 @@ fn lesson_browser_view(
         Some(data) => lesson_browser_results(emit, model, data)
         None => @html.nothing
       },
+      lesson_notebook_view(emit, model),
+      lesson_teaching_brief_view(emit, model),
     ],
   )
 }

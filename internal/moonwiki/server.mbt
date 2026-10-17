@@ -218,6 +218,7 @@ async fn handle_bookkeeper_request(
   let path = request_path_without_query(request.path)
   match (request.meth, path) {
     (Post, "/api/bookkeeper/lessons/prepare")
+    | (Post, "/api/bookkeeper/lessons/prepare-rehearsal")
     | (Post, "/api/bookkeeper/lessons/task-handoff")
     | (Post, "/api/bookkeeper/lessons/outcome-import")
     | (Post, "/api/bookkeeper/lessons/outcome-continue")
@@ -246,9 +247,10 @@ async fn handle_bookkeeper_request(
       )
       if status == 200 &&
         [
-          "/api/bookkeeper/lessons/prepare", "/api/bookkeeper/lessons/revise", "/api/bookkeeper/lessons/select",
-          "/api/bookkeeper/lessons/outcome-import", "/api/bookkeeper/lessons/outcome-continue",
-          "/api/bookkeeper/lessons/product-import", "/api/bookkeeper/lessons/product-continue",
+          "/api/bookkeeper/lessons/prepare", "/api/bookkeeper/lessons/prepare-rehearsal",
+          "/api/bookkeeper/lessons/revise", "/api/bookkeeper/lessons/select", "/api/bookkeeper/lessons/outcome-import",
+          "/api/bookkeeper/lessons/outcome-continue", "/api/bookkeeper/lessons/product-import",
+          "/api/bookkeeper/lessons/product-continue",
         ].contains(path) {
         sync_bookkeeper_projection_to_served_ui(static_root, workspace_root)
       }

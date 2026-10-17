@@ -69,3 +69,12 @@ bytes and the existing bundle installation lineage. Candidate/rejected records
 are excluded. Existing export policies still apply, including secret-like content,
 machine-local root paths, and file-size exclusions; acceptance does not bypass
 those policies or promise publication of every source string.
+
+## Rehearsal-backed guidance for the next task
+
+[Teach once: rehearse and select guidance](TEACH_ONCE_REHEARSAL.md) connects a
+supplied completed example to the existing reviewed outcome-lesson journal and
+exact next-task guidance selection. The example is a literal-check rehearsal,
+not a model evaluation. Single-example advice does not bypass repeated-finding
+capability adoption, change this portable contract or automatically publish a
+bundle. Named review, current-version choice and rollback remain explicit.

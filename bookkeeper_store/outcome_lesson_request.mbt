@@ -8,6 +8,7 @@ pub async fn outcome_lesson_request(
 ) -> (Int, Json) noraise {
   let operation = match path {
     "/api/bookkeeper/lessons/prepare" => "prepare"
+    "/api/bookkeeper/lessons/prepare-rehearsal" => "prepare-rehearsal"
     "/api/bookkeeper/lessons/retrieve" => "retrieve"
     "/api/bookkeeper/lessons/browse" => "browse"
     "/api/bookkeeper/lessons/guidance-query" => "guidance-query"
@@ -53,6 +54,15 @@ pub async fn outcome_lesson_request(
     } else if operation == "task-handoff" {
       let handoff : OutcomeLessonTaskHandoff = @json.from_json(payload)
       resolve_outcome_lesson_handoff(root, handoff)
+    } else if operation == "prepare-rehearsal" {
+      let result = prepare_outcome_lesson_rehearsal(
+        root,
+        @json.from_json(payload),
+      )
+      if !result.accepted {
+        fail(result.issues.join("; "))
+      }
+      result.to_json()
     } else if operation == "prepare" {
       let draft : OutcomeLessonDraft = @json.from_json(payload)
       let result = prepare_outcome_lesson(root, draft)

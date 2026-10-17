@@ -59,6 +59,7 @@ fn outcome_lesson_review_detail(record : BookkeeperRawRecord) -> @rabbita.Html {
     [
       @html.h4(style=["margin:0"], "Reusable outcome lesson"),
       @html.p(style=["white-space:pre-wrap", "margin:0"], guidance),
+      lesson_rehearsal_review_view(record),
       @html.strong("All of these conditions must match the later task"),
       @html.ul(
         outcome_lesson_condition_lines(applicability).map(line => @html.li(line)),

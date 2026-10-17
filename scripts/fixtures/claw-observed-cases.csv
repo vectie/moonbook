@@ -1,0 +1,16 @@
+kind,name,input,original,revised,required,forbidden
+"useful","Quarter case [Succeeded run=run-fixture artifact=artifact-fixture v2 L1-3 sha256:c71cbb0ce9ee3cdc898e22e80229611097eedbc35d6dfa8c2aa30e3838920702]","Summarize Q4","# Report, Q4
+Source: ""observed"" 001.20
+Uncertainty: none
+","# Report, Q4
+Source: ""observed"" 001.20
+Uncertainty: none
+","Source:","invented"
+"adverse","Unsupported certainty [Succeeded run=run-fixture artifact=artifact-fixture v2 L1-3 sha256:c71cbb0ce9ee3cdc898e22e80229611097eedbc35d6dfa8c2aa30e3838920702]","Explain uncertainty","# Report, Q4
+Source: ""observed"" 001.20
+Uncertainty: none
+","# Report, Q4
+Source: ""observed"" 001.20
+Uncertainty: estimate only
+","Source:
+Uncertainty:","none"
