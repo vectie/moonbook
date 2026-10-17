@@ -182,6 +182,12 @@ match still requires the consumer to judge applicability to the actual task.
 
 ## Revise a method, choose a version, or roll back
 
+Before proposing another correction, use the
+[lesson evolution explorer](LESSON_EVOLUTION.md) within version history to compare
+two saved versions' guidance, scope, named reviews and retained teaching examples.
+Its printable HTML/JSON reports preserve the selected history without changing
+accepted guidance or treating a textual difference as demonstrated learning.
+
 Select a lesson and open its version history. The ordinary history workspace
 retains every version and named review, including pending, deferred and rejected
 updates. **Revise this lesson** captures the selected accepted predecessor, the
@@ -286,3 +292,21 @@ content, author/retrieval controls, draft retention, duplicate clicks, late
 responses, exact-query response decoding, empty results and escaping. CLI fixtures use locally generated synthetic outcomes.
 These are local implementation checks, not live provider, customer, cross-machine,
 browser-pixel or end-to-end company execution acceptance.
+
+## Same-example rehearsal before review
+
+The existing form also supports [rehearsal-backed correction proposals](TEACH_ONCE_REHEARSAL.md).
+Their additive `outcome_lesson.rehearsed.v1` candidate schema retains the same
+normal lesson draft and adds exact operator-supplied example/output text and
+literal-check results. Review, retrieval, source matching, version history,
+rollback and native-task guidance selection recognize this lesson family.
+The existing v1/v2 drafts and guidance-selection wire are unchanged.
+
+## Compare several matching approaches
+
+After scoped retrieval, use **Add to approach comparison** on two to four reviewed
+lesson cards. The [comparison workbench](COMPARATIVE_LESSON_REUSE.md) holds the
+same supplied example and literal checks constant, shows each approach's supplied
+output and individual failures, and connects an explicit passing choice to the
+existing exact task-guidance handoff. It creates no new accepted lesson, runtime
+run or authority.

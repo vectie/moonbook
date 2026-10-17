@@ -88,6 +88,9 @@ fn parse_lesson_history(value : Json) -> Result[LessonHistory, String] {
 ///|
 priv struct LessonHistoryChange {
   operation : String
+  correction_recovery : Json
+  revision_rehearsal : Json
+  revision_rehearsal_epoch : String
   original : BookkeeperRawRecord
   predecessor : BookkeeperRawRecord?
   fields : Map[String, String]
@@ -99,6 +102,7 @@ priv struct LessonHistoryChange {
 
 ///|
 priv struct LessonHistoryWorkspace {
+  read_ready : Bool
   lesson_id : String
   data : LessonHistory?
   selected : BookkeeperRecordReference?
@@ -111,6 +115,7 @@ priv struct LessonHistoryWorkspace {
 ///|
 fn initial_lesson_history_workspace() -> LessonHistoryWorkspace {
   {
+    read_ready: false,
     lesson_id: "",
     data: None,
     selected: None,
@@ -126,7 +131,8 @@ fn lesson_record_value(record : BookkeeperRawRecord) -> Json? {
   match record.payload {
     { "candidate_schema": String(schema), "outcome_lesson": value, .. } if schema ==
       "outcome_lesson.v1" ||
-      schema == "outcome_lesson.v2" => Some(value)
+      schema == "outcome_lesson.v2" ||
+      schema == "outcome_lesson.rehearsed.v1" => Some(value)
     _ => None
   }
 }
@@ -257,6 +263,9 @@ fn lesson_history_begin(
     ..state,
     change: Some({
       operation,
+      correction_recovery: Json::null(),
+      revision_rehearsal: Json::null(),
+      revision_rehearsal_epoch: nonce,
       original,
       predecessor: lesson_history_record(history, history.current),
       fields: {
@@ -302,6 +311,17 @@ fn lesson_history_payload(
     return Err(
       "History changed after this draft began. Your edits were kept; start a new proposal from the refreshed history before saving.",
     )
+  }
+  if change.revision_rehearsal != Json::null() {
+    let inspection = lesson_revision_rehearsal_transition(state, false, {
+      "kind": "inspect",
+    })
+    if lesson_task_field(inspection, "current") != true.to_json() ||
+      lesson_task_field(change.revision_rehearsal, "staged") != true.to_json() {
+      return Err(
+        "Stage this exact contrasting-case rehearsal before saving, or discard the local rehearsal to continue an ordinary revision. Refreshed history or changed guidance, scope or rationale require a new rehearsal.",
+      )
+    }
   }
   let reason = lesson_change_field(change, "reason")
   if reason.is_blank() {
@@ -430,6 +450,7 @@ fn lesson_history_finished(
         history: {
           ..history,
           data: Some(data),
+          read_ready: true,
           selected,
           notice: "History loaded. Inspect every saved version and its reviews; a new proposal only changes current guidance after named-human acceptance.",
         },
@@ -534,11 +555,18 @@ fn lesson_history_update(
             ..state,
             request,
             pending: true,
+            evolution: {
+              ..state.evolution,
+              revision: state.evolution.revision + 1,
+              downloading: false,
+              notice: "",
+            },
             history: {
               ..history,
               lesson_id,
               selected,
               pending_operation: "history",
+              read_ready: false,
               data: if lesson_id == history.lesson_id {
                 history.data
               } else {
@@ -619,7 +647,7 @@ fn lesson_history_update(
               ..history,
               change: None,
               result: None,
-              notice: "Unsaved history change discarded. Original lessons and manual lesson draft remain unchanged.",
+              notice: "Unsaved history change discarded. Original lessons and manual lesson draft remain unchanged. An explicitly saved browser correction copy is kept until you remove it separately.",
             },
           },
         },

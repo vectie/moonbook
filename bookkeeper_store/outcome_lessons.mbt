@@ -63,10 +63,15 @@ fn outcome_lesson_draft(
   match record.payload {
     { "candidate_schema": "outcome_lesson.v1", "outcome_lesson": value, .. } =>
       Some(@json.from_json(value))
-    { "candidate_schema": "outcome_lesson.v2", "outcome_lesson": value, .. } =>
-      Some(@json.from_json(value))
+    { "candidate_schema": "outcome_lesson.v2", "outcome_lesson": value, .. }
+    | {
+      "candidate_schema": "outcome_lesson.rehearsed.v1",
+      "outcome_lesson": value,
+      ..
+    } => Some(@json.from_json(value))
     { "candidate_schema": "outcome_lesson.v1", .. }
-    | { "candidate_schema": "outcome_lesson.v2", .. } =>
+    | { "candidate_schema": "outcome_lesson.v2", .. }
+    | { "candidate_schema": "outcome_lesson.rehearsed.v1", .. } =>
       fail("outcome lesson payload is missing its draft")
     _ => None
   }
@@ -173,7 +178,12 @@ fn validate_outcome_lesson_record(
     let outcome = outcome_lesson_source(snapshot, draft)
     let expected = match lesson_revision(record) {
       Some(revision) => lesson_revision_record(snapshot, revision)
-      None => outcome_lesson_record(draft, outcome)
+      None =>
+        match outcome_lesson_rehearsal(record) {
+          Some(rehearsal) =>
+            outcome_lesson_rehearsal_record(snapshot, rehearsal)
+          None => outcome_lesson_record(draft, outcome)
+        }
     }
     if record != expected {
       fail("lesson artifact metadata differs from its exact draft and outcome")

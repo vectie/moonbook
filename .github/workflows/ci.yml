@@ -9,12 +9,11 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: moonbook-ci-${{ github.ref }}-${{ matrix.channel }}
-  cancel-in-progress: true
-
 jobs:
   native:
+    concurrency:
+      group: moonbook-ci-${{ github.ref }}-${{ matrix.channel }}
+      cancel-in-progress: true
     name: Native (${{ matrix.channel }})
     runs-on: ubuntu-latest
     continue-on-error: ${{ matrix.channel == 'nightly' }}

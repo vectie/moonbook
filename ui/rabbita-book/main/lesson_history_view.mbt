@@ -312,6 +312,11 @@ fn lesson_history_change_view(
           "The selected accepted version's guidance, scope and original evidence are preserved exactly. This saves a separate selection proposal.",
         )
       },
+      if revision {
+        lesson_revision_rehearsal_view(emit, model)
+      } else {
+        @html.nothing
+      },
       lesson_history_edit_field(
         emit, state, change, "reason", "Why should this change be accepted?",
       ),
@@ -400,6 +405,7 @@ fn lesson_history_workspace_view(
                 )
             },
             @html.h4("Saved versions and human reviews"),
+            lesson_evolution_view(emit, model),
             @html.div(
               data.versions.map(version => {
                 @html.article(
@@ -479,6 +485,7 @@ fn lesson_history_workspace_view(
             ]),
           ])
       },
+      lesson_repair_view(emit, model),
       lesson_history_change_view(emit, model),
       lesson_history_saved_view(emit, model),
     ],

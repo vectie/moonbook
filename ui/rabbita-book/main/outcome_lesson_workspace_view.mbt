@@ -116,8 +116,28 @@ fn lesson_workspace_results(
         }
         @html.article(style=["display:grid", "gap:8px"], [
           @html.h4(record.title),
-          @html.p("Reviewed by " + reviewer),
+          @html.p(
+            "Reviewed by " +
+            reviewer +
+            " · exact version " +
+            record.record.record_version,
+          ),
           outcome_lesson_review_detail(record),
+          @html.button(
+            disabled=model.outcome_lessons.pending,
+            on_click=emit(
+              OutcomeLesson(
+                Comparison(
+                  lesson_comparison_action(
+                    model.outcome_lessons,
+                    "add",
+                    reference=record.record.to_json(),
+                  ),
+                ),
+              ),
+            ),
+            "Add to approach comparison",
+          ),
           @html.button(
             on_click=emit(SelectBookkeeperItem(lesson_record_item(record))),
             "Inspect original lesson",
@@ -248,9 +268,10 @@ fn outcome_lesson_workspace_view(
           ),
           lesson_text_field(emit, state, "version", "Lesson version"),
         ]),
+        lesson_rehearsal_view(emit, state),
         @html.button(
           class="moonbook-primary-action",
-          disabled=state.pending,
+          disabled=state.pending || lesson_rehearsal_has_inputs(state),
           on_click=emit(OutcomeLesson(Submit("prepare"))),
           "Save lesson for review",
         ),
@@ -258,6 +279,7 @@ fn outcome_lesson_workspace_view(
           "2 · Open the saved lesson and use the existing named-human review controls above. Saving a lesson does not accept it. To revise an accepted lesson, open its version history and prepare a reviewed change.",
         ),
         @html.h4("3 · Find useful lessons for the next task"),
+        lesson_scope_view(emit, model),
         lesson_text_field(emit, state, "task-id", "Next task ID"),
         @html.details([
           @html.summary("Exact task version and digest"),
@@ -294,6 +316,7 @@ fn outcome_lesson_workspace_view(
           state.notice,
         ),
         lesson_workspace_results(emit, model),
+        lesson_comparison_view(emit, model),
       ]),
     ],
   )

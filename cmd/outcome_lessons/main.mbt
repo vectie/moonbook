@@ -20,6 +20,7 @@ async fn main {
       )
     [operation, root, path] if operation == "revise" ||
       operation == "select" ||
+      operation == "prepare-rehearsal" ||
       operation.has_prefix("product-") => {
       let (status, response) = @bookkeeper_store.outcome_lesson_request(
         root,
@@ -53,7 +54,7 @@ async fn main {
     }
     _ =>
       fail(
-        "Usage: outcome_lessons prepare|revise|select|retrieve|browse|product-import|product-list|product-read|product-continue <book-root> <request.json> | history <book-root> <lesson-id>",
+        "Usage: outcome_lessons prepare|prepare-rehearsal|revise|select|retrieve|browse|product-import|product-list|product-read|product-continue <book-root> <request.json> | history <book-root> <lesson-id>",
       )
   }
 }

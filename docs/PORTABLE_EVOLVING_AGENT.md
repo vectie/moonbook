@@ -157,3 +157,12 @@ Test the negative cases as carefully as the happy path: payload tampering,
 unsafe relative paths, duplicate paths, non-accepted knowledge, credential-like
 content, dependency-lock tampering, memory-counter mismatch, protected merge
 conflicts, wrong-book rollback receipts and changed rollback bytes.
+
+## Rehearsal-backed guidance for the next task
+
+[Teach once: rehearse and select guidance](TEACH_ONCE_REHEARSAL.md) connects a
+supplied completed example to the existing reviewed outcome-lesson journal and
+exact next-task guidance selection. The example is a literal-check rehearsal,
+not a model evaluation. Single-example advice does not bypass repeated-finding
+capability adoption, change this portable contract or automatically publish a
+bundle. Named review, current-version choice and rollback remain explicit.

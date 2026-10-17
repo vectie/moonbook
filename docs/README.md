@@ -20,6 +20,9 @@ Bookkeeper ownership, capability labels and release gates.
 - [Portable and evolving agents](PORTABLE_EVOLVING_AGENT.md) — the
   `moonbook.agent_bundle.v1` export, verification, merge, import, upgrade and
   rollback lifecycle plus the MoonBook/MoonClaw/MoonDesk ownership split.
+- [Agent teaching brief](AGENT_TEACHING_BRIEF.md) — select and order reviewed
+  lessons, author fresh practice tasks, recheck exact captures, and export a
+  source-linked Markdown learning brief plus resumable JSON.
 
 MoonBook is the durable executable book for MoonSuite. It owns accepted book
 truth: raw sources, wiki pages, review queues, generated sites, book-owned

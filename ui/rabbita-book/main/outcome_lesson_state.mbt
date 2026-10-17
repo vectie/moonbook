@@ -1,6 +1,11 @@
 ///|
 priv struct OutcomeLessonWorkspace {
   fields : Map[String, String]
+  rehearsal_request : Json?
+  rehearsal_result : Json?
+  comparison : Json
+  repair : Json
+  scope_interview : Json
   source : Json?
   source_label : String
   lesson_id : String
@@ -15,6 +20,9 @@ priv struct OutcomeLessonWorkspace {
   outcome_review : OutcomeReviewWorkspace
   task_guidance : TaskGuidanceWorkspace
   browser : LessonBrowserWorkspace
+  notebook : LessonNotebookWorkspace
+  teaching_brief : LessonTeachingBriefWorkspace
+  evolution : LessonEvolutionWorkspace
   products : ProductOutcomeWorkspace
 }
 
@@ -22,6 +30,13 @@ priv struct OutcomeLessonWorkspace {
 priv enum OutcomeLessonMsg {
   Edit(String, String)
   UseSelected
+  TryRehearsal
+  ClearRehearsal
+  Comparison(Json)
+  Repair(String, String, String)
+  RevisionRehearsal(Json)
+  CorrectionDraft(Json)
+  ScopeInterview(String, Json, Json, Json)
   Submit(String)
   Finished(Int, String, Result[Json, String])
   ImportTask
@@ -44,6 +59,10 @@ priv enum OutcomeLessonMsg {
   OutcomeReview(OutcomeReviewMsg)
   TaskGuidance(TaskGuidanceMsg)
   Browser(LessonBrowserMsg)
+  Notebook(Int, LessonNotebookMsg)
+  TeachingBrief(Int, LessonTeachingBriefMsg)
+  PracticeCorrection(Int, Int, Json, LessonPracticeCorrectionMsg)
+  Evolution(Int, Int, LessonEvolutionMsg)
   ProductOutcome(ProductOutcomeMsg)
 }
 
@@ -65,6 +84,11 @@ fn initial_outcome_lesson_workspace() -> OutcomeLessonWorkspace {
       "query-decision": "",
       "query-extra": "",
     },
+    rehearsal_request: None,
+    rehearsal_result: None,
+    comparison: initial_lesson_comparison(),
+    repair: Json::null(),
+    scope_interview: initial_lesson_scope(),
     source: None,
     source_label: "No assessment selected for this draft",
     lesson_id: "",
@@ -79,6 +103,9 @@ fn initial_outcome_lesson_workspace() -> OutcomeLessonWorkspace {
     outcome_review: initial_outcome_review_workspace(),
     task_guidance: initial_task_guidance_workspace(),
     browser: initial_lesson_browser_workspace(),
+    notebook: initial_lesson_notebook(),
+    teaching_brief: initial_lesson_teaching_brief(),
+    evolution: initial_lesson_evolution(),
     products: initial_product_outcome_workspace(),
   }
 }
@@ -264,7 +291,15 @@ fn lesson_ui_edit(
   }
   let fields = state.fields.copy()
   fields[key] = value
-  { ..state, fields, result: None, notice: "", request: state.request + 1, }
+  {
+    ..state,
+    fields,
+    result: None,
+    rehearsal_request: None,
+    rehearsal_result: None,
+    notice: "",
+    request: state.request + 1,
+  }
 }
 
 ///|
@@ -291,7 +326,7 @@ fn lesson_ui_finished(
         ..state,
         pending: false,
         result: Some(value),
-        notice: if operation == "prepare" {
+        notice: if operation == "prepare" || operation == "prepare-rehearsal" {
           "Lesson saved for review. Select it in the Bookkeeper lane, inspect the conditions, then prepare acceptance or rejection."
         } else {
           "These results belong to the task and conditions shown below. Check their applicability before reuse."
@@ -323,6 +358,7 @@ fn decode_outcome_lesson_response(
       ..
     } if response.ok && actual == operation => {
       if operation == "prepare" ||
+        operation == "prepare-rehearsal" ||
         operation == "revise" ||
         operation == "select" {
         guard result
@@ -442,8 +478,25 @@ fn outcome_lesson_update(
 ) -> (@rabbita.Cmd, Model) {
   let state = model.outcome_lessons
   let (command, next) = match message {
+    RevisionRehearsal(action) => lesson_revision_rehearsal_update(model, action)
+    CorrectionDraft(action) => lesson_correction_draft_update(model, action)
+    Repair(action, key, value) =>
+      lesson_repair_update(model, action, key, value)
+    ScopeInterview(action, expected, binding, condition) =>
+      lesson_scope_update(emit, model, action, expected, binding, condition)
+    Comparison(action) => lesson_comparison_update(emit, model, action)
     ProductOutcome(action) => product_outcome_update(emit, model, action)
     Browser(action) => lesson_browser_update(emit, model, action)
+    Notebook(revision, action) =>
+      lesson_notebook_update(emit, model, revision, action)
+    TeachingBrief(revision, action) =>
+      lesson_teaching_brief_update(emit, model, revision, action)
+    PracticeCorrection(revision, request, owner, action) =>
+      lesson_practice_correction_update(
+        emit, model, revision, request, owner, action,
+      )
+    Evolution(request, revision, action) =>
+      lesson_evolution_update(emit, model, request, revision, action)
     TaskGuidance(action) => task_guidance_update(emit, model, action)
     RefreshSavedLessons(_) if state.outcome_review.pending =>
       (@rabbita.none, model)
@@ -471,6 +524,16 @@ fn outcome_lesson_update(
         @rabbita.none,
         { ..model, outcome_lessons: lesson_ui_edit(state, key, value), },
       )
+    ClearRehearsal =>
+      (
+        @rabbita.none,
+        { ..model, outcome_lessons: lesson_rehearsal_clear(state), },
+      )
+    TryRehearsal =>
+      (
+        @rabbita.none,
+        { ..model, outcome_lessons: lesson_rehearsal_try(state), },
+      )
     UseSelected => {
       if state.pending {
         return (@rabbita.none, model)
@@ -491,6 +554,8 @@ fn outcome_lesson_update(
               ..model,
               outcome_lessons: {
                 ..state,
+                rehearsal_request: None,
+                rehearsal_result: None,
                 source: Some(source),
                 source_label: label,
                 lesson_id: "lesson-" + bookkeeper_nonce(),
@@ -508,7 +573,24 @@ fn outcome_lesson_update(
       if state.pending {
         return (@rabbita.none, model)
       }
-      match lesson_ui_payload(state, operation) {
+      if operation == "prepare" && lesson_rehearsal_has_inputs(state) {
+        return (
+          @rabbita.none,
+          {
+            ..model,
+            outcome_lessons: {
+              ..state,
+              notice: "Use Save rehearsal-backed lesson for review, or clear the rehearsal first. Supplied examples will not be silently discarded.",
+            },
+          },
+        )
+      }
+      let payload = if operation == "prepare-rehearsal" {
+        lesson_rehearsal_save_payload(state)
+      } else {
+        lesson_ui_payload(state, operation)
+      }
+      match payload {
         Err(error) =>
           (
             @rabbita.none,
@@ -530,7 +612,8 @@ fn outcome_lesson_update(
                 request,
                 pending: true,
                 result: None,
-                notice: if operation == "prepare" {
+                notice: if operation == "prepare" ||
+                  operation == "prepare-rehearsal" {
                   "Saving the lesson candidate…"
                 } else {
                   "Finding useful lessons…"
@@ -548,7 +631,7 @@ fn outcome_lesson_update(
       }
       if state.pending &&
         state.request == request &&
-        operation == "prepare" &&
+        (operation == "prepare" || operation == "prepare-rehearsal") &&
         result is Ok(_) {
         let (cmd, refreshed) = start_bookkeeper_read(emit, next)
         (@rabbita.batch([cmd, emit(RefreshSnapshot)]), refreshed)
