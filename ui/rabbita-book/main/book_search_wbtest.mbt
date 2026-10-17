@@ -1,5 +1,5 @@
 ///|
-fn search_test_result(question? : String = "Lunar") -> BookSearchResult {
+fn search_test_result(question~ : String = "Lunar") -> BookSearchResult {
   {
     schema: "moonbook.search.v1",
     ok: true,
@@ -32,7 +32,7 @@ fn search_test_ready() -> BookSearchState {
 
 ///|
 fn search_test_html(state : BookSearchState) -> String {
-  @rabbita.render_to_string(
+  book_test_render_component(
     @rabbita.simple_cell(model=state, update=fn(_msg : Msg, old) { old }, view=fn(
       emit,
       model,

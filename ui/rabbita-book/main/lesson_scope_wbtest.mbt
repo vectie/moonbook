@@ -15,7 +15,7 @@ fn scope_test_model() -> Model {
 fn scope_test_action(
   model : Model,
   action : String,
-  condition? : Json = Json::null(),
+  condition~ : Json = Json::null(),
 ) -> Msg {
   OutcomeLesson(
     ScopeInterview(
@@ -38,7 +38,7 @@ test "scope interview discovers required and invalidation questions without infe
   )
   assert_eq(lesson_scope_answers(state).length(), 0)
   assert_eq(lesson_scope_conditions(state).unwrap().length(), 0)
-  let html = @rabbita.render_to_string(
+  let html = book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_ : Msg, old) { old },

@@ -19,7 +19,7 @@ test "outcome lesson UI exposes complete guidance scope and source before review
       "outcome_lesson": lesson,
     },
   }
-  let html = @rabbita.render_to_string(
+  let html = book_test_render_component(
     @rabbita.simple_cell(
       model=record,
       update=fn(_message : Unit, old) { old },
@@ -42,7 +42,7 @@ test "ordinary artifacts do not acquire a lesson claim and malformed scope stays
   assert_eq(outcome_lesson_condition_lines({}), [
     "Conditions are unavailable. Inspect the exact evidence before reviewing.",
   ])
-  let html = @rabbita.render_to_string(
+  let html = book_test_render_component(
     @rabbita.simple_cell(
       model=draft_test_record("ordinary"),
       update=fn(_message : Unit, old) { old },

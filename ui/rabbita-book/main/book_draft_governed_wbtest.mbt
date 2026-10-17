@@ -62,7 +62,7 @@ fn governed_test_edited(mode : String, stage : String) -> Model {
 
 ///|
 fn governed_test_view(model : Model) -> String {
-  @rabbita.render_to_string(
+  book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_msg : Msg, old) { old },

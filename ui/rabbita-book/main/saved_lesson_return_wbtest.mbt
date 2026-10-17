@@ -1,5 +1,5 @@
 ///|
-fn saved_return_test_entry(state? : String = "retained") -> Json {
+fn saved_return_test_entry(state~ : String = "retained") -> Json {
   let handoff = lesson_task_field(lesson_receiver_test_readback(), "handoff")
   let reference = draft_test_record("saved").record.to_json()
   {
@@ -51,7 +51,7 @@ fn saved_return_test_entry(state? : String = "retained") -> Json {
 
 ///|
 fn saved_return_test_readback(
-  entry? : Json = saved_return_test_entry(),
+  entry~ : Json = saved_return_test_entry(),
 ) -> Json {
   guard lesson_receiver_test_readback() is Object(fields) else {
     abort("fixture")
@@ -207,7 +207,7 @@ test "saved lesson return UI exposes honest statuses and explicit actions withou
     ..draft_test_model(),
     outcome_lessons: { ..lesson_workspace_fixture(), handoff: Some(readback), },
   }
-  let html = @rabbita.render_to_string(
+  let html = book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_ : Msg, old) { old },

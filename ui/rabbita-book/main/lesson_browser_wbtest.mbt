@@ -7,7 +7,7 @@ fn browser_test_set(value : Json, key : String, replacement : Json) -> Json {
 }
 
 ///|
-fn browser_test_result(text? : String = "", empty? : Bool = false) -> Json {
+fn browser_test_result(text~ : String = "", empty~ : Bool = false) -> Json {
   let record = history_test_record("2")
   let lesson = lesson_record_value(record).unwrap()
   let record = {
@@ -62,7 +62,7 @@ fn browser_test_result(text? : String = "", empty? : Bool = false) -> Json {
 }
 
 ///|
-fn browser_test_model(text? : String = "", empty? : Bool = false) -> Model {
+fn browser_test_model(text~ : String = "", empty~ : Bool = false) -> Model {
   let model = history_test_model()
   {
     ..model,
@@ -84,7 +84,7 @@ fn browser_test_model(text? : String = "", empty? : Bool = false) -> Model {
 
 ///|
 fn browser_test_html(model : Model) -> String {
-  @rabbita.render_to_string(
+  book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_message : Msg, old) { old },
@@ -96,7 +96,7 @@ fn browser_test_html(model : Model) -> String {
 ///|
 test "reviewed lesson browser is visible before a task and outside technical disclosure" {
   let model = draft_test_model()
-  let html = @rabbita.render_to_string(
+  let html = book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_message : Msg, old) { old },

@@ -568,7 +568,7 @@ test "outcome workflow SSR is ordered escaped collapsed and honest for rejection
       "deliverable_rejected", "assessment_rejected", "reviewed_source_available",
     ] {
     let model = outcome_test_model(state)
-    let html = @rabbita.render_to_string(
+    let html = book_test_render_component(
       @rabbita.simple_cell(
         model~,
         update=fn(_ : Msg, old) { old },

@@ -1,7 +1,7 @@
 ///|
 fn draft_test_record(
   id : String,
-  digest? : String = "digest-v1",
+  digest~ : String = "digest-v1",
 ) -> BookkeeperRawRecord {
   {
     contract_version: "moonbook.bookkeeper.store.v1",
@@ -78,7 +78,7 @@ fn draft_test_prepared() -> Model {
 
 ///|
 fn draft_test_editor(model : Model) -> String {
-  @rabbita.render_to_string(
+  book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_msg : Msg, old) { old },

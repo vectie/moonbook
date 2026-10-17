@@ -382,7 +382,7 @@ test "practice task and original response stay fixed while new guidance output a
     ),
   )
   assert_true(
-    @rabbita.render_to_string(
+    book_test_render_component(
       @rabbita.simple_cell(
         model=edited,
         update=fn(_message : Msg, old) { old },

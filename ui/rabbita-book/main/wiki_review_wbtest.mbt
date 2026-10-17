@@ -1,5 +1,5 @@
 ///|
-fn wiki_review_test_items(count : Int) -> Array[WikiReviewItem] {
+fn wiki_review_test_items(count : Int32) -> Array[WikiReviewItem] {
   [
     for index in 0..<count => {
       {
@@ -15,7 +15,7 @@ fn wiki_review_test_items(count : Int) -> Array[WikiReviewItem] {
 ///|
 fn wiki_review_test_detail(
   review_id : String,
-  status? : String = "pending",
+  status~ : String = "pending",
 ) -> WikiReviewDetail {
   {
     review_id,
@@ -52,12 +52,12 @@ fn wiki_review_test_ready() -> WikiReviewState {
 }
 
 ///|
-fn wiki_review_test_choice(decision? : String = "approve") -> WikiReviewChoice {
+fn wiki_review_test_choice(decision~ : String = "approve") -> WikiReviewChoice {
   { review_id: "review-0", digest: "digest-review-0", decision, }
 }
 
 ///|
-fn wiki_review_test_wire_detail(status? : String = "pending") -> Json {
+fn wiki_review_test_wire_detail(status~ : String = "pending") -> Json {
   {
     "review_id": "review-0",
     "kind": "result-review",
@@ -403,7 +403,7 @@ test "wiki review SSR exposes full queue exact evidence local scope and safe tex
     update=fn(_msg : Msg, old) { old },
     view=fn(emit, state) { wiki_review_panel(emit, state) },
   )
-  let rendered = @rabbita.render_to_string(cell)
+  let rendered = book_test_render_component(cell)
   assert_true(rendered.contains("id=\"reviews\""))
   assert_true(rendered.contains("All 7 queued reviews"))
   assert_true(rendered.contains("review-6"))
@@ -426,7 +426,7 @@ test "wiki review SSR exposes full queue exact evidence local scope and safe tex
     state,
     Prepare(wiki_review_test_choice()),
   )
-  let confirmation = @rabbita.render_to_string(
+  let confirmation = book_test_render_component(
     @rabbita.simple_cell(model=prepared, update=fn(_msg : Msg, old) { old }, view=fn(
       emit,
       model,

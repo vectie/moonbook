@@ -35,9 +35,9 @@ fn comparison_test_model() -> Model {
 fn comparison_test_change(
   model : Model,
   kind : String,
-  reference? : Json = Json::null(),
-  field? : String = "",
-  value? : String = "",
+  reference~ : Json = Json::null(),
+  field~ : String = "",
+  value~ : String = "",
 ) -> Model {
   snapshot_test_step(
     model,
@@ -167,7 +167,7 @@ test "comparison newer edits pending requests and clear never overwrite lesson d
 ///|
 test "comparison ordinary rendered workspace exposes shortlist matrix scope escaping and explicit choice" {
   let model = comparison_test_ready()
-  let html = @rabbita.render_to_string(
+  let html = book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_message : Msg, old) { old },
@@ -189,7 +189,7 @@ test "comparison ordinary rendered workspace exposes shortlist matrix scope esca
 }
 
 ///|
-fn comparison_test_wire(model : Model, rejected? : Bool = false) -> Json {
+fn comparison_test_wire(model : Model, rejected~ : Bool = false) -> Json {
   let state = model.outcome_lessons
   let record = comparison_test_record("2")
   let lesson = lesson_record_value(record).unwrap()

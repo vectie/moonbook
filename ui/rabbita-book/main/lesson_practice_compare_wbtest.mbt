@@ -28,8 +28,8 @@ test "practice comparison pairs exact task and preserves changed guidance" {
     },
   }
   assert_eq(lesson_practice_matching_rounds(changed, modified).length(), 2)
-  let text = @rabbita.render_to_string(
-    @rabbita.simple_cell(model=changed, update=fn(_msg : Int, old) { old }, view=fn(
+  let text = book_test_render_component(
+    @rabbita.simple_cell(model=changed, update=fn(_msg : Int32, old) { old }, view=fn(
       _,
       session,
     ) {

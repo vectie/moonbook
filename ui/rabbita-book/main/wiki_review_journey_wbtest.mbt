@@ -42,7 +42,7 @@ fn guided_book_model(state : WikiReviewState) -> Model {
 
 ///|
 fn guided_book_hero(model : Model) -> String {
-  @rabbita.render_to_string(
+  book_test_render_component(
     @rabbita.simple_cell(model~, update=fn(_msg : Msg, old) { old }, view=fn(
       _emit,
       model,
@@ -54,7 +54,7 @@ fn guided_book_hero(model : Model) -> String {
 
 ///|
 fn guided_book_panel(state : WikiReviewState) -> String {
-  @rabbita.render_to_string(
+  book_test_render_component(
     @rabbita.simple_cell(model=state, update=fn(_msg : Msg, old) { old }, view=fn(
       emit,
       model,

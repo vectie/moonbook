@@ -7,7 +7,7 @@ test "received task offers outcome import before a reviewed source exists" {
       handoff: Some(lesson_receiver_test_readback()),
     },
   }
-  let html = @rabbita.render_to_string(
+  let html = book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_msg : Msg, old) { old },

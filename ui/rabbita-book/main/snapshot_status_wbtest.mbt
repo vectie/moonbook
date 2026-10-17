@@ -33,7 +33,7 @@ fn snapshot_test_step(model : Model, message : Msg) -> Model {
 
 ///|
 fn snapshot_test_html(model : Model) -> String {
-  @rabbita.render_to_string(
+  book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_msg : Msg, old) { old },

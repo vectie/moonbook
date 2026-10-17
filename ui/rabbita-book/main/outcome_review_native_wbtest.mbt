@@ -162,7 +162,7 @@ test "serialized native outcome fixture drives actual UI commands and accepted r
       is Null,
     )
     outcome_test_drafts_kept(original, cell.val)
-    let html = @rabbita.render_to_string(
+    let html = book_test_render_component(
       @rabbita.simple_cell(
         model=cell.val,
         update=fn(_ : Msg, old) { old },

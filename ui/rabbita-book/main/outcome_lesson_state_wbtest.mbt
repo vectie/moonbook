@@ -122,7 +122,7 @@ test "lesson workspace provides ordinary author retrieve controls and truthful e
     }),
   }
   let model = { ..draft_test_model(), outcome_lessons: state, }
-  let html = @rabbita.render_to_string(
+  let html = book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_msg : Msg, old) { old },

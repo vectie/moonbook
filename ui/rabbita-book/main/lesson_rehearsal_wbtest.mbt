@@ -85,7 +85,7 @@ test "rehearsal is reachable and clearly labels the real next-run selection boun
     ..draft_test_model(),
     outcome_lessons: lesson_rehearsal_try(rehearsal_ui_fixture()),
   }
-  let html = @rabbita.render_to_string(
+  let html = book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_msg : Msg, old) { old },

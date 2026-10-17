@@ -43,9 +43,11 @@ extern "js" fn product_test_picker_failure(restore : Bool) =
 test "product file read rejection settles the picker and allows retry" {
   @js.async_test(async fn() {
     product_test_picker_failure(false)
-    let result : Result[String, Error] = try Ok(
+    let result : Result[String, Error] = Ok(
       product_outcome_pick_file().wait().cast(),
-    ) catch { error => Err(error) }
+    ) catch {
+      error => Err(error)
+    }
     product_test_picker_failure(true)
     assert_true(result is Err(_))
     let original = draft_test_model()
@@ -192,7 +194,7 @@ test "product panel exposes retained source and next existing review action with
       },
     },
   }
-  let html = @rabbita.render_to_string(
+  let html = book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_message : Msg, old) { old },
@@ -260,7 +262,7 @@ test "product revision and escalation controls prepare existing governed decisio
     PrepareBookkeeperReview("Revise"),
   )
   assert_eq(restored.draft_recovery.summary, edited.draft_recovery.summary)
-  let html = @rabbita.render_to_string(
+  let html = book_test_render_component(
     @rabbita.simple_cell(
       model=opened,
       update=fn(_message : Msg, old) { old },

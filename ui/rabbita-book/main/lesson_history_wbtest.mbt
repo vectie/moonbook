@@ -59,7 +59,7 @@ fn history_test_review(
 }
 
 ///|
-fn history_test_value(multiple? : Bool = false) -> Json {
+fn history_test_value(multiple~ : Bool = false) -> Json {
   let old = history_test_record("1")
   let current = history_test_record("2")
   let rejected = history_test_record("rejected")
@@ -106,7 +106,7 @@ fn history_test_value(multiple? : Bool = false) -> Json {
 }
 
 ///|
-fn history_test_model(multiple? : Bool = false) -> Model {
+fn history_test_model(multiple~ : Bool = false) -> Model {
   let value = history_test_value(multiple~)
   let data = parse_lesson_history(value).unwrap()
   let base = draft_test_model()
@@ -369,7 +369,7 @@ test "refreshed history never rebases a captured draft silently and legacy ambig
 
 ///|
 fn history_test_html(model : Model) -> String {
-  @rabbita.render_to_string(
+  book_test_render_component(
     @rabbita.simple_cell(
       model~,
       update=fn(_msg : Msg, old) { old },
@@ -537,7 +537,7 @@ test "existing named-human review detail shows revision and selection original s
         records: model.bookkeeper_store.unwrap().records + [proposal],
       }),
     }
-    let html = @rabbita.render_to_string(
+    let html = book_test_render_component(
       @rabbita.simple_cell(model~, update=fn(_msg : Msg, old) { old }, view=fn(
         _emit,
         model,
