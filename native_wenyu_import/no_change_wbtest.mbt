@@ -143,7 +143,9 @@ async test "no change committed replay preserves human review and newer latest e
 
 ///|
 async test "no change interrupted import preserves human conflicts and blocks newer work" {
-  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-no-change-human-conflict-"))
+  let root = @fs.realpath(
+    @fs.tmpdir(prefix="moonbook-no-change-human-conflict-"),
+  )
   let payload = native_wenyu_no_change_payload()
   try persist_native_wenyu_import(root, payload, fail_after=1) catch {
     error =>
@@ -195,7 +197,9 @@ async test "no change interrupted import preserves human conflicts and blocks ne
 
 ///|
 async test "no change same work rejects changed result or request without rewriting records" {
-  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-no-change-payload-conflict-"))
+  let root = @fs.realpath(
+    @fs.tmpdir(prefix="moonbook-no-change-payload-conflict-"),
+  )
   let original = native_wenyu_no_change_payload()
   let outcome = persist_result_payload(root, original)
   let intent = native_wenyu_test_intent(root, "native-no-change-work")
@@ -233,7 +237,9 @@ async test "no change same work rejects changed result or request without rewrit
 
 ///|
 async test "saved legacy Wenyu intent retains its original implementation wording on recovery" {
-  let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-legacy-intent-"))
+  let root = @fs.realpath(
+    @fs.tmpdir(prefix="moonbook-native-wenyu-legacy-intent-"),
+  )
   let payload = native_wenyu_test_payload()
   let (identity, result, payload_text) = decode_native_wenyu_import(payload)
   let prepared = prepare_native_wenyu_intent(

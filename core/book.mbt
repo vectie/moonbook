@@ -31,7 +31,7 @@ pub struct SectionNumber {
 
 ///|
 pub fn new() -> Book {
-  { items: [] }
+  { items: [], }
 }
 
 ///|
@@ -88,7 +88,7 @@ fn collect_chapters(items : Array[BookItem], chapters : Array[Chapter]) -> Unit 
 
 ///|
 pub fn Book::for_each_mut(self : Book, f : (BookItem) -> BookItem) -> Book {
-  { items: map_items(self.items, f) }
+  { items: map_items(self.items, f), }
 }
 
 ///|
@@ -100,7 +100,7 @@ fn map_items(
   for item in items {
     let next = match item {
       Chapter(chapter) =>
-        Chapter({ ..chapter, sub_items: map_items(chapter.sub_items, f) })
+        Chapter({ ..chapter, sub_items: map_items(chapter.sub_items, f), })
       _ => item
     }
     mapped.push(f(next))
@@ -113,7 +113,7 @@ pub fn Book::for_each_chapter_mut(
   self : Book,
   f : (Chapter) -> Chapter,
 ) -> Book {
-  { items: map_chapter_items(self.items, f) }
+  { items: map_chapter_items(self.items, f), }
 }
 
 ///|
@@ -156,7 +156,7 @@ pub fn chapter(
   source_path? : String? = None,
   parent_names? : Array[String] = [],
 ) -> Chapter {
-  { name, content, number, sub_items, path, source_path, parent_names }
+  { name, content, number, sub_items, path, source_path, parent_names, }
 }
 
 ///|

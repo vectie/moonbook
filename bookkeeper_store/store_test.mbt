@@ -1,6 +1,6 @@
 ///|
 fn test_record_ref(id : String) -> @bookkeeper.VersionedRecordReference {
-  { record_id: id, record_version: "1", record_digest: "sha256:\{id}" }
+  { record_id: id, record_version: "1", record_digest: "sha256:\{id}", }
 }
 
 ///|

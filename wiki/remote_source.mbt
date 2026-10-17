@@ -57,14 +57,10 @@ async fn fetch_remote_source(raw_dir : String, url : String) -> String {
 }
 
 ///|
-fn remote_content_type(headers : Map[String, String]) -> String {
+fn remote_content_type(headers : @http.Headers) -> String {
   match headers.get("content-type") {
     Some(value) => value
-    None =>
-      match headers.get("Content-Type") {
-        Some(value) => value
-        None => "unknown"
-      }
+    None => "unknown"
   }
 }
 

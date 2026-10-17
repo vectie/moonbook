@@ -115,7 +115,7 @@ pub fn ReaderReviewSubjectRef::new(
   version~ : String,
   digest~ : String,
 ) -> ReaderReviewSubjectRef {
-  { kind, subject_id, version, digest }
+  { kind, subject_id, version, digest, }
 }
 
 ///|
@@ -131,7 +131,7 @@ pub fn ReaderReviewReceiptRef::new(
   version~ : String,
   digest~ : String,
 ) -> ReaderReviewReceiptRef {
-  { receipt_id, version, digest }
+  { receipt_id, version, digest, }
 }
 
 ///|
@@ -145,7 +145,7 @@ pub fn ReaderReviewerIdentity::new(
   reviewer_id~ : String,
   kind~ : ReaderReviewerKind,
 ) -> ReaderReviewerIdentity {
-  { reviewer_id, kind }
+  { reviewer_id, kind, }
 }
 
 ///|
@@ -161,7 +161,7 @@ pub fn ReaderAuthorityAttestationRef::new(
   version~ : String,
   digest~ : String,
 ) -> ReaderAuthorityAttestationRef {
-  { attestation_id, version, digest }
+  { attestation_id, version, digest, }
 }
 
 ///|
@@ -177,7 +177,7 @@ pub fn ReaderReviewEvidenceRef::new(
   version~ : String,
   digest~ : String,
 ) -> ReaderReviewEvidenceRef {
-  { reference_id, version, digest }
+  { reference_id, version, digest, }
 }
 
 ///|
@@ -240,7 +240,7 @@ pub fn ReaderSourceRef::new(
   revision~ : String,
   digest~ : String,
 ) -> ReaderSourceRef {
-  { reference_id, title, locator, revision, digest }
+  { reference_id, title, locator, revision, digest, }
 }
 
 ///|
@@ -423,7 +423,7 @@ pub fn ReaderViewLink::new(
   href~ : String,
   review_status~ : ReaderReviewStatus,
 ) -> ReaderViewLink {
-  { view, href, review_status }
+  { view, href, review_status, }
 }
 
 ///|

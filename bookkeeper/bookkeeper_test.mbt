@@ -430,7 +430,11 @@ fn outcome_evidence_record(
   deliverable? : @bookkeeper.DeliverableReference = exact_deliverable(),
 ) -> @bookkeeper.OutcomeEvidenceRecord {
   @bookkeeper.OutcomeEvidenceRecord::new(
-    record={ record_id: id, record_version: "1", record_digest: "sha256:\{id}" },
+    record={
+      record_id: id,
+      record_version: "1",
+      record_digest: "sha256:\{id}",
+    },
     kind~,
     deliverable~,
     observation={

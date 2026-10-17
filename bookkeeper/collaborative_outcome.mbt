@@ -238,7 +238,7 @@ pub fn accept_completed_handover_outcome_v1(
   }
   assessment_evidence_is_bound_v1(assessment, observation, issues)
   if !issues.is_empty() {
-    return { issues: ReadOnlyArray::from_array(issues), accepted: None }
+    return { issues: ReadOnlyArray::from_array(issues), accepted: None, }
   }
   let payload = accepted_handover_outcome_payload_v1(
     record_id, envelope, handover_bundle, completion_transition_id, completion_head_digest,
@@ -322,7 +322,9 @@ pub fn encode_accepted_handover_outcome_v1(
       three_gap_assessment_id: accepted.three_gap_assessment_id,
       three_gap_assessment_version: accepted.three_gap_assessment_version,
       accepted_at: accepted.accepted_at,
-    } |> ToJson::to_json,
+    }
+    |> ToJson::to_json,
     content_digest: accepted.content_digest.text(),
-  } |> ToJson::to_json
+  }
+  |> ToJson::to_json
 }

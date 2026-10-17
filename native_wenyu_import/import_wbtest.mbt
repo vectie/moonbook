@@ -282,7 +282,9 @@ async test "native Wenyu import rejects malformed opt in without downgrading to 
 ///|
 async test "native Wenyu import rejects symlink destinations and resumes after corrected first attempt" {
   let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-symlink-"))
-  let outside = @fs.realpath(@fs.tmpdir(prefix="moonbook-native-wenyu-outside-"))
+  let outside = @fs.realpath(
+    @fs.tmpdir(prefix="moonbook-native-wenyu-outside-"),
+  )
   @fs.mkdir(root + "/wiki")
   @fs.symlink(target=outside, root + "/wiki/synthesis")
   try persist_result_payload(root, native_wenyu_test_payload()) catch {

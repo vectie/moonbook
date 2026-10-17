@@ -16,6 +16,7 @@ async fn write_fixture(root : String) -> Unit {
     provider_ports: [],
     schedules: [],
     app_entrypoints: [],
+    app_runtime_identity: None,
     migrations: [],
     evaluations: [],
     uninstall_contract: Some(

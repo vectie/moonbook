@@ -285,7 +285,7 @@ pub fn review_three_gap_finding(
     capability_change_applied: false,
   }
   let reviewed_finding = if review_complete {
-    Some({ finding, receipt: learning_receipt })
+    Some({ finding, receipt: learning_receipt, })
   } else {
     None
   }

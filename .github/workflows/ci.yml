@@ -18,12 +18,29 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: ${{ matrix.channel == 'nightly' }}
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: _workspace/moonbook
     strategy:
       fail-fast: false
       matrix:
         channel: [latest, nightly]
     steps:
       - uses: actions/checkout@v5
+        with:
+          path: _workspace/moonbook
+      - name: Check out exact MoonLib source dependency
+        uses: actions/checkout@v5
+        with:
+          repository: vectie/moonlib
+          ref: be738629b039f5c4fc6ef73dadd149c030338402
+          path: _workspace/moonlib
+      - name: Check out exact MoonLeaf source dependency
+        uses: actions/checkout@v5
+        with:
+          repository: vectie/moonleaf
+          ref: f0ddbb21760a6f83c22fa7cd28f666b66d746e78
+          path: _workspace/moonleaf
       - name: Install MoonBit
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s "${{ matrix.channel }}"

@@ -60,7 +60,7 @@ pub async fn discover() -> Client {
       return { base_url, }
     }
   }
-  { base_url: DEFAULT_BASE_URL }
+  { base_url: DEFAULT_BASE_URL, }
 }
 
 ///|
@@ -204,9 +204,7 @@ pub async fn Client::post(
   body : Json,
 ) -> Result[Json, String] {
   let url = self.base_url + path
-  let client = @http.Client(url, headers={
-    "Content-Type": "application/json",
-  }) catch {
+  let client = @http.Client(url, headers={ "Content-Type": "application/json" }) catch {
     err => return Err("client error: \{err}")
   }
   defer client.close()

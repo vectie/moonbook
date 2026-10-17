@@ -45,7 +45,7 @@ pub fn default() -> Config {
       create_missing: false,
       use_default_preprocessors: true,
     },
-    rust: { edition: None },
+    rust: { edition: None, },
     output: {},
     preprocessor: {},
   }
@@ -100,7 +100,7 @@ fn decode_build_config(value : Json?) -> BuildConfig {
 ///|
 fn decode_rust_config(value : Json?) -> RustConfig {
   let object = json_object(value)
-  { edition: json_string(object, "edition") }
+  { edition: json_string(object, "edition"), }
 }
 
 ///|

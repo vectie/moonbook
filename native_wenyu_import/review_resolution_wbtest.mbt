@@ -418,7 +418,9 @@ async test "native review rejects root parent and destination symlinks without w
   let root = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-symlink-"))
   ignore(persist(root, native_wenyu_test_payload()))
   native_review_test_finalize(root, "approved")
-  let outside = @fs.realpath(@fs.tmpdir(prefix="moonbook-review-link-container-"))
+  let outside = @fs.realpath(
+    @fs.tmpdir(prefix="moonbook-review-link-container-"),
+  )
   @fs.symlink(target=root, outside + "/linked-root")
   assert_eq(
     native_review_test_query(outside + "/linked-root").status,

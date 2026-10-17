@@ -379,7 +379,7 @@ fn normalize_test_results(
     if !result.passed {
       issues.push(EvaluationTestFailed(result.test_record.record_id))
     }
-    sorted.push({ ..result, evidence_refs: test_evidence })
+    sorted.push({ ..result, evidence_refs: test_evidence, })
   }
   sorted.sort_by(test_result_compare)
   let unique : Array[CapabilityTestResult] = []
@@ -417,7 +417,7 @@ fn normalize_metric_records(
         )
       }
     }
-    sorted.push({ ..record, evidence_refs: metric_evidence })
+    sorted.push({ ..record, evidence_refs: metric_evidence, })
   }
   sorted.sort_by(metric_record_compare)
   let unique : Array[CapabilityMetricRecord] = []

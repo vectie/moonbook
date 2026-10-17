@@ -71,7 +71,7 @@ fn bk3_work_reviewer(
   authority_ref? : String = "authority-work-human",
   authorized? : Bool = true,
 ) -> @bookkeeper.ReviewerAuthority {
-  { reviewer_id, authority_ref, authorized, evidence_refs: ["evidence-1"] }
+  { reviewer_id, authority_ref, authorized, evidence_refs: ["evidence-1"], }
 }
 
 ///|
@@ -129,7 +129,11 @@ fn bk3_result_reference(
   version? : String = "1",
   digest? : String = "sha256:work-result",
 ) -> @bookkeeper.VersionedRecordReference {
-  { record_id: "work-result-1", record_version: version, record_digest: digest }
+  {
+    record_id: "work-result-1",
+    record_version: version,
+    record_digest: digest,
+  }
 }
 
 ///|
@@ -191,7 +195,11 @@ fn bk3_rollback(
   version? : String = "1",
   digest? : String = "sha256:rollback",
 ) -> @bookkeeper.VersionedRecordReference {
-  { record_id: "rollback-plan", record_version: version, record_digest: digest }
+  {
+    record_id: "rollback-plan",
+    record_version: version,
+    record_digest: digest,
+  }
 }
 
 ///|
@@ -445,8 +453,8 @@ test "BK-3 result candidate rejects stale proposal receipt and capability links"
     review,
     work_order,
     result=bk3_result_reference(),
-    old_capability={ ..bk3_old_capability(), record_version: "3" },
-    new_capability={ ..bk3_new_capability(), record_version: "6" },
+    old_capability={ ..bk3_old_capability(), record_version: "3", },
+    new_capability={ ..bk3_new_capability(), record_version: "6", },
     changed_artifacts=bk3_changed_artifacts(),
     evidence_refs=[canonical_evidence(), bk3_evidence("result-evidence")],
   )
@@ -563,7 +571,7 @@ test "BK-3 evaluation requires evidence tests metrics and versioned rollback" {
     evidence_refs=[],
     metric_records=[],
     declared_result=Passed,
-    rollback={ record_id: "", record_version: "", record_digest: "" },
+    rollback={ record_id: "", record_version: "", record_digest: "", },
   )
   assert_false(evaluation.is_passing())
   assert_true(evaluation.issues.contains(EvaluationEvidenceMissing))
@@ -694,7 +702,7 @@ test "BK-4 authorized receipt projects a separate non-applying activation reques
       max_observations=8,
       experiment=request.experiment,
       activation_review=request.activation_review,
-      activation_reviewer={ ..activation_reviewer, authorized: false },
+      activation_reviewer={ ..activation_reviewer, authorized: false, },
       requested_at=100L,
     )
     is None,
@@ -908,7 +916,7 @@ test "BK-3 adoption rejects stale evidence versions and rollback" {
     requested=Accept,
     old_capability=bk3_old_capability(),
     new_capability=bk3_new_capability(),
-    rollback={ ..bk3_rollback(), record_version: "0" },
+    rollback={ ..bk3_rollback(), record_version: "0", },
   )
   let decision = bk3_decide(
     proposal,
@@ -952,8 +960,8 @@ test "BK-3 adoption rejects stale old and new capability versions" {
     reviewer~,
     evidence_refs=bk3_adoption_evidence(),
     requested=Accept,
-    old_capability={ ..bk3_old_capability(), record_version: "3" },
-    new_capability={ ..bk3_new_capability(), record_version: "6" },
+    old_capability={ ..bk3_old_capability(), record_version: "3", },
+    new_capability={ ..bk3_new_capability(), record_version: "6", },
     rollback=bk3_rollback(),
   )
   let decision = bk3_decide(

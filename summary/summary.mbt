@@ -96,7 +96,7 @@ pub fn parse_summary(summary : String) -> Summary raise {
         }
         let next = next_number(current_numbers, depth)
         current_numbers = next.copy()
-        let numbered = { ..link, number: Some(@core.SectionNumber::new(next)) }
+        let numbered = { ..link, number: Some(@core.SectionNumber::new(next)), }
         stack.push((depth, numbered))
       } else {
         fail("Invalid SUMMARY nesting")
@@ -120,7 +120,7 @@ pub fn parse_summary(summary : String) -> Summary raise {
   check_duplicate_files(prefix_chapters, {})
   check_duplicate_files(numbered_chapters, {})
   check_duplicate_files(suffix_chapters, {})
-  { title, prefix_chapters, numbered_chapters, suffix_chapters }
+  { title, prefix_chapters, numbered_chapters, suffix_chapters, }
 }
 
 ///|

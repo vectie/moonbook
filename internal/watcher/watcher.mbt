@@ -78,7 +78,7 @@ pub fn parse_watch_args(args : Array[String]) -> WatchOptions? {
         }
     }
   }
-  Some({ root, interval_ms: 1000, dest_dir, open_browser, watcher_kind })
+  Some({ root, interval_ms: 1000, dest_dir, open_browser, watcher_kind, })
 }
 
 ///|
@@ -118,7 +118,7 @@ async fn scan_path(
       }
     _ => {
       let mtime = @fsx.mtime(path).unwrap_or(0L)
-      states[path] = { path, kind: file_kind_name(kind), mtime }
+      states[path] = { path, kind: file_kind_name(kind), mtime, }
     }
   }
 }
@@ -176,7 +176,7 @@ pub async fn load_watch_filter(book_root : String) -> WatchFilter? {
   if patterns.is_empty() {
     None
   } else {
-    Some({ root: @pathx.normalize(book_root), patterns })
+    Some({ root: @pathx.normalize(book_root), patterns, })
   }
 }
 
@@ -335,12 +335,12 @@ test "parse watch args supports optional root" {
 ///|
 test "changed paths detects adds removes and updates" {
   let previous : Map[String, FileState] = {
-    "a.md": { path: "a.md", kind: "regular", mtime: 1L },
-    "b.md": { path: "b.md", kind: "regular", mtime: 1L },
+    "a.md": { path: "a.md", kind: "regular", mtime: 1L, },
+    "b.md": { path: "b.md", kind: "regular", mtime: 1L, },
   }
   let current : Map[String, FileState] = {
-    "a.md": { path: "a.md", kind: "regular", mtime: 2L },
-    "c.md": { path: "c.md", kind: "regular", mtime: 1L },
+    "a.md": { path: "a.md", kind: "regular", mtime: 2L, },
+    "c.md": { path: "c.md", kind: "regular", mtime: 1L, },
   }
   assert_true(changed_paths(previous, current) == ["a.md", "b.md", "c.md"])
 }
@@ -365,7 +365,10 @@ test "gitignore matching handles directories files and globs" {
 
 ///|
 test "ignored path uses root relative matching but keeps gitignore visible" {
-  let filter : WatchFilter = { root: "/tmp/book", patterns: ["book/", "*.tmp"] }
+  let filter : WatchFilter = {
+    root: "/tmp/book",
+    patterns: ["book/", "*.tmp"],
+  }
   assert_true(is_ignored_path("/tmp/book/book/index.html", Some(filter)))
   assert_true(is_ignored_path("/tmp/book/src/note.tmp", Some(filter)))
   assert_false(is_ignored_path("/tmp/book/.gitignore", Some(filter)))
