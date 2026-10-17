@@ -54,9 +54,13 @@ test "static search reserves only its generated directory before writing" {
     ),
   ])
   assert_true(
-    (try? check_static_search_paths(
-      new_render_context("root", "output", config, collision),
-    ))
+    (Ok(
+      check_static_search_paths(
+        new_render_context("root", "output", config, collision),
+      ),
+    ) catch {
+      error => Err(error)
+    })
     is Err(_),
   )
   let allowed = @core.new_with_items([
@@ -78,9 +82,13 @@ test "static search reserves only its generated directory before writing" {
     ),
   ])
   assert_true(
-    (try? check_static_search_paths(
-      new_render_context("root", "output", config, asset),
-    ))
+    (Ok(
+      check_static_search_paths(
+        new_render_context("root", "output", config, asset),
+      ),
+    ) catch {
+      error => Err(error)
+    })
     is Err(_),
   )
   assert_true(is_static_search_reserved("one/../__moonbook/search.html"))
@@ -125,9 +133,13 @@ test "static search escapes every title delimiter and refuses a colliding 404" {
     "output": { "html": { "input-404": "__moonbook/search.md" } },
   })
   assert_true(
-    (try? check_static_search_paths(
-      new_render_context("root", "output", collision, @core.new()),
-    ))
+    (Ok(
+      check_static_search_paths(
+        new_render_context("root", "output", collision, @core.new()),
+      ),
+    ) catch {
+      error => Err(error)
+    })
     is Err(_),
   )
 }

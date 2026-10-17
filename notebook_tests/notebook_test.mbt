@@ -49,7 +49,7 @@ async test "ordinary build adds notebook using current listed chapters without m
     summary + "- [Missing](missing.md)\n",
     create_mode=CreateOrTruncate,
   )
-  assert_true((try? @driver.load(root)) is Err(_))
+  assert_true((Ok(@driver.load(root)) catch { error => Err(error) }) is Err(_))
   assert_eq(@fs.read_file(output).text(), page)
   @fs.write_file(
     root + "/src/SUMMARY.md",

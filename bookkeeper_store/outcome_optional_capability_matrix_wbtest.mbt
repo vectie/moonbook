@@ -150,9 +150,11 @@ async test "submission and closure reject partial null and non-no-gap omission m
   for item in cases {
     let wire = lesson_handoff_field(item, "wire")
     let accepted = if lesson_handoff_text(item, "kind") == "submission" {
-      let decoded : Result[ProductOutcomeSubmission, Error] = try? @json.from_json(
-        wire,
-      )
+      let decoded : Result[ProductOutcomeSubmission, Error] = Ok(
+        @json.from_json(wire),
+      ) catch {
+        error => Err(error)
+      }
       match decoded {
         Err(_) => false
         Ok(value) => {
@@ -161,9 +163,11 @@ async test "submission and closure reject partial null and non-no-gap omission m
         }
       }
     } else {
-      let decoded : Result[ProductOutcomeClosureRequest, Error] = try? @json.from_json(
-        wire,
-      )
+      let decoded : Result[ProductOutcomeClosureRequest, Error] = Ok(
+        @json.from_json(wire),
+      ) catch {
+        error => Err(error)
+      }
       match decoded {
         Err(_) => false
         Ok(value) => {

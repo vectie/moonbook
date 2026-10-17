@@ -16,9 +16,11 @@ impl @cmd.Scheduler for LiveTestScheduler with fn run_effect(
 impl @cmd.Scheduler for LiveTestScheduler with fn queue_message(
   _self,
   _id,
-  send,
+  _message,
 ) {
-  send()
+  // This fixture runs the legacy callback dispatch through Scheduler::add.
+  // Indexed runtime messages require a mounted component and must fail here.
+  abort("Unexpected indexed message in the immediate callback fixture")
 }
 
 ///|

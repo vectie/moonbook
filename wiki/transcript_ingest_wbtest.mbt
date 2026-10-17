@@ -80,7 +80,12 @@ test "transcript rejects malformed timing empty bodies invalid UTF8 and bounded 
       "WEBVTT\n\n00:00.000 --> 00:01.000\n" + "x".repeat(16385),
       "WEBVTT\n\n" + "00:00.000 --> 00:01.000\nBody\n\n".repeat(5001),
     ] {
-    assert_true((try? parse_transcript(@utf8.encode(input), true)) is Err(_))
+    assert_true(
+      (Ok(parse_transcript(@utf8.encode(input), true)) catch {
+        error => Err(error)
+      })
+      is Err(_),
+    )
   }
   for
     input in [
@@ -88,10 +93,18 @@ test "transcript rejects malformed timing empty bodies invalid UTF8 and bounded 
       "1\n00:00:00.000 --> 00:00:01.000\nWrong separator", "1\n00:00:00,000 --> 00:00:01,000 align:start\nSettings",
       "1\n00:00,000 --> 00:01,000\nMissing hour",
     ] {
-    assert_true((try? parse_transcript(@utf8.encode(input), false)) is Err(_))
+    assert_true(
+      (Ok(parse_transcript(@utf8.encode(input), false)) catch {
+        error => Err(error)
+      })
+      is Err(_),
+    )
   }
   assert_true(
-    (try? parse_transcript(Bytes::from_array([0xFF, 0x00]), true)) is Err(_),
+    (Ok(parse_transcript(Bytes::from_array([0xFF, 0x00]), true)) catch {
+      error => Err(error)
+    })
+    is Err(_),
   )
 }
 

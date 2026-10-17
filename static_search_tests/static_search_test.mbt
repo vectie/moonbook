@@ -68,7 +68,7 @@ async test "ordinary load and build produce offline search and refresh it from a
     summary + "- [Missing](missing.md)\n",
     create_mode=CreateOrTruncate,
   )
-  assert_true((try? @driver.load(root)) is Err(_))
+  assert_true((Ok(@driver.load(root)) catch { error => Err(error) }) is Err(_))
   assert_eq(@fs.read_file(generated).text(), second)
   assert_eq(@fs.read_file(root + "/src/intro.md").text(), revised)
   @fs.write_file(
@@ -100,7 +100,7 @@ async test "reserved chapter output reports conflict without replacing any gener
     create_mode=CreateOrTruncate,
   )
   let loaded = @driver.load(root)
-  assert_true((try? loaded.build()) is Err(_))
+  assert_true((Ok(loaded.build()) catch { error => Err(error) }) is Err(_))
   assert_eq(@fs.read_file(root + "/src/__moonbook/search.md").text(), chapter)
   assert_eq(
     @fs.read_file(root + "/book/__moonbook/search.html").text(),

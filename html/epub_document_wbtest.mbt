@@ -84,34 +84,55 @@ test "epub gives repairable errors for content outside the supported projection"
   let targets = { "start.md": "chapter-1.xhtml" }
   let anchors = { "chapter-1.xhtml": { "present": () } }
   assert_true(
-    (try? epub_chapter_link("start.md", "#absent", targets, anchors)) is Err(_),
-  )
-  assert_true(
-    (try? epub_chapter_link("start.md", "start.md?mode=all", targets, anchors))
+    (Ok(epub_chapter_link("start.md", "#absent", targets, anchors)) catch {
+      error => Err(error)
+    })
     is Err(_),
   )
   assert_true(
-    (try? epub_image_link("start.md", "https://example.com/a.png", []))
+    (Ok(epub_chapter_link("start.md", "start.md?mode=all", targets, anchors)) catch {
+      error => Err(error)
+    })
     is Err(_),
   )
   assert_true(
-    (try? epub_image_link("start.md", "../private.png", [])) is Err(_),
+    (Ok(epub_image_link("start.md", "https://example.com/a.png", [])) catch {
+      error => Err(error)
+    })
+    is Err(_),
   )
-  assert_true((try? epub_image_link("start.md", "drawing.svg", [])) is Err(_))
+  assert_true(
+    (Ok(epub_image_link("start.md", "../private.png", [])) catch {
+      error => Err(error)
+    })
+    is Err(_),
+  )
+  assert_true(
+    (Ok(epub_image_link("start.md", "drawing.svg", [])) catch {
+      error => Err(error)
+    })
+    is Err(_),
+  )
   for
     body in [
       "<script>run()</script>", "<video src=\"film.mp4\"></video>", "<p style=\"background:url(remote.png)\">x</p>",
     ] {
     let element = @xml.parse(body)
     assert_true(
-      (try? epub_rewrite_element(element, "start.md", targets, anchors, []))
+      (Ok(epub_rewrite_element(element, "start.md", targets, anchors, [])) catch {
+        error => Err(error)
+      })
       is Err(_),
     )
   }
   assert_true(
-    (try? epub_chapter_document(
-      @core.chapter("Bad", "<div>unclosed", path=Some("bad.md")),
-    ))
+    (Ok(
+      epub_chapter_document(
+        @core.chapter("Bad", "<div>unclosed", path=Some("bad.md")),
+      ),
+    ) catch {
+      error => Err(error)
+    })
     is Err(_),
   )
 }
@@ -122,6 +143,11 @@ test "epub detects unsupported image signatures and XML control text" {
   assert_true(epub_image_signature(b"GIF89a", "image/gif"))
   assert_true(epub_image_signature(b"\xff\xd8\xff", "image/jpeg"))
   assert_false(epub_image_signature(b"not an image", "image/png"))
-  assert_true((try? epub_validate_xml_text("invalid\u0000text")) is Err(_))
+  assert_true(
+    (Ok(epub_validate_xml_text("invalid\u0000text")) catch {
+      error => Err(error)
+    })
+    is Err(_),
+  )
   epub_validate_xml_text("Résumé 東京 😀\n")
 }

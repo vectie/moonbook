@@ -71,26 +71,43 @@ async test "Book atomically persists exact payloads and refuses stale partial re
     payloads: [batch.payloads[0]],
   }
   assert_true(
-    (try? @policy_artifact_store.append_batch(path, partial)) is Err(_),
+    (Ok(@policy_artifact_store.append_batch(path, partial)) catch {
+      error => Err(error)
+    })
+    is Err(_),
   )
   assert_eq(@policy_artifact_store.read_journal(path).version, 0)
   let wrong = {
     ..batch,
     payloads: [{ ..batch.payloads[0], content: "changed", }, batch.payloads[1]],
   }
-  assert_true((try? @policy_artifact_store.append_batch(path, wrong)) is Err(_))
+  assert_true(
+    (Ok(@policy_artifact_store.append_batch(path, wrong)) catch {
+      error => Err(error)
+    })
+    is Err(_),
+  )
   assert_eq(@policy_artifact_store.read_journal(path).version, 0)
   let saved = @policy_artifact_store.append_batch(path, batch)
   assert_eq(saved.receipts.length(), 2)
   let acknowledged = @policy_artifact_store.read_journal(path)
   assert_eq(acknowledged.version, 1)
   assert_eq(acknowledged.batches[0].batch.payloads, batch.payloads)
-  assert_true((try? @policy_artifact_store.append_batch(path, batch)) is Err(_))
   assert_true(
-    (try? @policy_artifact_store.append_batch(
-      path,
-      fixture_batch("writer2", "0", ["DraftVersion", "ClaimTrace"]),
-    ))
+    (Ok(@policy_artifact_store.append_batch(path, batch)) catch {
+      error => Err(error)
+    })
+    is Err(_),
+  )
+  assert_true(
+    (Ok(
+      @policy_artifact_store.append_batch(
+        path,
+        fixture_batch("writer2", "0", ["DraftVersion", "ClaimTrace"]),
+      ),
+    ) catch {
+      error => Err(error)
+    })
     is Err(_),
   )
   assert_eq(@policy_artifact_store.read_journal(path), acknowledged)
@@ -102,7 +119,10 @@ async test "Book interruption leaves old journal and rejects forged capability o
   let batch = fixture_batch("writer1", "0", ["DraftVersion", "ClaimTrace"])
   let wrong_mode = { ..batch, execution_mode: "live-provider", }
   assert_true(
-    (try? @policy_artifact_store.append_batch(path, wrong_mode)) is Err(_),
+    (Ok(@policy_artifact_store.append_batch(path, wrong_mode)) catch {
+      error => Err(error)
+    })
+    is Err(_),
   )
   @fs.write_file(
     path +
@@ -115,7 +135,12 @@ async test "Book interruption leaves old journal and rejects forged capability o
     "partial",
     create_mode=CreateNew,
   )
-  assert_true((try? @policy_artifact_store.append_batch(path, batch)) is Err(_))
+  assert_true(
+    (Ok(@policy_artifact_store.append_batch(path, batch)) catch {
+      error => Err(error)
+    })
+    is Err(_),
+  )
   assert_eq(@policy_artifact_store.read_journal(path).version, 0)
   assert_true(
     @fs.exists(
@@ -138,10 +163,20 @@ async test "Book corrupt receipt and symlink journal fail closed" {
   let snapshot = @policy_artifact_store.read_journal(path)
   let bad = { ..snapshot, version: 2, }
   @fs.write_file(path + "/snapshot.json", bad.to_json().stringify())
-  assert_true((try? @policy_artifact_store.read_journal(path)) is Err(_))
+  assert_true(
+    (Ok(@policy_artifact_store.read_journal(path)) catch {
+      error => Err(error)
+    })
+    is Err(_),
+  )
   let linked = root("book-symlink")
   @fs.symlink(target=path + "/snapshot.json", linked + "/snapshot.json")
-  assert_true((try? @policy_artifact_store.read_journal(linked)) is Err(_))
+  assert_true(
+    (Ok(@policy_artifact_store.read_journal(linked)) catch {
+      error => Err(error)
+    })
+    is Err(_),
+  )
 }
 
 ///|
@@ -179,7 +214,10 @@ async test "Book payload limit counts UTF8 bytes below exact and above one MiB a
     payload_content=above,
   )
   assert_true(
-    (try? @policy_artifact_store.append_batch(path, above_batch)) is Err(_),
+    (Ok(@policy_artifact_store.append_batch(path, above_batch)) catch {
+      error => Err(error)
+    })
+    is Err(_),
   )
   assert_eq(@fs.read_file(path + "/snapshot.json").binary(), acknowledged)
   let reproduced = "中".repeat(600000)
@@ -191,7 +229,10 @@ async test "Book payload limit counts UTF8 bytes below exact and above one MiB a
     payload_content=reproduced,
   )
   assert_true(
-    (try? @policy_artifact_store.append_batch(path, regression)) is Err(_),
+    (Ok(@policy_artifact_store.append_batch(path, regression)) catch {
+      error => Err(error)
+    })
+    is Err(_),
   )
   assert_eq(@fs.read_file(path + "/snapshot.json").binary(), acknowledged)
   assert_eq(@policy_artifact_store.read_journal(path).version, 2)

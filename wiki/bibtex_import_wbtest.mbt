@@ -89,21 +89,28 @@ test "BibTeX parser rejects repairable malformed unsupported and ambiguous input
       "@article{k,title={A},abstract={" + "x".repeat(131073) + "}}",
     ] {
     assert_true(
-      (try? parse_bibtex(input)) is Err(_),
+      (Ok(parse_bibtex(input)) catch { error => Err(error) }) is Err(_),
       msg="Expected rejection: " + input[:input.length().min(80)].to_owned(),
     )
   }
   let many = Array::makei(501, i => "@misc{k\{i},title={A}}")
-  assert_true((try? parse_bibtex(many.join("\n"))) is Err(_))
+  assert_true(
+    (Ok(parse_bibtex(many.join("\n"))) catch { error => Err(error) }) is Err(_),
+  )
   let fields = Array::makei(1000, i => "f\{i}={x}")
   assert_true(
-    (try? parse_bibtex("@misc{k,title={A}," + fields.join(",") + "}")) is Err(_),
+    (Ok(parse_bibtex("@misc{k,title={A}," + fields.join(",") + "}")) catch {
+      error => Err(error)
+    })
+    is Err(_),
   )
   let big = "x".repeat(65536)
   assert_true(
-    (try? parse_bibtex(
-      "@string{s={" + big + "}} @misc{k,title={A},abstract=s#s#s}",
-    ))
+    (Ok(
+      parse_bibtex("@string{s={" + big + "}} @misc{k,title={A},abstract=s#s#s}"),
+    ) catch {
+      error => Err(error)
+    })
     is Err(_),
   )
 }
@@ -199,7 +206,9 @@ async test "BibTeX malformed later entry preserves raw bytes without partially i
   assert_eq(@fsx.read_file(workspace_paths(root).summary_path), summary)
   assert_eq(@fsx.read_file(root + "/wiki/index.md"), index)
   @fsx.write_bytes(input, Bytes::from_array([0xFF]), create=0o644)
-  assert_true((try? import_bibtex(root, input)) is Err(_))
+  assert_true(
+    (Ok(import_bibtex(root, input)) catch { error => Err(error) }) is Err(_),
+  )
   assert_eq(
     @fsx.read_bytes(root + "/raw/imported/references-1.bib"),
     Bytes::from_array([0xFF]),

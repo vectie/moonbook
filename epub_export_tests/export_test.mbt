@@ -156,7 +156,9 @@ async test "export reads SUMMARY into a portable ebook then refreshes after edit
     summary + "- [Absent](missing.md)\n",
     create_mode=CreateOrTruncate,
   )
-  assert_true((try? @driver.export_epub(root)) is Err(_))
+  assert_true(
+    (Ok(@driver.export_epub(root)) catch { error => Err(error) }) is Err(_),
+  )
   assert_false(@fs.exists(root + "/src/missing.md"))
   assert_eq(@fs.read_file(destination).binary(), revised)
   write_sources(root, sources)
@@ -176,7 +178,9 @@ async test "empty or source-overlapping export leaves the source tree intact" {
     ("src/SUMMARY.md", "# Summary\n"),
     ("book.toml", "[book]\ntitle = \"Empty\"\n"),
   ])
-  assert_true((try? @driver.export_epub(root)) is Err(_))
+  assert_true(
+    (Ok(@driver.export_epub(root)) catch { error => Err(error) }) is Err(_),
+  )
   assert_false(@fs.exists(root + "/book/__moonbook/book.epub"))
   write_sources(root, [
     ("src/SUMMARY.md", "# Summary\n\n- [A](a.md)\n"),

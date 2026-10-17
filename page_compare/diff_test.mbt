@@ -68,10 +68,16 @@ test "comparison ambiguity chooses removals first and aligns insertions" {
 ///|
 test "comparison enforces complete-page bounds before alignment" {
   assert_true(
-    (try? @page_compare.compare_page_text("x".repeat(262145), "")) is Err(_),
+    (Ok(@page_compare.compare_page_text("x".repeat(262145), "")) catch {
+      error => Err(error)
+    })
+    is Err(_),
   )
   assert_true(
-    (try? @page_compare.compare_page_text("", "x\n".repeat(1001))) is Err(_),
+    (Ok(@page_compare.compare_page_text("", "x\n".repeat(1001))) catch {
+      error => Err(error)
+    })
+    is Err(_),
   )
   let bounded = @page_compare.compare_page_text(
     "x\n".repeat(1000),

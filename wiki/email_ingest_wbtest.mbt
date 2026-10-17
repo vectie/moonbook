@@ -132,9 +132,15 @@ test "EML malformed and unsupported messages reject without inventing usable tex
       boundary +
       "--\n"
   }
-  assert_true((try? parse_email(@utf8.encode(deep))) is Err(_))
   assert_true(
-    (try? parse_email(Bytes::from_array([0xFF, 0x0A, 0x0A, 0xFF]))) is Err(_),
+    (Ok(parse_email(@utf8.encode(deep))) catch { error => Err(error) })
+    is Err(_),
+  )
+  assert_true(
+    (Ok(parse_email(Bytes::from_array([0xFF, 0x0A, 0x0A, 0xFF]))) catch {
+      error => Err(error)
+    })
+    is Err(_),
   )
 }
 

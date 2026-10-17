@@ -1820,9 +1820,9 @@ async fn post_bookkeeper_mutation(
   let response = await_bookkeeper_response(
     post_bookkeeper_json(route, payload.stringify()),
   )
-  let decoded : Result[BookkeeperMutationResult, Error] = try? @json.from_json(
+  let decoded : Result[BookkeeperMutationResult, Error] = (try Ok(@json.from_json(
     @json.parse(response.body),
-  )
+  )) catch { error => Err(error) })
   match decoded {
     Ok(result) =>
       if response.ok {
@@ -1866,9 +1866,9 @@ async fn post_bookkeeper_replay() -> Result[BookkeeperStoreSnapshot, String] nor
       response.error.unwrap_or("Replay failed with HTTP \{response.status}"),
     )
   }
-  let decoded : Result[BookkeeperStoreSnapshot, Error] = try? @json.from_json(
+  let decoded : Result[BookkeeperStoreSnapshot, Error] = (try Ok(@json.from_json(
     @json.parse(response.body),
-  )
+  )) catch { error => Err(error) })
   match decoded {
     Ok(snapshot) => Ok(snapshot)
     Err(error) => Err("Replay returned invalid state: \{error}")
@@ -2133,9 +2133,9 @@ fn update_core(
       if model.bookkeeper_busy {
         return (@rabbita.none, model)
       }
-      let parsed : Result[Json, Error] = try? @json.parse(
+      let parsed : Result[Json, Error] = (try Ok(@json.parse(
         model.bookkeeper_draft,
-      )
+      )) catch { error => Err(error) })
       match parsed {
         Ok(payload) =>
           (
