@@ -83,7 +83,7 @@ pub fn Client::base_url(self : Client) -> String {
 
 ///|
 fn moongate_active_workspace_root() -> String {
-  @sys.get_env_var("PWD").unwrap_or(".")
+  @env.get_env_var("PWD").unwrap_or(".")
 }
 
 ///|
