@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: vectie/moonlib
-          ref: 410ae0da4cdaf2de5da22da59c682f8619c1355b
+          ref: 6de9dc03b14785b90d59819383b725e9eeecdb0a
           path: _workspace/moonlib
       - name: Check out exact MoonLeaf source dependency
         uses: actions/checkout@v5
