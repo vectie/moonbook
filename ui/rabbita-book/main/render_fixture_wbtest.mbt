@@ -24,6 +24,9 @@ extern "js" fn book_test_ssr_window(restore : Bool) -> Unit =
   #|   const had = Object.prototype.hasOwnProperty.call(globalThis, "window");
   #|   const value = globalThis.window; const scopes = globalThis[key] || (globalThis[key] = []);
   #|   const temporary = Object.create(value && typeof value === "object" ? value : null);
+  #|   if (!value?.location?.href) {
+  #|     Object.defineProperty(temporary, "location", {value: Object.assign(new URL("http://localhost/"), value?.location || {}), configurable: true});
+  #|   }
   #|   const frame = typeof value?.requestAnimationFrame === "function" ? value.requestAnimationFrame.bind(value) : callback => { queueMicrotask(() => callback(performance.now())); return 0; };
   #|   Object.defineProperty(temporary, "requestAnimationFrame", {value: frame, configurable: true});
   #|   scopes.push({had, value}); globalThis.window = temporary;
